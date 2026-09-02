@@ -1,0 +1,15 @@
+{
+  "name": "wb-agent-whatsapp-bridge",
+  "version": "1.0.0",
+  "description": "WhatsApp Multi-Device Baileys Bridge for WB-Agent",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "^6.7.14",
+    "express": "^4.19.2",
+    "pino": "^9.0.0"
+  }
+}

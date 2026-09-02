@@ -27,6 +27,9 @@ class WhatsAppService:
                     app_secret=settings.WHATSAPP_WEBHOOK_SECRET,
                     api_version=settings.WHATSAPP_API_VERSION,
                 )
+            elif settings.WHATSAPP_PROVIDER == "bridge":
+                from app.whatsapp.providers.bridge import BridgeWhatsAppProvider
+                cls._instance = BridgeWhatsAppProvider()
             else:
                 cls._instance = SimulatorWhatsAppProvider(
                     verify_token=settings.WHATSAPP_VERIFY_TOKEN
