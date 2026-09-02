@@ -54,15 +54,21 @@ export default function DashboardOverview() {
   ]);
 
   useEffect(() => {
-    fetch("/api/v1/analytics/overview")
-      .then((r) => r.ok && r.json())
-      .then((data) => data && setMetrics(data))
-      .catch(() => {});
+    const loadOverview = () => {
+      fetch("/api/v1/analytics/overview")
+        .then((r) => r.ok && r.json())
+        .then((data) => data && setMetrics(data))
+        .catch(() => {});
 
-    fetch("/api/v1/analytics/funnel")
-      .then((r) => r.ok && r.json())
-      .then((data) => data && Array.isArray(data) && setFunnel(data))
-      .catch(() => {});
+      fetch("/api/v1/analytics/funnel")
+        .then((r) => r.ok && r.json())
+        .then((data) => data && Array.isArray(data) && setFunnel(data))
+        .catch(() => {});
+    };
+
+    loadOverview();
+    const interval = setInterval(loadOverview, 3000);
+    return () => clearInterval(interval);
   }, []);
 
   return (
