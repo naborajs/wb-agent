@@ -263,6 +263,14 @@ class AgentOrchestrator:
                 f"💬 *Latest Message:* \"{inbound_message}\"\n\n"
                 f"👉 *Recommended Action:* Open Dashboard to take over and share pro-forma invoice!"
             )
+            owner_notif = Notification(
+                org_id=self.org_id,
+                recipient=owner_phone,
+                notification_type="PURCHASE_INTENT",
+                content=owner_alert,
+            )
+            self.session.add(owner_notif)
+
             try:
                 from app.whatsapp.service import WhatsAppService
                 wa = WhatsAppService.get_provider()
