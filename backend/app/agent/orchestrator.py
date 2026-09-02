@@ -164,7 +164,12 @@ class AgentOrchestrator:
         # 4. Fetch Products for Matchmaking
         prod_res = await self.session.execute(select(Product).limit(5))
         available_products = [
-            {"id": p.id, "name": p.name, "grade": p.grade, "base_price": float(p.base_price_per_kg)}
+            {
+                "id": p.id,
+                "name": p.name,
+                "grade": getattr(p, "tea_grade", "Commercial Wholesale"),
+                "category": getattr(p, "category", "Tea"),
+            }
             for p in prod_res.scalars().all()
         ]
 
