@@ -187,15 +187,15 @@ class AgentOrchestrator:
         # 8. Standard Conversational Sales Logic
         else:
             # Plan next stage and score
-            if conv.sales_stage in ("NEW", "CONTACTED"):
-                target_stage = "DISCOVERY"
-                score_delta = +10
-            elif intent in ("price_inquiry", "sample_request") and conv.sales_stage == "DISCOVERY":
-                target_stage = "QUALIFIED"
-                score_delta = +15
-            elif intent == "objection":
+            if intent == "objection":
                 target_stage = "OBJECTION"
                 score_delta = +5
+            elif intent in ("price_inquiry", "sample_request") and conv.sales_stage in ("DISCOVERY", "NEW", "CONTACTED"):
+                target_stage = "QUALIFIED"
+                score_delta = +15
+            elif conv.sales_stage in ("NEW", "CONTACTED"):
+                target_stage = "DISCOVERY"
+                score_delta = +10
 
             # Execute relevant tools based on intent
             if intent in ("price_inquiry", "product_inquiry"):

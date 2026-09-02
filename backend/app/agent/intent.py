@@ -45,7 +45,7 @@ def detect_intent_and_objection(text: str) -> Tuple[str, float, str]:
     lower = text.lower().strip()
 
     # 1. Opt-out (WhatsApp anti-spam & consent requirement)
-    if lower in ("stop", "unsubscribe", "opt out", "cancel", "don't message", "band karo"):
+    if any(k in lower for k in ("stop", "unsubscribe", "opt out", "opt-out", "don't message", "do not message", "band karo")):
         return "opt_out", 1.0, "NONE"
 
     # 2. Explicit Human Takeover Request
@@ -53,11 +53,19 @@ def detect_intent_and_objection(text: str) -> Tuple[str, float, str]:
         return "human_request", 0.95, "TRUST"
 
     # 3. Purchase Intent
-    if any(k in lower for k in ("place the order", "place order", "buy now", "send invoice", "ready to order", "let's do it", "finalise order")):
+    if any(k in lower for k in (
+        "place the order", "place order", "buy now", "send invoice", "ready to order",
+        "let's do it", "finalise order", "finalize order", "finalize the order",
+        "finalise the order", "finalize", "finalise", "confirm order"
+    )):
         return "purchase_intent", 0.95, "NONE"
 
     # 4. Objections
-    if any(k in lower for k in ("too expensive", "expensive", "costly", "high price", "cheaper elsewhere", "kam karo")):
+    if any(k in lower for k in (
+        "too expensive", "expensive", "costly", "high price", "cheaper elsewhere",
+        "kam karo", "slightly high", "rate is high", "rate is slightly high", "cheaper",
+        "50% discount", "discount or", "current supplier", "other supplier", "competitor"
+    )):
         return "objection", 0.90, "PRICE"
 
     if any(k in lower for k in ("bad quality", "sample was bitter", "is it authentic", "fake", "original darjeeling")):
@@ -70,7 +78,7 @@ def detect_intent_and_objection(text: str) -> Tuple[str, float, str]:
     if any(k in lower for k in ("sample", "testing kit", "sample pack", "trial")):
         return "sample_request", 0.90, "NONE"
 
-    if any(k in lower for k in ("price", "rate", "cost", "quote", "discount", "per kg")):
+    if re.search(r"\b(price|prices|rate|rates|cost|costs|quote|quotes|discount|discounts|per kg)\b", lower):
         return "price_inquiry", 0.88, "NONE"
 
     # 6. Product Inquiry

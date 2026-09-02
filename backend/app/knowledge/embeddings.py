@@ -23,6 +23,11 @@ class EmbeddingProvider(ABC):
         """Generates normalized vector embeddings for a list of text strings."""
         pass
 
+    async def embed_text(self, text: str) -> List[float]:
+        """Convenience method to embed a single text string."""
+        res = await self.embed_texts([text])
+        return res[0]
+
     @property
     @abstractmethod
     def dimension(self) -> int:
@@ -102,8 +107,24 @@ class NvidiaEmbeddingProvider(EmbeddingProvider):
             "encoding_format": "float",
         }
 
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            resp = await client.post(url, json=payload, headers=headers)
-            resp.raise_for_status()
-            data = resp.json()
-            return [item["embedding"] for item in data["data"]]
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                resp = await client.post(url, json=payload, headers=headers)
+                resp.raise_for_status()
+                data = resp.json()
+                return [item["embedding"] for item in data["data"]]
+        except Exception as e:
+            logger.warning(f"NVIDIA Embedding API call failed ({e}). Falling back to LocalMockEmbeddingProvider.")
+            return await LocalMockEmbeddingProvider(dimension=self._dim).embed_texts(texts)
+
+
+def get_embedding_provider() -> EmbeddingProvider:
+    """Factory creating configured embedding provider with mock fallback."""
+    if settings.NVIDIA_API_KEY and not settings.NVIDIA_API_KEY.startswith("nvapi-mock"):
+        return NvidiaEmbeddingProvider(
+            api_key=settings.NVIDIA_API_KEY,
+            base_url=settings.NVIDIA_BASE_URL,
+            model=settings.NVIDIA_EMBEDDING_MODEL,
+        )
+    return LocalMockEmbeddingProvider()
+

@@ -139,11 +139,12 @@ async def test_agent_simulate_api(app_client):
 @pytest.mark.asyncio
 async def test_whatsapp_webhook_verification_and_reception(app_client):
     # 1. GET verification challenge
+    from app.config import settings
     res = await app_client.get(
         "/api/v1/webhooks/whatsapp",
         params={
             "hub.mode": "subscribe",
-            "hub.verify_token": "wb_agent_verify_token",
+            "hub.verify_token": settings.WHATSAPP_VERIFY_TOKEN,
             "hub.challenge": "challenge_123456",
         }
     )

@@ -18,6 +18,7 @@ router = APIRouter(prefix="/webhooks", tags=["Webhooks"])
 
 @router.get("/whatsapp")
 async def verify_whatsapp_webhook(
+    request: Request,
     hub_mode: str = Query(None, alias="hub.mode"),
     hub_verify_token: str = Query(None, alias="hub.verify_token"),
     hub_challenge: str = Query(None, alias="hub.challenge"),
@@ -25,10 +26,14 @@ async def verify_whatsapp_webhook(
     """
     Handles Meta WhatsApp GET verification request.
     """
+    mode = hub_mode or request.query_params.get("hub.mode")
+    token = hub_verify_token or request.query_params.get("hub.verify_token")
+    challenge = hub_challenge or request.query_params.get("hub.challenge")
+
     wa = WhatsAppService.get_provider()
-    challenge = wa.verify_webhook(mode=hub_mode, token=hub_verify_token, challenge=hub_challenge)
-    if challenge:
-        return Response(content=challenge, media_type="text/plain")
+    verified = wa.verify_webhook(mode=mode, token=token, challenge=challenge)
+    if verified:
+        return Response(content=verified, media_type="text/plain")
     raise HTTPException(status_code=403, detail="Webhook verification failed.")
 
 
