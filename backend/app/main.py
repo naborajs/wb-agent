@@ -17,6 +17,7 @@ from app.api.routes import (
     products,
     settings as settings_router,
     webhooks,
+    ws,
 )
 from app.config import settings
 from app.utils.logging import logger
@@ -56,6 +57,7 @@ app.include_router(handoffs.router, prefix=api_v1)
 app.include_router(analytics.router, prefix=api_v1)
 app.include_router(webhooks.router, prefix=api_v1)
 app.include_router(settings_router.router, prefix=api_v1)
+app.include_router(ws.router, prefix=api_v1)
 
 
 @app.get("/")
