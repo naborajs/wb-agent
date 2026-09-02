@@ -140,6 +140,34 @@ Simulated buyer journeys include:
 
 ---
 
+## 📖 Comprehensive Knowledge Base & Documentation (Obsidian Vault)
+
+The complete platform documentation is organized as an interconnected **Obsidian knowledge base** under [`docs/`](docs/):
+
+- **🗺️ [[docs/index.md|Knowledge Base Index & Map of Content (MOC)]](docs/index.md)**
+- **🚀 Installation & Setup Guides**:
+  1. [[01-prerequisites-and-system-requirements|01. Prerequisites & System Requirements]](docs/setup/01-prerequisites-and-system-requirements.md)
+  2. [[02-database-and-pgvector-setup|02. PostgreSQL 16 & pgvector Setup]](docs/setup/02-database-and-pgvector-setup.md)
+  3. [[03-backend-setup|03. FastAPI Backend Setup]](docs/setup/03-backend-setup.md)
+  4. [[04-dashboard-frontend-setup|04. Next.js 14 Dashboard Setup]](docs/setup/04-dashboard-frontend-setup.md)
+  5. [[05-whatsapp-integration-guide|05. WhatsApp Simulator & Meta Cloud API]](docs/setup/05-whatsapp-integration-guide.md)
+  6. [[06-nvidia-nemotron-and-llm-setup|06. NVIDIA Nemotron & LLM Router]](docs/setup/06-nvidia-nemotron-and-llm-setup.md)
+  7. [[07-owner-escalation-channel|07. Owner Escalation Setup (+91 89006 53250)]](docs/setup/07-owner-escalation-channel.md)
+  8. [[08-end-to-end-verification|08. End-to-End Simulation & Verification]](docs/setup/08-end-to-end-verification.md)
+- **🏛️ Architecture & Engine Deep Dives**:
+  - [[conversational-state-machine|16-Stage Sales State Machine]](docs/architecture/conversational-state-machine.md)
+  - [[deterministic-pricing-engine|Deterministic Pricing & Margin Safety]](docs/architecture/deterministic-pricing-engine.md)
+  - [[multi-tier-memory-system|Multi-Tier Memory Architecture]](docs/architecture/multi-tier-memory-system.md)
+  - [[durable-queue-and-worker|Durable Queue with SKIP LOCKED]](docs/architecture/durable-queue-and-worker.md)
+- **🚨 Diagnostics & Solutions**:
+  - [[error-catalog-and-solutions|Comprehensive Error Catalog & Solutions]](docs/troubleshooting/error-catalog-and-solutions.md)
+- **⚙️ Operations & Reference**:
+  - [[operations-runbook|Operations Runbook & Kill-Switch]](docs/operations-runbook.md)
+  - [[api-reference|REST API & WebSocket Reference]](docs/api-reference.md)
+  - [[decisions/0001-postgresql-primary-storage|Architectural Decision Records (ADRs)]](docs/decisions/0001-postgresql-primary-storage.md)
+
+---
+
 ## 📄 License
 
 Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for details.
