@@ -378,8 +378,9 @@ class AgentOrchestrator:
         # 15. Enqueue Bounded Background Analysis Job (Section 8 & 9)
         try:
             from app.jobs.queue import JobQueue
-            queue = JobQueue(self.session, self.org_id)
+            queue = JobQueue(self.session)
             await queue.enqueue(
+                org_id=self.org_id,
                 job_type="background_analysis",
                 payload={"conversation_id": conversation_id, "analysis_type": "conversation_review"},
                 priority=2,
