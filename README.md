@@ -1,173 +1,184 @@
-# 🌿 WB-Agent: Autonomous AI Sales Agent Platform
+# ☕ EDITH — Autonomous AI Sales Agent Platform (WB-Agent)
 
-> **Production AI Sales Operating System for WhatsApp B2B Conversion & Pipeline Acceleration**  
-> Built for **North Bengal Tea Co.** (Estate-direct Darjeeling, Dooars, and Assam CTC wholesale supplier).
+> **Enterprise-grade, human-like autonomous conversational AI sales agent engineered for B2B wholesale conversion, intelligent consultative discovery, persistent memory, and deterministic pricing.**  
+> Built for **North Bengal Tea Co.** (Direct estate producer of Darjeeling, Dooars, and Assam CTC teas).
 
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-blue.svg)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110%2B-009688.svg)](https://fastapi.tiangolo.com/)
 [![Next.js 14](https://img.shields.io/badge/Next.js-14-black.svg)](https://nextjs.org/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16%20%2B%20pgvector-336791.svg)](https://www.postgresql.org/)
+[![NVIDIA NIM](https://img.shields.io/badge/NVIDIA-Nemotron--3.5--Lightning-76B900.svg)](https://build.nvidia.com/)
+[![WhatsApp](https://img.shields.io/badge/WhatsApp-Baileys%20%2B%20Meta%20Cloud-25D366.svg)](https://github.com/WhiskeySockets/Baileys)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/Tests-57%20Passed-brightgreen.svg)]()
 
 ---
 
-## 📌 Executive Summary
+## ⚡ Super Fast Quickstart (Up & Running in 2 Minutes)
 
-**WB-Agent** is an autonomous B2B conversational AI platform engineered to acquire, qualify, understand, nurture, and close legitimate business leads through WhatsApp. Unlike generic chatbots or brittle prompt wrappers, WB-Agent is a **stateful sales operating system** with:
-
-1. **Deterministic Pricing & Margin Safety**: The LLM *never* invents prices or discounts. All quotations are calculated by a deterministic pricing engine enforcing Minimum Order Quantities (MOQs), volume tiers, and strict negotiation boundaries (autonomous discount ceiling capped at 5.0%).
-2. **Customer Long-Term Memory**: Multi-layered persistent memory tracking business profiles, monthly volume requirements, tea grade preferences, and past objections across conversations.
-3. **Guaranteed Compliance & Cancellation Guards**: Automated Day 0, Day 1, Day 3 follow-up sequences automatically cancel the millisecond a buyer replies, opts out, or requests a live human operator.
-4. **Instant Owner Escalation**: High-priority buyer purchase intent, contract pricing requests, or complaints immediately dispatch formatted WhatsApp alerts directly to the business owner at `+91 89006 53250`.
-5. **Real-time Operator Control Center**: High-density 3-panel live inbox built with Next.js 14, Tailwind CSS, and WebSockets providing seamless human takeover (`Take Over` / `Resume AI`), lead directory, catalog management, and emergency kill-switches.
-
----
-
-## 🏛️ System Architecture
+Get EDITH running on your local machine, connected to your WhatsApp number, and ready to respond to real buyers in a few simple steps.
 
 ```mermaid
-graph TD
-    A[WhatsApp Cloud API / Simulator] -->|Webhook POST| B[FastAPI Backend /api/v1]
-    B -->|HMAC-SHA256 & Rate Limiter| C[Inbound Webhook Receiver]
-    C -->|SKIP LOCKED Enqueue| D[(PostgreSQL Durable Job Queue)]
-    
-    D -->|Worker Daemon Claim| E[Inbound Message Worker]
-    E -->|Turn-level Mutex| F[Conversation Lock]
-    
-    F -->|Load State & Memory| G[(PostgreSQL + pgvector)]
-    G --> H[Agent Orchestrator 15-Step Loop]
-    
-    H -->|Semantic Search| I[Knowledge Base Vector RAG]
-    H -->|Deterministic Calculation| J[Pricing & Margin Rules Engine]
-    H -->|LLM Reasoning & Intent| K[LLM Router: NVIDIA Nemotron / Fallback]
-    
-    K --> L[Defensive Response Validator]
-    L -->|Atomic Pre-Send State Check| M{Human Takeover Mode?}
-    M -->|AI Active| N[WhatsApp Provider Dispatch]
-    M -->|Human / Paused| O[Outbound Suppressed]
-    
-    H -->|Purchase Intent / Hot Lead| P[Owner WhatsApp Alert: +918900653250]
-    H -->|Event Broadcast| Q[WebSocket ConnectionManager]
-    Q -->|Live Updates| R[Next.js 14 Operator Control Center]
+flowchart LR
+    A[1. Clone Repo] --> B[2. Configure .env]
+    B --> C[3. Scan WhatsApp QR]
+    C --> D[4. Start Backend & Worker]
+    D --> E[5. Open Dashboard & Chat]
 ```
 
 ---
 
-## 💼 Business Domain: North Bengal Tea Co.
-
-| Attribute | Specification |
-| :--- | :--- |
-| **Company** | North Bengal Tea Co. |
-| **Origins** | Darjeeling (Kurseong, Mirik), Dooars & Terai, Upper Assam |
-| **Key Products** | Darjeeling Spring First Flush (FTGFOP1), Assam Kadak CTC (BP), Dooars Hotel Blend (BOP/OF) |
-| **Minimum Order Quantity** | 10 kg (Darjeeling), 25 kg (Assam CTC), 20 kg (Dooars) |
-| **Volume Discounts** | 50 kg (5%), 100 kg (10%), 500 kg (15% + Human Approval) |
-| **Autonomous Discount Cap** | 5.0% maximum |
-| **Escalation Target** | Rajiv Sen (Business Owner): `+91 89006 53250` |
-
----
-
-## 🚀 Quickstart Guide
-
-### Prerequisites
-- Python 3.11+
-- Node.js 18+ and npm
-- PostgreSQL 16+ with `pgvector` (or SQLite for lightweight local testing)
-
-### 1. Clone & Configure Environment
+### Step 1: Clone the Repository
 ```bash
 git clone https://github.com/naborajs/wb-agent.git
 cd wb-agent
+```
+
+---
+
+### Step 2: Environment Setup
+Copy the template configuration file:
+```bash
 cp .env.example .env
 ```
+Ensure your `.env` contains:
+```env
+# AI Model (NVIDIA Nemotron 3.5 Lightning via NVIDIA NIM)
+NVIDIA_API_KEY=your-nvapi-key-here
+NVIDIA_BASE_URL=https://integrate.api.nvidia.com/v1
+NVIDIA_MODEL=nvidia/nemotron-3.5-lightning-30b-a3b
+LLM_PROVIDER=nvidia
+LLM_MAX_TOKENS=2048
+LLM_REQUEST_TIMEOUT=60
 
-### 2. Backend Setup & Seeding
+# WhatsApp Integration (Linked Device Bridge)
+WHATSAPP_PROVIDER=bridge
+WHATSAPP_BRIDGE_URL=http://localhost:3001
+OWNER_WHATSAPP_NUMBER=+918900653250
+```
+
+---
+
+### Step 3: Connect WhatsApp (Super Easy QR Scan)
+Open a terminal and start the lightweight Baileys WhatsApp Bridge:
 ```bash
-# Install Python dependencies
-pip install -e backend/
+cd whatsapp-bridge
+npm install
+node index.js
+```
+👉 Open your browser at **[http://localhost:3001/qr](http://localhost:3001/qr)**:
+1. Open **WhatsApp** on your bot phone (`+91 8918753100` or your test number).
+2. Tap **Settings > Linked Devices > Link a Device**.
+3. Scan the QR code shown on screen.
+4. 🎉 **Connected!** The bridge is now linked and forwards incoming messages automatically.
 
-# Run database migrations and seed catalog, pricing rules, and demo leads
+---
+
+### Step 4: Start the Backend & Worker
+Open a new terminal at the project root (`wb-agent/`):
+```bash
+# 1. Install Python dependencies
+pip install -r backend/requirements.txt
+
+# 2. Seed catalog, demo leads, and pricing rules
 python scripts/seed_demo.py
+
+# 3. Start the FastAPI backend
+python -m uvicorn app.main:app --app-dir backend --host 0.0.0.0 --port 8000
 ```
 
-### 3. Run Automated Tests
+In another terminal, start the background job worker (processes sales turns and background thinking):
 ```bash
-# Execute unit and persona evaluation test suites
-pytest backend/tests/ -v
+python -m app.jobs.worker
 ```
 
-### 4. Launch Operator Control Center (Dashboard)
+---
+
+### Step 5: Start the Web Dashboard
+Open another terminal:
 ```bash
 cd dashboard
 npm install
 npm run dev
-# Dashboard opens at http://localhost:3000
 ```
+Open **[http://localhost:3000](http://localhost:3000)** to view the live sales operator console:
+- **Live Inbox:** Real-time customer chat, dynamic 2-second auto-sync, scroll-to-bottom.
+- **Human Takeover:** Click `Take Over` at any second to pause AI; click `Resume AI` to return control.
+- **Customer Identity:** Inspect persistent memory, sales stage, lead score, and requirements.
 
-### 5. Start API Server & Queue Worker
+---
+
+## 🧪 Chat with EDITH (Testing & Verification)
+
+### Option A: Send a WhatsApp Message
+Send a message from any phone to your linked bot number (`+91 8918753100`):
+> *"Bhai mujhe cafe ke liye tea chahiye, around 100kg monthly milk tea ke liye Siliguri me"*
+
+Watch EDITH:
+1. **Passively extract** business type (`Cafe`), monthly quantity (`100kg`), use case (`milk_tea`), and destination (`Siliguri`).
+2. **Never repeat questions** you already answered.
+3. Recommend **Assam Kadak CTC** or **Dooars Hotel Special Blend** with exact wholesale pricing and volume discounts.
+4. Acknowledge price concerns or quality questions with estate-tested facts.
+5. Stop selling immediately when you say *"I want to order, please send invoice"*, and alert the owner!
+
+### Option B: Run Automated Multi-Turn Sales Simulation
+Run our automated sales simulation script verifying all 4 turns:
 ```bash
-# Start FastAPI backend
-uvicorn app.main:app --app-dir backend --host 0.0.0.0 --port 8000 --reload
+$env:PYTHONPATH="backend"; python scripts/test_edith_multiturn.py
 ```
-
----
-
-## 🧪 Persona Simulation Benchmark
-
-Run the automated 5-persona buyer simulation to verify sales funnel transitions, lead scoring, and owner escalation:
-
+Run regression tests:
 ```bash
-python scripts/run_simulation.py
+$env:PYTHONPATH="backend"; python -m pytest backend/tests/ -v
 ```
 
-Simulated buyer journeys include:
-- **Boutique Café Owner**: Specialty tea discovery, tasting sample request, and delivery coordination.
-- **Hotel Chain Procurement Manager**: High-volume 100kg/month negotiation, price objection handling, and human handoff.
-- **Skeptical Tea Retailer**: Origin authenticity verification (GI certification check) and MOQ inquiries.
-- **Adversarial Attacker**: Prompt injection jailbreak defense and extreme unauthorized discount resistance.
-- **Opt-Out Customer**: Immediate WhatsApp policy unsubscribe compliance.
+---
+
+## 🌟 What Makes EDITH Different?
+
+| Feature | Generic Chatbots | EDITH Sales Operating System |
+| :--- | :--- | :--- |
+| **Sales Methodology** | Scripted Q&A / FAQ | Consultative SPIN-style discovery; discovers before recommending |
+| **Pricing Integrity** | Prone to hallucinations | **Deterministic**: 100% calculated from verified rules and MOQs |
+| **Unknown Handling** | Guesses or makes up facts | **Zero Hallucination**: Escalates to owner (`+91 89006 53250`) via WhatsApp alert |
+| **Memory** | Resets every session | **Persistent Multi-Tier**: Profile, requirements, past objections across dialogues |
+| **Operator Safety** | Race condition if human types | **Atomic Pre-Send Check**: Aborts AI send if operator took over |
+| **Follow-Ups** | Uncontrolled spam loops | **Bounded Analysis**: Contextual Day 1 / Day 3 sequences with auto-stop |
 
 ---
 
-## 🛡️ Security & Guardrails
+## 📂 Detailed Documentation Directory
 
-- **Defensive Input Sanitizer**: Rejects prompt injection jailbreaks (`ignore previous instructions`, `dan mode`, `developer mode`).
-- **Sliding Window Rate Limiter**: Per-phone and per-IP transaction rate caps preventing carrier flooding.
-- **HMAC-SHA256 Webhook Verification**: Cryptographic validation of incoming Meta WhatsApp webhooks (`X-Hub-Signature-256`).
-- **Role-Based Access Control**: Scoped API keys (`lead:read`, `lead:write`, `agent:control`) and bcrypt-hashed operator credentials.
-- **Emergency Kill-Switch**: One-click platform suspension in `/settings` instantly halting all autonomous outbound dispatches.
+All comprehensive architectural design records, operational runbooks, API schemas, and setup guides are organized inside the **[`docs/`](docs/)** folder:
 
----
+### 🏛️ Architecture & Decisions
+- **[System Architecture Overview](docs/architecture.md)**: High-level data flows, worker loops, and component diagrams.
+- **[Architecture Decision Records (ADRs)](docs/decisions/)**:
+  - [ADR-0001: PostgreSQL & pgvector as Primary Storage](docs/decisions/0001-postgresql-primary-storage.md)
+  - [ADR-0002: Modular Monolith Architecture](docs/decisions/0002-modular-monolith-architecture.md)
+  - [ADR-0003: Database-Backed Durable Job Queue](docs/decisions/0003-database-backed-queue.md)
+  - [ADR-0004: Conversation-Level Distributed Locking](docs/decisions/0004-conversation-concurrency.md)
+  - [ADR-0005: Multi-Provider LLM Abstraction](docs/decisions/0005-provider-abstraction.md)
+  - [ADR-0006: Multi-Tier Memory & Fact Provenance](docs/decisions/0006-memory-architecture.md)
+  - [ADR-0007: Knowledge Grounding & Authority Hierarchy](docs/decisions/0007-knowledge-rag-authority.md)
+  - [ADR-0008: Atomic Pre-Send Human Takeover Protection](docs/decisions/0008-human-takeover-race-prevention.md)
+  - [ADR-0009: Context-Aware Follow-Up Cancellation](docs/decisions/0009-followup-engine-cancellation.md)
+  - [ADR-0010: Local-First Modular Monolith Deployment](docs/decisions/0010-local-first-architecture.md)
+  - [ADR-0011: Dual WhatsApp Provider Architecture (Baileys + Meta Cloud)](docs/decisions/0011-whatsapp-adapter-architecture.md)
 
-## 📖 Comprehensive Knowledge Base & Documentation (Obsidian Vault)
-
-The complete platform documentation is organized as an interconnected **Obsidian knowledge base** under [`docs/`](docs/):
-
-- **🗺️ [[docs/index.md|Knowledge Base Index & Map of Content (MOC)]](docs/index.md)**
-- **🚀 Installation & Setup Guides**:
-  1. [[01-prerequisites-and-system-requirements|01. Prerequisites & System Requirements]](docs/setup/01-prerequisites-and-system-requirements.md)
-  2. [[02-database-and-pgvector-setup|02. PostgreSQL 16 & pgvector Setup]](docs/setup/02-database-and-pgvector-setup.md)
-  3. [[03-backend-setup|03. FastAPI Backend Setup]](docs/setup/03-backend-setup.md)
-  4. [[04-dashboard-frontend-setup|04. Next.js 14 Dashboard Setup]](docs/setup/04-dashboard-frontend-setup.md)
-  5. [[05-whatsapp-integration-guide|05. WhatsApp Simulator & Meta Cloud API]](docs/setup/05-whatsapp-integration-guide.md)
-  6. [[06-nvidia-nemotron-and-llm-setup|06. NVIDIA Nemotron & LLM Router]](docs/setup/06-nvidia-nemotron-and-llm-setup.md)
-  7. [[07-owner-escalation-channel|07. Owner Escalation Setup (+91 89006 53250)]](docs/setup/07-owner-escalation-channel.md)
-  8. [[08-end-to-end-verification|08. End-to-End Simulation & Verification]](docs/setup/08-end-to-end-verification.md)
-- **🏛️ Architecture & Engine Deep Dives**:
-  - [[conversational-state-machine|16-Stage Sales State Machine]](docs/architecture/conversational-state-machine.md)
-  - [[deterministic-pricing-engine|Deterministic Pricing & Margin Safety]](docs/architecture/deterministic-pricing-engine.md)
-  - [[multi-tier-memory-system|Multi-Tier Memory Architecture]](docs/architecture/multi-tier-memory-system.md)
-  - [[durable-queue-and-worker|Durable Queue with SKIP LOCKED]](docs/architecture/durable-queue-and-worker.md)
-- **🚨 Diagnostics & Solutions**:
-  - [[error-catalog-and-solutions|Comprehensive Error Catalog & Solutions]](docs/troubleshooting/error-catalog-and-solutions.md)
-- **⚙️ Operations & Reference**:
-  - [[operations-runbook|Operations Runbook & Kill-Switch]](docs/operations-runbook.md)
-  - [[api-reference|REST API & WebSocket Reference]](docs/api-reference.md)
-  - [[decisions/0001-postgresql-primary-storage|Architectural Decision Records (ADRs)]](docs/decisions/0001-postgresql-primary-storage.md)
+### 🛠️ Setup & Operations Runbooks
+- **[Prerequisites & System Requirements](docs/setup/01-prerequisites-and-system-requirements.md)**
+- **[Database & pgvector Setup](docs/setup/02-database-and-pgvector-setup.md)**
+- **[Backend Fast Start Runbook](docs/setup/03-backend-setup.md)**
+- **[Dashboard Frontend Setup](docs/setup/04-dashboard-frontend-setup.md)**
+- **[WhatsApp Integration Guide](docs/setup/05-whatsapp-integration-guide.md)**
+- **[NVIDIA Nemotron & LLM Configuration](docs/setup/06-nvidia-nemotron-and-llm-setup.md)**
+- **[Owner Escalation Setup](docs/setup/07-owner-escalation-channel.md)**
+- **[End-to-End Verification Runbook](docs/setup/08-end-to-end-verification.md)**
+- **[API Reference Documentation](docs/api-reference.md)**
+- **[Troubleshooting & Error Solutions Catalog](docs/troubleshooting/error-catalog-and-solutions.md)**
 
 ---
 
-## 📄 License
+## 🔐 Contact Numbers & Configuration
 
-Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for details.
+- **Bot WhatsApp Number:** Configured through linked device bridge (`+91 8918753100`).
+- **Owner Escalation WhatsApp:** Configured via `OWNER_WHATSAPP_NUMBER` (`+91 89006 53250`).
+- **Demo Business:** North Bengal Tea Co. (Siliguri, West Bengal, India).
