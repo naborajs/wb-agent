@@ -44,8 +44,9 @@ def detect_intent_and_objection(text: str) -> Tuple[str, float, str]:
     """
     lower = text.lower().strip()
 
-    # 1. Opt-out (WhatsApp anti-spam & consent requirement)
-    if any(k in lower for k in ("stop", "unsubscribe", "opt out", "opt-out", "don't message", "do not message", "band karo")):
+    # 1. Opt-out (WhatsApp anti-spam & consent requirement - strict phrase matching only)
+    opt_out_pattern = r"(?:^\s*(?:stop|unsubscribe|opt[\s-]?out|halt)\s*$|\b(?:unsubscribe me|opt me out|stop messaging me|do not message me|don't message me|kripya message na kare|ab message mat bhejo|message band karo)\b)"
+    if re.search(opt_out_pattern, lower):
         return "opt_out", 1.0, "NONE"
 
     # 2. Explicit Human Takeover Request
