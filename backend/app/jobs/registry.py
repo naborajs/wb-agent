@@ -5,9 +5,11 @@ Job Handler Registry mapping job types to asynchronous worker execution routines
 from typing import Any, Callable, Dict
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.jobs.handlers.messages import handle_process_message
+from app.jobs.handlers.background_analysis import handle_background_analysis
 
 JOB_HANDLERS: Dict[str, Callable] = {
     "process_message": handle_process_message,
+    "background_analysis": handle_background_analysis,
 }
 
 
