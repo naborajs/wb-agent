@@ -40,6 +40,27 @@ class CustomerMemoryService:
         res = await self.session.execute(stmt)
         return list(res.scalars().all())
 
+    async def set_memory(
+        self,
+        customer_id: str,
+        category: str,
+        key: str,
+        value: Any,
+        confidence: float = 1.0,
+        verification_status: str = "CUSTOMER_SAID",
+        source: str = "conversation",
+    ) -> CustomerMemory:
+        """Alias for save_fact."""
+        return await self.save_fact(
+            customer_id=customer_id,
+            category=category,
+            key=key,
+            value=value,
+            confidence=confidence,
+            verification_status=verification_status,
+            source=source,
+        )
+
     async def save_fact(
         self,
         customer_id: str,
