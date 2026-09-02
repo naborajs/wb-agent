@@ -237,12 +237,25 @@ class AgentOrchestrator:
             is_suppressed = True
 
         if not is_suppressed and sanitized_reply:
+            # Dispatch outbound via active WhatsApp provider
+            provider_msg_id = None
+            try:
+                from app.whatsapp.service import WhatsAppService
+                wa = WhatsAppService.get_provider()
+                if conv.channel_id:
+                    send_res = await wa.send_message(to_phone=conv.channel_id, text=sanitized_reply)
+                    if send_res and send_res.provider_message_id:
+                        provider_msg_id = send_res.provider_message_id
+            except Exception as e:
+                logger.error(f"Failed to dispatch outbound WhatsApp message: {e}")
+
             await self.conv_service.add_message(
                 conversation_id=conversation_id,
                 direction="outbound",
                 sender_type="agent",
                 content=sanitized_reply,
                 delivery_status="sent",
+                provider_message_id=provider_msg_id,
             )
 
         # 11. Update Stage and Score
