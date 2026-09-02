@@ -4,6 +4,7 @@ Implements SPIN-style discovery, consultative objection handling, single-questio
 and deterministic purchase-intent handoff triggers.
 """
 
+import re
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Set
 from app.agent.extractor import ExtractedFacts
@@ -160,7 +161,10 @@ class ConsultativeSalesEngine:
             )
 
         # 6. Pricing Inquiry / Quote Request
-        if any(w in lower for w in ["price", "rate", "cost", "quote", "how much", "kitna"]):
+        if (
+            re.search(r"\b(?:price|rate|rates|cost|quote|quotation|pricing)\b", lower)
+            or any(w in lower for w in ["how much", "kitna"])
+        ):
             next_q = QuestionSelectionEngine.select_next_question(known_keys, current_stage)
             return SalesDecision(
                 action="PROVIDE_QUOTE",
