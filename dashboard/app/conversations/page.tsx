@@ -25,9 +25,9 @@ interface ConversationItem {
   channel_id: string;
   mode: string;
   sales_stage: string;
-  lead_score: int;
+  lead_score: number;
   is_hot: boolean;
-  unread_count: int;
+  unread_count: number;
   last_message_at: string;
   customer_name?: string;
   company_name?: string;
