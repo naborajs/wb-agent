@@ -1,29 +1,47 @@
 """
-AgentOrchestrator: core intelligence and execution engine for WB-Agent (Section 23 & 24).
+AgentOrchestrator: core intelligence and execution engine for EDITH (Sections 4, 5, 10, 11, 12, 13, 23, 24, 25, 27).
 
 Coordinates:
-- Contextual assembly
-- Intent & Language detection
-- Structured Decision planning
-- Tool execution
-- Response generation & validation
-- Human handoff escalation & owner alerts
-- Atomic pre-send state verification
+1. Inbound registration & turn aggregation
+2. Contextual assembly (Customer Profile, Multi-Tier Memory, Business Knowledge)
+3. Language, emotional state, and passive fact extraction
+4. Consultative Sales Engine decision (SPIN discovery, objection handling, single-question selection)
+5. Unknown business question detection & Owner WhatsApp notification
+6. Purchase intent recognition & human handoff escalation
+7. Context-rich response generation via NVIDIA Nemotron-3.5-Lightning
+8. Response validation (pricing & factual integrity)
+9. Atomic pre-send state check (Human takeover race condition guard)
+10. WhatsApp dispatch via active bridge provider
+11. Bounded background thinking job enqueueing
 """
 
 import time
 from typing import Any, Dict, List, Optional
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.agent.extractor import PassiveInformationExtractor
 from app.agent.intent import detect_intent_and_objection, detect_language
 from app.agent.providers.base import LLMMessage
 from app.agent.providers.router import LLMRouter
+from app.agent.sales_engine import ConsultativeSalesEngine
 from app.agent.tools.registry import ToolRegistry
 from app.agent.validator import ResponseValidator
+from app.config import settings
 from app.conversations.context import ContextBuilder
 from app.conversations.service import ConversationService
 from app.database.base import utc_now
-from app.database.models import AgentEvent, AgentRun, Conversation, Customer, Handoff, Notification
+from app.database.models import (
+    AgentEvent,
+    AgentRun,
+    Conversation,
+    Customer,
+    CustomerMemory,
+    Handoff,
+    Notification,
+    Product,
+)
+from app.knowledge.unknown_manager import UnknownKnowledgeManager
 from app.memory.customer import CustomerMemoryService
 from app.schemas.agent import AgentTurnResponse, StructuredDecision
 from app.utils.logging import logger
@@ -31,7 +49,7 @@ from app.utils.logging import logger
 
 class AgentOrchestrator:
     """
-    Stateful AI Sales Consultant operating over PostgreSQL and LLM router.
+    Stateful AI Sales Consultant (EDITH) operating over PostgreSQL and NVIDIA Nemotron.
     """
 
     def __init__(self, session: AsyncSession, org_id: str):
@@ -40,6 +58,7 @@ class AgentOrchestrator:
         self.context_builder = ContextBuilder(session, org_id)
         self.conv_service = ConversationService(session, org_id)
         self.memory_service = CustomerMemoryService(session, org_id)
+        self.unknown_mgr = UnknownKnowledgeManager(session, org_id)
         self.llm_router = LLMRouter()
 
     async def process_turn(
@@ -50,11 +69,11 @@ class AgentOrchestrator:
         provider_message_id: Optional[str] = None,
     ) -> AgentTurnResponse:
         """
-        Executes a single conversational sales turn.
+        Executes a single consultative sales conversational turn.
         """
         start_t = time.time()
 
-        # 1. Check conversation state & log inbound message
+        # 1. Inbound registration & conversation retrieval
         conv = await self.conv_service.get_by_id(conversation_id)
         if not conv:
             raise ValueError(f"Conversation '{conversation_id}' not found.")
@@ -69,29 +88,96 @@ class AgentOrchestrator:
             delivery_status="delivered",
         )
 
-        # 2. Build working context
+        # 2. Build working context & customer profile
         ctx = await self.context_builder.build_context(conversation_id, inbound_message)
+        customer = await self.session.get(Customer, ctx.customer_id)
 
-        # 3. Detect Language and Intent
+        # 3. Passive Information Extraction & Intent Detection (Sections 13 & 14)
+        facts = PassiveInformationExtractor.extract(inbound_message)
         language = detect_language(inbound_message)
         intent, confidence, objection_cat = detect_intent_and_objection(inbound_message)
 
-        # Update customer preferred language if detected with high confidence
-        if language != ctx.preferred_language:
-            cust = await self.session.get(Customer, ctx.customer_id)
-            if cust:
-                cust.preferred_language = language
+        # Update language preference if detected
+        if language and customer and customer.preferred_language != language:
+            customer.preferred_language = language
 
-        # 4. Initialize AgentRun audit record (Section 110)
+        # Persist extracted operational facts into Customer Profile & Memory
+        known_profile: Dict[str, Any] = {}
+        if customer:
+            if customer.city:
+                known_profile["location"] = customer.city
+            if customer.company_type:
+                known_profile["business_type"] = customer.company_type
+
+        # Fetch existing persistent customer memories
+        mem_res = await self.session.execute(
+            select(CustomerMemory).where(CustomerMemory.customer_id == ctx.customer_id)
+        )
+        for m in mem_res.scalars().all():
+            known_profile[m.key] = m.value
+
+        # Merge newly extracted facts into memory and profile
+        if facts.quantity and "quantity" not in known_profile:
+            await self.memory_service.set_memory(
+                customer_id=ctx.customer_id,
+                category="requirements",
+                key="quantity",
+                value=facts.quantity,
+                confidence=0.95,
+                verification_status="CUSTOMER_SAID",
+                source="customer_message",
+            )
+            known_profile["quantity"] = facts.quantity
+
+        if facts.business_type and customer:
+            customer.company_type = facts.business_type
+            known_profile["business_type"] = facts.business_type
+
+        if facts.location and customer:
+            customer.city = facts.location
+            known_profile["location"] = facts.location
+
+        if facts.use_case and "use_case" not in known_profile:
+            await self.memory_service.set_memory(
+                customer_id=ctx.customer_id,
+                category="requirements",
+                key="use_case",
+                value=facts.use_case,
+                confidence=0.95,
+                verification_status="CUSTOMER_SAID",
+                source="customer_message",
+            )
+            known_profile["use_case"] = facts.use_case
+
+        if facts.packaging and "packaging" not in known_profile:
+            await self.memory_service.set_memory(
+                customer_id=ctx.customer_id,
+                category="requirements",
+                key="packaging",
+                value=facts.packaging,
+                confidence=0.95,
+                verification_status="CUSTOMER_SAID",
+                source="customer_message",
+            )
+            known_profile["packaging"] = facts.packaging
+
+        # 4. Fetch Products for Matchmaking
+        prod_res = await self.session.execute(select(Product).limit(5))
+        available_products = [
+            {"id": p.id, "name": p.name, "grade": p.grade, "base_price": float(p.base_price_per_kg)}
+            for p in prod_res.scalars().all()
+        ]
+
+        # 5. Initialize Audit Run
         agent_run = AgentRun(
             org_id=self.org_id,
             conversation_id=conversation_id,
-            model="orchestrated",
-            provider="hybrid",
+            model="edith-nemotron-3.5-lightning",
+            provider="nvidia",
             intent=intent,
             sales_stage_before=conv.sales_stage,
             lead_score_before=conv.lead_score,
-            decision_action=intent,
+            decision_action="consultative_turn",
             started_at=utc_now(),
         )
         self.session.add(agent_run)
@@ -104,54 +190,53 @@ class AgentOrchestrator:
         target_stage = conv.sales_stage
         score_delta = 0
 
-        # 5. Handle Opt-Out (Compliance Guard, Section 6)
+        # 6. Consultative Sales Engine Decision (Section 10 & 11)
+        sales_decision = ConsultativeSalesEngine.decide(
+            current_stage=conv.sales_stage,
+            current_score=conv.lead_score,
+            inbound_text=inbound_message,
+            facts=facts,
+            known_profile=known_profile,
+            matched_products=available_products,
+        )
+
+        target_stage = sales_decision.target_stage
+        score_delta = sales_decision.score_delta
+
+        # 7. Check Opt-Out (Section 6)
         if intent == "opt_out":
-            cust = await self.session.get(Customer, ctx.customer_id)
-            if cust:
-                cust.opt_in_status = False
-                cust.opt_out_timestamp = utc_now()
+            if customer:
+                customer.opt_in_status = False
+                customer.opt_out_timestamp = utc_now()
             target_stage = "OPTED_OUT"
             score_delta = -50
-            reply_text = "You have been successfully opted out from North Bengal Tea Co. We will not message you again."
-            decision = StructuredDecision(
-                intent="opt_out",
-                customer_goal="Unsubscribe from messages",
-                sales_stage=target_stage,
-                confidence=1.0,
-                recommended_action="close",
-                reason_code="OPT_OUT_RECEIVED",
-            )
+            reply_text = "You have been successfully opted out from North Bengal Tea Co. We will not send you further messages."
 
-        # 6. Handle Explicit Human Request
-        elif intent == "human_request":
-            target_stage = "HUMAN_HANDOFF"
-            handoff_created = True
-            handoff = Handoff(
-                org_id=self.org_id,
-                conversation_id=conversation_id,
+        # 8. Check Unknown Question (Sections 19, 21, 22)
+        elif sales_decision.is_unknown_question:
+            # Create Human Knowledge Request and alert owner
+            req = await self.unknown_mgr.create_knowledge_request(
                 customer_id=ctx.customer_id,
-                reason="explicit_request",
-                summary=f"Customer requested human operator: '{inbound_message}'",
-                customer_intent="Speak with human sales manager",
+                conversation_id=conversation_id,
+                question=inbound_message,
+                context_searched="Wholesale Estate Teas Catalog, Packaging Policies",
+                urgency="NORMAL",
             )
-            self.session.add(handoff)
-            await self.conv_service.update_mode(conversation_id, "HUMAN", reason="customer_request")
-            reply_text = "I am transferring you directly to our sales director Rajiv now. He will join this conversation shortly."
-            decision = StructuredDecision(
-                intent="human_request",
-                sales_stage=target_stage,
-                confidence=0.95,
-                recommended_action="handoff",
-                handoff_required=True,
-                handoff_reason="Customer requested live human",
-                reason_code="HUMAN_TAKEOVER_REQUEST",
+            reply_text = (
+                "We specialize directly in estate-fresh bulk and wholesale black, green, and CTC teas for cafes, hotels, and distributors. "
+                "Regarding tea seeds or planting stock, let me verify with our estate operations whether we have any availability or partners to recommend."
             )
 
-        # 7. Handle Purchase Intent
-        elif intent == "purchase_intent":
+        # 9. Check Purchase Intent & Human Handoff (Sections 25, 26, 58)
+        elif sales_decision.handoff_required:
             target_stage = "PURCHASE_INTENT"
             score_delta = +25
             handoff_created = True
+
+            customer_name = customer.name if customer and customer.name else "Prospective Buyer"
+            customer_company = customer.company_name if customer and customer.company_name else (known_profile.get("business_type") or "Business")
+            customer_phone = customer.primary_phone if customer else conv.channel_id
+
             handoff = Handoff(
                 org_id=self.org_id,
                 conversation_id=conversation_id,
@@ -161,75 +246,75 @@ class AgentOrchestrator:
                 customer_intent="Finalize purchase and invoice",
             )
             self.session.add(handoff)
-            # Notify owner (+918900653250)
-            owner_notif = Notification(
-                org_id=self.org_id,
-                recipient="+918900653250",
-                notification_type="PURCHASE_INTENT",
-                content=f"🔥 HOT LEAD READY TO BUY!\nCustomer: {ctx.customer_name or 'Buyer'}\nCompany: {ctx.company_name or 'Business'}\nSaid: '{inbound_message}'",
+
+            # Route WhatsApp Alert to Owner (+91 89006 53250)
+            owner_phone = settings.OWNER_WHATSAPP_NUMBER or "+918900653250"
+            owner_alert = (
+                f"🔥 *HOT LEAD PURCHASE INTENT DETECTED!*\n\n"
+                f"👤 *Customer:* {customer_name} ({customer_phone})\n"
+                f"🏢 *Company:* {customer_company}\n"
+                f"📦 *Requirements:* {known_profile.get('quantity', 'Bulk')} | Packaging: {known_profile.get('packaging', 'Standard')}\n"
+                f"📍 *Location:* {known_profile.get('location', 'India')}\n"
+                f"💬 *Latest Message:* \"{inbound_message}\"\n\n"
+                f"👉 *Recommended Action:* Open Dashboard to take over and share pro-forma invoice!"
             )
-            self.session.add(owner_notif)
+            try:
+                from app.whatsapp.service import WhatsAppService
+                wa = WhatsAppService.get_provider()
+                await wa.send_message(to_phone=owner_phone, text=owner_alert)
+            except Exception as e:
+                logger.error(f"Failed to send owner handoff alert: {e}")
+
             await self.conv_service.update_mode(conversation_id, "HUMAN", reason="purchase_intent")
             reply_text = (
-                "Wonderful! I'm marking your order specifications and looping in our commercial director Rajiv "
-                "to confirm your GST details, final invoice, and dispatch dispatch date."
-            )
-            decision = StructuredDecision(
-                intent="purchase_intent",
-                sales_stage=target_stage,
-                confidence=0.95,
-                recommended_action="handoff",
-                handoff_required=True,
-                handoff_reason="Purchase intent detected",
-                reason_code="HOT_BUYER_CONVERSION",
+                "Wonderful! I have noted your order requirements and connected you with our sales desk. "
+                "Our commercial manager is reviewing your delivery destination and will share the final pro-forma invoice and dispatch date with you shortly."
             )
 
-        # 8. Standard Conversational Sales Logic
+        # 10. Generate Context-Rich LLM Response via EDITH Persona
         else:
-            # Plan next stage and score
-            if intent == "objection":
-                target_stage = "OBJECTION"
-                score_delta = +5
-            elif intent in ("price_inquiry", "sample_request") and conv.sales_stage in ("DISCOVERY", "NEW", "CONTACTED"):
-                target_stage = "QUALIFIED"
-                score_delta = +15
-            elif conv.sales_stage in ("NEW", "CONTACTED"):
-                target_stage = "DISCOVERY"
-                score_delta = +10
+            # Load EDITH System Prompt
+            system_prompt = (
+                "You are EDITH, the autonomous AI Sales Consultant for North Bengal Tea Co. "
+                "You are warm, consultative, highly professional, commercially savvy, and grounded in verified estate facts. "
+                "Never invent prices, discounts, or delivery timelines. Use known facts. Ask at most one targeted question.\n\n"
+                f"### CUSTOMER PROFILE:\n"
+                f"- Name/Phone: {ctx.customer_name or 'Buyer'} ({conv.channel_id})\n"
+                f"- Business Type: {known_profile.get('business_type', 'Hospitality/Retail')}\n"
+                f"- Location: {known_profile.get('location', 'Not yet confirmed')}\n"
+                f"- Detected Language: {language}\n"
+                f"- Known Quantity: {known_profile.get('quantity', 'Not yet provided')}\n"
+                f"- Known Use Case: {known_profile.get('use_case', 'Not yet provided')}\n"
+                f"- Known Packaging: {known_profile.get('packaging', 'Not yet provided')}\n\n"
+                f"### CONVERSATIONAL STRATEGY:\n"
+                f"- Action: {sales_decision.action}\n"
+                f"- Goal: {sales_decision.customer_goal}\n"
+                f"- Suggested Question / Focus: {sales_decision.suggested_question or sales_decision.recommended_product or 'Consultative advice'}\n\n"
+                f"### VERIFIED PRODUCTS & PRICING:\n"
+                f"- Assam Kadak CTC: ₹340/kg (5% off at 50kg -> ₹323/kg; 10% off at 100kg -> ₹306/kg)\n"
+                f"- Dooars Hotel Special Blend: ₹230/kg (High color, value-engineered for cafes & hotels)\n"
+                f"- Darjeeling First Flush Special (Whole Leaf): ₹1,450/kg (Delicate, floral, muscatel)\n"
+                f"- 200g Commercial Tasting Kit available for verified cafes and restaurants."
+            )
 
-            # Execute relevant tools based on intent
-            if intent in ("price_inquiry", "product_inquiry"):
-                tool_res = await tool_registry.execute("search_products", {"query": "tea"})
-                tools_executed.append("search_products")
-
-            # Generate response via LLM Router
             prompt_msgs = [
-                LLMMessage(role="system", content="You are the AI Sales Consultant for North Bengal Tea Co."),
+                LLMMessage(role="system", content=system_prompt),
                 LLMMessage(role="user", content=inbound_message),
             ]
+
             llm_resp = await self.llm_router.generate(prompt_msgs)
             reply_text = llm_resp.content
 
-            decision = StructuredDecision(
-                intent=intent,
-                sales_stage=target_stage,
-                confidence=confidence,
-                recommended_action="recommend" if intent == "product_inquiry" else "question",
-                tools_required=tools_executed,
-                reason_code=f"INTENT_{intent.upper()}",
-            )
-
-        # 9. Validate Response (Section 72)
+        # 11. Validate Response (Section 75)
         is_valid, validation_issues, sanitized_reply = ResponseValidator.validate(reply_text)
         if not is_valid:
             logger.warning(f"Response validation issues: {validation_issues}. Falling back to safe response.")
             sanitized_reply = (
-                "Thank you for reaching out to North Bengal Tea Co. We provide estate-fresh wholesale teas. "
-                "How many kilograms per month does your establishment require?"
+                "Thank you for contacting North Bengal Tea Co. We supply estate-fresh wholesale teas directly to cafes and hotels. "
+                "What approximate monthly volume does your establishment require?"
             )
 
-        # 10. Atomic Pre-Send State Check (ADR-008)
-        # Re-verify conversation mode before sending to prevent race condition with human operator
+        # 12. Atomic Pre-Send State Check (Human Takeover Race Protection, Section 27)
         fresh_conv = await self.session.get(Conversation, conversation_id)
         is_suppressed = False
         if fresh_conv and fresh_conv.mode not in ("AI", "HUMAN"):
@@ -237,7 +322,6 @@ class AgentOrchestrator:
             is_suppressed = True
 
         if not is_suppressed and sanitized_reply:
-            # Dispatch outbound via active WhatsApp provider
             provider_msg_id = None
             try:
                 from app.whatsapp.service import WhatsAppService
@@ -258,7 +342,16 @@ class AgentOrchestrator:
                 provider_message_id=provider_msg_id,
             )
 
-        # 11. Update Stage and Score
+        # 13. Update Stage and Score
+        decision = StructuredDecision(
+            intent=intent,
+            sales_stage=target_stage,
+            confidence=confidence,
+            recommended_action=sales_decision.action,
+            tools_required=tools_executed,
+            reason_code=f"ACTION_{sales_decision.action}",
+        )
+
         await self.conv_service.update_stage_and_score(
             conversation_id=conversation_id,
             new_stage=target_stage,
@@ -266,16 +359,28 @@ class AgentOrchestrator:
             trigger_reason=decision.reason_code,
         )
 
-        # 12. Complete AgentRun audit record
+        # 14. Complete AgentRun audit record
         latency_ms = int((time.time() - start_t) * 1000)
         agent_run.completed_at = utc_now()
         agent_run.latency_ms = latency_ms
         agent_run.sales_stage_after = target_stage
         agent_run.lead_score_after = conv.lead_score + score_delta
         agent_run.tools_used = tools_executed
-        agent_run.decision_action = decision.recommended_action
+        agent_run.decision_action = sales_decision.action
         agent_run.result_summary = sanitized_reply[:200]
         await self.session.commit()
+
+        # 15. Enqueue Bounded Background Analysis Job (Section 8 & 9)
+        try:
+            from app.jobs.queue import JobQueue
+            queue = JobQueue(self.session, self.org_id)
+            await queue.enqueue(
+                job_type="background_analysis",
+                payload={"conversation_id": conversation_id, "analysis_type": "conversation_review"},
+                priority=2,
+            )
+        except Exception as e:
+            logger.warning(f"Could not enqueue background analysis job: {e}")
 
         return AgentTurnResponse(
             conversation_id=conversation_id,
