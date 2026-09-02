@@ -58,9 +58,28 @@ class NvidiaProvider(LLMProvider):
         latency_ms = int((time.time() - start_t) * 1000)
         choice = data["choices"][0]
         usage = data.get("usage", {})
+        raw_content = choice["message"].get("content") or ""
+
+        # Clean reasoning scratchpad if model prepended thinking process
+        if "thinking process" in raw_content.lower():
+            import re
+            quotes = re.findall(r'"([^"\n]{25,})"', raw_content)
+            if quotes:
+                raw_content = quotes[-1].strip()
+            else:
+                lines = raw_content.split("\n")
+                filtered = [
+                    l for l in lines 
+                    if not l.strip().startswith(("*", "1.", "2.", "3.", "4.", "5.", "#", "Draft", "User:", "Context:", "Role:", "Goal:"))
+                    and "thinking" not in l.lower()
+                    and "analyze" not in l.lower()
+                ]
+                cleaned = "\n".join(filtered).strip(' "\'\n')
+                if len(cleaned) > 20:
+                    raw_content = cleaned
 
         return LLMResponse(
-            content=choice["message"].get("content") or "",
+            content=raw_content,
             model=self.model,
             provider="nvidia",
             latency_ms=latency_ms,
