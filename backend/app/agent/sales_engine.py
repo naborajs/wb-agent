@@ -147,12 +147,13 @@ class ConsultativeSalesEngine:
         if (facts.use_case or "use_case" in known_keys) and matched_products:
             best_match = matched_products[0]
             next_q = QuestionSelectionEngine.select_next_question(known_keys, current_stage)
+            target = "DISCOVERY" if current_stage in ("NEW", "CONTACTED") else "RECOMMENDATION"
             return SalesDecision(
-                action="RECOMMEND_PRODUCT",
-                reason=f"Recommended {best_match.get('name')} based on customer use-case and quality fit.",
+                action="RECOMMEND_PRODUCT" if current_stage not in ("NEW", "CONTACTED") else "ASK_DISCOVERY_QUESTION",
+                reason=f"Recommended {best_match.get('name')} based on customer use-case and quality fit." if current_stage not in ("NEW", "CONTACTED") else f"Initiate discovery for operational requirement: {next_q[0] if next_q else 'volume'}.",
                 customer_goal="Find optimal tea grade for menu/beverage service",
-                target_stage="RECOMMENDATION",
-                score_delta=+15,
+                target_stage=target,
+                score_delta=+15 if target == "RECOMMENDATION" else +10,
                 recommended_product=best_match.get("name"),
                 missing_information=[next_q[0]] if next_q else [],
                 suggested_question=next_q[1] if next_q else None,
