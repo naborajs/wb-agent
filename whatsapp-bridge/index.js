@@ -154,6 +154,8 @@ app.get("/code", async (req, res) => {
   }
 });
 
+const jidMap = new Map();
+
 // 4. Outbound message sending endpoint
 app.post("/send", async (req, res) => {
   const { to, text } = req.body;
@@ -167,8 +169,16 @@ app.post("/send", async (req, res) => {
 
   try {
     const cleanTo = to.replace(/[^0-9]/g, "");
-    const jid = `${cleanTo}@s.whatsapp.net`;
+    let jid = to;
+    if (jidMap.has(cleanTo)) {
+      jid = jidMap.get(cleanTo);
+    } else if (!jid.includes("@")) {
+      jid = `${cleanTo}@s.whatsapp.net`;
+    }
+
+    console.log(`[OUTBOUND] Sending to ${jid}: "${text.slice(0, 80)}"`);
     const result = await sock.sendMessage(jid, { text });
+    console.log(`[OUTBOUND] Delivered message to ${jid} (Msg ID: ${result.key.id})`);
     return res.json({
       success: true,
       messageId: result.key.id,
@@ -237,6 +247,7 @@ async function startSocket() {
       if (!remoteJid || remoteJid.includes("@g.us")) continue;
 
       const senderPhone = remoteJid.split("@")[0];
+      jidMap.set(senderPhone, remoteJid);
       const textBody =
         msg.message?.conversation ||
         msg.message?.extendedTextMessage?.text ||
