@@ -11,6 +11,8 @@ import {
   ArrowUpRight,
   Shield,
   Send,
+  PieChart as PieIcon,
+  BarChart3,
 } from "lucide-react";
 
 interface AnalyticsData {
@@ -52,6 +54,8 @@ export default function DashboardOverview() {
     { stage: "HUMAN_HANDOFF", count: 6 },
     { stage: "WON", count: 14 },
   ]);
+
+  const [chartView, setChartView] = useState<"bars" | "pie">("bars");
 
   useEffect(() => {
     const loadOverview = () => {
@@ -182,34 +186,136 @@ export default function DashboardOverview() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Sales Funnel Distribution */}
         <div className="lg:col-span-2 p-6 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
             <div>
-              <h3 className="font-bold text-slate-900 dark:text-white">Sales Stage Funnel</h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400">Live distribution of active B2B conversations</p>
+              <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-amber-500" />
+                Sales Stage Distribution
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Live distribution of active B2B conversations across stages</p>
             </div>
-            <span className="text-xs font-medium text-slate-400 dark:text-slate-500">16-Stage State Machine</span>
+            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg text-xs">
+              <button
+                onClick={() => setChartView("bars")}
+                className={`px-3 py-1 rounded-md font-semibold transition-colors flex items-center gap-1.5 ${
+                  chartView === "bars"
+                    ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm"
+                    : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                }`}
+              >
+                <BarChart3 className="w-3.5 h-3.5" /> Funnel Bars
+              </button>
+              <button
+                onClick={() => setChartView("pie")}
+                className={`px-3 py-1 rounded-md font-semibold transition-colors flex items-center gap-1.5 ${
+                  chartView === "pie"
+                    ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm"
+                    : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                }`}
+              >
+                <PieIcon className="w-3.5 h-3.5" /> Donut Chart
+              </button>
+            </div>
           </div>
 
-          <div className="space-y-4">
-            {funnel.map((item) => {
-              const maxVal = Math.max(...funnel.map((f) => f.count), 1);
-              const pct = Math.round((item.count / maxVal) * 100);
-              return (
-                <div key={item.stage} className="space-y-1.5">
-                  <div className="flex justify-between text-xs font-medium">
-                    <span className="text-slate-700 dark:text-slate-300 font-semibold">{item.stage}</span>
-                    <span className="text-slate-500 dark:text-slate-400">{item.count} leads</span>
+          {chartView === "bars" ? (
+            <div className="space-y-4">
+              {funnel.map((item) => {
+                const maxVal = Math.max(...funnel.map((f) => f.count), 1);
+                const pct = Math.round((item.count / maxVal) * 100);
+                return (
+                  <div key={item.stage} className="space-y-1.5">
+                    <div className="flex justify-between text-xs font-medium">
+                      <span className="text-slate-700 dark:text-slate-300 font-semibold">{item.stage}</span>
+                      <span className="text-slate-500 dark:text-slate-400 font-mono">{item.count} leads</span>
+                    </div>
+                    <div className="w-full h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-amber-600 dark:bg-amber-500 rounded-full transition-all duration-500"
+                        style={{ width: `${pct}%` }}
+                      ></div>
+                    </div>
                   </div>
-                  <div className="w-full h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-amber-600 dark:bg-amber-500 rounded-full transition-all duration-500"
-                      style={{ width: `${pct}%` }}
-                    ></div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 items-center py-2">
+              {/* Dynamic SVG Donut */}
+              <div className="flex justify-center">
+                <svg width="210" height="210" viewBox="0 0 210 210" className="transform -rotate-90">
+                  {(() => {
+                    const stageColors: Record<string, string> = {
+                      NEW: "#94a3b8",
+                      DISCOVERY: "#3b82f6",
+                      QUALIFIED: "#8b5cf6",
+                      RECOMMENDATION: "#f59e0b",
+                      PURCHASE_INTENT: "#ec4899",
+                      HUMAN_HANDOFF: "#f97316",
+                      WON: "#10b981",
+                    };
+                    const total = funnel.reduce((acc, f) => acc + f.count, 0) || 1;
+                    const circumference = 2 * Math.PI * 75;
+                    let accumulated = 0;
+
+                    return funnel.map((item) => {
+                      const ratio = item.count / total;
+                      const dash = ratio * circumference;
+                      const offset = -accumulated * circumference;
+                      accumulated += ratio;
+                      const color = stageColors[item.stage] || "#64748b";
+
+                      return (
+                        <circle
+                          key={item.stage}
+                          cx="105"
+                          cy="105"
+                          r="75"
+                          fill="transparent"
+                          stroke={color}
+                          strokeWidth="28"
+                          strokeDasharray={`${dash} ${circumference}`}
+                          strokeDashoffset={offset}
+                          className="transition-all duration-500 hover:opacity-80"
+                        />
+                      );
+                    });
+                  })()}
+                </svg>
+              </div>
+
+              {/* Legend with lead counts & percentages */}
+              <div className="space-y-2 text-xs">
+                {(() => {
+                  const stageColors: Record<string, string> = {
+                    NEW: "#94a3b8",
+                    DISCOVERY: "#3b82f6",
+                    QUALIFIED: "#8b5cf6",
+                    RECOMMENDATION: "#f59e0b",
+                    PURCHASE_INTENT: "#ec4899",
+                    HUMAN_HANDOFF: "#f97316",
+                    WON: "#10b981",
+                  };
+                  const total = funnel.reduce((acc, f) => acc + f.count, 0) || 1;
+                  return funnel.map((item) => {
+                    const pct = Math.round((item.count / total) * 100);
+                    const color = stageColors[item.stage] || "#64748b";
+                    return (
+                      <div key={item.stage} className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
+                          <span className="font-semibold text-slate-700 dark:text-slate-300">{item.stage}</span>
+                        </div>
+                        <span className="font-mono text-slate-500 dark:text-slate-400">
+                          {item.count} leads ({pct}%)
+                        </span>
+                      </div>
+                    );
+                  });
+                })()}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Architectural Guardrails Card */}
