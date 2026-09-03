@@ -80,6 +80,42 @@ class SimulatorWhatsAppProvider(WhatsAppProvider):
             raw_response=record,
         )
 
+    async def send_document(
+        self,
+        to_phone: str,
+        file_path: str,
+        caption: Optional[str] = None,
+        filename: Optional[str] = None,
+    ) -> OutboundWhatsAppResult:
+        if self.fail_next_send:
+            self.fail_next_send = False
+            return OutboundWhatsAppResult(
+                success=False,
+                error_message="Simulated carrier timeout failure (504 Gateway Timeout)",
+            )
+
+        norm_phone = normalize_phone_number(to_phone)
+        msg_id = f"wamid_sim_doc_{uuid.uuid4().hex[:12]}"
+        doc_name = filename or (file_path.split("/")[-1].split("\\")[-1] if file_path else "document.pdf")
+        record = {
+            "id": msg_id,
+            "to": norm_phone,
+            "type": "document",
+            "file_path": file_path,
+            "filename": doc_name,
+            "caption": caption or "",
+            "timestamp": utc_now().isoformat(),
+            "status": "sent",
+        }
+        self.outbox.append(record)
+        self.message_statuses[msg_id] = "sent"
+
+        return OutboundWhatsAppResult(
+            success=True,
+            provider_message_id=msg_id,
+            raw_response=record,
+        )
+
     async def mark_read(self, message_id: str) -> bool:
         if message_id in self.message_statuses:
             self.message_statuses[message_id] = "read"
