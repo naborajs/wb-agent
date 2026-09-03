@@ -14,6 +14,9 @@ import {
   Tag,
   RefreshCw,
   Sparkles,
+  MapPin,
+  Calendar,
+  CheckCircle,
 } from "lucide-react";
 
 interface ConversationItem {
@@ -71,10 +74,10 @@ export default function LiveInboxPage() {
       .catch((err) => console.error("Error loading conversations:", err));
   };
 
-  // Poll conversations list every 2.5 seconds
+  // Poll conversations list every 3 seconds
   useEffect(() => {
     loadConversations();
-    const interval = setInterval(loadConversations, 2500);
+    const interval = setInterval(loadConversations, 3000);
     return () => clearInterval(interval);
   }, []);
 
@@ -168,11 +171,11 @@ export default function LiveInboxPage() {
   });
 
   return (
-    <div className="h-[calc(100vh-6.5rem)] flex rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm">
+    <div className="h-[calc(100vh-6.5rem)] flex rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-sm">
       {/* 1. Left Panel: Conversation Threads */}
-      <div className="w-80 border-r border-slate-200 flex flex-col shrink-0">
+      <div className="w-80 border-r border-slate-200 dark:border-slate-800 flex flex-col shrink-0 bg-white dark:bg-slate-900">
         {/* Search & Tabs */}
-        <div className="p-3 border-b border-slate-100 space-y-2">
+        <div className="p-3 border-b border-slate-100 dark:border-slate-800 space-y-2">
           <div className="relative">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
             <input
@@ -180,7 +183,7 @@ export default function LiveInboxPage() {
               placeholder="Search conversations..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-slate-400"
+              className="w-full pl-9 pr-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
             />
           </div>
 
@@ -189,10 +192,10 @@ export default function LiveInboxPage() {
               <button
                 key={mode}
                 onClick={() => setFilterMode(mode)}
-                className={`flex-1 py-1 text-[11px] font-semibold rounded-md uppercase tracking-wider ${
+                className={`flex-1 py-1.5 rounded-md text-[11px] font-bold uppercase tracking-wider transition-colors ${
                   filterMode === mode
-                    ? "bg-slate-900 text-white"
-                    : "text-slate-500 hover:bg-slate-100"
+                    ? "bg-slate-900 dark:bg-amber-600 text-white"
+                    : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
                 }`}
               >
                 {mode === "hot" ? "🔥 Hot" : mode === "human" ? "Human" : "All"}
@@ -202,54 +205,51 @@ export default function LiveInboxPage() {
         </div>
 
         {/* Conversation List */}
-        <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
+        <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
           {filteredConversations.length === 0 ? (
-            <div className="p-6 text-center text-slate-400 text-xs">
+            <div className="p-8 text-center text-xs text-slate-400">
               No conversations found.
             </div>
           ) : (
             filteredConversations.map((c) => {
-              const isActive = c.id === activeConvId;
-              const displayName =
-                c.customer_name ||
-                (activeConvDetail?.customer?.phone === c.channel_id
-                  ? activeConvDetail?.customer?.company_name
-                  : null) ||
-                c.channel_id;
-
+              const isSelected = c.id === activeConvId;
               return (
                 <div
                   key={c.id}
                   onClick={() => setActiveConvId(c.id)}
                   className={`p-3.5 cursor-pointer transition-colors ${
-                    isActive
-                      ? "bg-amber-50/60 border-l-4 border-amber-700"
-                      : "hover:bg-slate-50"
+                    isSelected
+                      ? "bg-amber-500/10 dark:bg-amber-950/40 border-l-4 border-amber-600 dark:border-amber-500"
+                      : "hover:bg-slate-50 dark:hover:bg-slate-800/40"
                   }`}
                 >
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5 font-semibold text-xs text-slate-900">
-                      {c.is_hot && (
-                        <Flame className="w-3.5 h-3.5 text-rose-500 fill-rose-500" />
-                      )}
-                      <span className="truncate max-w-[140px]">{displayName}</span>
-                    </div>
-                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-700">
-                      {c.lead_score}/100
+                    <span className="font-bold text-xs text-slate-900 dark:text-white truncate">
+                      {c.customer_name || c.channel_id}
                     </span>
+                    <div className="flex items-center gap-1.5">
+                      {c.is_hot && (
+                        <span className="flex items-center text-[10px] font-bold text-rose-500 dark:text-rose-400">
+                          <Flame className="w-3 h-3 fill-rose-500" />
+                        </span>
+                      )}
+                      <span className="text-[10px] font-semibold text-slate-400 font-mono">
+                        {c.lead_score}/100
+                      </span>
+                    </div>
                   </div>
 
-                  <div className="text-[11px] text-slate-500 mt-1 truncate">
+                  <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 truncate">
                     {c.company_name || c.channel_id}
                   </div>
 
                   <div className="flex items-center justify-between mt-2 text-[10px]">
-                    <span className="px-1.5 py-0.5 rounded font-medium bg-slate-100 text-slate-600">
+                    <span className="px-1.5 py-0.5 rounded font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
                       {c.sales_stage}
                     </span>
                     <span
                       className={`font-semibold ${
-                        c.mode === "HUMAN" ? "text-amber-600" : "text-emerald-600"
+                        c.mode === "HUMAN" ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"
                       }`}
                     >
                       {c.mode === "HUMAN" ? "● Human" : "● AI"}
@@ -263,31 +263,31 @@ export default function LiveInboxPage() {
       </div>
 
       {/* 2. Center Panel: Active Chat Timeline */}
-      <div className="flex-1 flex flex-col min-w-0 border-r border-slate-200 bg-slate-50/40">
+      <div className="flex-1 flex flex-col min-w-0 border-r border-slate-200 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-950/40">
         {!activeConv ? (
-          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-slate-50">
-            <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mb-3">
+          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-slate-50 dark:bg-slate-950">
+            <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-3">
               <Bot className="w-6 h-6 text-slate-400" />
             </div>
-            <h4 className="text-sm font-semibold text-slate-700">
+            <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-200">
               No Conversation Selected
             </h4>
             <p className="text-xs text-slate-400 mt-1 max-w-sm">
-              Select a conversation from the left inbox or send a message on
-              WhatsApp to <span className="font-semibold">+91 8918753100</span>!
+              Select a conversation from the left inbox or send a message on WhatsApp to{" "}
+              <span className="font-semibold text-slate-600 dark:text-slate-300">+91 8918753100</span>!
             </p>
           </div>
         ) : (
           <>
             {/* Chat Header */}
-            <div className="h-14 px-6 border-b border-slate-200 bg-white flex items-center justify-between shrink-0">
+            <div className="h-14 px-6 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between shrink-0">
               <div>
-                <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">
+                <h3 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
                   {activeConvDetail?.customer?.name ||
                     activeConvDetail?.customer?.company_name ||
                     activeConv.channel_id}
                   {activeConv.is_hot && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-600 border border-rose-200/60">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800">
                       <Flame className="w-3 h-3" /> Hot Lead
                     </span>
                   )}
@@ -330,10 +330,10 @@ export default function LiveInboxPage() {
                     <div
                       className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-xs shadow-sm leading-relaxed ${
                         isInbound
-                          ? "bg-white text-slate-900 border border-slate-200/80 rounded-tl-sm"
+                          ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-tl-sm"
                           : msg.sender_type === "human"
-                          ? "bg-amber-800 text-white rounded-tr-sm"
-                          : "bg-slate-900 text-white rounded-tr-sm"
+                          ? "bg-amber-700 text-white rounded-tr-sm"
+                          : "bg-slate-900 dark:bg-amber-950/80 border border-slate-800 dark:border-amber-700/50 text-white rounded-tr-sm"
                       }`}
                     >
                       <div className="flex items-center gap-1.5 mb-1 opacity-70 text-[10px]">
@@ -353,18 +353,20 @@ export default function LiveInboxPage() {
                           <>
                             <Sparkles className="w-3 h-3 text-emerald-400" />
                             <span className="text-emerald-400 font-semibold">
-                              NVIDIA Nemotron AI
+                              EDITH (Nemotron AI)
                             </span>
                           </>
                         )}
                       </div>
+
                       <div className="whitespace-pre-wrap">{msg.content}</div>
-                    </div>
-                    <div className="text-[10px] text-slate-400 mt-1 px-1">
-                      {new Date(msg.created_at).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
+
+                      <div className="mt-1.5 text-[9px] opacity-60 text-right">
+                        {new Date(msg.created_at).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </div>
                     </div>
                   </div>
                 );
@@ -372,29 +374,24 @@ export default function LiveInboxPage() {
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Reply Box */}
-            <div className="p-4 border-t border-slate-200 bg-white flex items-center gap-3">
-              <textarea
-                rows={1}
+            {/* Chat Input Bar */}
+            <div className="p-3 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center gap-2">
+              <input
+                type="text"
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSendMessage();
-                  }
-                }}
+                onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
                 placeholder={
                   activeConv.mode === "HUMAN"
-                    ? "Type a manual reply as human operator..."
-                    : "AI is autonomous. Type to send manual message..."
+                    ? "Type manual message as Operator..."
+                    : "Take over to message manually..."
                 }
-                className="flex-1 px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-slate-400 resize-none"
+                className="flex-1 px-4 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
               />
               <button
                 onClick={handleSendMessage}
                 disabled={isSending || !inputText.trim()}
-                className="p-2.5 bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white rounded-lg transition-colors"
+                className="p-2.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white disabled:opacity-40 transition-colors"
               >
                 <Send className="w-4 h-4" />
               </button>
@@ -403,78 +400,71 @@ export default function LiveInboxPage() {
         )}
       </div>
 
-      {/* 3. Right Panel: CRM Context, Memory & Lead Controls */}
-      <div className="w-80 p-5 overflow-y-auto space-y-6 bg-white shrink-0">
-        {/* Customer Profile */}
-        <div>
-          <div className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">
-            Customer Identity
-          </div>
-          <div className="space-y-2 text-xs">
-            <div className="flex items-center gap-2 text-slate-700 font-semibold">
-              <Building className="w-4 h-4 text-slate-400" />
-              {activeConvDetail?.customer?.company_name ||
-                activeConvDetail?.customer?.name ||
-                "Wholesale Buyer"}
+      {/* 3. Right Panel: Customer Intelligence & Memory Profile */}
+      {activeConvDetail && (
+        <div className="w-72 flex flex-col shrink-0 bg-white dark:bg-slate-900 p-5 space-y-5 overflow-y-auto text-xs">
+          <div>
+            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">
+              Customer Profile
             </div>
-            <div className="flex items-center gap-2 text-slate-600">
-              <Phone className="w-4 h-4 text-slate-400" />
-              {activeConvDetail?.customer?.phone || activeConv?.channel_id || "—"}
+            <div className="font-bold text-sm text-slate-900 dark:text-white">
+              {activeConvDetail.customer?.name || "Prospective Buyer"}
             </div>
-            <div className="flex items-center gap-2 text-slate-600">
-              <Tag className="w-4 h-4 text-slate-400" />
-              Language: {activeConvDetail?.customer?.preferred_language || "English"}
+            <div className="text-slate-500 dark:text-slate-400 mt-0.5">
+              {activeConvDetail.customer?.company_name || "Commercial Buyer"}
+            </div>
+            <div className="text-slate-400 text-[11px] mt-0.5">
+              {activeConvDetail.customer?.primary_phone}
             </div>
           </div>
-        </div>
 
-        {/* Lead Score & Funnel Stage */}
-        <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-3">
-          <div className="flex justify-between items-center text-xs">
-            <span className="font-semibold text-slate-700">Lead Score</span>
-            <span className="text-sm font-bold text-amber-700">
-              {activeConv?.lead_score || 0}/100
-            </span>
+          <div className="space-y-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+            <div className="flex justify-between">
+              <span className="text-slate-500 dark:text-slate-400">Sales Stage:</span>
+              <span className="font-bold text-slate-900 dark:text-white">
+                {activeConvDetail.conversation?.sales_stage}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-500 dark:text-slate-400">Lead Score:</span>
+              <span className="font-bold text-emerald-600 dark:text-emerald-400 font-mono">
+                {activeConvDetail.conversation?.lead_score}/100
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-500 dark:text-slate-400">City / State:</span>
+              <span className="font-medium text-slate-800 dark:text-slate-200">
+                {activeConvDetail.customer?.city || "India"}
+              </span>
+            </div>
           </div>
-          <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-amber-700 rounded-full transition-all duration-500"
-              style={{ width: `${Math.min(activeConv?.lead_score || 0, 100)}%` }}
-            ></div>
-          </div>
-          <div className="flex justify-between text-[11px] text-slate-500">
-            <span>Sales Stage:</span>
-            <span className="font-semibold text-slate-800">
-              {activeConv?.sales_stage || "NEW"}
-            </span>
-          </div>
-        </div>
 
-        {/* Rolling AI Summary */}
-        <div>
-          <div className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
-            AI Conversation Summary
-          </div>
-          <div className="p-3 rounded-lg bg-amber-50/60 border border-amber-200/60 text-xs text-amber-900 leading-relaxed">
-            {activeConvDetail?.summary ||
-              "AI has qualified buyer inquiry. Ready for custom quotation or volume pricing."}
+          {/* Extracted Customer Memory */}
+          <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              Extracted Facts & Memory
+            </div>
+            <div className="space-y-1 text-[11px]">
+              <div className="p-2 rounded bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
+                <span className="text-slate-400 block text-[9px] uppercase font-bold">
+                  Business Type
+                </span>
+                <span className="font-semibold text-slate-800 dark:text-slate-200">
+                  {activeConvDetail.customer?.company_type || "Hospitality / Cafe"}
+                </span>
+              </div>
+              <div className="p-2 rounded bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
+                <span className="text-slate-400 block text-[9px] uppercase font-bold">
+                  Opt-In Permission
+                </span>
+                <span className="font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                  <CheckCircle className="w-3 h-3" /> Confirmed
+                </span>
+              </div>
+            </div>
           </div>
         </div>
-
-        {/* Live System Info */}
-        <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50 space-y-2 text-xs">
-          <div className="font-semibold text-slate-700">WhatsApp Channel</div>
-          <div className="text-slate-500 text-[11px]">
-            Bot Account: <span className="font-mono text-slate-700">+91 8918753100</span>
-          </div>
-          <div className="text-slate-500 text-[11px]">
-            Escalation Target: <span className="font-mono text-slate-700">+91 89006 53250</span>
-          </div>
-          <div className="text-slate-500 text-[11px]">
-            LLM Model: <span className="font-mono text-emerald-700">Nemotron-3.5-Lightning</span>
-          </div>
-        </div>
-      </div>
+      )}
     </div>
   );
 }
