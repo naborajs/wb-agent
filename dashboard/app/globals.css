@@ -16,10 +16,18 @@
   --ed-text-muted: #71717A;
   --ed-accent: #DC1B35;
   --ed-accent-hover: #B91630;
-  --ed-accent-glow: rgba(220, 27, 53, 0.10);
+  --ed-accent-glow: rgba(220, 27, 53, 0.12);
   --ed-success: #059669;
   --ed-warning: #D97706;
   --ed-danger: #DC2626;
+
+  /* Royal subtle canvas gradient (light mode) */
+  --ed-canvas-bg: radial-gradient(circle at 18% 12%, #FFFFFF 0%, #F8F8FA 60%, #F0F0F5 100%);
+  --ed-dot-color: rgba(0, 0, 0, 0.04);
+
+  /* Primary Button Gradient (light mode) */
+  --ed-btn-gradient: linear-gradient(180deg, #DC1B35 0%, #A81224 100%);
+  --ed-btn-gradient-hover: linear-gradient(180deg, #ED2541 0%, #B91630 100%);
 
   /* Light panel shadow — directional, not generic even spread */
   --ed-shadow-panel: 0 1px 3px rgba(0, 0, 0, 0.06), 0 4px 12px rgba(0, 0, 0, 0.04);
@@ -38,10 +46,18 @@
   --ed-text-muted: #6B6B80;
   --ed-accent: #F02341;
   --ed-accent-hover: #D91E3A;
-  --ed-accent-glow: rgba(240, 35, 65, 0.15);
+  --ed-accent-glow: rgba(240, 35, 65, 0.20);
   --ed-success: #10B981;
   --ed-warning: #F59E0B;
   --ed-danger: #EF4444;
+
+  /* Royal subtle canvas gradient with oxblood/cool-black undertone (dark mode) */
+  --ed-canvas-bg: radial-gradient(circle at 18% 12%, #14090e 0%, #07070B 60%, #040407 100%);
+  --ed-dot-color: rgba(255, 255, 255, 0.04);
+
+  /* Primary Button Gradient with depth (dark mode) */
+  --ed-btn-gradient: linear-gradient(180deg, #F02341 0%, #B8142C 100%);
+  --ed-btn-gradient-hover: linear-gradient(180deg, #FF3D57 0%, #C91630 100%);
 
   --ed-shadow-panel: 0 1px 3px rgba(0, 0, 0, 0.3), 0 4px 12px rgba(0, 0, 0, 0.2);
   --ed-shadow-elevated: 0 2px 8px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.3);
@@ -80,9 +96,17 @@ body {
 }
 
 /* ============================================================
-   Button interaction utilities
+   Button interaction & surface utilities
    ============================================================ */
 @layer utilities {
+  /* Canvas textured background with royal gradient and static dot-grid */
+  .ed-bg-texture {
+    background-color: var(--ed-bg);
+    background-image: radial-gradient(var(--ed-dot-color) 1px, transparent 1px), var(--ed-canvas-bg);
+    background-size: 24px 24px, 100% 100%;
+    background-attachment: fixed;
+  }
+
   /* Press state — scale down on active */
   .ed-press {
     transition: transform 150ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 150ms ease-out, background-color 150ms ease-out;
@@ -104,7 +128,7 @@ body {
 
   /* Combined press + lift for interactive elements */
   .ed-interactive {
-    transition: transform 150ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 150ms ease-out, background-color 150ms ease-out;
+    transition: transform 150ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 150ms ease-out, background 150ms ease-out;
     will-change: transform;
   }
   .ed-interactive:hover {
@@ -116,7 +140,39 @@ body {
     box-shadow: var(--ed-shadow-panel);
   }
 
-  /* Glass surface — frosted translucent */
+  /* Primary action button with gradient fill and soft accent glow */
+  .ed-btn-primary {
+    background: var(--ed-btn-gradient);
+    color: #FFFFFF !important;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    box-shadow: 0 4px 16px var(--ed-accent-glow), 0 1px 2px rgba(0, 0, 0, 0.3);
+    transition: transform 150ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 150ms ease-out, background 150ms ease-out;
+  }
+  .ed-btn-primary:hover {
+    background: var(--ed-btn-gradient-hover);
+    box-shadow: 0 6px 22px var(--ed-accent-glow), 0 2px 6px rgba(0, 0, 0, 0.4);
+    transform: translateY(-1px);
+  }
+  .ed-btn-primary:active {
+    transform: scale(0.97);
+    box-shadow: 0 2px 8px var(--ed-accent-glow), 0 1px 2px rgba(0, 0, 0, 0.3);
+  }
+
+  /* Restrained quiet active nav: subtle surface highlight, clean text, quiet red border */
+  .ed-nav-active {
+    background: var(--ed-surface);
+    color: var(--ed-text-primary) !important;
+    font-weight: 600;
+    border-left: 2.5px solid var(--ed-accent);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  }
+
+  /* Hot lead badge glow */
+  .ed-glow-badge {
+    box-shadow: 0 0 12px var(--ed-accent-glow);
+  }
+
+  /* Glass surface — frosted translucent (deliberate on 2-3 key surfaces) */
   .ed-glass {
     background: var(--ed-surface-elevated);
     backdrop-filter: blur(12px);
@@ -124,12 +180,12 @@ body {
     border: 1px solid var(--ed-border);
   }
 
-  /* Accent glow — subtle ambient wash */
+  /* Ambient glow wash for hero stats */
   .ed-glow {
-    box-shadow: 0 0 30px var(--ed-accent-glow), 0 0 60px var(--ed-accent-glow);
+    box-shadow: 0 0 24px var(--ed-accent-glow);
   }
 
-  /* Panel base — solid surface with directional shadow */
+  /* Panel base — solid surface with hairline neutral border and directional shadow */
   .ed-panel {
     background: var(--ed-surface);
     border: 1px solid var(--ed-border);
@@ -154,16 +210,19 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .ed-press,
   .ed-lift,
-  .ed-interactive {
+  .ed-interactive,
+  .ed-btn-primary {
     transition: opacity 100ms ease-out, background-color 100ms ease-out !important;
     will-change: auto !important;
   }
   .ed-press:active,
-  .ed-interactive:active {
+  .ed-interactive:active,
+  .ed-btn-primary:active {
     transform: none !important;
   }
   .ed-lift:hover,
-  .ed-interactive:hover {
+  .ed-interactive:hover,
+  .ed-btn-primary:hover {
     transform: none !important;
     box-shadow: var(--ed-shadow-panel) !important;
   }
