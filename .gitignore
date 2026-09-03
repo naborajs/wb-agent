@@ -79,6 +79,7 @@ storage/backups/*
 !storage/backups/.gitkeep
 storage/logs/*
 !storage/logs/.gitkeep
+backend/storage/
 
 # IDEs
 .idea/
