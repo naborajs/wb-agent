@@ -54,6 +54,7 @@ class Settings(BaseSettings):
     LLM_TEMPERATURE: float = 0.2
     LLM_MAX_TOKENS: int = 1024
     LLM_REQUEST_TIMEOUT: int = 90
+    GEMINI_API_KEY: str = ""
 
     # WhatsApp Channel Configuration
     # Options: 'simulator', 'development', 'meta_cloud'
