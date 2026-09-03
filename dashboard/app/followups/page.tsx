@@ -37,15 +37,18 @@ export default function FollowupsPage() {
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       <div>
-        <h2 className="text-2xl font-bold tracking-tight text-slate-900">Follow-up Sequence Engine</h2>
-        <p className="text-sm text-slate-500 mt-1">
+        <h2 className="text-2xl font-bold tracking-tight text-[var(--ed-text-primary)]">Follow-up Sequence Engine</h2>
+        <p className="text-sm text-[var(--ed-text-muted)] mt-1">
           Automated B2B outreach cadence (Day 0, Day 1, Day 3) with guaranteed cancellation upon customer response.
         </p>
       </div>
 
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <table className="w-full text-left text-xs text-slate-600">
-          <thead className="bg-slate-50 text-slate-400 font-semibold border-b border-slate-200 uppercase tracking-wider">
+      <div className="ed-panel rounded-xl overflow-hidden">
+        <table className="w-full text-left text-xs text-[var(--ed-text-muted)]">
+          <thead
+            className="font-semibold border-b border-[var(--ed-border)] uppercase tracking-wider text-[var(--ed-text-muted)]"
+            style={{ background: "var(--ed-bg)" }}
+          >
             <tr>
               <th className="px-5 py-3">Customer & Channel</th>
               <th className="px-5 py-3">Sequence Step</th>
@@ -54,23 +57,28 @@ export default function FollowupsPage() {
               <th className="px-5 py-3">Status</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-[var(--ed-border)]">
             {followups.map((f) => (
-              <tr key={f.id} className="hover:bg-slate-50">
+              <tr key={f.id} className="hover:bg-[var(--ed-bg)] transition-colors">
                 <td className="px-5 py-3.5">
-                  <div className="font-semibold text-slate-900">{f.customer}</div>
-                  <div className="text-[11px] text-slate-400">{f.phone}</div>
+                  <div className="font-semibold text-[var(--ed-text-primary)]">{f.customer}</div>
+                  <div className="text-[11px] text-[var(--ed-text-muted)] font-data">{f.phone}</div>
                 </td>
-                <td className="px-5 py-3.5 font-medium text-slate-800">{f.step}</td>
-                <td className="px-5 py-3.5 text-slate-600">{f.scheduled_for}</td>
-                <td className="px-5 py-3.5 text-slate-500 font-mono text-[11px]">{f.guard}</td>
+                <td className="px-5 py-3.5 font-medium text-[var(--ed-text-primary)]">{f.step}</td>
+                <td className="px-5 py-3.5 text-[var(--ed-text-muted)]">{f.scheduled_for}</td>
+                <td className="px-5 py-3.5 text-[var(--ed-text-muted)] font-mono text-[11px]">{f.guard}</td>
                 <td className="px-5 py-3.5">
                   <span
-                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                    className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
                       f.status === "scheduled"
-                        ? "bg-amber-50 text-amber-700 border border-amber-200"
-                        : "bg-slate-100 text-slate-500"
+                        ? "text-[var(--ed-accent)] border border-[var(--ed-accent)]/20"
+                        : "text-[var(--ed-text-muted)] border border-[var(--ed-border)]"
                     }`}
+                    style={
+                      f.status === "scheduled"
+                        ? { background: "color-mix(in srgb, var(--ed-accent) 8%, transparent)" }
+                        : { background: "var(--ed-bg)" }
+                    }
                   >
                     {f.status === "scheduled" ? (
                       <>
