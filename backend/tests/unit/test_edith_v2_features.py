@@ -235,3 +235,52 @@ async def test_owner_commands(app_client):
         # 3. Non-owner message returns None (passed through to normal chat)
         non_owner_res = await OwnerCommandHandler.process_command("+919999999999", "STATUS", session, org_id)
         assert non_owner_res is None
+
+
+@pytest.mark.asyncio
+async def test_product_and_pricing_customization(app_client):
+    """
+    Tests creating a new product, toggling in_stock status via PATCH,
+    and creating/modifying volume pricing rules.
+    """
+    client, _ = app_client
+
+    # 1. Create a new product
+    create_payload = {
+        "name": "Mirik Muscatel Second Flush",
+        "category": "Darjeeling",
+        "tea_grade": "FTGFOP1",
+        "origin": "Mirik Valley, Darjeeling",
+        "base_price_per_kg": 1800.0,
+        "min_order_quantity_kg": 15.0,
+        "in_stock": True,
+        "weight_kg": 10.0,
+        "packaging_type": "foil_bag",
+    }
+    create_res = await client.post("/api/v1/products", json=create_payload)
+    assert create_res.status_code == 200, create_res.text
+    prod_data = create_res.json()
+    assert prod_data["name"] == "Mirik Muscatel Second Flush"
+    prod_id = prod_data["id"]
+
+    # 2. Toggle stock status to Out of Stock
+    toggle_res = await client.patch(f"/api/v1/products/{prod_id}", json={"in_stock": False})
+    assert toggle_res.status_code == 200
+    assert toggle_res.json()["in_stock"] is False
+
+    # 3. Create a custom volume tier pricing rule
+    rule_payload = {
+        "rule_name": "Tier 4: 1000kg+ Institutional Tier",
+        "rule_type": "volume_tier",
+        "min_quantity_kg": 1000.0,
+        "max_quantity_kg": None,
+        "discount_percentage": 18.0,
+        "max_autonomous_discount_percentage: ": 12.0,
+        "requires_human_approval": True,
+    }
+    rule_res = await client.post("/api/v1/pricing/rules", json=rule_payload)
+    assert rule_res.status_code == 200, rule_res.text
+    rule_data = rule_res.json()
+    assert rule_data["rule_name"] == "Tier 4: 1000kg+ Institutional Tier"
+    assert float(rule_data["discount_percentage"]) == 18.0
+
