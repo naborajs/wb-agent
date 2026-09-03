@@ -44,14 +44,16 @@ class Settings(BaseSettings):
     # AI & LLM Provider Configuration
     # Production: NVIDIA Nemotron; Development/Test: Provider abstraction with fallback
     NVIDIA_API_KEY: str = "nvapi-mock-key-for-local-dev"
+    NVIDIA_FALLBACK_API_KEY: str = ""
     NVIDIA_BASE_URL: str = "https://integrate.api.nvidia.com/v1"
-    NVIDIA_MODEL: str = "nvidia/nemotron-4-340b-instruct"
+    NVIDIA_MODEL: str = "nvidia/nemotron-3-ultra-550b-a55b"
+    NVIDIA_FALLBACK_MODELS: str = "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning,nvidia/nemotron-3-super-120b-a12b,google/gemma-4-31b-it"
     NVIDIA_EMBEDDING_MODEL: str = "nvidia/nv-embedqa-e5-v5"
     LLM_PROVIDER: str = "simulator"  # Options: 'nvidia', 'simulator', 'fallback'
     LLM_FALLBACK_PROVIDER: str = "simulator"
     LLM_TEMPERATURE: float = 0.2
     LLM_MAX_TOKENS: int = 1024
-    LLM_REQUEST_TIMEOUT: int = 30
+    LLM_REQUEST_TIMEOUT: int = 90
 
     # WhatsApp Channel Configuration
     # Options: 'simulator', 'development', 'meta_cloud'
