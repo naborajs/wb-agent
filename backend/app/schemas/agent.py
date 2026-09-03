@@ -46,6 +46,7 @@ class AgentTurnResponse(BaseModel):
     tools_executed: List[str] = Field(default_factory=list)
     handoff_created: bool = False
     is_suppressed: bool = False  # True if human takeover or paused
+    invoice_pdf_path: Optional[str] = None
 
 
 class AgentRunResponse(BaseModel):
