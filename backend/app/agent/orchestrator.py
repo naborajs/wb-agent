@@ -227,10 +227,24 @@ class AgentOrchestrator:
                 context_searched="Wholesale Estate Teas Catalog, Packaging Policies",
                 urgency="NORMAL",
             )
-            reply_text = (
-                "We specialize directly in estate-fresh bulk and wholesale black, green, and CTC teas for cafes, hotels, and distributors. "
-                "Regarding tea seeds or planting stock, let me verify with our estate operations whether we have any availability or partners to recommend."
+            is_hindi_hinglish = (
+                language in ("Hindi", "Hinglish")
+                or any(w in inbound_message.lower() for w in ["khet", "ket", "beej", "bij", "seeds", "mara", "mera", "bhai", "kitna", "chahiye", "ton", "bara", "ha", "ho", "karo", "dedo"])
             )
+            if is_hindi_hinglish:
+                reply_text = (
+                    "Namaste! Hum khet ya kheti ke liye tea seeds (beej) ya nursery paudhe supply nahi karte. "
+                    "North Bengal Tea Co. direct factory-fresh commercial bulk chai (Assam Kadak CTC, Dooars Blend, Darjeeling Leaf) "
+                    "cafes, hotels aur dukaano ke liye supply karti hai. "
+                    "Agar aapko commercial beverage service ke liye bulk chai chahiye, to zaroor batayein!"
+                )
+            else:
+                reply_text = (
+                    "North Bengal Tea Co. specializes strictly in processed commercial bulk and wholesale estate teas "
+                    "(Assam CTC, Darjeeling Whole Leaf, Dooars) for cafes, hotels, and retailers. "
+                    "We do not supply agricultural tea seeds, nursery saplings, or planting stock. "
+                    "If your establishment requires finished commercial teas for beverage service, we'd be delighted to assist!"
+                )
 
         # 9. Check Purchase Intent & Human Handoff (Sections 25, 26, 58)
         elif sales_decision.handoff_required:
@@ -310,10 +324,18 @@ class AgentOrchestrator:
                 f"- 200g Commercial Tasting Kit available for verified cafes and restaurants."
             )
 
-            prompt_msgs = [
-                LLMMessage(role="system", content=system_prompt),
-                LLMMessage(role="user", content=inbound_message),
-            ]
+            prompt_msgs = [LLMMessage(role="system", content=system_prompt)]
+
+            # Feed prior multi-turn dialogue turns (up to 6) for true conversational memory
+            if ctx.recent_messages:
+                past_turns = ctx.recent_messages[:-1] if len(ctx.recent_messages) > 1 else []
+                for p_msg in past_turns[-6:]:
+                    r = "user" if p_msg.get("direction") == "inbound" else "assistant"
+                    c = (p_msg.get("content") or "").strip()
+                    if c:
+                        prompt_msgs.append(LLMMessage(role=r, content=c))
+
+            prompt_msgs.append(LLMMessage(role="user", content=inbound_message))
 
             llm_resp = await self.llm_router.generate(prompt_msgs)
             reply_text = llm_resp.content
@@ -344,15 +366,20 @@ class AgentOrchestrator:
 
         if not is_suppressed and sanitized_reply:
             provider_msg_id = None
-            try:
-                from app.whatsapp.service import WhatsAppService
-                wa = WhatsAppService.get_provider()
-                if conv.channel_id:
-                    send_res = await wa.send_message(to_phone=conv.channel_id, text=sanitized_reply)
-                    if send_res and send_res.provider_message_id:
-                        provider_msg_id = send_res.provider_message_id
-            except Exception as e:
-                logger.error(f"Failed to dispatch outbound WhatsApp message: {e}")
+            clean_recipient = conv.channel_id.replace("+", "").replace(" ", "").strip() if conv.channel_id else ""
+            bot_num = "918918753100"
+            if clean_recipient == bot_num or clean_recipient.endswith(bot_num):
+                logger.info(f"Suppressed outbound dispatch to bot's own number {conv.channel_id}")
+            else:
+                try:
+                    from app.whatsapp.service import WhatsAppService
+                    wa = WhatsAppService.get_provider()
+                    if conv.channel_id:
+                        send_res = await wa.send_message(to_phone=conv.channel_id, text=sanitized_reply)
+                        if send_res and send_res.provider_message_id:
+                            provider_msg_id = send_res.provider_message_id
+                except Exception as e:
+                    logger.error(f"Failed to dispatch outbound WhatsApp message: {e}")
 
             await self.conv_service.add_message(
                 conversation_id=conversation_id,
