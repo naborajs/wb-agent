@@ -68,6 +68,14 @@ async def receive_whatsapp_webhook(
 
     for event in events:
         if event.event_type == "message" and event.content:
+            # Check if sender is the bot itself (prevent infinite self-chat loop)
+            from app.utils.phone import normalize_phone_number
+            clean_sender = normalize_phone_number(event.sender_phone)
+            bot_phone = "918918753100"
+            if clean_sender.endswith(bot_phone) or bot_phone.endswith(clean_sender):
+                logger.info(f"Ignoring self-message from bot phone {event.sender_phone}")
+                continue
+
             # Check if message is from the authorized business owner (+91 89006 53250)
             from app.whatsapp.owner_commands import OwnerCommandHandler
             if OwnerCommandHandler.is_owner(event.sender_phone):

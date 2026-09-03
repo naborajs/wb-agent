@@ -246,7 +246,12 @@ async function startSocket() {
       const remoteJid = msg.key.remoteJid;
       if (!remoteJid || remoteJid.includes("@g.us")) continue;
 
-      const senderPhone = remoteJid.split("@")[0];
+      const senderPhone = remoteJid.split("@")[0].replace(/[^0-9]/g, "");
+      // CRITICAL SELF-CHAT GUARD: Never forward messages originating from or addressed to the bot's own number!
+      if (senderPhone === BOT_PHONE || senderPhone.endsWith(BOT_PHONE) || BOT_PHONE.endsWith(senderPhone)) {
+        console.log(`[IGNORE] Suppressed self-message loop from bot phone ${senderPhone}`);
+        continue;
+      }
       jidMap.set(senderPhone, remoteJid);
       const textBody =
         msg.message?.conversation ||
