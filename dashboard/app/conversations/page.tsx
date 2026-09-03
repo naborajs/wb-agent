@@ -21,6 +21,7 @@ import {
   AlertTriangle,
   X,
   FileCheck,
+  ExternalLink,
 } from "lucide-react";
 
 interface ConversationItem {
@@ -58,6 +59,8 @@ export default function LiveInboxPage() {
   const [filterMode, setFilterMode] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const [isSimulatingCustomer, setIsSimulatingCustomer] = useState(false);
+  const [waStatus, setWaStatus] = useState<{ connected: boolean; pairingCode?: string } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // New Chat Modal State
@@ -130,6 +133,19 @@ export default function LiveInboxPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [activeConvDetail?.messages]);
 
+  // Monitor WhatsApp Bridge Connection
+  useEffect(() => {
+    const checkWa = () => {
+      fetch("http://localhost:3001/status")
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data) => setWaStatus(data))
+        .catch(() => setWaStatus({ connected: false }));
+    };
+    checkWa();
+    const interval = setInterval(checkWa, 4000);
+    return () => clearInterval(interval);
+  }, []);
+
   // Handle Takeover Mode (AI <-> HUMAN)
   const handleTakeover = async (mode: string) => {
     if (!activeConvId) return;
@@ -150,7 +166,7 @@ export default function LiveInboxPage() {
     }
   };
 
-  // Handle Send Manual Operator Message
+  // Handle Send Message (either Operator or Simulated Customer Turn)
   const handleSendMessage = async () => {
     if (!inputText.trim() || !activeConvId || isSending) return;
     const textToSend = inputText.trim();
@@ -158,21 +174,32 @@ export default function LiveInboxPage() {
     setIsSending(true);
 
     try {
-      const res = await fetch(`/api/v1/conversations/${activeConvId}/messages`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          conversation_id: activeConvId,
-          content: textToSend,
-        }),
-      });
-      if (res.ok) {
-        const updated = await fetch(`/api/v1/conversations/${activeConvId}`).then(
-          (r) => (r.ok ? r.json() : null)
-        );
-        if (updated) setActiveConvDetail(updated);
-        loadConversations();
+      if (isSimulatingCustomer) {
+        // Trigger live AI consultation turn
+        await fetch("/api/v1/agent/turn", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            conversation_id: activeConvId,
+            inbound_message: textToSend,
+          }),
+        });
+      } else {
+        // Send manual operator message
+        await fetch(`/api/v1/conversations/${activeConvId}/messages`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            conversation_id: activeConvId,
+            content: textToSend,
+          }),
+        });
       }
+      const updated = await fetch(`/api/v1/conversations/${activeConvId}`).then(
+        (r) => (r.ok ? r.json() : null)
+      );
+      if (updated) setActiveConvDetail(updated);
+      loadConversations();
     } catch (e) {
       console.error(e);
     } finally {
@@ -436,6 +463,36 @@ export default function LiveInboxPage() {
               </div>
             </div>
 
+            {/* WhatsApp Connection Warning Banner */}
+            {waStatus && !waStatus.connected && (
+              <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 py-2 text-xs flex items-center justify-between text-amber-800 dark:text-amber-300 shrink-0">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping shrink-0" />
+                  <span>
+                    <strong>WhatsApp Disconnected:</strong> Link bot (+91 89187 53100) using code <strong className="font-mono bg-amber-200/50 dark:bg-amber-900/50 px-1 py-0.5 rounded">6K571G8A</strong> to chat from your phone, OR use <strong>🧪 Simulate Customer</strong> below to test AI right now!
+                  </span>
+                </div>
+                <div className="flex items-center gap-3 shrink-0 text-[11px] font-bold">
+                  <a
+                    href="http://localhost:3001/code"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="underline hover:text-amber-950 dark:hover:text-white inline-flex items-center gap-0.5"
+                  >
+                    Pairing Code <ExternalLink className="w-3 h-3" />
+                  </a>
+                  <a
+                    href="http://localhost:3001/qr"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="underline hover:text-amber-950 dark:hover:text-white inline-flex items-center gap-0.5"
+                  >
+                    Scan QR <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
+              </div>
+            )}
+
             {/* Message Thread */}
             <div className="flex-1 overflow-y-auto p-6 space-y-4">
               {(activeConvDetail?.messages || []).map((msg: Message) => {
@@ -524,26 +581,72 @@ export default function LiveInboxPage() {
             </div>
 
             {/* Chat Input Bar */}
-            <div className="p-3 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center gap-2">
-              <input
-                type="text"
-                value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
-                placeholder={
-                  activeConv.mode === "HUMAN"
-                    ? "Type manual message as Operator..."
-                    : "Take over to message manually..."
-                }
-                className="flex-1 px-4 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
-              />
-              <button
-                onClick={handleSendMessage}
-                disabled={isSending || !inputText.trim()}
-                className="p-2.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white disabled:opacity-40 transition-colors"
-              >
-                <Send className="w-4 h-4" />
-              </button>
+            <div className="p-3 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-2">
+              <div className="flex items-center justify-between text-[11px]">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-slate-400 font-medium">Chat Mode:</span>
+                  <button
+                    type="button"
+                    onClick={() => setIsSimulatingCustomer(false)}
+                    className={`px-2.5 py-1 rounded-md font-semibold transition-colors ${
+                      !isSimulatingCustomer
+                        ? "bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700 shadow-sm"
+                        : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                    }`}
+                  >
+                    👤 Operator Reply
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsSimulatingCustomer(true)}
+                    className={`px-2.5 py-1 rounded-md font-semibold transition-colors inline-flex items-center gap-1 ${
+                      isSimulatingCustomer
+                        ? "bg-purple-100 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 border border-purple-300 dark:border-purple-700 shadow-sm"
+                        : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                    }`}
+                  >
+                    <Sparkles className="w-3 h-3" /> 🧪 Simulate Customer (AI Replies)
+                  </button>
+                </div>
+                {isSimulatingCustomer && (
+                  <span className="text-[10px] text-purple-600 dark:text-purple-400 font-semibold">
+                    ⚡ EDITH will process your message and reply immediately!
+                  </span>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={inputText}
+                  onChange={(e) => setInputText(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
+                  placeholder={
+                    isSimulatingCustomer
+                      ? "Type customer inquiry (e.g. 'What is the price for 50kg Assam CTC for my cafe?')..."
+                      : activeConv.mode === "HUMAN"
+                      ? "Type manual message as Operator..."
+                      : "Take over to message manually..."
+                  }
+                  className={`flex-1 px-4 py-2.5 rounded-lg border text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 ${
+                    isSimulatingCustomer
+                      ? "border-purple-300 dark:border-purple-700 bg-purple-50/30 dark:bg-purple-950/20 focus:ring-purple-500"
+                      : "border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 focus:ring-amber-500"
+                  }`}
+                />
+                <button
+                  onClick={handleSendMessage}
+                  disabled={isSending || !inputText.trim()}
+                  className={`px-3.5 py-2.5 rounded-lg text-white font-semibold text-xs disabled:opacity-40 transition-colors inline-flex items-center gap-1.5 shrink-0 ${
+                    isSimulatingCustomer
+                      ? "bg-purple-600 hover:bg-purple-700 shadow-sm"
+                      : "bg-amber-600 hover:bg-amber-700 shadow-sm"
+                  }`}
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  {isSending ? "Processing..." : isSimulatingCustomer ? "Simulate & Reply" : "Send"}
+                </button>
+              </div>
             </div>
           </>
         )}
