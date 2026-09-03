@@ -90,7 +90,8 @@ export default function LeadsPage() {
       });
       const data = await res.json();
       if (res.ok) {
-        setUploadResult(`Successfully ingested ${data.leads_created} leads from CSV.`);
+        const count = data.imported ?? data.leads_created ?? 0;
+        setUploadResult(`Successfully ingested ${count} leads from CSV (Total: ${data.total_rows || count}).`);
         loadLeads();
       } else {
         setUploadResult(`Upload failed: ${data.detail || "Invalid format"}`);
