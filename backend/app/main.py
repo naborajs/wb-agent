@@ -15,6 +15,7 @@ from app.api.routes import (
     knowledge,
     leads,
     products,
+    proposals,
     settings as settings_router,
     webhooks,
     ws,
@@ -51,6 +52,7 @@ app.include_router(auth.router, prefix=api_v1)
 app.include_router(leads.router, prefix=api_v1)
 app.include_router(conversations.router, prefix=api_v1)
 app.include_router(products.router, prefix=api_v1)
+app.include_router(proposals.router, prefix=api_v1)
 app.include_router(agent.router, prefix=api_v1)
 app.include_router(knowledge.router, prefix=api_v1)
 app.include_router(handoffs.router, prefix=api_v1)
