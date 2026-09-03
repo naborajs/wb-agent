@@ -27,7 +27,10 @@ def detect_language(text: str) -> str:
     # Hinglish / Romanized Hindi keywords
     hinglish_markers = [
         "chai", "patti", "kya rate", "kitna", "bhai", "namaste", "chahiye", "dam",
-        "sample bhej", "bhejo", "humara cafe", "bahut mehenga", "kam karo", "maal"
+        "sample bhej", "bhejo", "humara cafe", "bahut mehenga", "kam karo", "maal",
+        "hinglish", "hindi", "bol", "sakta", "sakate", "skat", "muja", "mujhe",
+        "mera", "meri", "hum", "aap", "tora", "thoda", "problem", "bataye", "batao",
+        "hota ha", "hota hai", "karo na", "lekin", "kaise"
     ]
     if any(marker in lower for marker in hinglish_markers):
         return "Hinglish"
