@@ -1,5 +1,5 @@
 """
-Unified exports for all WB-Agent domain models.
+Unified exports for all WB-Agent domain models (Section 76).
 """
 
 from app.database.models.organization import Organization, User, ApiKey
@@ -11,7 +11,14 @@ from app.database.models.conversation import (
     ConversationSummary,
     CustomerMemory,
 )
-from app.database.models.product_pricing import Product, ProductVariant, PricingRule
+from app.database.models.product_pricing import (
+    Product,
+    ProductVariant,
+    PricingRule,
+    ProductCustomField,
+    PricingRuleVersion,
+    Inventory,
+)
 from app.database.models.knowledge import KnowledgeDocument, KnowledgeChunk
 from app.database.models.campaign_followup import Campaign, CampaignLead, FollowupJob, Job
 from app.database.models.agent_audit import (
@@ -31,8 +38,9 @@ from app.database.models.knowledge_request import (
     CustomerProfileVersion,
     ConversationAnalysis,
 )
-from app.database.models.order import Order, OrderItem
+from app.database.models.order import Order, OrderItem, Quote, QuoteItem
 from app.database.models.learning import SalesLearning
+from app.database.models.prompt_version import PromptVersion
 
 __all__ = [
     "Organization",
@@ -50,6 +58,9 @@ __all__ = [
     "Product",
     "ProductVariant",
     "PricingRule",
+    "ProductCustomField",
+    "PricingRuleVersion",
+    "Inventory",
     "KnowledgeDocument",
     "KnowledgeChunk",
     "Campaign",
@@ -71,5 +82,8 @@ __all__ = [
     "ConversationAnalysis",
     "Order",
     "OrderItem",
+    "Quote",
+    "QuoteItem",
     "SalesLearning",
+    "PromptVersion",
 ]
