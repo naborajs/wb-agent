@@ -244,22 +244,22 @@ export default function OrdersPage() {
   const totalValue = orders.reduce((sum, o) => sum + o.total_amount, 0);
 
   return (
-    <div className="flex-1 flex flex-col h-full overflow-hidden bg-slate-50">
+    <div className="flex-1 flex flex-col h-full overflow-hidden bg-slate-50 dark:bg-slate-950 transition-colors">
       {/* Header Bar */}
-      <div className="p-6 bg-white border-b border-slate-200 flex items-center justify-between">
+      <div className="p-6 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-            <ShoppingBag className="w-5 h-5 text-amber-700" />
+          <h1 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <ShoppingBag className="w-5 h-5 text-amber-600 dark:text-amber-400" />
             Wholesale Commercial Orders
           </h1>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             Direct estate wholesale orders placed via AI consultation or operator desk.
           </p>
         </div>
 
         <button
           onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-amber-700 hover:bg-amber-800 text-white text-sm font-semibold rounded-lg shadow-sm shadow-amber-700/20 transition-all"
+          className="flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold rounded-lg shadow-sm shadow-amber-600/20 transition-all"
         >
           <Plus className="w-4 h-4" />
           Create New Order
@@ -268,25 +268,25 @@ export default function OrdersPage() {
 
       {/* Metric Cards */}
       <div className="grid grid-cols-4 gap-4 p-6 pb-2">
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-          <div className="text-xs font-medium text-slate-500 uppercase tracking-wider">Total Orders</div>
-          <div className="text-2xl font-bold text-slate-900 mt-1">{orders.length}</div>
+        <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Orders</div>
+          <div className="text-2xl font-bold text-slate-900 dark:text-white mt-1">{orders.length}</div>
         </div>
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-          <div className="text-xs font-medium text-slate-500 uppercase tracking-wider">Total Order Volume</div>
-          <div className="text-2xl font-bold text-emerald-700 mt-1">
+        <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Order Volume</div>
+          <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">
             ₹{totalValue.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
           </div>
         </div>
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-          <div className="text-xs font-medium text-slate-500 uppercase tracking-wider">Confirmed / Pending</div>
-          <div className="text-2xl font-bold text-amber-700 mt-1">
+        <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Confirmed / Pending</div>
+          <div className="text-2xl font-bold text-amber-600 dark:text-amber-400 mt-1">
             {orders.filter((o) => o.status === "confirmed").length}
           </div>
         </div>
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-          <div className="text-xs font-medium text-slate-500 uppercase tracking-wider">Dispatched / Delivered</div>
-          <div className="text-2xl font-bold text-blue-700 mt-1">
+        <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Dispatched / Delivered</div>
+          <div className="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">
             {orders.filter((o) => o.status === "dispatched" || o.status === "completed").length}
           </div>
         </div>
@@ -301,14 +301,14 @@ export default function OrdersPage() {
             placeholder="Search order #, customer name, or destination city..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-700/20 focus:border-amber-700"
+            className="w-full pl-9 pr-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
           />
         </div>
 
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-700/20"
+          className="px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-amber-500"
         >
           <option value="all">All Statuses</option>
           <option value="confirmed">Confirmed</option>
@@ -321,10 +321,10 @@ export default function OrdersPage() {
 
       {/* Orders Table */}
       <div className="flex-1 overflow-auto px-6 pb-6">
-        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-slate-100 bg-slate-50/75 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/75 dark:bg-slate-800/60 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                 <th className="py-3 px-4">Order #</th>
                 <th className="py-3 px-4">Customer</th>
                 <th className="py-3 px-4">Destination</th>
@@ -335,7 +335,7 @@ export default function OrdersPage() {
                 <th className="py-3 px-4 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 text-sm">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
               {filteredOrders.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="text-center py-12 text-slate-400 text-sm">
@@ -344,30 +344,30 @@ export default function OrdersPage() {
                 </tr>
               ) : (
                 filteredOrders.map((order) => (
-                  <tr key={order.id} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="py-3.5 px-4 font-mono font-semibold text-slate-900 text-xs">
+                  <tr key={order.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors">
+                    <td className="py-3.5 px-4 font-mono font-semibold text-slate-900 dark:text-white text-xs">
                       {order.order_number}
                     </td>
                     <td className="py-3.5 px-4">
-                      <div className="font-medium text-slate-900">{order.customer_name || "Buyer"}</div>
-                      <div className="text-xs text-slate-500">{order.customer_company || order.customer_phone}</div>
+                      <div className="font-medium text-slate-900 dark:text-white">{order.customer_name || "Buyer"}</div>
+                      <div className="text-xs text-slate-500 dark:text-slate-400">{order.customer_company || order.customer_phone}</div>
                     </td>
-                    <td className="py-3.5 px-4 text-slate-600 text-xs">
+                    <td className="py-3.5 px-4 text-slate-600 dark:text-slate-300 text-xs">
                       <div className="flex items-center gap-1">
                         <MapPin className="w-3.5 h-3.5 text-slate-400" />
                         {order.shipping_city || "Siliguri"}
                       </div>
                     </td>
                     <td className="py-3.5 px-4">
-                      <div className="text-xs font-medium text-slate-800">
+                      <div className="text-xs font-medium text-slate-800 dark:text-slate-200">
                         {order.items.map((it) => `${it.quantity_kg}kg ${it.product_name} (${it.tea_grade})`).join(", ")}
                       </div>
                     </td>
-                    <td className="py-3.5 px-4 font-semibold text-slate-900">
+                    <td className="py-3.5 px-4 font-semibold text-slate-900 dark:text-white">
                       ₹{order.total_amount.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
                     </td>
                     <td className="py-3.5 px-4">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-slate-100 text-slate-700">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
                         {order.payment_status.toUpperCase()}
                       </span>
                     </td>
@@ -375,12 +375,12 @@ export default function OrdersPage() {
                       <span
                         className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold ${
                           order.status === "completed"
-                            ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                            ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
                             : order.status === "dispatched"
-                            ? "bg-blue-50 text-blue-700 border border-blue-200"
+                            ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20"
                             : order.status === "invoiced"
-                            ? "bg-purple-50 text-purple-700 border border-purple-200"
-                            : "bg-amber-50 text-amber-700 border border-amber-200"
+                            ? "bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20"
+                            : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
                         }`}
                       >
                         {order.status.toUpperCase()}
@@ -390,7 +390,7 @@ export default function OrdersPage() {
                       <select
                         value={order.status}
                         onChange={(e) => handleStatusUpdate(order.id, e.target.value)}
-                        className="text-xs bg-white border border-slate-200 rounded px-2 py-1 text-slate-700 focus:outline-none focus:border-amber-700"
+                        className="text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-2 py-1 text-slate-700 dark:text-slate-300 focus:outline-none focus:border-amber-500"
                       >
                         <option value="confirmed">Confirmed</option>
                         <option value="invoiced">Invoiced</option>
@@ -409,12 +409,12 @@ export default function OrdersPage() {
 
       {/* Detailed Order Creation Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl overflow-hidden border border-slate-200 flex flex-col max-h-[90vh]">
-            <div className="p-5 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden border border-slate-200 dark:border-slate-800 flex flex-col max-h-[90vh]">
+            <div className="p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/50">
               <div>
-                <h2 className="text-base font-bold text-slate-900">Create Wholesale Tea Order</h2>
-                <p className="text-xs text-slate-500 mt-0.5">
+                <h2 className="text-base font-bold text-slate-900 dark:text-white">Create Wholesale Tea Order</h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                   Generate official commercial order with volume pricing and automatic owner WhatsApp alert.
                 </p>
               </div>
