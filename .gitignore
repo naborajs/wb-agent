@@ -88,3 +88,6 @@ storage/logs/*
 *~
 .DS_Store
 Thumbs.db
+
+# Agent coordination scratch directories
+.agents/
