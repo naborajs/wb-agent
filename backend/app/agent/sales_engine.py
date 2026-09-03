@@ -113,12 +113,16 @@ class ConsultativeSalesEngine:
 
         # 3. Unknown Business Information Detection (Section 19 & 21)
         # Questions asking for things outside normal tea catalog, e.g. tea seeds, land, investments, private label contracts
-        unsupported_topics = ["tea seeds", "gardening seeds", "plant seeds", "horticulture", "machinery", "fertilizer", "land", "nursery"]
+        unsupported_topics = [
+            "tea seeds", "seeds", "seed", "beej", "bij", "plant seeds", "gardening",
+            "farming", "khet", "ket", "zameen", "acres", "bagan seeds", "horticulture",
+            "machinery", "fertilizer", "land", "nursery", "sapling", "saplings", "trees"
+        ]
         if any(topic in lower for topic in unsupported_topics) and not knowledge_available:
             return SalesDecision(
                 action="ANSWER",
-                reason="Customer inquired about tea seeds/nursery items which are outside verified business offerings.",
-                customer_goal="Inquire about tea seeds / nursery",
+                reason="Customer inquired about tea seeds/nursery/farming items which are outside verified business offerings.",
+                customer_goal="Inquire about tea seeds / farming",
                 target_stage=current_stage,
                 score_delta=0,
                 is_unknown_question=True,
