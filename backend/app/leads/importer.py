@@ -152,6 +152,7 @@ class LeadImportPipeline:
                 self.session.add(camp_lead)
 
             summary.imported += 1
+            summary.leads_created += 1
 
         await self.session.commit()
         logger.info(
