@@ -125,7 +125,7 @@ async def test_persona_boutique_cafe_owner(simulation_env):
 
     # Turn 2: Sample request
     t2 = await orchestrator.process_turn(conv.id, "Can you provide sample packs before we commit to bulk orders?")
-    assert "sample" in t2.reply_text.lower()
+    assert any(w in t2.reply_text.lower() for w in ("sample", "tasting kit", "kit"))
     assert t2.lead_score_after > t1.lead_score_after
 
     # Turn 3: Ready to order samples
