@@ -54,8 +54,8 @@ export default function HandoffsPage() {
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       <div>
-        <h2 className="text-2xl font-bold tracking-tight text-slate-900">Operator Handoff Queue</h2>
-        <p className="text-sm text-slate-500 mt-1">
+        <h2 className="text-2xl font-bold tracking-tight text-[var(--ed-text-primary)]">Operator Handoff Queue</h2>
+        <p className="text-sm text-[var(--ed-text-muted)] mt-1">
           High-priority escalations requiring human authority: purchase confirmations, contract pricing, and explicit assistance requests.
         </p>
       </div>
@@ -64,21 +64,25 @@ export default function HandoffsPage() {
         {handoffs.map((h) => (
           <div
             key={h.id}
-            className={`p-5 rounded-xl border bg-white shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
-              h.status === "pending" ? "border-amber-200" : "border-slate-200 opacity-60"
+            className={`p-5 ed-panel rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
+              h.status === "pending" ? "!border-[var(--ed-accent)]/30" : "opacity-60"
             }`}
+            style={{ background: "var(--ed-surface)" }}
           >
             <div className="space-y-1">
               <div className="flex items-center gap-2">
-                <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-rose-50 text-rose-600 border border-rose-200">
+                <span
+                  className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider text-[var(--ed-danger)] border border-[var(--ed-danger)]/20"
+                  style={{ background: "color-mix(in srgb, var(--ed-danger) 10%, transparent)" }}
+                >
                   {h.reason.replace("_", " ")}
                 </span>
-                <span className="text-xs text-slate-400">
+                <span className="text-xs text-[var(--ed-text-muted)] font-data">
                   {new Date(h.created_at).toLocaleTimeString()}
                 </span>
               </div>
-              <h4 className="font-bold text-sm text-slate-900 mt-1">{h.customer_intent}</h4>
-              <p className="text-xs text-slate-600 leading-relaxed max-w-2xl">{h.summary}</p>
+              <h4 className="font-bold text-sm text-[var(--ed-text-primary)] mt-1">{h.customer_intent}</h4>
+              <p className="text-xs text-[var(--ed-text-muted)] leading-relaxed max-w-2xl">{h.summary}</p>
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
@@ -86,19 +90,21 @@ export default function HandoffsPage() {
                 <>
                   <a
                     href={`/conversations`}
-                    className="px-3.5 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold inline-flex items-center gap-1.5 transition-colors"
+                    className="ed-press ed-focus-ring px-4 py-2.5 rounded-lg border border-[var(--ed-border)] text-xs font-semibold text-[var(--ed-text-primary)] hover:border-[var(--ed-accent)]/40 hover:text-[var(--ed-accent)] inline-flex items-center gap-1.5 transition-colors shadow-sm"
+                    style={{ background: "var(--ed-bg)" }}
                   >
                     Open Live Thread <ArrowUpRight className="w-3.5 h-3.5" />
                   </a>
                   <button
                     onClick={() => handleResolve(h.id, true)}
-                    className="px-3.5 py-2 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-semibold border border-emerald-200 transition-colors"
+                    className="ed-interactive ed-press ed-focus-ring px-6 py-3 rounded-xl text-sm font-semibold text-white shadow-sm transition-colors inline-flex items-center justify-center gap-1.5 hover:opacity-95"
+                    style={{ background: "var(--ed-success)", minHeight: "44px" }}
                   >
                     Resolve & Resume AI
                   </button>
                 </>
               ) : (
-                <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600">
+                <span className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--ed-success)]">
                   <CheckCircle2 className="w-4 h-4" /> Resolved
                 </span>
               )}
