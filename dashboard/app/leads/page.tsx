@@ -135,26 +135,29 @@ export default function LeadsPage() {
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Header */}
       <div>
-        <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+        <h2 className="text-2xl font-bold tracking-tight text-[var(--ed-text-primary)]">
           Lead Intake & Custom Proposals
         </h2>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+        <p className="text-sm text-[var(--ed-text-muted)] mt-1">
           Strictly human-provided CSV ingestion. EDITH tailors unique B2B proposals and polite zero-cost check-ins.
         </p>
       </div>
 
       {/* CSV Ingestion Box */}
-      <div className="p-6 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
-        <div className="flex items-center gap-2 font-bold text-sm text-slate-900 dark:text-white">
-          <Upload className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+      <div className="p-6 ed-panel rounded-xl space-y-3">
+        <div className="flex items-center gap-2 font-bold text-sm text-[var(--ed-text-primary)]">
+          <Upload className="w-4 h-4 text-[var(--ed-accent)]" />
           Upload Leads via CSV
         </div>
-        <p className="text-xs text-slate-500 dark:text-slate-400">
+        <p className="text-xs text-[var(--ed-text-muted)]">
           Upload commercial lead lists (columns: phone, name, company_name, company_type, city, product_interest).
         </p>
 
         <div className="flex items-center gap-4 pt-1">
-          <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-900 dark:bg-amber-600 hover:bg-slate-800 dark:hover:bg-amber-700 text-white text-xs font-semibold shadow-sm transition-colors">
+          <label
+            className="ed-press ed-focus-ring cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-white text-xs font-semibold shadow-sm transition-colors hover:opacity-90"
+            style={{ background: "var(--ed-accent)" }}
+          >
             <Upload className="w-3.5 h-3.5" />
             {uploading ? "Processing CSV..." : "Select CSV File"}
             <input
@@ -167,7 +170,7 @@ export default function LeadsPage() {
           </label>
 
           {uploadResult && (
-            <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+            <span className="text-xs font-medium text-[var(--ed-success)] flex items-center gap-1">
               <CheckCircle2 className="w-3.5 h-3.5" />
               {uploadResult}
             </span>
@@ -176,15 +179,16 @@ export default function LeadsPage() {
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row gap-3 justify-between">
+      <div className="p-4 ed-panel rounded-xl flex flex-col sm:flex-row gap-3 justify-between">
         <div className="relative w-full sm:w-80">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+          <Search className="w-4 h-4 text-[var(--ed-text-muted)] absolute left-3 top-3" />
           <input
             type="text"
             placeholder="Search leads by name, company, phone..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+            className="w-full pl-9 pr-3 py-2 text-xs border border-[var(--ed-border)] rounded-lg text-[var(--ed-text-primary)] placeholder:text-[var(--ed-text-muted)] focus:outline-none ed-focus-ring"
+            style={{ background: "var(--ed-bg)" }}
           />
         </div>
 
@@ -193,11 +197,16 @@ export default function LeadsPage() {
             <button
               key={st}
               onClick={() => setStatusFilter(st)}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-lg uppercase tracking-wider transition-colors ${
+              className={`ed-press ed-focus-ring px-3 py-1.5 text-xs font-semibold rounded-lg uppercase tracking-wider transition-colors ${
                 statusFilter === st
-                  ? "bg-amber-600 text-white"
-                  : "text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700"
+                  ? "text-white shadow-sm"
+                  : "text-[var(--ed-text-muted)] hover:text-[var(--ed-text-primary)] border border-[var(--ed-border)]"
               }`}
+              style={
+                statusFilter === st
+                  ? { background: "var(--ed-accent)" }
+                  : { background: "var(--ed-bg)" }
+              }
             >
               {st}
             </button>
@@ -206,9 +215,12 @@ export default function LeadsPage() {
       </div>
 
       {/* Table */}
-      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-        <table className="w-full text-left text-xs text-slate-600 dark:text-slate-300">
-          <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-400 dark:text-slate-400 font-semibold border-b border-slate-200 dark:border-slate-800 uppercase tracking-wider">
+      <div className="ed-panel rounded-xl overflow-hidden">
+        <table className="w-full text-left text-xs text-[var(--ed-text-primary)]">
+          <thead
+            className="text-[var(--ed-text-muted)] font-semibold border-b border-[var(--ed-border)] uppercase tracking-wider"
+            style={{ background: "var(--ed-bg)" }}
+          >
             <tr>
               <th className="px-5 py-3">Lead Contact</th>
               <th className="px-5 py-3">Company</th>
@@ -218,26 +230,29 @@ export default function LeadsPage() {
               <th className="px-5 py-3 text-right">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+          <tbody className="divide-y divide-[var(--ed-border)]">
             {filtered.map((lead) => (
-              <tr key={lead.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors">
+              <tr key={lead.id} className="hover:bg-[var(--ed-bg)] transition-colors">
                 <td className="px-5 py-3.5">
-                  <div className="font-semibold text-slate-900 dark:text-white">
+                  <div className="font-semibold text-[var(--ed-text-primary)]">
                     {lead.name || "Anonymous Lead"}
                   </div>
-                  <div className="text-[11px] text-slate-400 font-mono">{lead.phone}</div>
+                  <div className="text-[11px] text-[var(--ed-text-muted)] font-data">{lead.phone}</div>
                 </td>
                 <td className="px-5 py-3.5">
-                  <div className="font-medium text-slate-800 dark:text-slate-200">
+                  <div className="font-medium text-[var(--ed-text-primary)]">
                     {lead.company_name || "—"}
                   </div>
-                  <div className="text-[11px] text-slate-400">{lead.company_type || "Business"}</div>
+                  <div className="text-[11px] text-[var(--ed-text-muted)]">{lead.company_type || "Business"}</div>
                 </td>
-                <td className="px-5 py-3.5 font-medium text-slate-700 dark:text-slate-300">
+                <td className="px-5 py-3.5 font-medium text-[var(--ed-text-primary)]">
                   {lead.product_interest || "General Wholesale Inquiry"}
                 </td>
                 <td className="px-5 py-3.5">
-                  <span className="font-bold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-mono">
+                  <span
+                    className="font-bold px-2 py-0.5 rounded text-[var(--ed-text-primary)] font-data border border-[var(--ed-border)]"
+                    style={{ background: "var(--ed-bg)" }}
+                  >
                     {lead.score}/100
                   </span>
                 </td>
@@ -245,23 +260,30 @@ export default function LeadsPage() {
                   <span
                     className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${
                       lead.status === "qualified" || lead.status === "converted"
-                        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
-                        : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
+                        ? "text-[var(--ed-success)] border border-[var(--ed-success)]/20"
+                        : "text-[var(--ed-text-muted)] border border-[var(--ed-border)]"
                     }`}
+                    style={{
+                      background:
+                        lead.status === "qualified" || lead.status === "converted"
+                          ? "color-mix(in srgb, var(--ed-success) 10%, transparent)"
+                          : "var(--ed-bg)",
+                    }}
                   >
                     {lead.status.toUpperCase()}
                   </span>
                 </td>
                 <td className="px-5 py-3.5 text-right">
                   {sentLeadIds[lead.id] ? (
-                    <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-semibold text-[11px]">
+                    <span className="inline-flex items-center gap-1 text-[var(--ed-success)] font-semibold text-[11px]">
                       <CheckCircle2 className="w-3.5 h-3.5" /> Proposal Sent
                     </span>
                   ) : (
                     <button
                       onClick={() => handleSendProposal(lead.id)}
                       disabled={sendingLeadId === lead.id}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-semibold text-[11px] transition-colors disabled:opacity-50"
+                      className="ed-press ed-focus-ring inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-white font-semibold text-[11px] transition-colors disabled:opacity-50 hover:opacity-90"
+                      style={{ background: "var(--ed-accent)" }}
                     >
                       <Sparkles className="w-3 h-3" />
                       {sendingLeadId === lead.id ? "Sending..." : "Send Custom Proposal"}
