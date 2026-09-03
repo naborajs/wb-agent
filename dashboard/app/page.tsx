@@ -85,133 +85,133 @@ export default function DashboardOverview() {
     return () => clearInterval(interval);
   }, []);
 
+  const heroStats = [
+    {
+      label: "Hot Leads",
+      value: metrics.hot_leads,
+      sub: "Score ≥ 80 or Purchase Intent",
+      icon: Flame,
+      color: "var(--ed-danger)",
+    },
+    {
+      label: "Human Handoffs",
+      value: metrics.pending_handoffs,
+      sub: "Requires operator attention",
+      icon: AlertCircle,
+      color: "var(--ed-warning)",
+    },
+    {
+      label: "Won Deals",
+      value: metrics.won_deals,
+      sub: `${metrics.conversion_rate_pct}% conversion rate`,
+      icon: CheckCircle2,
+      color: "var(--ed-success)",
+    },
+    {
+      label: "Pipeline Value",
+      value: `₹${metrics.pipeline_value_inr.toLocaleString("en-IN")}`,
+      sub: "Active commercial quotes",
+      icon: TrendingUp,
+      color: "var(--ed-accent)",
+    },
+  ];
+
+  const stageColors: Record<string, string> = {
+    NEW: "#6B6B80",
+    DISCOVERY: "#3b82f6",
+    QUALIFIED: "#8b5cf6",
+    RECOMMENDATION: "var(--ed-accent)",
+    PURCHASE_INTENT: "#ec4899",
+    HUMAN_HANDOFF: "var(--ed-warning)",
+    WON: "var(--ed-success)",
+  };
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Top Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+          <h2 className="text-2xl font-bold tracking-tight text-[var(--ed-text-primary)]">
             Wholesale Operations Center
           </h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+          <p className="text-sm text-[var(--ed-text-muted)] mt-1">
             Autonomous acquisition, qualification, and B2B conversion for North Bengal Tea Co.
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-xs font-semibold text-emerald-800 dark:text-emerald-300">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold text-[var(--ed-success)] border border-[var(--ed-success)]/20" style={{ background: "color-mix(in srgb, var(--ed-success) 8%, transparent)" }}>
+            <span className="w-2 h-2 rounded-full bg-[var(--ed-success)] animate-pulse"></span>
             System Operational (Queue: {metrics.queue_depth})
           </div>
         </div>
       </div>
 
-      {/* KPI Cards Grid */}
+      {/* KPI Cards Grid — Glass Treatment + Entrance Animation */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Hot Leads */}
-        <div className="p-5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-              Hot Leads
-            </span>
-            <span className="p-2 rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400">
-              <Flame className="w-4 h-4" />
-            </span>
-          </div>
-          <div className="mt-4">
-            <div className="text-3xl font-bold text-slate-900 dark:text-white">{metrics.hot_leads}</div>
-            <div className="text-xs text-rose-600 dark:text-rose-400 font-medium mt-1 flex items-center gap-1">
-              Score ≥ 80 or Purchase Intent
+        {heroStats.map((stat, i) => {
+          const Icon = stat.icon;
+          return (
+            <div
+              key={stat.label}
+              className="ed-glass ed-entrance ed-lift rounded-xl p-5 flex flex-col justify-between"
+              style={{ animationDelay: `${i * 60}ms` }}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-[var(--ed-text-muted)]">
+                  {stat.label}
+                </span>
+                <span
+                  className="p-2 rounded-lg"
+                  style={{ background: `color-mix(in srgb, ${stat.color} 12%, transparent)` }}
+                >
+                  <Icon className="w-4 h-4" style={{ color: stat.color }} />
+                </span>
+              </div>
+              <div className="mt-4">
+                <div className="text-3xl font-bold font-data text-[var(--ed-text-primary)]">
+                  {stat.value}
+                </div>
+                <div className="text-xs font-medium mt-1" style={{ color: stat.color }}>
+                  {stat.sub}
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-
-        {/* Pending Handoffs */}
-        <div className="p-5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-              Human Handoffs
-            </span>
-            <span className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400">
-              <AlertCircle className="w-4 h-4" />
-            </span>
-          </div>
-          <div className="mt-4">
-            <div className="text-3xl font-bold text-slate-900 dark:text-white">{metrics.pending_handoffs}</div>
-            <div className="text-xs text-amber-600 dark:text-amber-400 font-medium mt-1 flex items-center gap-1">
-              Requires operator attention
-            </div>
-          </div>
-        </div>
-
-        {/* Won Deals */}
-        <div className="p-5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-              Won Deals
-            </span>
-            <span className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400">
-              <CheckCircle2 className="w-4 h-4" />
-            </span>
-          </div>
-          <div className="mt-4">
-            <div className="text-3xl font-bold text-slate-900 dark:text-white">{metrics.won_deals}</div>
-            <div className="text-xs text-emerald-600 dark:text-emerald-400 font-medium mt-1 flex items-center gap-1">
-              {metrics.conversion_rate_pct}% conversion rate
-            </div>
-          </div>
-        </div>
-
-        {/* Pipeline Value */}
-        <div className="p-5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-              Pipeline Value
-            </span>
-            <span className="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400">
-              <TrendingUp className="w-4 h-4" />
-            </span>
-          </div>
-          <div className="mt-4">
-            <div className="text-3xl font-bold text-slate-900 dark:text-white">
-              ₹{metrics.pipeline_value_inr.toLocaleString("en-IN")}
-            </div>
-            <div className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1">
-              Active commercial quotes
-            </div>
-          </div>
-        </div>
+          );
+        })}
       </div>
 
       {/* Funnel & Strategy Breakdown */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Sales Funnel Distribution */}
-        <div className="lg:col-span-2 p-6 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+        <div className="lg:col-span-2 p-6 ed-panel rounded-xl">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
             <div>
-              <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-amber-500" />
+              <h3 className="font-bold text-[var(--ed-text-primary)] flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-[var(--ed-accent)]" />
                 Sales Stage Distribution
               </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400">Live distribution of active B2B conversations across stages</p>
+              <p className="text-xs text-[var(--ed-text-muted)]">Live distribution of active B2B conversations across stages</p>
             </div>
-            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg text-xs">
+            <div className="flex items-center gap-1 p-1 rounded-lg border border-[var(--ed-border)] text-xs" style={{ background: "var(--ed-bg)" }}>
               <button
                 onClick={() => setChartView("bars")}
-                className={`px-3 py-1 rounded-md font-semibold transition-colors flex items-center gap-1.5 ${
+                className={`ed-press px-3 py-1 rounded-md font-semibold transition-colors flex items-center gap-1.5 ${
                   chartView === "bars"
-                    ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm"
-                    : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                    ? "text-[var(--ed-text-primary)] shadow-sm"
+                    : "text-[var(--ed-text-muted)]"
                 }`}
+                style={chartView === "bars" ? { background: "var(--ed-surface)" } : {}}
               >
                 <BarChart3 className="w-3.5 h-3.5" /> Funnel Bars
               </button>
               <button
                 onClick={() => setChartView("pie")}
-                className={`px-3 py-1 rounded-md font-semibold transition-colors flex items-center gap-1.5 ${
+                className={`ed-press px-3 py-1 rounded-md font-semibold transition-colors flex items-center gap-1.5 ${
                   chartView === "pie"
-                    ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm"
-                    : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                    ? "text-[var(--ed-text-primary)] shadow-sm"
+                    : "text-[var(--ed-text-muted)]"
                 }`}
+                style={chartView === "pie" ? { background: "var(--ed-surface)" } : {}}
               >
                 <PieIcon className="w-3.5 h-3.5" /> Donut Chart
               </button>
@@ -223,16 +223,17 @@ export default function DashboardOverview() {
               {funnel.map((item) => {
                 const maxVal = Math.max(...funnel.map((f) => f.count), 1);
                 const pct = Math.round((item.count / maxVal) * 100);
+                const color = stageColors[item.stage] || "var(--ed-accent)";
                 return (
                   <div key={item.stage} className="space-y-1.5">
                     <div className="flex justify-between text-xs font-medium">
-                      <span className="text-slate-700 dark:text-slate-300 font-semibold">{item.stage}</span>
-                      <span className="text-slate-500 dark:text-slate-400 font-mono">{item.count} leads</span>
+                      <span className="text-[var(--ed-text-primary)] font-semibold">{item.stage}</span>
+                      <span className="text-[var(--ed-text-muted)] font-data">{item.count} leads</span>
                     </div>
-                    <div className="w-full h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                    <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: "var(--ed-bg)" }}>
                       <div
-                        className="h-full bg-amber-600 dark:bg-amber-500 rounded-full transition-all duration-500"
-                        style={{ width: `${pct}%` }}
+                        className="h-full rounded-full transition-all duration-500"
+                        style={{ width: `${pct}%`, background: color }}
                       ></div>
                     </div>
                   </div>
@@ -245,15 +246,6 @@ export default function DashboardOverview() {
               <div className="flex justify-center">
                 <svg width="210" height="210" viewBox="0 0 210 210" className="transform -rotate-90">
                   {(() => {
-                    const stageColors: Record<string, string> = {
-                      NEW: "#94a3b8",
-                      DISCOVERY: "#3b82f6",
-                      QUALIFIED: "#8b5cf6",
-                      RECOMMENDATION: "#f59e0b",
-                      PURCHASE_INTENT: "#ec4899",
-                      HUMAN_HANDOFF: "#f97316",
-                      WON: "#10b981",
-                    };
                     const total = funnel.reduce((acc, f) => acc + f.count, 0) || 1;
                     const circumference = 2 * Math.PI * 75;
                     let accumulated = 0;
@@ -287,15 +279,6 @@ export default function DashboardOverview() {
               {/* Legend with lead counts & percentages */}
               <div className="space-y-2 text-xs">
                 {(() => {
-                  const stageColors: Record<string, string> = {
-                    NEW: "#94a3b8",
-                    DISCOVERY: "#3b82f6",
-                    QUALIFIED: "#8b5cf6",
-                    RECOMMENDATION: "#f59e0b",
-                    PURCHASE_INTENT: "#ec4899",
-                    HUMAN_HANDOFF: "#f97316",
-                    WON: "#10b981",
-                  };
                   const total = funnel.reduce((acc, f) => acc + f.count, 0) || 1;
                   return funnel.map((item) => {
                     const pct = Math.round((item.count / total) * 100);
@@ -304,9 +287,9 @@ export default function DashboardOverview() {
                       <div key={item.stage} className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
-                          <span className="font-semibold text-slate-700 dark:text-slate-300">{item.stage}</span>
+                          <span className="font-semibold text-[var(--ed-text-primary)]">{item.stage}</span>
                         </div>
-                        <span className="font-mono text-slate-500 dark:text-slate-400">
+                        <span className="font-data text-[var(--ed-text-muted)]">
                           {item.count} leads ({pct}%)
                         </span>
                       </div>
@@ -319,39 +302,40 @@ export default function DashboardOverview() {
         </div>
 
         {/* Architectural Guardrails Card */}
-        <div className="p-6 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+        <div className="p-6 ed-panel rounded-xl flex flex-col justify-between">
           <div>
-            <div className="flex items-center gap-2 text-slate-900 dark:text-white font-bold mb-2">
-              <Shield className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            <div className="flex items-center gap-2 text-[var(--ed-text-primary)] font-bold mb-2">
+              <Shield className="w-4 h-4 text-[var(--ed-success)]" />
               Safety & Authority Rules
             </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mb-4 leading-relaxed">
+            <p className="text-xs text-[var(--ed-text-muted)] mb-4 leading-relaxed">
               The AI layer reasons, interprets, and plans. The database and deterministic pricing engines enforce authority.
             </p>
-            <ul className="space-y-2.5 text-xs text-slate-600 dark:text-slate-300">
+            <ul className="space-y-2.5 text-xs text-[var(--ed-text-primary)]">
               <li className="flex items-start gap-2">
-                <span className="text-emerald-600 dark:text-emerald-400 font-bold">✓</span>
+                <span className="text-[var(--ed-success)] font-bold">✓</span>
                 <span>Max autonomous discount capped at <strong>5.0%</strong>.</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-emerald-600 dark:text-emerald-400 font-bold">✓</span>
+                <span className="text-[var(--ed-success)] font-bold">✓</span>
                 <span>Wholesale orders &gt;500kg escalate to human operator.</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-emerald-600 dark:text-emerald-400 font-bold">✓</span>
+                <span className="text-[var(--ed-success)] font-bold">✓</span>
                 <span>Immediate follow-up cancellation upon customer reply.</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-emerald-600 dark:text-emerald-400 font-bold">✓</span>
+                <span className="text-[var(--ed-success)] font-bold">✓</span>
                 <span>Prompt injection defenses sanitize all incoming text.</span>
               </li>
             </ul>
           </div>
 
-          <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800">
+          <div className="mt-6 pt-4 border-t border-[var(--ed-border)]">
             <a
               href="/conversations"
-              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-900 dark:bg-amber-600 hover:bg-slate-800 dark:hover:bg-amber-700 text-white rounded-lg text-xs font-semibold shadow-sm transition-colors"
+              className="ed-interactive ed-focus-ring w-full inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-sm font-semibold text-white shadow-lg transition-colors"
+              style={{ background: "var(--ed-accent)", minHeight: "44px" }}
             >
               Open Live Inbox
               <ArrowUpRight className="w-4 h-4" />
