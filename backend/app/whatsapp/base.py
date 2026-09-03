@@ -29,6 +29,17 @@ class WhatsAppProvider(ABC):
         pass
 
     @abstractmethod
+    async def send_document(
+        self,
+        to_phone: str,
+        file_path: str,
+        caption: Optional[str] = None,
+        filename: Optional[str] = None,
+    ) -> OutboundWhatsAppResult:
+        """Sends a document (e.g. PDF pro-forma invoice) to a WhatsApp recipient."""
+        pass
+
+    @abstractmethod
     async def mark_read(self, message_id: str) -> bool:
         """Sends a read receipt back to WhatsApp."""
         pass
