@@ -17,6 +17,7 @@ from app.api.routes import (
     orders,
     products,
     proposals,
+    quotes,
     settings as settings_router,
     webhooks,
     ws,
@@ -52,6 +53,7 @@ app.include_router(health.router, prefix=api_v1)
 app.include_router(auth.router, prefix=api_v1)
 app.include_router(leads.router, prefix=api_v1)
 app.include_router(orders.router, prefix=api_v1)
+app.include_router(quotes.router, prefix=api_v1)
 app.include_router(conversations.router, prefix=api_v1)
 app.include_router(products.router, prefix=api_v1)
 app.include_router(proposals.router, prefix=api_v1)
