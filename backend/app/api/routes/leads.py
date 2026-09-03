@@ -99,3 +99,14 @@ async def import_leads_csv(
     pipeline = LeadImportPipeline(session, settings.DEFAULT_ORG_ID)
     summary = await pipeline.run(source, campaign_id=campaign_id)
     return summary
+
+
+@router.post("/upload", response_model=LeadImportSummary)
+async def upload_leads_csv(
+    file: UploadFile = File(...),
+    campaign_id: Optional[str] = None,
+    session: AsyncSession = Depends(get_db),
+):
+    """Uploads and ingests a batch CSV file of leads (alias for /import)."""
+    return await import_leads_csv(file=file, campaign_id=campaign_id, session=session)
+
