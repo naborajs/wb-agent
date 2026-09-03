@@ -117,10 +117,10 @@ export default function DashboardShell({ children }: { children: React.ReactNode
               <Link
                 key={item.name}
                 href={item.href}
-                className={`ed-press ed-focus-ring flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 ${
+                className={`ed-press ed-focus-ring flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm transition-all duration-150 ${
                   isActive
-                    ? "bg-[var(--ed-accent-glow)] text-[var(--ed-accent)] font-semibold border-l-2 border-[var(--ed-accent)] ed-glow"
-                    : "text-[var(--ed-text-muted)] hover:bg-[var(--ed-surface)] hover:text-[var(--ed-text-primary)] border-l-2 border-transparent"
+                    ? "ed-nav-active"
+                    : "text-[var(--ed-text-muted)] hover:bg-[var(--ed-bg)] hover:text-[var(--ed-text-primary)] border-l-2 border-transparent font-medium"
                 }`}
               >
                 <Icon className={`w-4 h-4 ${isActive ? "text-[var(--ed-accent)]" : "text-[var(--ed-text-muted)]"}`} />
@@ -274,7 +274,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
         </header>
 
         {/* Page Viewport */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 transition-colors duration-200" style={{ background: "var(--ed-bg)" }}>
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 ed-bg-texture transition-colors duration-200">
           {children}
         </main>
       </div>
