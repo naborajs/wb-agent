@@ -79,3 +79,56 @@ class PricingRule(Base, OrgScopedMixin, TimestampMixin):
     end_date = Column(DateTime(timezone=True), nullable=True)
 
     product = relationship("Product", back_populates="pricing_rules")
+
+
+class ProductCustomField(Base, OrgScopedMixin, TimestampMixin):
+    """
+    Industry-agnostic extensible custom attribute definition (Sections 38 & 39).
+    Enables storing custom specs (e.g., material, dimensions, certifications, origin).
+    """
+    __tablename__ = "product_custom_fields"
+
+    id = Column(String(64), primary_key=True, default=generate_uuid)
+    product_id = Column(String(64), ForeignKey("products.id", ondelete="CASCADE"), nullable=False, index=True)
+    field_name = Column(String(64), nullable=False)
+    field_type = Column(String(32), default="text", nullable=False)  # text, number, boolean, select
+    field_value = Column(Text, nullable=True)
+    is_required = Column(Boolean, default=False, nullable=False)
+
+    product = relationship("Product", backref="custom_fields")
+
+
+class PricingRuleVersion(Base, OrgScopedMixin, TimestampMixin):
+    """
+    Audit and version history for deterministic pricing rules (Section 40 & 41).
+    """
+    __tablename__ = "pricing_rule_versions"
+
+    id = Column(String(64), primary_key=True, default=generate_uuid)
+    rule_id = Column(String(64), ForeignKey("pricing_rules.id", ondelete="CASCADE"), nullable=False, index=True)
+    version = Column(Integer, default=1, nullable=False)
+    rule_name = Column(String(128), nullable=False)
+    rule_type = Column(String(64), nullable=False)
+    discount_percentage = Column(Numeric(5, 2), nullable=False)
+    changed_by = Column(String(128), default="system", nullable=False)
+    change_reason = Column(String(255), nullable=True)
+    snapshot = Column(UniversalJSON, default=dict, nullable=False)
+
+
+class Inventory(Base, OrgScopedMixin, TimestampMixin):
+    """
+    Stock tracking across warehouses and batches (Section 76).
+    """
+    __tablename__ = "inventory"
+
+    id = Column(String(64), primary_key=True, default=generate_uuid)
+    product_id = Column(String(64), ForeignKey("products.id", ondelete="CASCADE"), nullable=False, index=True)
+    variant_id = Column(String(64), ForeignKey("product_variants.id", ondelete="CASCADE"), nullable=True, index=True)
+    quantity_on_hand = Column(Numeric(12, 2), default=0.0, nullable=False)
+    reserved_quantity = Column(Numeric(12, 2), default=0.0, nullable=False)
+    warehouse_location = Column(String(128), default="Main Estate Warehouse", nullable=False)
+    last_counted_at = Column(DateTime(timezone=True), nullable=True)
+
+    product = relationship("Product")
+    variant = relationship("ProductVariant")
+
