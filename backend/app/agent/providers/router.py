@@ -35,10 +35,11 @@ class LLMRouter:
             ModelTaskClass.CRITICAL: "nvidia/nemotron-4-340b-instruct",
         }
 
-        # Initialize Primary Provider
+        # Initialize Primary Provider (Primary Thinking Model)
         if settings.LLM_PROVIDER == "nvidia" and not settings.NVIDIA_API_KEY.startswith("nvapi-mock"):
             self.primary = NvidiaProvider(
                 api_key=settings.NVIDIA_API_KEY,
+                fallback_api_key=getattr(settings, "NVIDIA_FALLBACK_API_KEY", None),
                 model=settings.NVIDIA_MODEL,
                 base_url=settings.NVIDIA_BASE_URL,
                 timeout=settings.LLM_REQUEST_TIMEOUT,
@@ -46,8 +47,31 @@ class LLMRouter:
         else:
             self.primary = SimulatorProvider()
 
-        # Fallback is SimulatorProvider or secondary API
-        self.fallback: LLMProvider = SimulatorProvider()
+        # Fallback Model Providers Chain
+        self.fallback_providers: List[NvidiaProvider] = []
+        raw_fallbacks = getattr(settings, "NVIDIA_FALLBACK_MODELS", "")
+        fallback_names = [m.strip() for m in raw_fallbacks.split(",") if m.strip()]
+        if not fallback_names:
+            fallback_names = [
+                "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning",
+                "nvidia/nemotron-3-super-120b-a12b",
+                "google/gemma-4-31b-it",
+            ]
+
+        if settings.LLM_PROVIDER == "nvidia" and not settings.NVIDIA_API_KEY.startswith("nvapi-mock"):
+            for fb_model in fallback_names:
+                self.fallback_providers.append(
+                    NvidiaProvider(
+                        api_key=settings.NVIDIA_API_KEY,
+                        fallback_api_key=getattr(settings, "NVIDIA_FALLBACK_API_KEY", None),
+                        model=fb_model,
+                        base_url=settings.NVIDIA_BASE_URL,
+                        timeout=settings.LLM_REQUEST_TIMEOUT,
+                    )
+                )
+
+        # Local Emergency Fallback is SimulatorProvider
+        self.emergency_fallback: LLMProvider = SimulatorProvider()
 
         # Performance tracking
         self.metrics: Dict[str, Dict[str, Any]] = {
@@ -69,7 +93,7 @@ class LLMRouter:
         temp = temperature if temperature is not None else settings.LLM_TEMPERATURE
         max_t = max_tokens if max_tokens is not None else settings.LLM_MAX_TOKENS
 
-        # Attempt Primary
+        # 1. Attempt Primary Thinking Model
         start_t = time.time()
         self.metrics["primary"]["requests"] += 1
         try:
@@ -79,13 +103,24 @@ class LLMRouter:
             return res
         except Exception as e:
             self.metrics["primary"]["failures"] += 1
-            logger.warning(f"Primary LLM failed ({e}) for task {task_class}. Routing to fallback provider.")
+            logger.warning(f"Primary thinking model failed ({e}) for task {task_class}. Trying fallback models...")
 
-        # Attempt Fallback
+        # 2. Attempt Fallback Models Chain
+        for fb_provider in self.fallback_providers:
+            try:
+                logger.info(f"Attempting fallback model: {fb_provider.model}")
+                fb_start = time.time()
+                res = await fb_provider.generate(messages, temperature=temp, max_tokens=max_t, tools=tools)
+                logger.info(f"Fallback model {fb_provider.model} succeeded in {int((time.time() - fb_start) * 1000)}ms")
+                return res
+            except Exception as fb_err:
+                logger.warning(f"Fallback model {fb_provider.model} failed: {fb_err}")
+
+        # 3. Final Fallback to SimulatorProvider
         self.metrics["fallback"]["requests"] += 1
         fb_start = time.time()
         try:
-            res = await self.fallback.generate(messages, temperature=temp, max_tokens=max_t, tools=tools)
+            res = await self.emergency_fallback.generate(messages, temperature=temp, max_tokens=max_t, tools=tools)
             self.metrics["fallback"]["total_latency_ms"] += int((time.time() - fb_start) * 1000)
             return res
         except Exception as fb_err:
