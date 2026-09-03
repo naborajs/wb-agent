@@ -13,6 +13,7 @@ import {
   Settings,
   ShieldCheck,
   Radio,
+  ShoppingBag,
 } from "lucide-react";
 
 export const metadata = {
@@ -24,6 +25,7 @@ const navigation = [
   { name: "Overview", href: "/", icon: BarChart3 },
   { name: "Live Inbox", href: "/conversations", icon: Inbox },
   { name: "Leads", href: "/leads", icon: Users },
+  { name: "Orders", href: "/orders", icon: ShoppingBag },
   { name: "Catalog", href: "/products", icon: Coffee },
   { name: "Pricing Rules", href: "/pricing", icon: DollarSign },
   { name: "Knowledge RAG", href: "/knowledge", icon: BookOpen },
