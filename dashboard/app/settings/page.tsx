@@ -71,32 +71,41 @@ export default function SystemSettingsPage() {
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
       <div>
-        <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+        <h2 className="text-2xl font-bold tracking-tight text-[var(--ed-text-primary)]">
           Platform Control & Safety Settings
         </h2>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+        <p className="text-sm text-[var(--ed-text-muted)] mt-1">
           Global autonomous controls, follow-up cadences, quiet hours, and owner escalation parameters.
         </p>
       </div>
 
       {saved && (
-        <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-xs font-semibold text-emerald-800 dark:text-emerald-300 rounded-lg flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+        <div
+          className="p-3 border border-[var(--ed-success)]/20 text-xs font-semibold text-[var(--ed-success)] rounded-lg flex items-center gap-2"
+          style={{ background: "color-mix(in srgb, var(--ed-success) 10%, transparent)" }}
+        >
+          <CheckCircle2 className="w-4 h-4 text-[var(--ed-success)]" />
           Settings successfully synchronized with backend runtime and database.
         </div>
       )}
 
       {/* Emergency Stop Banner */}
-      <div className="p-5 rounded-xl border border-rose-200 dark:border-rose-900/50 bg-rose-50/50 dark:bg-rose-950/20 flex items-center justify-between">
+      <div
+        className="p-5 rounded-xl border border-[var(--ed-danger)]/20 flex items-center justify-between"
+        style={{ background: "color-mix(in srgb, var(--ed-danger) 8%, transparent)" }}
+      >
         <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-lg bg-rose-600 text-white">
+          <div
+            className="p-2.5 rounded-lg text-white"
+            style={{ background: "var(--ed-danger)" }}
+          >
             <Power className="w-5 h-5" />
           </div>
           <div>
-            <h4 className="font-bold text-sm text-rose-950 dark:text-rose-200">
+            <h4 className="font-bold text-sm text-[var(--ed-text-primary)]">
               Global Autonomous Kill-Switch
             </h4>
-            <p className="text-xs text-rose-700 dark:text-rose-400 mt-0.5">
+            <p className="text-xs text-[var(--ed-text-muted)] mt-0.5">
               Instantly halts all automated customer messaging and scheduled follow-ups across all channels.
             </p>
           </div>
@@ -104,11 +113,10 @@ export default function SystemSettingsPage() {
 
         <button
           onClick={() => setAutonomous(!autonomous)}
-          className={`px-4 py-2 rounded-lg text-xs font-bold transition-colors ${
-            autonomous
-              ? "bg-rose-600 hover:bg-rose-700 text-white"
-              : "bg-emerald-600 hover:bg-emerald-700 text-white"
-          }`}
+          className="ed-press ed-focus-ring px-4 py-2 rounded-lg text-xs font-bold text-white transition-colors hover:opacity-90 shadow-sm"
+          style={{
+            background: autonomous ? "var(--ed-danger)" : "var(--ed-success)",
+          }}
         >
           {autonomous ? "HALT ALL AI MESSAGING" : "RESUME AI MESSAGING"}
         </button>
@@ -117,24 +125,25 @@ export default function SystemSettingsPage() {
       {/* Configuration Sections */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Escalation & Owner WhatsApp */}
-        <div className="p-5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-          <div className="flex items-center gap-2 font-bold text-sm text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-3">
-            <Radio className="w-4 h-4 text-amber-600" />
+        <div className="p-5 ed-panel rounded-xl space-y-4">
+          <div className="flex items-center gap-2 font-bold text-sm text-[var(--ed-text-primary)] border-b border-[var(--ed-border)] pb-3">
+            <Radio className="w-4 h-4 text-[var(--ed-accent)]" />
             Owner Escalation Channel
           </div>
 
           <div className="space-y-3 text-xs">
             <div>
-              <label className="block text-slate-600 dark:text-slate-400 font-medium mb-1">
+              <label className="block text-[var(--ed-text-muted)] font-medium mb-1">
                 Owner WhatsApp Number (E.164)
               </label>
               <input
                 type="text"
                 value={ownerPhone}
                 onChange={(e) => setOwnerPhone(e.target.value)}
-                className="w-full p-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-mono font-bold"
+                className="w-full p-2.5 rounded-lg border border-[var(--ed-border)] text-[var(--ed-text-primary)] font-data font-bold focus:outline-none ed-focus-ring"
+                style={{ background: "var(--ed-bg)" }}
               />
-              <span className="text-[11px] text-slate-400 mt-1 block">
+              <span className="text-[11px] text-[var(--ed-text-muted)] mt-1 block">
                 Receives instant hot-lead alerts, wholesale order briefings, and WhatsApp command queries.
               </span>
             </div>
@@ -144,9 +153,9 @@ export default function SystemSettingsPage() {
                 type="checkbox"
                 checked={ownerNotification}
                 onChange={(e) => setOwnerNotification(e.target.checked)}
-                className="w-4 h-4 rounded text-amber-600 focus:ring-amber-500"
+                className="w-4 h-4 rounded accent-[var(--ed-accent)] ed-focus-ring"
               />
-              <span className="font-semibold text-slate-800 dark:text-slate-200">
+              <span className="font-semibold text-[var(--ed-text-primary)]">
                 Send Real-Time WhatsApp Alerts on Hot Lead Intent
               </span>
             </label>
@@ -154,16 +163,16 @@ export default function SystemSettingsPage() {
         </div>
 
         {/* Follow-up Intervals & Quiet Hours */}
-        <div className="p-5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-          <div className="flex items-center gap-2 font-bold text-sm text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-3">
-            <Clock className="w-4 h-4 text-amber-600" />
+        <div className="p-5 ed-panel rounded-xl space-y-4">
+          <div className="flex items-center gap-2 font-bold text-sm text-[var(--ed-text-primary)] border-b border-[var(--ed-border)] pb-3">
+            <Clock className="w-4 h-4 text-[var(--ed-accent)]" />
             Humanized Follow-Up Cadence
           </div>
 
           <div className="space-y-3 text-xs">
             <div className="grid grid-cols-3 gap-2">
               <div>
-                <label className="block text-slate-600 dark:text-slate-400 font-medium mb-1">
+                <label className="block text-[var(--ed-text-muted)] font-medium mb-1">
                   Touch 1 (Min)
                 </label>
                 <input
@@ -172,11 +181,12 @@ export default function SystemSettingsPage() {
                   max="120"
                   value={touch1Minutes}
                   onChange={(e) => setTouch1Minutes(Number(e.target.value))}
-                  className="w-full p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-bold"
+                  className="w-full p-2 rounded-lg border border-[var(--ed-border)] text-[var(--ed-text-primary)] font-data font-bold focus:outline-none ed-focus-ring"
+                  style={{ background: "var(--ed-bg)" }}
                 />
               </div>
               <div>
-                <label className="block text-slate-600 dark:text-slate-400 font-medium mb-1">
+                <label className="block text-[var(--ed-text-muted)] font-medium mb-1">
                   Touch 2 (Hours)
                 </label>
                 <input
@@ -185,11 +195,12 @@ export default function SystemSettingsPage() {
                   max="48"
                   value={touch2Hours}
                   onChange={(e) => setTouch2Hours(Number(e.target.value))}
-                  className="w-full p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-bold"
+                  className="w-full p-2 rounded-lg border border-[var(--ed-border)] text-[var(--ed-text-primary)] font-data font-bold focus:outline-none ed-focus-ring"
+                  style={{ background: "var(--ed-bg)" }}
                 />
               </div>
               <div>
-                <label className="block text-slate-600 dark:text-slate-400 font-medium mb-1">
+                <label className="block text-[var(--ed-text-muted)] font-medium mb-1">
                   Touch 3 (Days)
                 </label>
                 <input
@@ -198,7 +209,8 @@ export default function SystemSettingsPage() {
                   max="30"
                   value={touch3Days}
                   onChange={(e) => setTouch3Days(Number(e.target.value))}
-                  className="w-full p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-bold"
+                  className="w-full p-2 rounded-lg border border-[var(--ed-border)] text-[var(--ed-text-primary)] font-data font-bold focus:outline-none ed-focus-ring"
+                  style={{ background: "var(--ed-bg)" }}
                 />
               </div>
             </div>
@@ -208,9 +220,9 @@ export default function SystemSettingsPage() {
                 type="checkbox"
                 checked={quietHours}
                 onChange={(e) => setQuietHours(e.target.checked)}
-                className="w-4 h-4 rounded text-amber-600 focus:ring-amber-500"
+                className="w-4 h-4 rounded accent-[var(--ed-accent)] ed-focus-ring"
               />
-              <span className="font-semibold text-slate-800 dark:text-slate-200">
+              <span className="font-semibold text-[var(--ed-text-primary)]">
                 Enforce Quiet Hours (No follow-up messages between 9 PM and 9 AM IST)
               </span>
             </label>
@@ -223,7 +235,8 @@ export default function SystemSettingsPage() {
         <button
           onClick={handleSave}
           disabled={isSaving}
-          className="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-semibold text-sm shadow-sm transition-all disabled:opacity-50"
+          className="ed-interactive ed-press ed-focus-ring inline-flex items-center gap-2 px-6 py-3 rounded-xl text-white font-semibold text-sm shadow-lg transition-all disabled:opacity-50 hover:opacity-90"
+          style={{ background: "var(--ed-accent)", minHeight: "44px" }}
         >
           <Save className="w-4 h-4" />
           {isSaving ? "Saving Settings..." : "Save Settings"}
