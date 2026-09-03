@@ -295,38 +295,38 @@ export default function LiveInboxPage() {
   });
 
   return (
-    <div className="h-[calc(100vh-6.5rem)] flex rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-sm">
+    <div className="h-[calc(100vh-6.5rem)] flex rounded-xl border border-[var(--ed-border)] bg-[var(--ed-surface)] overflow-hidden shadow-sm">
       {/* 1. Left Panel: Conversation Threads */}
-      <div className="w-80 border-r border-slate-200 dark:border-slate-800 flex flex-col shrink-0 bg-white dark:bg-slate-900">
+      <div className="w-80 border-r border-[var(--ed-border)] flex flex-col shrink-0 bg-[var(--ed-surface)]">
         {/* Search & Actions */}
-        <div className="p-3 border-b border-slate-100 dark:border-slate-800 space-y-2">
+        <div className="p-3 border-b border-[var(--ed-border)] space-y-2">
           <div className="flex items-center gap-2">
             <div className="relative flex-1">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+              <Search className="w-4 h-4 text-[var(--ed-text-muted)] absolute left-3 top-2.5" />
               <input
                 type="text"
                 placeholder="Search leads, phone..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-9 pr-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                className="w-full pl-9 pr-3 py-1.5 rounded-lg border border-[var(--ed-border)] bg-slate-50 dark:bg-slate-800 text-xs text-[var(--ed-text-primary)] placeholder-[var(--ed-text-muted)] focus:outline-none focus:ring-2 ed-focus-ring"
               />
             </div>
             <button
               onClick={() => setIsNewChatOpen(true)}
               title="Start New Chat by Phone"
-              className="p-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white transition-colors shrink-0 shadow-sm"
+              className="p-1.5 rounded-lg bg-[var(--ed-accent)] hover:bg-[var(--ed-accent-hover)] text-white transition-colors shrink-0 shadow-sm"
             >
               <Plus className="w-4 h-4" />
             </button>
           </div>
 
-          <div className="flex gap-1 text-[11px] font-medium text-slate-500 dark:text-slate-400">
+          <div className="flex gap-1 text-[11px] font-medium text-[var(--ed-text-muted)]">
             <button
               onClick={() => setFilterMode("all")}
               className={`px-2.5 py-1 rounded-md transition-colors ${
                 filterMode === "all"
-                  ? "bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white font-bold"
-                  : "hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                  ? "bg-[var(--ed-bg)] text-[var(--ed-text-primary)] font-bold"
+                  : "hover:bg-[var(--ed-bg)]"
               }`}
             >
               All ({conversations.length})
@@ -335,18 +335,18 @@ export default function LiveInboxPage() {
               onClick={() => setFilterMode("hot")}
               className={`px-2.5 py-1 rounded-md flex items-center gap-1 transition-colors ${
                 filterMode === "hot"
-                  ? "bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 font-bold"
-                  : "hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                  ? "bg-[var(--ed-danger)]/8 text-[var(--ed-danger)] font-bold"
+                  : "hover:bg-[var(--ed-bg)]"
               }`}
             >
-              <Flame className="w-3 h-3 text-rose-500" /> Hot
+              <Flame className="w-3 h-3 text-[var(--ed-danger)]" /> Hot
             </button>
             <button
               onClick={() => setFilterMode("human")}
               className={`px-2.5 py-1 rounded-md transition-colors ${
                 filterMode === "human"
-                  ? "bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 font-bold"
-                  : "hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                  ? "bg-[var(--ed-accent)]/8 text-[var(--ed-accent)] font-bold"
+                  : "hover:bg-[var(--ed-bg)]"
               }`}
             >
               Takeover
@@ -355,9 +355,9 @@ export default function LiveInboxPage() {
         </div>
 
         {/* Thread List */}
-        <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60">
+        <div className="flex-1 overflow-y-auto divide-y divide-[var(--ed-border)]">
           {filteredConversations.length === 0 ? (
-            <div className="p-8 text-center text-xs text-slate-400">
+            <div className="p-8 text-center text-xs text-[var(--ed-text-muted)]">
               No conversations found
             </div>
           ) : (
@@ -367,37 +367,37 @@ export default function LiveInboxPage() {
                 <div
                   key={c.id}
                   onClick={() => setActiveConvId(c.id)}
-                  className={`p-3.5 cursor-pointer transition-colors ${
+                  className={`p-3.5 cursor-pointer transition-all ${
                     isSelected
-                      ? "bg-amber-50/70 dark:bg-amber-950/30 border-l-4 border-amber-600"
-                      : "hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                      ? "bg-[var(--ed-surface)] border-l-2 border-[var(--ed-accent)] shadow-sm"
+                      : "hover:bg-[var(--ed-bg)] border-l-2 border-transparent"
                   }`}
                 >
                   <div className="flex items-start justify-between gap-1 mb-1">
-                    <span className="font-bold text-xs text-slate-900 dark:text-white truncate">
+                    <span className="font-bold text-xs text-[var(--ed-text-primary)] truncate">
                       {c.customer_name || c.company_name || c.channel_id}
                     </span>
                     {c.is_hot && (
-                      <span className="shrink-0 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300">
+                      <span className="shrink-0 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-[var(--ed-danger)]/10 text-[var(--ed-danger)] ed-glow-badge">
                         <Flame className="w-2.5 h-2.5" /> HOT
                       </span>
                     )}
                   </div>
 
-                  <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate mb-2">
+                  <div className="text-[11px] text-[var(--ed-text-muted)] truncate mb-2">
                     {c.company_name ? `${c.company_name} • ` : ""}
                     {c.channel_id}
                   </div>
 
-                  <div className="flex items-center justify-between text-[10px] text-slate-400">
-                    <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 font-medium">
+                  <div className="flex items-center justify-between text-[10px] text-[var(--ed-text-muted)]">
+                    <span className="px-1.5 py-0.5 rounded bg-[var(--ed-bg)] font-medium">
                       {c.sales_stage}
                     </span>
                     <span
                       className={`font-semibold ${
                         c.mode === "HUMAN"
-                          ? "text-amber-600 dark:text-amber-400"
-                          : "text-emerald-600 dark:text-emerald-400"
+                          ? "text-[var(--ed-accent)]"
+                          : "text-[var(--ed-success)]"
                       }`}
                     >
                       {c.mode === "HUMAN" ? "● Human" : "● AI"}
@@ -411,35 +411,35 @@ export default function LiveInboxPage() {
       </div>
 
       {/* 2. Center Panel: Active Chat Timeline */}
-      <div className="flex-1 flex flex-col min-w-0 border-r border-slate-200 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-950/40">
+      <div className="flex-1 flex flex-col min-w-0 border-r border-[var(--ed-border)] bg-[var(--ed-bg)]">
         {!activeConv ? (
           <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-slate-50 dark:bg-slate-950">
-            <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-3">
-              <Bot className="w-6 h-6 text-slate-400" />
+            <div className="w-12 h-12 rounded-full bg-[var(--ed-bg)] flex items-center justify-center mb-3">
+              <Bot className="w-6 h-6 text-[var(--ed-text-muted)]" />
             </div>
-            <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+            <h4 className="text-sm font-semibold text-[var(--ed-text-primary)]">
               No Conversation Selected
             </h4>
-            <p className="text-xs text-slate-400 mt-1 max-w-sm">
+            <p className="text-xs text-[var(--ed-text-muted)] mt-1 max-w-sm">
               Select a conversation from the left inbox or start a new chat!
             </p>
           </div>
         ) : (
           <>
             {/* Chat Header */}
-            <div className="h-14 px-6 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between shrink-0">
+            <div className="h-14 px-6 border-b border-[var(--ed-border)] bg-[var(--ed-surface)] flex items-center justify-between shrink-0">
               <div>
-                <h3 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                <h3 className="font-bold text-sm text-[var(--ed-text-primary)] flex items-center gap-2">
                   {activeConvDetail?.customer?.name ||
                     activeConvDetail?.customer?.company_name ||
                     activeConv.channel_id}
                   {activeConv.is_hot && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-[var(--ed-danger)]/8 text-[var(--ed-danger)] border border-[var(--ed-danger)]/20">
                       <Flame className="w-3 h-3" /> Hot Lead
                     </span>
                   )}
                 </h3>
-                <div className="text-xs text-slate-400 mt-0.5">
+                <div className="text-xs text-[var(--ed-text-muted)] mt-0.5">
                   WhatsApp: {activeConv.channel_id}
                 </div>
               </div>
@@ -448,14 +448,14 @@ export default function LiveInboxPage() {
                 {activeConv.mode === "HUMAN" ? (
                   <button
                     onClick={() => handleTakeover("AI")}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-sm transition-colors"
+                    className="ed-press ed-focus-ring inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-[var(--ed-success)] hover:opacity-90 text-white rounded-xl text-xs font-semibold shadow-sm transition-all"
                   >
                     <Play className="w-3.5 h-3.5" /> Resume AI
                   </button>
                 ) : (
                   <button
                     onClick={() => handleTakeover("HUMAN")}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold shadow-sm transition-colors"
+                    className="ed-btn-primary ed-press ed-focus-ring inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all"
                   >
                     <Pause className="w-3.5 h-3.5" /> Take Over
                   </button>
@@ -465,11 +465,11 @@ export default function LiveInboxPage() {
 
             {/* WhatsApp Connection Warning Banner */}
             {waStatus && !waStatus.connected && (
-              <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 py-2 text-xs flex items-center justify-between text-amber-800 dark:text-amber-300 shrink-0">
+              <div className="bg-[var(--ed-accent)]/10 border-b border-[var(--ed-accent)]/20 px-4 py-2 text-xs flex items-center justify-between text-[var(--ed-accent)] shrink-0">
                 <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping shrink-0" />
+                  <span className="w-2 h-2 rounded-full bg-[var(--ed-accent)] animate-ping shrink-0" />
                   <span>
-                    <strong>WhatsApp Disconnected:</strong> Link bot (+91 89187 53100) using code <strong className="font-mono bg-amber-200/50 dark:bg-amber-900/50 px-1 py-0.5 rounded">6K571G8A</strong> to chat from your phone, OR use <strong>🧪 Simulate Customer</strong> below to test AI right now!
+                    <strong>WhatsApp Disconnected:</strong> Link bot (+91 89187 53100) using code <strong className="font-mono bg-[var(--ed-accent)]/15 px-1 py-0.5 rounded">6K571G8A</strong> to chat from your phone, OR use <strong>🧪 Simulate Customer</strong> below to test AI right now!
                   </span>
                 </div>
                 <div className="flex items-center gap-3 shrink-0 text-[11px] font-bold">
@@ -477,7 +477,7 @@ export default function LiveInboxPage() {
                     href="http://localhost:3001/code"
                     target="_blank"
                     rel="noreferrer"
-                    className="underline hover:text-amber-950 dark:hover:text-white inline-flex items-center gap-0.5"
+                    className="underline hover:text-[var(--ed-accent)] dark:hover:text-white inline-flex items-center gap-0.5"
                   >
                     Pairing Code <ExternalLink className="w-3 h-3" />
                   </a>
@@ -485,7 +485,7 @@ export default function LiveInboxPage() {
                     href="http://localhost:3001/qr"
                     target="_blank"
                     rel="noreferrer"
-                    className="underline hover:text-amber-950 dark:hover:text-white inline-flex items-center gap-0.5"
+                    className="underline hover:text-[var(--ed-accent)] dark:hover:text-white inline-flex items-center gap-0.5"
                   >
                     Scan QR <ExternalLink className="w-3 h-3" />
                   </a>
@@ -508,10 +508,10 @@ export default function LiveInboxPage() {
                     <div
                       className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-xs shadow-sm leading-relaxed ${
                         isInbound
-                          ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-tl-sm"
+                          ? "bg-[var(--ed-surface)] text-slate-900 dark:text-slate-100 border border-[var(--ed-border)] rounded-tl-sm"
                           : msg.sender_type === "human"
-                          ? "bg-amber-700 text-white rounded-tr-sm"
-                          : "bg-slate-900 dark:bg-amber-950/80 border border-slate-800 dark:border-amber-700/50 text-white rounded-tr-sm"
+                          ? "ed-btn-primary text-white rounded-tr-sm"
+                          : "bg-[var(--ed-surface)] border border-[var(--ed-border)] text-[var(--ed-text-primary)] rounded-tr-sm"
                       }`}
                     >
                       <div className="flex items-center justify-between gap-3 mb-1 opacity-80 text-[10px]">
@@ -523,15 +523,15 @@ export default function LiveInboxPage() {
                             </>
                           ) : msg.sender_type === "human" ? (
                             <>
-                              <User className="w-3 h-3 text-amber-200" />
-                              <span className="text-amber-200 font-semibold">
+                              <User className="w-3 h-3 text-[var(--ed-text-primary)]" />
+                              <span className="text-[var(--ed-text-primary)] font-semibold">
                                 Operator
                               </span>
                             </>
                           ) : (
                             <>
-                              <Sparkles className="w-3 h-3 text-emerald-400" />
-                              <span className="text-emerald-400 font-semibold">
+                              <Sparkles className="w-3 h-3 text-[var(--ed-success)]" />
+                              <span className="text-[var(--ed-success)] font-semibold">
                                 EDITH (Nemotron AI)
                               </span>
                             </>
@@ -542,14 +542,14 @@ export default function LiveInboxPage() {
                         {isAI && (
                           <div>
                             {msg.reported ? (
-                              <span className="inline-flex items-center gap-1 text-[9px] font-bold text-amber-300 bg-amber-900/60 px-1.5 py-0.5 rounded border border-amber-500/40">
+                              <span className="inline-flex items-center gap-1 text-[9px] font-bold text-[var(--ed-accent)] bg-amber-900/60 px-1.5 py-0.5 rounded border border-[var(--ed-accent)]/40">
                                 <AlertTriangle className="w-2.5 h-2.5" /> Reported ({msg.correction_category})
                               </span>
                             ) : (
                               <button
                                 onClick={() => setReportingMessage(msg)}
                                 title="Report / Correct this response"
-                                className="inline-flex items-center gap-1 text-[9px] opacity-70 hover:opacity-100 text-amber-300 hover:underline"
+                                className="inline-flex items-center gap-1 text-[9px] opacity-70 hover:opacity-100 text-[var(--ed-accent)] hover:underline"
                               >
                                 <AlertTriangle className="w-2.5 h-2.5" /> Correct
                               </button>
@@ -562,7 +562,7 @@ export default function LiveInboxPage() {
 
                       {/* Corrected Text Display */}
                       {msg.reported && msg.corrected_text && (
-                        <div className="mt-2 pt-2 border-t border-white/10 text-[10px] text-emerald-200 bg-emerald-950/40 p-1.5 rounded">
+                        <div className="mt-2 pt-2 border-t border-[var(--ed-border)] text-[10px] text-[var(--ed-success)] bg-[var(--ed-success)]/10 p-1.5 rounded">
                           <span className="font-bold">Human Correction:</span> {msg.corrected_text}
                         </div>
                       )}
@@ -581,17 +581,17 @@ export default function LiveInboxPage() {
             </div>
 
             {/* Chat Input Bar */}
-            <div className="p-3 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-2">
+            <div className="p-3 border-t border-[var(--ed-border)] bg-[var(--ed-surface)] space-y-2">
               <div className="flex items-center justify-between text-[11px]">
                 <div className="flex items-center gap-1.5">
-                  <span className="text-slate-400 font-medium">Chat Mode:</span>
+                  <span className="text-[var(--ed-text-muted)] font-medium">Chat Mode:</span>
                   <button
                     type="button"
                     onClick={() => setIsSimulatingCustomer(false)}
                     className={`px-2.5 py-1 rounded-md font-semibold transition-colors ${
                       !isSimulatingCustomer
-                        ? "bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700 shadow-sm"
-                        : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                        ? "bg-[var(--ed-accent)]/12 text-[var(--ed-accent)] border border-[var(--ed-accent)]/30 shadow-sm"
+                        : "text-slate-500 hover:text-[var(--ed-text-primary)]"
                     }`}
                   >
                     👤 Operator Reply
@@ -601,15 +601,15 @@ export default function LiveInboxPage() {
                     onClick={() => setIsSimulatingCustomer(true)}
                     className={`px-2.5 py-1 rounded-md font-semibold transition-colors inline-flex items-center gap-1 ${
                       isSimulatingCustomer
-                        ? "bg-purple-100 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 border border-purple-300 dark:border-purple-700 shadow-sm"
-                        : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                        ? "bg-purple-500/12 text-purple-500 border border-purple-500/30 shadow-sm"
+                        : "text-slate-500 hover:text-[var(--ed-text-primary)]"
                     }`}
                   >
                     <Sparkles className="w-3 h-3" /> 🧪 Simulate Customer (AI Replies)
                   </button>
                 </div>
                 {isSimulatingCustomer && (
-                  <span className="text-[10px] text-purple-600 dark:text-purple-400 font-semibold">
+                  <span className="text-[10px] text-purple-500 font-semibold">
                     ⚡ EDITH will process your message and reply immediately!
                   </span>
                 )}
@@ -628,19 +628,19 @@ export default function LiveInboxPage() {
                       ? "Type manual message as Operator..."
                       : "Take over to message manually..."
                   }
-                  className={`flex-1 px-4 py-2.5 rounded-lg border text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 ${
+                  className={`flex-1 px-4 py-2.5 rounded-lg border text-xs text-[var(--ed-text-primary)] focus:outline-none focus:ring-2 ${
                     isSimulatingCustomer
-                      ? "border-purple-300 dark:border-purple-700 bg-purple-50/30 dark:bg-purple-950/20 focus:ring-purple-500"
-                      : "border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 focus:ring-amber-500"
+                      ? "border-purple-500/30 bg-purple-500/8 ed-focus-ring"
+                      : "border-[var(--ed-border)] bg-slate-50 dark:bg-slate-800 ed-focus-ring"
                   }`}
                 />
                 <button
                   onClick={handleSendMessage}
                   disabled={isSending || !inputText.trim()}
-                  className={`px-3.5 py-2.5 rounded-lg text-white font-semibold text-xs disabled:opacity-40 transition-colors inline-flex items-center gap-1.5 shrink-0 ${
+                  className={`px-5 py-2.5 rounded-xl text-white font-semibold text-xs disabled:opacity-40 transition-all inline-flex items-center gap-1.5 shrink-0 ed-press ed-focus-ring ${
                     isSimulatingCustomer
-                      ? "bg-purple-600 hover:bg-purple-700 shadow-sm"
-                      : "bg-amber-600 hover:bg-amber-700 shadow-sm"
+                      ? "bg-purple-600 hover:bg-purple-700 shadow-md"
+                      : "ed-btn-primary"
                   }`}
                 >
                   <Send className="w-3.5 h-3.5" />
@@ -654,49 +654,49 @@ export default function LiveInboxPage() {
 
       {/* 3. Right Panel: Customer Intelligence & Memory Profile */}
       {activeConvDetail && (
-        <div className="w-72 flex flex-col shrink-0 bg-white dark:bg-slate-900 p-5 space-y-5 overflow-y-auto text-xs">
+        <div className="w-72 flex flex-col shrink-0 bg-[var(--ed-surface)] p-5 space-y-5 overflow-y-auto text-xs">
           <div>
-            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--ed-text-muted)] mb-2">
               Customer Profile
             </div>
-            <div className="font-bold text-sm text-slate-900 dark:text-white">
+            <div className="font-bold text-sm text-[var(--ed-text-primary)]">
               {activeConvDetail.customer.name || "Unknown Lead"}
             </div>
-            <div className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">
+            <div className="text-[var(--ed-text-muted)] text-xs mt-0.5">
               {activeConvDetail.customer.company_name || "Company Not Provided"}
             </div>
           </div>
 
-          <div className="space-y-2 text-slate-600 dark:text-slate-300">
+          <div className="space-y-2 text-[var(--ed-text-primary)]">
             <div className="flex items-center gap-2">
-              <Phone className="w-3.5 h-3.5 text-slate-400" />
+              <Phone className="w-3.5 h-3.5 text-[var(--ed-text-muted)]" />
               <span>{activeConvDetail.customer.phone || "—"}</span>
             </div>
             <div className="flex items-center gap-2">
-              <Building className="w-3.5 h-3.5 text-slate-400" />
+              <Building className="w-3.5 h-3.5 text-[var(--ed-text-muted)]" />
               <span>Type: {activeConvDetail.customer.company_type || "Wholesale"}</span>
             </div>
             <div className="flex items-center gap-2">
-              <Tag className="w-3.5 h-3.5 text-slate-400" />
+              <Tag className="w-3.5 h-3.5 text-[var(--ed-text-muted)]" />
               <span>Language: {activeConvDetail.customer.preferred_language || "English"}</span>
             </div>
           </div>
 
           {/* AI Sales Intelligence */}
-          <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
-            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">
+          <div className="pt-4 border-t border-[var(--ed-border)]">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--ed-text-muted)] mb-2">
               Sales Intelligence
             </div>
             <div className="space-y-2">
               <div className="flex justify-between items-center">
                 <span className="text-slate-500">Lead Score:</span>
-                <span className="font-bold text-amber-600 dark:text-amber-400">
+                <span className="font-bold text-[var(--ed-accent)]">
                   {activeConvDetail.conversation.lead_score}/100
                 </span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-slate-500">Sales Stage:</span>
-                <span className="font-semibold text-slate-800 dark:text-slate-200 px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded">
+                <span className="font-semibold text-[var(--ed-text-primary)] px-1.5 py-0.5 bg-[var(--ed-bg)] rounded">
                   {activeConvDetail.conversation.sales_stage}
                 </span>
               </div>
@@ -710,11 +710,11 @@ export default function LiveInboxPage() {
           </div>
 
           {/* Conversation Summary */}
-          <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
-            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">
+          <div className="pt-4 border-t border-[var(--ed-border)]">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--ed-text-muted)] mb-2">
               Structured Memory Summary
             </div>
-            <p className="text-slate-600 dark:text-slate-300 text-xs leading-relaxed bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-lg border border-slate-100 dark:border-slate-800">
+            <p className="text-[var(--ed-text-primary)] text-xs leading-relaxed bg-slate-50 dark:bg-[var(--ed-bg)] p-2.5 rounded-lg border border-[var(--ed-border)]">
               {activeConvDetail.summary ||
                 "Discovery stage active. Gathering beverage menu details, estimated volume, and delivery destination."}
             </p>
@@ -724,15 +724,15 @@ export default function LiveInboxPage() {
 
       {/* Modal: Initiate New Chat */}
       {isNewChatOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 w-full max-w-md p-6 shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-[var(--ed-surface)] rounded-2xl border border-[var(--ed-border)] w-full max-w-md p-6 shadow-xl">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
+              <h3 className="font-bold text-base text-[var(--ed-text-primary)] flex items-center gap-2">
                 <Plus className="w-5 h-5 text-amber-600" /> Start New WhatsApp Chat
               </h3>
               <button
                 onClick={() => setIsNewChatOpen(false)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                className="text-[var(--ed-text-muted)] hover:text-[var(--ed-text-muted)] dark:hover:text-slate-200"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -740,7 +740,7 @@ export default function LiveInboxPage() {
 
             <form onSubmit={handleInitiateChat} className="space-y-4 text-xs">
               <div>
-                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block font-semibold text-[var(--ed-text-primary)] mb-1">
                   Phone Number *
                 </label>
                 <input
@@ -749,13 +749,13 @@ export default function LiveInboxPage() {
                   placeholder="+91 98765 43210"
                   value={newPhone}
                   onChange={(e) => setNewPhone(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
+                  className="w-full px-3 py-2 rounded-lg border border-[var(--ed-border)] bg-slate-50 dark:bg-slate-800 text-[var(--ed-text-primary)]"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  <label className="block font-semibold text-[var(--ed-text-primary)] mb-1">
                     Contact Name
                   </label>
                   <input
@@ -763,11 +763,11 @@ export default function LiveInboxPage() {
                     placeholder="e.g. Rajesh Mehra"
                     value={newName}
                     onChange={(e) => setNewName(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
+                    className="w-full px-3 py-2 rounded-lg border border-[var(--ed-border)] bg-slate-50 dark:bg-slate-800 text-[var(--ed-text-primary)]"
                   />
                 </div>
                 <div>
-                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  <label className="block font-semibold text-[var(--ed-text-primary)] mb-1">
                     Company Name
                   </label>
                   <input
@@ -775,13 +775,13 @@ export default function LiveInboxPage() {
                     placeholder="e.g. Darjeeling Chai Cafe"
                     value={newCompany}
                     onChange={(e) => setNewCompany(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
+                    className="w-full px-3 py-2 rounded-lg border border-[var(--ed-border)] bg-slate-50 dark:bg-slate-800 text-[var(--ed-text-primary)]"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block font-semibold text-[var(--ed-text-primary)] mb-1">
                   Opening Message (Optional)
                 </label>
                 <textarea
@@ -789,7 +789,7 @@ export default function LiveInboxPage() {
                   placeholder="Type an opening outreach message..."
                   value={newInitialMsg}
                   onChange={(e) => setNewInitialMsg(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
+                  className="w-full px-3 py-2 rounded-lg border border-[var(--ed-border)] bg-slate-50 dark:bg-slate-800 text-[var(--ed-text-primary)]"
                 />
               </div>
 
@@ -797,14 +797,14 @@ export default function LiveInboxPage() {
                 <button
                   type="button"
                   onClick={() => setIsNewChatOpen(false)}
-                  className="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
+                  className="px-4 py-2 rounded-lg border border-[var(--ed-border)] hover:bg-[var(--ed-bg)] text-[var(--ed-text-primary)]"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isInitiating || !newPhone.trim()}
-                  className="px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-semibold shadow-sm transition-colors disabled:opacity-50"
+                  className="px-4 py-2 rounded-lg bg-[var(--ed-accent)] hover:bg-[var(--ed-accent-hover)] text-white font-semibold shadow-sm transition-colors disabled:opacity-50"
                 >
                   {isInitiating ? "Initiating..." : "Start Chat"}
                 </button>
@@ -816,34 +816,34 @@ export default function LiveInboxPage() {
 
       {/* Modal: Report / Correct AI Response */}
       {reportingMessage && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 w-full max-w-lg p-6 shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-[var(--ed-surface)] rounded-2xl border border-[var(--ed-border)] w-full max-w-lg p-6 shadow-xl">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
+              <h3 className="font-bold text-base text-[var(--ed-text-primary)] flex items-center gap-2">
                 <AlertTriangle className="w-5 h-5 text-amber-500" /> Report & Correct AI Response
               </h3>
               <button
                 onClick={() => setReportingMessage(null)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                className="text-[var(--ed-text-muted)] hover:text-[var(--ed-text-muted)] dark:hover:text-slate-200"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg text-xs text-slate-600 dark:text-slate-300 mb-4 border border-slate-200 dark:border-slate-700">
-              <span className="font-bold block text-slate-900 dark:text-white mb-1">Reported Message:</span>
+            <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg text-xs text-[var(--ed-text-primary)] mb-4 border border-[var(--ed-border)]">
+              <span className="font-bold block text-[var(--ed-text-primary)] mb-1">Reported Message:</span>
               "{reportingMessage.content}"
             </div>
 
             <form onSubmit={handleSubmitReport} className="space-y-4 text-xs">
               <div>
-                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block font-semibold text-[var(--ed-text-primary)] mb-1">
                   Issue Category *
                 </label>
                 <select
                   value={reportCategory}
                   onChange={(e) => setReportCategory(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
+                  className="w-full px-3 py-2 rounded-lg border border-[var(--ed-border)] bg-slate-50 dark:bg-slate-800 text-[var(--ed-text-primary)]"
                 >
                   <option value="wrong_price">Wrong Price / Unsupported Discount</option>
                   <option value="wrong_info">Factual Error / Unsupported Claim</option>
@@ -856,7 +856,7 @@ export default function LiveInboxPage() {
               </div>
 
               <div>
-                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block font-semibold text-[var(--ed-text-primary)] mb-1">
                   Explanation *
                 </label>
                 <textarea
@@ -865,12 +865,12 @@ export default function LiveInboxPage() {
                   placeholder="Explain why this response was inaccurate or suboptimal..."
                   value={reportExplanation}
                   onChange={(e) => setReportExplanation(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
+                  className="w-full px-3 py-2 rounded-lg border border-[var(--ed-border)] bg-slate-50 dark:bg-slate-800 text-[var(--ed-text-primary)]"
                 />
               </div>
 
               <div>
-                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block font-semibold text-[var(--ed-text-primary)] mb-1">
                   Ideal Corrected Response (Optional)
                 </label>
                 <textarea
@@ -878,7 +878,7 @@ export default function LiveInboxPage() {
                   placeholder="How should EDITH have answered this customer turn?"
                   value={reportCorrectedText}
                   onChange={(e) => setReportCorrectedText(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
+                  className="w-full px-3 py-2 rounded-lg border border-[var(--ed-border)] bg-slate-50 dark:bg-slate-800 text-[var(--ed-text-primary)]"
                 />
               </div>
 
@@ -888,9 +888,9 @@ export default function LiveInboxPage() {
                   id="chkKnowledge"
                   checked={reportIsKnowledge}
                   onChange={(e) => setReportIsKnowledge(e.target.checked)}
-                  className="rounded text-amber-600 focus:ring-amber-500"
+                  className="rounded text-amber-600 ed-focus-ring"
                 />
-                <label htmlFor="chkKnowledge" className="text-slate-700 dark:text-slate-300 cursor-pointer">
+                <label htmlFor="chkKnowledge" className="text-[var(--ed-text-primary)] cursor-pointer">
                   Promote to verified Business Knowledge candidate for operator approval
                 </label>
               </div>
@@ -899,14 +899,14 @@ export default function LiveInboxPage() {
                 <button
                   type="button"
                   onClick={() => setReportingMessage(null)}
-                  className="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
+                  className="px-4 py-2 rounded-lg border border-[var(--ed-border)] hover:bg-[var(--ed-bg)] text-[var(--ed-text-primary)]"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmittingReport || !reportExplanation.trim()}
-                  className="px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-semibold shadow-sm transition-colors disabled:opacity-50 flex items-center gap-1.5"
+                  className="px-4 py-2 rounded-lg bg-[var(--ed-accent)] hover:bg-[var(--ed-accent-hover)] text-white font-semibold shadow-sm transition-colors disabled:opacity-50 flex items-center gap-1.5"
                 >
                   <FileCheck className="w-3.5 h-3.5" />
                   {isSubmittingReport ? "Submitting..." : "Submit Correction"}
