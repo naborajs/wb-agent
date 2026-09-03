@@ -45,6 +45,8 @@ venv.bak/
 *.db
 *.sqlite
 *.sqlite3
+
+*.tsbuildinfo
 postgres_data/
 backups/
 
