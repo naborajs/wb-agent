@@ -37,12 +37,8 @@ def validate_lead_record(lead_data: Dict[str, Any]) -> Tuple[bool, List[str], bo
 
     # 3. WhatsApp Policy & Consent Eligibility Check (Section 6)
     opt_in_status = lead_data.get("opt_in_status")
-    if opt_in_status is False:
+    if opt_in_status is False or str(opt_in_status).strip().lower() in ["false", "0", "no", "opt_out"]:
         is_eligible = False
-    elif opt_in_status is None:
-        # If opt_in_status is unspecified, default to False for unsolicited outbound
-        is_eligible = False
-        errors.append("Opt-in consent status is missing or false; in compliance with WhatsApp anti-spam policies.")
     else:
         is_eligible = True
 
