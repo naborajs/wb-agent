@@ -174,10 +174,10 @@ async def run_simulate(message: str, phone: str = "+919876543210"):
             )
 
             print("\n" + "-" * 50)
-            print(f"[EDITH Response] (Sales Stage: {resp.sales_stage}, Action: {resp.recommended_action})")
-            print(f"\"{resp.response_text}\"")
-            if resp.human_escalation_required:
-                print(f"[!] Human Escalation Triggered: {resp.escalation_reason}")
+            print(f"[EDITH Response] (Sales Stage: {resp.sales_stage_after}, Action: {resp.decision.recommended_action})")
+            print(f"\"{resp.reply_text}\"")
+            if resp.handoff_created:
+                print(f"[!] Human Escalation Triggered: {resp.decision.handoff_reason}")
             print("-" * 50 + "\n")
     except Exception as e:
         print(f"[!] Simulation error: {e}")
