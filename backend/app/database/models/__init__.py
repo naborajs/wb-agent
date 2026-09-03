@@ -31,6 +31,8 @@ from app.database.models.knowledge_request import (
     CustomerProfileVersion,
     ConversationAnalysis,
 )
+from app.database.models.order import Order, OrderItem
+from app.database.models.learning import SalesLearning
 
 __all__ = [
     "Organization",
@@ -67,4 +69,7 @@ __all__ = [
     "KnowledgeCandidate",
     "CustomerProfileVersion",
     "ConversationAnalysis",
+    "Order",
+    "OrderItem",
+    "SalesLearning",
 ]
