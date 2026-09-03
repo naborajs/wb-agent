@@ -17,17 +17,34 @@ from app.database.models import Conversation, ConversationAnalysis, Customer, Fo
 from app.utils.logging import logger
 
 
-async def handle_background_analysis(payload: Dict[str, Any], session: AsyncSession) -> Dict[str, Any]:
+async def handle_background_analysis(*args, **kwargs) -> Dict[str, Any]:
     """
     Finite background thinking job to analyze an inactive conversation, schedule follow-ups,
     and extract sales learnings for continuous agent improvement.
+    Supports both (session, org_id, payload, worker_id) and (payload, session) signatures.
     """
+    session = kwargs.get("session")
+    payload = kwargs.get("payload")
+    org_id = kwargs.get("org_id", "org_default_tea")
+
+    if args:
+        if isinstance(args[0], AsyncSession):
+            session = args[0]
+            if len(args) > 1 and isinstance(args[1], str):
+                org_id = args[1]
+            if len(args) > 2 and isinstance(args[2], dict):
+                payload = args[2]
+        elif isinstance(args[0], dict):
+            payload = args[0]
+            if len(args) > 1 and isinstance(args[1], AsyncSession):
+                session = args[1]
+
+    payload = payload or {}
     conversation_id = payload.get("conversation_id")
-    org_id = payload.get("org_id", "org_default")
     analysis_type = payload.get("analysis_type", "periodic_review")
 
-    if not conversation_id:
-        return {"status": "error", "reason": "missing_conversation_id"}
+    if not conversation_id or not session:
+        return {"status": "error", "reason": "missing_conversation_id_or_session"}
 
     # 1. Finite Loop Protection: Check if analysis was already run in the last 10 minutes
     ten_mins_ago = utc_now() - timedelta(minutes=10)
