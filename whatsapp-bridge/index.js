@@ -12,6 +12,7 @@ import pino from "pino";
 import express from "express";
 import QRCode from "qrcode";
 import qrcodeTerminal from "qrcode-terminal";
+import fs from "fs";
 
 const PORT = 3001;
 const BOT_PHONE = "918918753100";
