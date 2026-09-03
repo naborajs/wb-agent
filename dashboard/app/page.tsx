@@ -334,8 +334,8 @@ export default function DashboardOverview() {
           <div className="mt-6 pt-4 border-t border-[var(--ed-border)]">
             <a
               href="/conversations"
-              className="ed-interactive ed-focus-ring w-full inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-sm font-semibold text-white shadow-lg transition-colors"
-              style={{ background: "var(--ed-accent)", minHeight: "44px" }}
+              className="ed-btn-primary ed-press ed-focus-ring w-full inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-sm font-semibold transition-all"
+              style={{ minHeight: "44px" }}
             >
               Open Live Inbox
               <ArrowUpRight className="w-4 h-4" />
