@@ -66,3 +66,29 @@ async def update_system_settings(req: SettingsUpdateRequest):
         setattr(settings, "QUIET_HOURS_ENABLED", req.quiet_hours_enabled)
 
     return {"success": True, "settings": await get_system_settings()}
+
+
+class ModelTestRequest(BaseModel):
+    model: str
+    api_key: Optional[str] = None
+    base_url: Optional[str] = None
+
+
+@router.post("/models/test")
+async def test_model_endpoint(req: ModelTestRequest):
+    """
+    Actively tests inference connectivity and latency for a specified model.
+    """
+    from app.agent.providers.router import LLMRouter
+
+    api_key = req.api_key or settings.NVIDIA_API_KEY
+    base_url = req.base_url or settings.NVIDIA_BASE_URL
+
+    router_inst = LLMRouter()
+    res = await router_inst.test_model_connection(
+        model=req.model,
+        api_key=api_key,
+        base_url=base_url,
+    )
+    return res
+
