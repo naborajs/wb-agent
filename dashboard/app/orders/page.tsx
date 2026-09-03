@@ -111,20 +111,20 @@ export default function OrdersPage() {
       const res = await fetch("/api/v1/leads");
       if (res.ok) {
         const data = await res.json();
-        if (data && data.items) {
+        if (data.leads) {
           setCustomers(
-            data.items.map((item: any) => ({
-              id: item.id,
-              name: item.name || "Customer",
-              primary_phone: item.phone,
-              company_name: item.company_name,
-              city: item.city,
+            data.leads.map((l: any) => ({
+              id: l.id,
+              name: l.name || l.contact_name || "Valued Buyer",
+              primary_phone: l.phone,
+              company_name: l.company_name || l.company,
+              city: l.city,
             }))
           );
         }
       }
     } catch (e) {
-      console.error("Failed to load customers:", e);
+      console.error("Failed to load customer directory:", e);
     }
   };
 
@@ -133,24 +133,27 @@ export default function OrdersPage() {
     fetchCustomers();
   }, []);
 
-  // Calculate live modal totals
-  const subtotalSum = orderItems.reduce((acc, item) => {
-    const raw = item.quantity_kg * item.unit_price_per_kg;
-    const disc = raw * (item.discount_pct / 100);
-    return acc + (raw - disc);
-  }, 0);
+  const handleCustomerSelect = (custId: string) => {
+    setSelectedCustomerId(custId);
+    const c = customers.find((cust) => cust.id === custId);
+    if (c) {
+      setShippingName(c.name);
+      setShippingPhone(c.primary_phone);
+      if (c.city) setShippingCity(c.city);
+    }
+  };
 
   const handleAddItem = () => {
     setOrderItems([
       ...orderItems,
       {
-        product_id: "prod_dooars_blend",
-        product_name: "Dooars Hotel Blend",
-        tea_grade: "BOP",
+        product_id: "prod_assam_ctc",
+        product_name: "Assam Kadak CTC",
+        tea_grade: "BP",
         packaging_type: "Jute Bag (20kg)",
-        quantity_kg: 20,
-        unit_price_per_kg: 230,
-        discount_pct: 0,
+        quantity_kg: 50,
+        unit_price_per_kg: 323,
+        discount_pct: 5,
       },
     ]);
   };
@@ -159,43 +162,46 @@ export default function OrdersPage() {
     setOrderItems(orderItems.filter((_, i) => i !== index));
   };
 
-  const handleProductSelect = (index: number, prodName: string) => {
-    const found = DEFAULT_PRODUCTS.find((p) => p.name === prodName);
-    if (!found) return;
-    const updated = [...orderItems];
-    updated[index].product_id = found.id;
-    updated[index].product_name = found.name;
-    updated[index].tea_grade = found.grade;
-    updated[index].unit_price_per_kg = found.basePrice;
-    setOrderItems(updated);
-  };
-
-  const handleCustomerSelect = (custId: string) => {
-    setSelectedCustomerId(custId);
-    const found = customers.find((c) => c.id === custId);
-    if (found) {
-      setShippingName(found.name);
-      setShippingPhone(found.primary_phone);
-      setShippingCity(found.city || "Siliguri");
+  const handleProductSelect = (index: number, productName: string) => {
+    const p = DEFAULT_PRODUCTS.find((prod) => prod.name === productName);
+    if (p) {
+      const updated = [...orderItems];
+      updated[index].product_id = p.id;
+      updated[index].product_name = p.name;
+      updated[index].tea_grade = p.grade;
+      updated[index].unit_price_per_kg = p.basePrice;
+      setOrderItems(updated);
     }
   };
 
-  const handleCreateOrderSubmit = async (e: React.FormEvent) => {
+  const subtotalSum = orderItems.reduce(
+    (sum, item) => sum + item.quantity_kg * item.unit_price_per_kg * (1 - item.discount_pct / 100),
+    0
+  );
+
+  const handleCreateOrder = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedCustomerId) {
-      alert("Please select a customer.");
+    if (!shippingName || !shippingPhone || orderItems.length === 0) {
+      alert("Please fill in customer details and at least one order item.");
       return;
     }
 
     const payload = {
-      customer_id: selectedCustomerId,
-      shipping_name: shippingName,
-      shipping_phone: shippingPhone,
-      shipping_city: shippingCity,
-      shipping_address: shippingAddress || shippingCity,
+      customer_id: selectedCustomerId || undefined,
+      customer_name: shippingName,
+      customer_phone: shippingPhone,
+      shipping_city: shippingCity || undefined,
+      shipping_address: shippingAddress || undefined,
       payment_terms: paymentTerms,
-      notes: orderNotes,
-      items: orderItems,
+      notes: orderNotes || undefined,
+      items: orderItems.map((item) => ({
+        product_name: item.product_name,
+        tea_grade: item.tea_grade,
+        quantity_kg: item.quantity_kg,
+        unit_price_per_kg: item.unit_price_per_kg,
+        discount_percentage: item.discount_pct,
+        packaging_type: item.packaging_type,
+      })),
     };
 
     try {
@@ -244,22 +250,22 @@ export default function OrdersPage() {
   const totalValue = orders.reduce((sum, o) => sum + o.total_amount, 0);
 
   return (
-    <div className="flex-1 flex flex-col h-full overflow-hidden bg-slate-50 dark:bg-slate-950 transition-colors">
+    <div className="space-y-6 max-w-7xl mx-auto pb-12">
       {/* Header Bar */}
-      <div className="p-6 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <ShoppingBag className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+          <h1 className="text-xl font-bold text-[var(--ed-text-primary)] flex items-center gap-2">
+            <ShoppingBag className="w-5 h-5 text-[var(--ed-accent)]" />
             Wholesale Commercial Orders
           </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+          <p className="text-xs text-[var(--ed-text-muted)] mt-1">
             Direct estate wholesale orders placed via AI consultation or operator desk.
           </p>
         </div>
 
         <button
           onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold rounded-lg shadow-sm shadow-amber-600/20 transition-all"
+          className="ed-btn-primary ed-press ed-focus-ring flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all"
         >
           <Plus className="w-4 h-4" />
           Create New Order
@@ -267,48 +273,48 @@ export default function OrdersPage() {
       </div>
 
       {/* Metric Cards */}
-      <div className="grid grid-cols-4 gap-4 p-6 pb-2">
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-          <div className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Orders</div>
-          <div className="text-2xl font-bold text-slate-900 dark:text-white mt-1">{orders.length}</div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="ed-panel rounded-xl p-4">
+          <div className="text-[11px] font-semibold text-[var(--ed-text-muted)] uppercase tracking-wider">Total Orders</div>
+          <div className="text-2xl font-bold font-data text-[var(--ed-text-primary)] mt-1">{orders.length}</div>
         </div>
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-          <div className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Order Volume</div>
-          <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">
+        <div className="ed-panel rounded-xl p-4">
+          <div className="text-[11px] font-semibold text-[var(--ed-text-muted)] uppercase tracking-wider">Total Order Volume</div>
+          <div className="text-2xl font-bold font-data text-[var(--ed-success)] mt-1">
             ₹{totalValue.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
           </div>
         </div>
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-          <div className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Confirmed / Pending</div>
-          <div className="text-2xl font-bold text-amber-600 dark:text-amber-400 mt-1">
+        <div className="ed-panel rounded-xl p-4">
+          <div className="text-[11px] font-semibold text-[var(--ed-text-muted)] uppercase tracking-wider">Confirmed / Pending</div>
+          <div className="text-2xl font-bold font-data text-[var(--ed-warning)] mt-1">
             {orders.filter((o) => o.status === "confirmed").length}
           </div>
         </div>
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-          <div className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Dispatched / Delivered</div>
-          <div className="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">
+        <div className="ed-panel rounded-xl p-4">
+          <div className="text-[11px] font-semibold text-[var(--ed-text-muted)] uppercase tracking-wider">Dispatched / Delivered</div>
+          <div className="text-2xl font-bold font-data text-[var(--ed-accent)] mt-1">
             {orders.filter((o) => o.status === "dispatched" || o.status === "completed").length}
           </div>
         </div>
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="px-6 py-3 flex items-center gap-3">
-        <div className="relative flex-1">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+      <div className="flex flex-col sm:flex-row items-center gap-3">
+        <div className="relative flex-1 w-full">
+          <Search className="w-4 h-4 text-[var(--ed-text-muted)] absolute left-3.5 top-3" />
           <input
             type="text"
             placeholder="Search order #, customer name, or destination city..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
+            className="w-full pl-10 pr-4 py-2.5 bg-[var(--ed-surface)] border border-[var(--ed-border)] rounded-xl text-xs text-[var(--ed-text-primary)] placeholder-[var(--ed-text-muted)] ed-focus-ring"
           />
         </div>
 
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-amber-500"
+          className="w-full sm:w-auto px-4 py-2.5 bg-[var(--ed-surface)] border border-[var(--ed-border)] rounded-xl text-xs font-semibold text-[var(--ed-text-primary)] ed-focus-ring"
         >
           <option value="all">All Statuses</option>
           <option value="confirmed">Confirmed</option>
@@ -320,192 +326,226 @@ export default function OrdersPage() {
       </div>
 
       {/* Orders Table */}
-      <div className="flex-1 overflow-auto px-6 pb-6">
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/75 dark:bg-slate-800/60 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                <th className="py-3 px-4">Order #</th>
-                <th className="py-3 px-4">Customer</th>
-                <th className="py-3 px-4">Destination</th>
-                <th className="py-3 px-4">Items & Grades</th>
-                <th className="py-3 px-4">Total Value</th>
-                <th className="py-3 px-4">Payment</th>
-                <th className="py-3 px-4">Status</th>
-                <th className="py-3 px-4 text-right">Actions</th>
+      <div className="ed-panel rounded-xl overflow-hidden">
+        <table className="w-full text-left border-collapse">
+          <thead>
+            <tr className="border-b border-[var(--ed-border)] text-xs font-semibold text-[var(--ed-text-muted)] uppercase tracking-wider" style={{ background: "var(--ed-bg)" }}>
+              <th className="py-3.5 px-4">Order #</th>
+              <th className="py-3.5 px-4">Customer</th>
+              <th className="py-3.5 px-4">Destination</th>
+              <th className="py-3.5 px-4">Items & Grades</th>
+              <th className="py-3.5 px-4">Total Value</th>
+              <th className="py-3.5 px-4">Payment</th>
+              <th className="py-3.5 px-4">Status</th>
+              <th className="py-3.5 px-4 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-[var(--ed-border)] text-xs">
+            {filteredOrders.length === 0 ? (
+              <tr>
+                <td colSpan={8} className="text-center py-12 text-[var(--ed-text-muted)] text-xs">
+                  {loading ? "Loading wholesale orders..." : "No commercial orders found."}
+                </td>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
-              {filteredOrders.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="text-center py-12 text-slate-400 text-sm">
-                    {loading ? "Loading wholesale orders..." : "No commercial orders found."}
+            ) : (
+              filteredOrders.map((order) => (
+                <tr key={order.id} className="hover:bg-[var(--ed-bg)] transition-colors">
+                  <td className="py-3.5 px-4 font-mono font-semibold text-[var(--ed-text-primary)]">
+                    {order.order_number}
+                  </td>
+                  <td className="py-3.5 px-4">
+                    <div className="font-semibold text-[var(--ed-text-primary)]">{order.customer_name}</div>
+                    {order.customer_company && (
+                      <div className="text-[11px] text-[var(--ed-text-muted)] flex items-center gap-1">
+                        <Building className="w-3 h-3" /> {order.customer_company}
+                      </div>
+                    )}
+                    <div className="text-[10px] text-[var(--ed-text-muted)] font-data flex items-center gap-1 mt-0.5">
+                      <Phone className="w-2.5 h-2.5" /> {order.customer_phone}
+                    </div>
+                  </td>
+                  <td className="py-3.5 px-4">
+                    <div className="text-[var(--ed-text-primary)] flex items-center gap-1 font-medium">
+                      <MapPin className="w-3 h-3 text-[var(--ed-text-muted)]" />
+                      {order.shipping_city || "Siliguri / Ex-Estate"}
+                    </div>
+                  </td>
+                  <td className="py-3.5 px-4">
+                    <div className="space-y-1">
+                      {order.items && order.items.length > 0 ? (
+                        order.items.map((item, idx) => (
+                          <div key={idx} className="text-[11px]">
+                            <span className="font-semibold text-[var(--ed-text-primary)]">{item.product_name}</span>{" "}
+                            <span className="text-[var(--ed-text-muted)] font-data">({item.quantity_kg}kg @ ₹{item.unit_price_per_kg}/kg)</span>
+                          </div>
+                        ))
+                      ) : (
+                        <span className="text-[var(--ed-text-muted)]">{order.items_count} items</span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="py-3.5 px-4 font-bold font-data text-[var(--ed-text-primary)]">
+                    ₹{order.total_amount.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
+                  </td>
+                  <td className="py-3.5 px-4">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border border-[var(--ed-border)] text-[var(--ed-text-muted)]" style={{ background: "var(--ed-bg)" }}>
+                      {order.payment_terms}
+                    </span>
+                  </td>
+                  <td className="py-3.5 px-4">
+                    <span
+                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                        order.status === "confirmed"
+                          ? "bg-[var(--ed-warning)]/10 text-[var(--ed-warning)] border border-[var(--ed-warning)]/20"
+                          : order.status === "dispatched" || order.status === "completed"
+                          ? "bg-[var(--ed-success)]/10 text-[var(--ed-success)] border border-[var(--ed-success)]/20"
+                          : "border border-[var(--ed-border)] text-[var(--ed-text-muted)]"
+                      }`}
+                    >
+                      {order.status}
+                    </span>
+                  </td>
+                  <td className="py-3.5 px-4 text-right">
+                    <select
+                      value={order.status}
+                      onChange={(e) => handleStatusUpdate(order.id, e.target.value)}
+                      className="text-[11px] font-semibold bg-[var(--ed-bg)] border border-[var(--ed-border)] rounded-lg px-2 py-1 text-[var(--ed-text-primary)] focus:outline-none"
+                    >
+                      <option value="confirmed">Confirmed</option>
+                      <option value="invoiced">Invoiced</option>
+                      <option value="dispatched">Dispatched</option>
+                      <option value="completed">Completed</option>
+                      <option value="cancelled">Cancelled</option>
+                    </select>
                   </td>
                 </tr>
-              ) : (
-                filteredOrders.map((order) => (
-                  <tr key={order.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors">
-                    <td className="py-3.5 px-4 font-mono font-semibold text-slate-900 dark:text-white text-xs">
-                      {order.order_number}
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <div className="font-medium text-slate-900 dark:text-white">{order.customer_name || "Buyer"}</div>
-                      <div className="text-xs text-slate-500 dark:text-slate-400">{order.customer_company || order.customer_phone}</div>
-                    </td>
-                    <td className="py-3.5 px-4 text-slate-600 dark:text-slate-300 text-xs">
-                      <div className="flex items-center gap-1">
-                        <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                        {order.shipping_city || "Siliguri"}
-                      </div>
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <div className="text-xs font-medium text-slate-800 dark:text-slate-200">
-                        {order.items.map((it) => `${it.quantity_kg}kg ${it.product_name} (${it.tea_grade})`).join(", ")}
-                      </div>
-                    </td>
-                    <td className="py-3.5 px-4 font-semibold text-slate-900 dark:text-white">
-                      ₹{order.total_amount.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-                        {order.payment_status.toUpperCase()}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold ${
-                          order.status === "completed"
-                            ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
-                            : order.status === "dispatched"
-                            ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20"
-                            : order.status === "invoiced"
-                            ? "bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20"
-                            : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
-                        }`}
-                      >
-                        {order.status.toUpperCase()}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-4 text-right">
-                      <select
-                        value={order.status}
-                        onChange={(e) => handleStatusUpdate(order.id, e.target.value)}
-                        className="text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-2 py-1 text-slate-700 dark:text-slate-300 focus:outline-none focus:border-amber-500"
-                      >
-                        <option value="confirmed">Confirmed</option>
-                        <option value="invoiced">Invoiced</option>
-                        <option value="dispatched">Dispatched</option>
-                        <option value="completed">Completed</option>
-                        <option value="cancelled">Cancelled</option>
-                      </select>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
 
-      {/* Detailed Order Creation Modal */}
+      {/* CREATE ORDER MODAL */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden border border-slate-200 dark:border-slate-800 flex flex-col max-h-[90vh]">
-            <div className="p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/50">
-              <div>
-                <h2 className="text-base font-bold text-slate-900 dark:text-white">Create Wholesale Tea Order</h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  Generate official commercial order with volume pricing and automatic owner WhatsApp alert.
-                </p>
-              </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="rounded-2xl border border-[var(--ed-border)] shadow-2xl max-w-2xl w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto" style={{ background: "var(--ed-surface)" }}>
+            <div className="flex items-center justify-between border-b border-[var(--ed-border)] pb-3">
+              <h3 className="font-bold text-base text-[var(--ed-text-primary)] flex items-center gap-2">
+                <ShoppingBag className="w-5 h-5 text-[var(--ed-accent)]" />
+                Create New Commercial Order
+              </h3>
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-200/50"
+                className="ed-press p-1 rounded-lg text-[var(--ed-text-muted)] hover:text-[var(--ed-text-primary)]"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleCreateOrderSubmit} className="p-6 overflow-y-auto space-y-6">
-              {/* Customer Selector */}
+            <form onSubmit={handleCreateOrder} className="space-y-4 text-xs">
+              {/* Customer Select */}
               <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Select Buyer / Lead *
+                <label className="block font-semibold text-[var(--ed-text-primary)] mb-1">
+                  Select Registered Customer (Optional)
                 </label>
                 <select
-                  required
                   value={selectedCustomerId}
                   onChange={(e) => handleCustomerSelect(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-700/20"
+                  className="w-full p-2.5 rounded-lg border border-[var(--ed-border)] bg-[var(--ed-bg)] text-[var(--ed-text-primary)] ed-focus-ring"
                 >
-                  <option value="">-- Choose Customer / Cafe / Hotel --</option>
+                  <option value="">-- Choose existing buyer or enter details below --</option>
                   {customers.map((c) => (
                     <option key={c.id} value={c.id}>
-                      {c.name} ({c.company_name || "Business"}) — {c.primary_phone} [{c.city || "Siliguri"}]
+                      {c.name} {c.company_name ? `(${c.company_name})` : ""} - {c.primary_phone}
                     </option>
                   ))}
                 </select>
               </div>
 
-              {/* Delivery Details */}
-              <div className="grid grid-cols-2 gap-4">
+              {/* Shipping Details */}
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                    Destination City *
+                  <label className="block font-semibold text-[var(--ed-text-primary)] mb-1">
+                    Buyer / Contact Name *
                   </label>
                   <input
                     type="text"
                     required
-                    placeholder="e.g. Siliguri, Kolkata, Delhi"
-                    value={shippingCity}
-                    onChange={(e) => setShippingCity(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-700/20"
+                    value={shippingName}
+                    onChange={(e) => setShippingName(e.target.value)}
+                    className="w-full p-2.5 rounded-lg border border-[var(--ed-border)] bg-[var(--ed-bg)] text-[var(--ed-text-primary)] ed-focus-ring"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                  <label className="block font-semibold text-[var(--ed-text-primary)] mb-1">
+                    WhatsApp Phone Number *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={shippingPhone}
+                    onChange={(e) => setShippingPhone(e.target.value)}
+                    className="w-full p-2.5 rounded-lg border border-[var(--ed-border)] bg-[var(--ed-bg)] text-[var(--ed-text-primary)] font-data ed-focus-ring"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-[var(--ed-text-primary)] mb-1">
+                    Destination City
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Siliguri, Kolkata, Delhi"
+                    value={shippingCity}
+                    onChange={(e) => setShippingCity(e.target.value)}
+                    className="w-full p-2.5 rounded-lg border border-[var(--ed-border)] bg-[var(--ed-bg)] text-[var(--ed-text-primary)] ed-focus-ring"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-[var(--ed-text-primary)] mb-1">
                     Payment Terms
                   </label>
                   <select
                     value={paymentTerms}
                     onChange={(e) => setPaymentTerms(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-700/20"
+                    className="w-full p-2.5 rounded-lg border border-[var(--ed-border)] bg-[var(--ed-bg)] text-[var(--ed-text-primary)] ed-focus-ring"
                   >
-                    <option value="Standard Wholesale (100% on Dispatch)">100% on Dispatch</option>
-                    <option value="50% Advance, 50% on Dispatch">50% Advance, 50% on Dispatch</option>
-                    <option value="Net 15 Days (Authorized B2B)">Net 15 Days</option>
+                    <option value="100% Advance on Pro-Forma">100% Advance on Pro-Forma</option>
+                    <option value="Standard Wholesale (100% on Dispatch)">Standard Wholesale (100% on Dispatch)</option>
+                    <option value="50% Advance / 50% on Delivery">50% Advance / 50% on Delivery</option>
+                    <option value="15-Day Commercial Credit">15-Day Commercial Credit (Approved)</option>
                   </select>
                 </div>
               </div>
 
               {/* Line Items */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                    Order Items (Teas & Quantities) *
-                  </label>
+              <div className="space-y-2 pt-2 border-t border-[var(--ed-border)]">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-[var(--ed-text-primary)]">Order Line Items</span>
                   <button
                     type="button"
                     onClick={handleAddItem}
-                    className="text-xs font-semibold text-amber-700 hover:text-amber-800 flex items-center gap-1"
+                    className="ed-press text-[var(--ed-accent)] hover:underline font-semibold flex items-center gap-1"
                   >
-                    <Plus className="w-3.5 h-3.5" />
-                    Add Another Tea
+                    <Plus className="w-3.5 h-3.5" /> Add Tea
                   </button>
                 </div>
 
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {orderItems.map((item, index) => (
                     <div
                       key={index}
-                      className="p-3.5 border border-slate-200 rounded-xl bg-slate-50/50 grid grid-cols-12 gap-3 items-center"
+                      className="p-3 border border-[var(--ed-border)] rounded-xl grid grid-cols-12 gap-2 items-center"
+                      style={{ background: "var(--ed-bg)" }}
                     >
                       <div className="col-span-4">
-                        <span className="text-[11px] font-medium text-slate-500 block mb-1">Tea Blend</span>
+                        <span className="text-[10px] font-semibold text-[var(--ed-text-muted)] block mb-1">Tea Blend</span>
                         <select
                           value={item.product_name}
                           onChange={(e) => handleProductSelect(index, e.target.value)}
-                          className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-medium focus:outline-none"
+                          className="w-full px-2 py-1.5 bg-[var(--ed-surface)] border border-[var(--ed-border)] rounded-lg text-xs text-[var(--ed-text-primary)] font-medium focus:outline-none"
                         >
                           {DEFAULT_PRODUCTS.map((p) => (
                             <option key={p.id} value={p.name}>
@@ -516,7 +556,7 @@ export default function OrdersPage() {
                       </div>
 
                       <div className="col-span-2">
-                        <span className="text-[11px] font-medium text-slate-500 block mb-1">Quantity (kg)</span>
+                        <span className="text-[10px] font-semibold text-[var(--ed-text-muted)] block mb-1">Qty (kg)</span>
                         <input
                           type="number"
                           min={1}
@@ -526,12 +566,12 @@ export default function OrdersPage() {
                             updated[index].quantity_kg = parseFloat(e.target.value) || 0;
                             setOrderItems(updated);
                           }}
-                          className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-medium focus:outline-none"
+                          className="w-full px-2 py-1.5 bg-[var(--ed-surface)] border border-[var(--ed-border)] rounded-lg text-xs text-[var(--ed-text-primary)] font-data font-bold focus:outline-none"
                         />
                       </div>
 
                       <div className="col-span-2">
-                        <span className="text-[11px] font-medium text-slate-500 block mb-1">Rate (₹/kg)</span>
+                        <span className="text-[10px] font-semibold text-[var(--ed-text-muted)] block mb-1">Rate (₹/kg)</span>
                         <input
                           type="number"
                           value={item.unit_price_per_kg}
@@ -540,12 +580,12 @@ export default function OrdersPage() {
                             updated[index].unit_price_per_kg = parseFloat(e.target.value) || 0;
                             setOrderItems(updated);
                           }}
-                          className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-medium focus:outline-none"
+                          className="w-full px-2 py-1.5 bg-[var(--ed-surface)] border border-[var(--ed-border)] rounded-lg text-xs text-[var(--ed-text-primary)] font-data focus:outline-none"
                         />
                       </div>
 
                       <div className="col-span-2">
-                        <span className="text-[11px] font-medium text-slate-500 block mb-1">Discount %</span>
+                        <span className="text-[10px] font-semibold text-[var(--ed-text-muted)] block mb-1">Disc %</span>
                         <input
                           type="number"
                           min={0}
@@ -556,23 +596,21 @@ export default function OrdersPage() {
                             updated[index].discount_pct = parseFloat(e.target.value) || 0;
                             setOrderItems(updated);
                           }}
-                          className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-medium focus:outline-none"
+                          className="w-full px-2 py-1.5 bg-[var(--ed-surface)] border border-[var(--ed-border)] rounded-lg text-xs text-[var(--ed-text-primary)] font-data focus:outline-none"
                         />
                       </div>
 
-                      <div className="col-span-2 flex items-center justify-between pt-4">
-                        <div className="text-right">
-                          <span className="text-xs font-bold text-slate-900 block">
-                            ₹{(item.quantity_kg * item.unit_price_per_kg * (1 - item.discount_pct / 100)).toLocaleString("en-IN")}
-                          </span>
-                        </div>
+                      <div className="col-span-2 flex items-center justify-between pt-3">
+                        <span className="text-xs font-bold font-data text-[var(--ed-text-primary)] block">
+                          ₹{(item.quantity_kg * item.unit_price_per_kg * (1 - item.discount_pct / 100)).toLocaleString("en-IN")}
+                        </span>
                         {orderItems.length > 1 && (
                           <button
                             type="button"
                             onClick={() => handleRemoveItem(index)}
-                            className="text-slate-400 hover:text-red-600 ml-2"
+                            className="ed-press text-[var(--ed-text-muted)] hover:text-[var(--ed-danger)] ml-1"
                           >
-                            <X className="w-4 h-4" />
+                            <X className="w-3.5 h-3.5" />
                           </button>
                         )}
                       </div>
@@ -582,32 +620,32 @@ export default function OrdersPage() {
               </div>
 
               {/* Total Summary */}
-              <div className="p-4 bg-amber-50/50 border border-amber-200/60 rounded-xl flex items-center justify-between">
+              <div className="p-4 border border-[var(--ed-border)] rounded-xl flex items-center justify-between" style={{ background: "var(--ed-bg)" }}>
                 <div>
-                  <div className="text-xs font-semibold text-amber-900 uppercase tracking-wider">
+                  <div className="text-xs font-bold text-[var(--ed-text-primary)] uppercase tracking-wider">
                     Calculated Wholesale Total
                   </div>
-                  <div className="text-xs text-amber-700 mt-0.5">
+                  <div className="text-xs text-[var(--ed-text-muted)] mt-0.5">
                     Includes garden volume discounts & food-grade packaging
                   </div>
                 </div>
-                <div className="text-2xl font-black text-amber-900">
+                <div className="text-2xl font-black font-data text-[var(--ed-accent)]">
                   ₹{subtotalSum.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
                 </div>
               </div>
 
               {/* Submit Buttons */}
-              <div className="flex items-center justify-end gap-3 pt-2">
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-[var(--ed-border)]">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 border border-slate-200 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-100"
+                  className="ed-press px-4 py-2.5 rounded-lg border border-[var(--ed-border)] text-xs font-semibold text-[var(--ed-text-muted)] hover:text-[var(--ed-text-primary)] hover:bg-[var(--ed-bg)]"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2 bg-amber-700 hover:bg-amber-800 text-white text-sm font-semibold rounded-lg shadow-sm shadow-amber-700/20"
+                  className="ed-btn-primary ed-press ed-focus-ring px-6 py-2.5 text-xs font-semibold rounded-xl"
                 >
                   Confirm & Create Order
                 </button>
