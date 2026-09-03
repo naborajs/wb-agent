@@ -224,17 +224,18 @@ export default function ProductsCatalogPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+          <h2 className="text-2xl font-bold tracking-tight text-[var(--ed-text-primary)]">
             Wholesale Catalog & Stock Management
           </h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+          <p className="text-sm text-[var(--ed-text-muted)] mt-1">
             Live catalog customization, 1-click in-stock toggling, pricing variants, and Minimum Order Quantities (MOQ).
           </p>
         </div>
 
         <button
           onClick={() => setIsAddModalOpen(true)}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-semibold text-sm shadow-sm transition-all"
+          className="ed-interactive ed-press ed-focus-ring inline-flex items-center gap-2 px-6 py-3 rounded-xl text-white font-semibold text-sm shadow-lg transition-all hover:opacity-90"
+          style={{ background: "var(--ed-accent)", minHeight: "44px" }}
         >
           <Plus className="w-4 h-4" />
           Add New Tea
@@ -242,15 +243,16 @@ export default function ProductsCatalogPage() {
       </div>
 
       {/* Controls Bar */}
-      <div className="flex flex-col sm:flex-row gap-3 items-center justify-between bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+      <div className="flex flex-col sm:flex-row gap-3 items-center justify-between ed-panel p-4 rounded-xl">
         <div className="relative w-full sm:w-80">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-[var(--ed-text-muted)] absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             placeholder="Search teas, grades, origins..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+            className="w-full pl-9 pr-3 py-2 text-xs rounded-lg border border-[var(--ed-border)] text-[var(--ed-text-primary)] placeholder:text-[var(--ed-text-muted)] focus:outline-none ed-focus-ring"
+            style={{ background: "var(--ed-bg)" }}
           />
         </div>
 
@@ -259,11 +261,16 @@ export default function ProductsCatalogPage() {
             <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${
+              className={`ed-press ed-focus-ring px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${
                 selectedCategory === cat
-                  ? "bg-amber-600 text-white"
-                  : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
+                  ? "text-white shadow-sm"
+                  : "text-[var(--ed-text-muted)] hover:text-[var(--ed-text-primary)] border border-[var(--ed-border)]"
               }`}
+              style={
+                selectedCategory === cat
+                  ? { background: "var(--ed-accent)" }
+                  : { background: "var(--ed-bg)" }
+              }
             >
               {cat}
             </button>
@@ -276,50 +283,52 @@ export default function ProductsCatalogPage() {
         {filtered.map((p) => (
           <div
             key={p.id}
-            className={`p-5 rounded-xl border shadow-sm flex flex-col justify-between transition-all duration-200 ${
-              p.in_stock
-                ? "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
-                : "bg-slate-50/70 dark:bg-slate-900/40 border-slate-300 dark:border-slate-800/60 opacity-80"
+            className={`p-5 rounded-xl border flex flex-col justify-between transition-all duration-200 ed-panel ${
+              p.in_stock ? "" : "opacity-80"
             }`}
+            style={!p.in_stock ? { background: "var(--ed-bg)" } : {}}
           >
             <div>
               {/* Card Header */}
               <div className="flex items-center justify-between">
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-800 dark:text-amber-300 border border-amber-500/20">
+                <span
+                  className="px-2 py-0.5 rounded-full text-[10px] font-bold text-[var(--ed-accent)] border border-[var(--ed-accent)]/20"
+                  style={{ background: "color-mix(in srgb, var(--ed-accent) 10%, transparent)" }}
+                >
                   {p.category}
                 </span>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                  <span className="text-xs font-semibold text-[var(--ed-text-muted)]">
                     Grade: {p.tea_grade || "Estate"}
                   </span>
                   <button
                     onClick={() => setEditingProduct(p)}
                     title="Edit Product"
-                    className="p-1 rounded text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+                    className="ed-press ed-focus-ring p-1.5 rounded-md text-[var(--ed-text-muted)] hover:text-[var(--ed-text-primary)] hover:bg-[var(--ed-bg)] transition-colors"
                   >
                     <Edit2 className="w-3.5 h-3.5" />
                   </button>
                   <button
                     onClick={() => handleDeleteProduct(p.id)}
                     title="Delete Product"
-                    className="p-1 rounded text-slate-400 hover:text-red-600 hover:bg-slate-100 dark:hover:bg-slate-800"
+                    className="ed-press ed-focus-ring p-1.5 rounded-md text-[var(--ed-text-muted)] hover:text-[var(--ed-danger)] hover:bg-[var(--ed-bg)] transition-colors"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
               </div>
 
-              <h3 className="font-bold text-base text-slate-900 dark:text-white mt-3">{p.name}</h3>
-              <div className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
+              <h3 className="font-bold text-base text-[var(--ed-text-primary)] mt-3">{p.name}</h3>
+              <div className="text-xs text-[var(--ed-text-muted)] font-data mt-0.5">
                 SKU: {p.sku} • {p.origin}
               </div>
-              <p className="text-xs text-slate-600 dark:text-slate-400 mt-3 leading-relaxed">
+              <p className="text-xs text-[var(--ed-text-muted)] mt-3 leading-relaxed">
                 {p.description}
               </p>
 
               {/* Packaging Variants & Rates */}
-              <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
-                <div className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">
+              <div className="mt-4 pt-4 border-t border-[var(--ed-border)]">
+                <div className="text-[11px] font-semibold text-[var(--ed-text-muted)] uppercase tracking-wider mb-2">
                   Packaging & Base Rates
                 </div>
                 <div className="space-y-1.5">
@@ -327,46 +336,50 @@ export default function ProductsCatalogPage() {
                     p.variants.map((v) => (
                       <div
                         key={v.id}
-                        className="flex justify-between items-center text-xs p-2 rounded bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 text-slate-700 dark:text-slate-300"
+                        className="flex justify-between items-center text-xs p-2 rounded border border-[var(--ed-border)] text-[var(--ed-text-primary)]"
+                        style={{ background: "var(--ed-bg)" }}
                       >
                         <span className="font-medium">
-                          {v.name} ({v.weight_kg}kg)
+                          {v.name} (<span className="font-data">{v.weight_kg}kg</span>)
                         </span>
-                        <span className="font-bold text-slate-900 dark:text-white">
+                        <span className="font-bold font-data text-[var(--ed-text-primary)]">
                           ₹{v.base_price_per_kg}/kg
                         </span>
                       </div>
                     ))
                   ) : (
-                    <div className="text-xs text-slate-400 italic">No packaging variants configured</div>
+                    <div className="text-xs text-[var(--ed-text-muted)] italic">No packaging variants configured</div>
                   )}
                 </div>
               </div>
             </div>
 
             {/* Footer with 1-Click In Stock Toggle */}
-            <div className="mt-5 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
-              <span className="text-slate-500 dark:text-slate-400">
-                MOQ: <strong className="text-slate-800 dark:text-slate-200">{p.min_order_quantity_kg} kg</strong>
+            <div className="mt-5 pt-3 border-t border-[var(--ed-border)] flex items-center justify-between text-xs">
+              <span className="text-[var(--ed-text-muted)]">
+                MOQ: <strong className="text-[var(--ed-text-primary)] font-data">{p.min_order_quantity_kg} kg</strong>
               </span>
 
               {/* Toggle Button */}
               <button
                 onClick={() => handleToggleStock(p)}
-                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-semibold transition-colors ${
-                  p.in_stock
-                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20"
-                    : "bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 border border-rose-500/20"
-                }`}
+                className="ed-press ed-focus-ring inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-semibold text-[11px] transition-colors hover:opacity-90"
+                style={{
+                  background: p.in_stock
+                    ? "color-mix(in srgb, var(--ed-success) 12%, transparent)"
+                    : "color-mix(in srgb, var(--ed-danger) 12%, transparent)",
+                  color: p.in_stock ? "var(--ed-success)" : "var(--ed-danger)",
+                  border: `1px solid color-mix(in srgb, ${p.in_stock ? "var(--ed-success)" : "var(--ed-danger)"} 30%, transparent)`,
+                }}
               >
                 {p.in_stock ? (
                   <>
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                    <CheckCircle2 className="w-3.5 h-3.5 text-[var(--ed-success)]" />
                     <span>In Stock</span>
                   </>
                 ) : (
                   <>
-                    <XCircle className="w-3.5 h-3.5 text-rose-600" />
+                    <XCircle className="w-3.5 h-3.5 text-[var(--ed-danger)]" />
                     <span>Out of Stock</span>
                   </>
                 )}
@@ -378,16 +391,16 @@ export default function ProductsCatalogPage() {
 
       {/* ADD PRODUCT MODAL */}
       {isAddModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl max-w-xl w-full p-6 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-              <h3 className="font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
-                <Coffee className="w-5 h-5 text-amber-600" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="ed-panel rounded-2xl shadow-2xl max-w-xl w-full p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-[var(--ed-border)] pb-3">
+              <h3 className="font-bold text-lg text-[var(--ed-text-primary)] flex items-center gap-2">
+                <Coffee className="w-5 h-5 text-[var(--ed-accent)]" />
                 Add New Wholesale Tea to Catalog
               </h3>
               <button
                 onClick={() => setIsAddModalOpen(false)}
-                className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                className="ed-press ed-focus-ring p-1 rounded-lg text-[var(--ed-text-muted)] hover:text-[var(--ed-text-primary)] hover:bg-[var(--ed-bg)] transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -396,7 +409,7 @@ export default function ProductsCatalogPage() {
             <form onSubmit={handleCreateProduct} className="space-y-4 text-xs">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  <label className="block font-semibold text-[var(--ed-text-primary)] mb-1">
                     Tea Blend / Product Name
                   </label>
                   <input
@@ -405,17 +418,19 @@ export default function ProductsCatalogPage() {
                     placeholder="e.g. Kurseong Muscatel Second Flush"
                     value={newProd.name}
                     onChange={(e) => setNewProd({ ...newProd, name: e.target.value })}
-                    className="w-full p-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500"
+                    className="w-full p-2.5 rounded-lg border border-[var(--ed-border)] text-[var(--ed-text-primary)] placeholder:text-[var(--ed-text-muted)] focus:outline-none ed-focus-ring"
+                    style={{ background: "var(--ed-bg)" }}
                   />
                 </div>
                 <div>
-                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  <label className="block font-semibold text-[var(--ed-text-primary)] mb-1">
                     Category
                   </label>
                   <select
                     value={newProd.category}
                     onChange={(e) => setNewProd({ ...newProd, category: e.target.value })}
-                    className="w-full p-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500"
+                    className="w-full p-2.5 rounded-lg border border-[var(--ed-border)] text-[var(--ed-text-primary)] focus:outline-none ed-focus-ring"
+                    style={{ background: "var(--ed-bg)" }}
                   >
                     <option value="Assam CTC">Assam CTC</option>
                     <option value="Darjeeling">Darjeeling</option>
@@ -428,7 +443,7 @@ export default function ProductsCatalogPage() {
 
               <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  <label className="block font-semibold text-[var(--ed-text-primary)] mb-1">
                     Tea Grade
                   </label>
                   <input
@@ -436,11 +451,12 @@ export default function ProductsCatalogPage() {
                     placeholder="e.g. FTGFOP1 / BP / BOP"
                     value={newProd.tea_grade}
                     onChange={(e) => setNewProd({ ...newProd, tea_grade: e.target.value })}
-                    className="w-full p-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
+                    className="w-full p-2.5 rounded-lg border border-[var(--ed-border)] text-[var(--ed-text-primary)] placeholder:text-[var(--ed-text-muted)] focus:outline-none ed-focus-ring"
+                    style={{ background: "var(--ed-bg)" }}
                   />
                 </div>
                 <div>
-                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  <label className="block font-semibold text-[var(--ed-text-primary)] mb-1">
                     Base Rate (₹/kg)
                   </label>
                   <input
@@ -449,11 +465,12 @@ export default function ProductsCatalogPage() {
                     min="50"
                     value={newProd.base_price_per_kg}
                     onChange={(e) => setNewProd({ ...newProd, base_price_per_kg: Number(e.target.value) })}
-                    className="w-full p-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-bold"
+                    className="w-full p-2.5 rounded-lg border border-[var(--ed-border)] text-[var(--ed-text-primary)] font-data font-bold focus:outline-none ed-focus-ring"
+                    style={{ background: "var(--ed-bg)" }}
                   />
                 </div>
                 <div>
-                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  <label className="block font-semibold text-[var(--ed-text-primary)] mb-1">
                     MOQ (kg)
                   </label>
                   <input
@@ -462,13 +479,14 @@ export default function ProductsCatalogPage() {
                     min="1"
                     value={newProd.min_order_quantity_kg}
                     onChange={(e) => setNewProd({ ...newProd, min_order_quantity_kg: Number(e.target.value) })}
-                    className="w-full p-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
+                    className="w-full p-2.5 rounded-lg border border-[var(--ed-border)] text-[var(--ed-text-primary)] font-data focus:outline-none ed-focus-ring"
+                    style={{ background: "var(--ed-bg)" }}
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block font-semibold text-[var(--ed-text-primary)] mb-1">
                   Product Description & Flavor Profile
                 </label>
                 <textarea
@@ -476,7 +494,8 @@ export default function ProductsCatalogPage() {
                   placeholder="Describe aroma, liquor strength, estate garden, recommended beverage type..."
                   value={newProd.description}
                   onChange={(e) => setNewProd({ ...newProd, description: e.target.value })}
-                  className="w-full p-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
+                  className="w-full p-2.5 rounded-lg border border-[var(--ed-border)] text-[var(--ed-text-primary)] placeholder:text-[var(--ed-text-muted)] focus:outline-none ed-focus-ring"
+                  style={{ background: "var(--ed-bg)" }}
                 />
               </div>
 
@@ -486,24 +505,25 @@ export default function ProductsCatalogPage() {
                     type="checkbox"
                     checked={newProd.in_stock}
                     onChange={(e) => setNewProd({ ...newProd, in_stock: e.target.checked })}
-                    className="w-4 h-4 rounded text-amber-600 focus:ring-amber-500"
+                    className="w-4 h-4 rounded accent-[var(--ed-accent)] ed-focus-ring"
                   />
-                  <span className="font-semibold text-slate-800 dark:text-slate-200">
+                  <span className="font-semibold text-[var(--ed-text-primary)]">
                     Immediately Available In Stock
                   </span>
                 </label>
 
-                <div className="flex gap-2">
+                <div className="flex items-center gap-2">
                   <button
                     type="button"
                     onClick={() => setIsAddModalOpen(false)}
-                    className="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                    className="ed-press ed-focus-ring px-4 py-2.5 rounded-lg border border-[var(--ed-border)] text-[var(--ed-text-muted)] hover:text-[var(--ed-text-primary)] text-xs font-medium hover:bg-[var(--ed-bg)] transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-semibold flex items-center gap-1.5"
+                    className="ed-interactive ed-press ed-focus-ring inline-flex items-center gap-2 px-6 py-3 rounded-xl text-white font-semibold text-sm shadow-lg transition-all hover:opacity-90"
+                    style={{ background: "var(--ed-accent)", minHeight: "44px" }}
                   >
                     <Save className="w-4 h-4" />
                     Save Product
@@ -517,15 +537,15 @@ export default function ProductsCatalogPage() {
 
       {/* EDIT PRODUCT MODAL */}
       {editingProduct && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl max-w-lg w-full p-6 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-              <h3 className="font-bold text-lg text-slate-900 dark:text-white">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="ed-panel rounded-2xl shadow-2xl max-w-lg w-full p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-[var(--ed-border)] pb-3">
+              <h3 className="font-bold text-lg text-[var(--ed-text-primary)]">
                 Edit Product: {editingProduct.name}
               </h3>
               <button
                 onClick={() => setEditingProduct(null)}
-                className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                className="ed-press ed-focus-ring p-1 rounded-lg text-[var(--ed-text-muted)] hover:text-[var(--ed-text-primary)] hover:bg-[var(--ed-bg)] transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -533,7 +553,7 @@ export default function ProductsCatalogPage() {
 
             <form onSubmit={handleSaveEdit} className="space-y-4 text-xs">
               <div>
-                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block font-semibold text-[var(--ed-text-primary)] mb-1">
                   Product Name
                 </label>
                 <input
@@ -541,24 +561,26 @@ export default function ProductsCatalogPage() {
                   required
                   value={editingProduct.name}
                   onChange={(e) => setEditingProduct({ ...editingProduct, name: e.target.value })}
-                  className="w-full p-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
+                  className="w-full p-2.5 rounded-lg border border-[var(--ed-border)] text-[var(--ed-text-primary)] focus:outline-none ed-focus-ring"
+                  style={{ background: "var(--ed-bg)" }}
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  <label className="block font-semibold text-[var(--ed-text-primary)] mb-1">
                     Tea Grade
                   </label>
                   <input
                     type="text"
                     value={editingProduct.tea_grade || ""}
                     onChange={(e) => setEditingProduct({ ...editingProduct, tea_grade: e.target.value })}
-                    className="w-full p-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
+                    className="w-full p-2.5 rounded-lg border border-[var(--ed-border)] text-[var(--ed-text-primary)] focus:outline-none ed-focus-ring"
+                    style={{ background: "var(--ed-bg)" }}
                   />
                 </div>
                 <div>
-                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  <label className="block font-semibold text-[var(--ed-text-primary)] mb-1">
                     MOQ (kg)
                   </label>
                   <input
@@ -570,34 +592,37 @@ export default function ProductsCatalogPage() {
                         min_order_quantity_kg: Number(e.target.value),
                       })
                     }
-                    className="w-full p-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
+                    className="w-full p-2.5 rounded-lg border border-[var(--ed-border)] text-[var(--ed-text-primary)] font-data focus:outline-none ed-focus-ring"
+                    style={{ background: "var(--ed-bg)" }}
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block font-semibold text-[var(--ed-text-primary)] mb-1">
                   Description
                 </label>
                 <textarea
                   rows={2}
                   value={editingProduct.description || ""}
                   onChange={(e) => setEditingProduct({ ...editingProduct, description: e.target.value })}
-                  className="w-full p-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
+                  className="w-full p-2.5 rounded-lg border border-[var(--ed-border)] text-[var(--ed-text-primary)] focus:outline-none ed-focus-ring"
+                  style={{ background: "var(--ed-bg)" }}
                 />
               </div>
 
-              <div className="flex justify-end gap-2 pt-2">
+              <div className="flex justify-end items-center gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setEditingProduct(null)}
-                  className="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  className="ed-press ed-focus-ring px-4 py-2.5 rounded-lg border border-[var(--ed-border)] text-[var(--ed-text-muted)] hover:text-[var(--ed-text-primary)] text-xs font-medium hover:bg-[var(--ed-bg)] transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-semibold flex items-center gap-1.5"
+                  className="ed-interactive ed-press ed-focus-ring inline-flex items-center gap-2 px-6 py-3 rounded-xl text-white font-semibold text-sm shadow-lg transition-all hover:opacity-90"
+                  style={{ background: "var(--ed-accent)", minHeight: "44px" }}
                 >
                   <Save className="w-4 h-4" />
                   Save Changes
