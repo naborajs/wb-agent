@@ -68,3 +68,56 @@ class OrderItem(Base, TimestampMixin):
 
     order = relationship("Order", back_populates="items")
     product = relationship("Product")
+
+
+class Quote(Base, OrgScopedMixin, TimestampMixin):
+    """
+    Formal, auditable commercial pricing quote with validity window (Sections 43 & 44).
+    """
+    __tablename__ = "quotes"
+
+    id = Column(String(64), primary_key=True, default=generate_uuid)
+    quote_number = Column(String(64), nullable=False, index=True)
+    customer_id = Column(String(64), ForeignKey("customers.id", ondelete="CASCADE"), nullable=False, index=True)
+    conversation_id = Column(String(64), ForeignKey("conversations.id", ondelete="SET NULL"), nullable=True, index=True)
+
+    status = Column(String(32), default="draft", nullable=False, index=True)  # draft, sent, accepted, expired, rejected
+    total_amount = Column(Numeric(12, 2), default=0.00, nullable=False)
+    discount_amount = Column(Numeric(12, 2), default=0.00, nullable=False)
+    tax_amount = Column(Numeric(12, 2), default=0.00, nullable=False)
+    currency = Column(String(8), default="INR", nullable=False)
+
+    valid_until = Column(DateTime(timezone=True), nullable=True)
+    approved_by = Column(String(128), nullable=True)
+    notes = Column(Text, nullable=True)
+    extra_metadata = Column(UniversalJSON, default=dict, nullable=False)
+
+    customer = relationship("Customer", backref="quotes")
+    conversation = relationship("Conversation", backref="quotes")
+    items = relationship("QuoteItem", back_populates="quote", cascade="all, delete-orphan")
+
+    __table_args__ = (
+        Index("ix_quotes_org_status", "org_id", "status"),
+    )
+
+
+class QuoteItem(Base, TimestampMixin):
+    """
+    Line item for an auditable commercial quote.
+    """
+    __tablename__ = "quote_items"
+
+    id = Column(String(64), primary_key=True, default=generate_uuid)
+    quote_id = Column(String(64), ForeignKey("quotes.id", ondelete="CASCADE"), nullable=False, index=True)
+    product_id = Column(String(64), ForeignKey("products.id", ondelete="RESTRICT"), nullable=False)
+    variant_id = Column(String(64), ForeignKey("product_variants.id", ondelete="SET NULL"), nullable=True)
+
+    product_name = Column(String(255), nullable=False)
+    quantity = Column(Numeric(10, 2), nullable=False)
+    unit_price = Column(Numeric(10, 2), nullable=False)
+    discount_pct = Column(Float, default=0.0, nullable=False)
+    subtotal = Column(Numeric(12, 2), nullable=False)
+
+    quote = relationship("Quote", back_populates="items")
+    product = relationship("Product")
+
