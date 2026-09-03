@@ -2,6 +2,7 @@
 Quotes API: auditable commercial pricing quotes with validity windows (Sections 43 & 44).
 """
 
+from decimal import Decimal
 import random
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
@@ -13,8 +14,8 @@ from sqlalchemy.orm import selectinload
 
 from app.config import settings
 from app.database.models import Customer, Product, Quote, QuoteItem
-from app.database.session import get_db_session
-from app.pricing.service import PricingService
+from app.database.session import get_db
+from app.pricing.calculator import PricingService
 
 router = APIRouter(prefix="/quotes", tags=["Quotes"])
 
@@ -43,7 +44,7 @@ class QuoteStatusUpdateRequest(BaseModel):
 async def list_quotes(
     customer_id: Optional[str] = None,
     status: Optional[str] = None,
-    session: AsyncSession = Depends(get_db_session),
+    session: AsyncSession = Depends(get_db),
 ):
     """Lists commercial quotes with optional filters."""
     query = (
@@ -93,7 +94,7 @@ async def list_quotes(
 @router.post("")
 async def create_quote(
     req: QuoteCreateRequest,
-    session: AsyncSession = Depends(get_db_session),
+    session: AsyncSession = Depends(get_db),
 ):
     """
     Generates a deterministic commercial quote calculated against verified pricing rules.
@@ -133,19 +134,19 @@ async def create_quote(
             raise HTTPException(status_code=400, detail=f"Product {it.product_id} not found")
 
         # Deterministic pricing
-        pricing_calc = await pricing_svc.calculate_quote(
+        pricing_calc = await pricing_svc.calculate_price(
             product_id=product.id,
-            quantity_kg=it.quantity_kg,
+            quantity_kg=Decimal(str(it.quantity_kg)),
             customer_segment=customer.company_type,
-            autonomous_discount_requested=it.discount_pct,
+            requested_discount=Decimal(str(it.discount_pct or 0.0)),
         )
 
-        subtotal = float(pricing_calc.final_price_per_kg) * it.quantity_kg
-        gross = float(pricing_calc.base_price_per_kg) * it.quantity_kg
-        discount_amount = gross - subtotal
+        gross = float(pricing_calc.subtotal)
+        discount_amount = float(pricing_calc.discount_amount)
+        net = float(pricing_calc.total)
 
         total_gross += gross
-        total_net += subtotal
+        total_net += net
 
         quote_item = QuoteItem(
             quote_id=quote.id,
@@ -155,7 +156,7 @@ async def create_quote(
             quantity=it.quantity_kg,
             unit_price=float(pricing_calc.base_price_per_kg),
             discount_pct=float(pricing_calc.discount_percentage),
-            subtotal=subtotal,
+            subtotal=net,
         )
         session.add(quote_item)
         quote_items.append(quote_item)
@@ -180,7 +181,7 @@ async def create_quote(
 async def update_quote_status(
     quote_id: str,
     req: QuoteStatusUpdateRequest,
-    session: AsyncSession = Depends(get_db_session),
+    session: AsyncSession = Depends(get_db),
 ):
     """Updates quote lifecycle state (e.g., sent, accepted, rejected)."""
     res = await session.execute(select(Quote).where(Quote.id == quote_id))
