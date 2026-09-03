@@ -318,7 +318,15 @@ class AgentOrchestrator:
             llm_resp = await self.llm_router.generate(prompt_msgs)
             reply_text = llm_resp.content
 
-        # 11. Validate Response (Section 75)
+        # 11. Self-Reflective Critic Check & Response Refinement (Section 75, 135)
+        from app.agent.critic import SelfReflectiveCritic
+        reply_text = SelfReflectiveCritic.critique_and_refine(
+            draft=reply_text,
+            customer_goal=sales_decision.customer_goal or "",
+            emotional_state=facts.emotional_state or "NEUTRAL",
+        )
+
+        # 12. Validate Response (Section 75)
         is_valid, validation_issues, sanitized_reply = ResponseValidator.validate(reply_text)
         if not is_valid:
             logger.warning(f"Response validation issues: {validation_issues}. Falling back to safe response.")
