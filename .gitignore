@@ -46,6 +46,7 @@ venv.bak/
 *.sqlite
 *.sqlite3
 postgres_data/
+backups/
 
 # Testing & coverage
 .pytest_cache/
