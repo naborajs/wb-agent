@@ -13,6 +13,9 @@ import {
   CheckCircle,
   AlertCircle,
   Lock,
+  PieChart as PieIcon,
+  BarChart3,
+  Sliders,
 } from "lucide-react";
 
 interface PromptSection {
@@ -234,6 +237,86 @@ export default function PromptsPage() {
               </button>
             );
           })}
+
+          {/* Prompt Assembly Token Distribution Donut Card */}
+          <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm space-y-3">
+            <div className="flex items-center justify-between text-xs font-bold text-slate-900 dark:text-white">
+              <span className="flex items-center gap-1.5">
+                <PieIcon className="w-3.5 h-3.5 text-purple-500" />
+                Prompt Token Budget
+              </span>
+              <span className="font-mono text-[10px] text-slate-400">
+                ~{Math.round(Object.values(sections).reduce((a, s) => a + (s?.content?.length || 0), 0) / 4)} tokens
+              </span>
+            </div>
+
+            {/* SVG Donut */}
+            <div className="flex justify-center py-1">
+              <svg width="120" height="120" viewBox="0 0 120 120" className="transform -rotate-90">
+                {(() => {
+                  const palette: Record<string, string> = {
+                    core_safety: "#ef4444",
+                    core_identity: "#8b5cf6",
+                    business_policy: "#f59e0b",
+                    sales_style: "#10b981",
+                    business_profile: "#3b82f6",
+                  };
+                  const total = Object.values(sections).reduce((a, s) => a + (s?.content?.length || 1), 0) || 1;
+                  const circ = 2 * Math.PI * 40;
+                  let accumulated = 0;
+
+                  return Object.entries(sections).map(([k, s]) => {
+                    const len = s?.content?.length || 100;
+                    const ratio = len / total;
+                    const dash = ratio * circ;
+                    const offset = -accumulated * circ;
+                    accumulated += ratio;
+                    const color = palette[k] || "#64748b";
+
+                    return (
+                      <circle
+                        key={k}
+                        cx="60"
+                        cy="60"
+                        r="40"
+                        fill="transparent"
+                        stroke={color}
+                        strokeWidth="16"
+                        strokeDasharray={`${dash} ${circ}`}
+                        strokeDashoffset={offset}
+                        className="transition-all duration-300"
+                      />
+                    );
+                  });
+                })()}
+              </svg>
+            </div>
+
+            {/* Micro Legend */}
+            <div className="space-y-1.5 text-[10px]">
+              {Object.entries(SECTION_METADATA).map(([k, m]) => {
+                const palette: Record<string, string> = {
+                  core_safety: "#ef4444",
+                  core_identity: "#8b5cf6",
+                  business_policy: "#f59e0b",
+                  sales_style: "#10b981",
+                  business_profile: "#3b82f6",
+                };
+                const total = Object.values(sections).reduce((a, s) => a + (s?.content?.length || 1), 0) || 1;
+                const len = sections[k]?.content?.length || 100;
+                const pct = Math.round((len / total) * 100);
+                return (
+                  <div key={k} className="flex items-center justify-between text-slate-600 dark:text-slate-400">
+                    <div className="flex items-center gap-1.5 truncate">
+                      <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: palette[k] }} />
+                      <span className="truncate">{m.label.split(" ")[0]}</span>
+                    </div>
+                    <span className="font-mono font-semibold">{pct}%</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
 
         {/* Center/Right: Active Editor & Version History */}
