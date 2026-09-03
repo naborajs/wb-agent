@@ -190,6 +190,52 @@ app.post("/send", async (req, res) => {
   }
 });
 
+// 4b. Outbound document/PDF sending endpoint
+app.post("/send-document", async (req, res) => {
+  const { to, filePath, caption, fileName } = req.body;
+  if (!to || !filePath) {
+    return res.status(400).json({ error: "Missing 'to' or 'filePath'" });
+  }
+
+  if (!sock || !isConnected) {
+    return res.status(503).json({ error: "WhatsApp socket is not connected" });
+  }
+
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({ error: `File not found at path: ${filePath}` });
+  }
+
+  try {
+    const cleanTo = to.replace(/[^0-9]/g, "");
+    let jid = to;
+    if (jidMap.has(cleanTo)) {
+      jid = jidMap.get(cleanTo);
+    } else if (!jid.includes("@")) {
+      jid = `${cleanTo}@s.whatsapp.net`;
+    }
+
+    const fileBuffer = fs.readFileSync(filePath);
+    const resolvedName = fileName || filePath.split(/[\/\\]/).pop() || "document.pdf";
+    console.log(`[OUTBOUND] Sending document ${resolvedName} to ${jid}`);
+
+    const result = await sock.sendMessage(jid, {
+      document: fileBuffer,
+      mimetype: "application/pdf",
+      fileName: resolvedName,
+      caption: caption || "",
+    });
+
+    console.log(`[OUTBOUND] Delivered document to ${jid} (Msg ID: ${result.key.id})`);
+    return res.json({
+      success: true,
+      messageId: result.key.id,
+    });
+  } catch (err) {
+    console.error("Failed to send WhatsApp document via Baileys:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 // 5. Connect Baileys Socket
 async function startSocket() {
   const { state, saveCreds } = await useMultiFileAuthState(AUTH_DIR);
