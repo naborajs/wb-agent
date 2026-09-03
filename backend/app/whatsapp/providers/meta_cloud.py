@@ -186,6 +186,51 @@ class MetaCloudWhatsAppProvider(WhatsAppProvider):
             msg_id = data.get("messages", [{}])[0].get("id")
             return OutboundWhatsAppResult(success=True, provider_message_id=msg_id, raw_response=data)
 
+    async def send_document(
+        self,
+        to_phone: str,
+        file_path: str,
+        caption: Optional[str] = None,
+        filename: Optional[str] = None,
+    ) -> OutboundWhatsAppResult:
+        """Sends a document (e.g. PDF pro-forma invoice) via Meta Cloud API."""
+        from app.config import settings
+        norm_phone = normalize_phone_number(to_phone).lstrip("+")
+        url = f"{self.base_url}/{self.phone_number_id}/messages"
+        headers = {
+            "Authorization": f"Bearer {self.access_token}",
+            "Content-Type": "application/json",
+        }
+        doc_name = filename or (file_path.split("/")[-1].split("\\")[-1] if file_path else "proforma_invoice.pdf")
+
+        payload = {
+            "messaging_product": "whatsapp",
+            "recipient_type": "individual",
+            "to": norm_phone,
+            "type": "document",
+            "document": {
+                "link": f"{settings.API_URL}/api/v1/invoices/download?file={doc_name}" if not file_path.startswith("http") else file_path,
+                "caption": caption or "Commercial Pro-Forma Invoice - North Bengal Tea Co.",
+                "filename": doc_name,
+            },
+        }
+
+        async with httpx.AsyncClient(timeout=self.timeout) as client:
+            resp = await client.post(url, json=payload, headers=headers)
+            if resp.status_code >= 400:
+                return OutboundWhatsAppResult(
+                    success=False,
+                    error_message=resp.text,
+                    raw_response=resp.json() if resp.headers.get("content-type", "").startswith("application/json") else {},
+                )
+            data = resp.json()
+            msg_id = data.get("messages", [{}])[0].get("id")
+            return OutboundWhatsAppResult(
+                success=True,
+                provider_message_id=msg_id,
+                raw_response=data,
+            )
+
     async def mark_read(self, message_id: str) -> bool:
         url = f"{self.base_url}/{self.phone_number_id}/messages"
         headers = {"Authorization": f"Bearer {self.access_token}", "Content-Type": "application/json"}
