@@ -294,7 +294,7 @@ class InvoiceContractService:
         from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
         from reportlab.lib import colors
         import tempfile
-        from datetime import datetime, timedelta
+        from datetime import datetime, timezone, timedelta
 
         if not output_path:
             fd, output_path = tempfile.mkstemp(suffix=".pdf", prefix="proforma_invoice_")
@@ -325,7 +325,7 @@ class InvoiceContractService:
         elements.append(Paragraph(f"<b>GSTIN:</b> {cls.SELLER_GSTIN} | <b>FSSAI:</b> {cls.SELLER_FSSAI}", meta_style))
         elements.append(Paragraph(f"<b>Address:</b> {cls.SELLER_ADDRESS}", meta_style))
 
-        issue_date = order_data.get("issue_date") or datetime.utcnow().strftime("%Y-%m-%d")
+        issue_date = order_data.get("issue_date") or datetime.now(timezone.utc).strftime("%Y-%m-%d")
         elements.append(Paragraph(f"<b>Invoice Date:</b> {issue_date} | <b>Terms:</b> {cls.RATE_LOCK_TERM}", meta_style))
         elements.append(Spacer(1, 14))
 
@@ -385,7 +385,7 @@ class InvoiceContractService:
         elements.append(t)
         elements.append(Spacer(1, 14))
 
-        elements.append(Paragraph(f"<b>Rate Lock Guarantee:</b> Rates locked for 7 days until {(datetime.utcnow() + timedelta(days=7)).strftime('%Y-%m-%d')}.", meta_style))
+        elements.append(Paragraph(f"<b>Rate Lock Guarantee:</b> Rates locked for 7 days until {(datetime.now(timezone.utc) + timedelta(days=7)).strftime('%Y-%m-%d')}.", meta_style))
         doc.build(elements)
         return output_path
 
