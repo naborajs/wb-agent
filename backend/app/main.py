@@ -14,6 +14,7 @@ from app.api.routes import (
     health,
     knowledge,
     leads,
+    orders,
     products,
     proposals,
     settings as settings_router,
@@ -50,6 +51,7 @@ api_v1 = settings.API_V1_STR
 app.include_router(health.router, prefix=api_v1)
 app.include_router(auth.router, prefix=api_v1)
 app.include_router(leads.router, prefix=api_v1)
+app.include_router(orders.router, prefix=api_v1)
 app.include_router(conversations.router, prefix=api_v1)
 app.include_router(products.router, prefix=api_v1)
 app.include_router(proposals.router, prefix=api_v1)
