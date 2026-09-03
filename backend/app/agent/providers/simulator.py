@@ -26,15 +26,54 @@ class SimulatorProvider(LLMProvider):
     ) -> LLMResponse:
         start_t = time.time()
 
-        # Find latest user message
+        # Find latest user message and conversation history
         user_msg = ""
-        for m in reversed(messages):
-            if m.role == "user":
-                user_msg = m.content.lower()
-                break
+        user_msg_raw = ""
+        prior_assistant_msgs = []
+        prior_user_msgs = []
 
-        # Natural sales responses tailored to B2B tea context
-        if "sample" in user_msg:
+        for m in messages:
+            if m.role == "user":
+                user_msg = m.content.lower().strip()
+                user_msg_raw = m.content.strip()
+                prior_user_msgs.append(user_msg)
+            elif m.role == "assistant":
+                prior_assistant_msgs.append(m.content)
+
+        is_ongoing = len(prior_assistant_msgs) > 0
+        last_assistant = prior_assistant_msgs[-1].lower() if prior_assistant_msgs else ""
+
+        # Detect language preference request in user message
+        is_hinglish_request = any(
+            k in user_msg for k in [
+                "hinglish", "hindi", "bol skat", "bol sakte", "muja english",
+                "mujhe english", "problem hota", "hindi me", "hinglish me", "tora problem"
+            ]
+        )
+
+        # Context-aware conversational responses
+        if is_hinglish_request:
+            if "packaging" in last_assistant or "jute" in last_assistant or "foil" in last_assistant:
+                reply = (
+                    "Haan bilkul! Hum Hinglish me baat kar sakte hain. "
+                    "Aapke order ke liye packaging confirm karni thi — aapko 20kg food-grade jute bags chahiye ya vacuum-sealed foil chests?"
+                )
+            elif "50kg" in last_assistant or "100kg" in last_assistant or "order" in last_assistant:
+                reply = (
+                    "Haan bilkul! Hum Hinglish me aage baat kar sakte hain. "
+                    "Aapke order details mere paas note hain. Kya aap packaging preference aur delivery location confirm kar sakte hain?"
+                )
+            else:
+                reply = (
+                    "Haan bilkul! Hum Hinglish me baat kar sakte hain. "
+                    "Aapke business requirement ke bare me batayein — kitni quantity aur kis tarah ki chai chahiye?"
+                )
+        elif "jute" in user_msg or "foil" in user_msg or "bag" in user_msg or "chest" in user_msg:
+            reply = (
+                "Excellent! I have noted your packaging preference. "
+                "Our wholesale commercial manager Rajiv will now finalize your dispatch timeline and share the formal pro-forma invoice shortly."
+            )
+        elif "sample" in user_msg:
             reply = (
                 "We certainly provide sample kits! For verified café and restaurant operators, "
                 "we offer a 200g commercial tasting kit covering our Darjeeling First Flush and Assam Kadak CTC. "
@@ -73,6 +112,12 @@ class SimulatorProvider(LLMProvider):
             reply = (
                 "I am handing you over to our wholesale sales director Rajiv right now. "
                 "He will step into this WhatsApp chat shortly to assist you directly."
+            )
+        elif is_ongoing:
+            # Context-preserving fallback instead of amnesiac greeting reset
+            reply = (
+                "Understood. I have updated your conversation profile with those details. "
+                "Could you please confirm if you would like me to proceed with finalizing this order specifications?"
             )
         else:
             reply = (
