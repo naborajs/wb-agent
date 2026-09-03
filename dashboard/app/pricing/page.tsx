@@ -12,6 +12,9 @@ import {
   Trash2,
   Save,
   X,
+  TrendingDown,
+  BarChart3,
+  PieChart as PieIcon,
 } from "lucide-react";
 
 interface PricingRule {
@@ -215,6 +218,88 @@ export default function PricingRulesPage() {
           <Plus className="w-4 h-4" />
           Add Pricing Tier
         </button>
+      </div>
+
+      {/* Visual Volume Discount Curve & Margin Graph */}
+      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <TrendingDown className="w-4 h-4 text-emerald-500" />
+              Interactive Volume Discount Curve & Effective Rate Graph
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Live step-curve showing effective wholesale price per kg and buyer savings across order quantities.
+            </p>
+          </div>
+          <div className="flex items-center gap-4 text-xs font-semibold">
+            <span className="inline-flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> Volume Discount (%)
+            </span>
+            <span className="inline-flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
+              <span className="w-2.5 h-2.5 rounded-full bg-amber-500" /> Autonomous Margin Limit (%)
+            </span>
+          </div>
+        </div>
+
+        {/* SVG Step Curve Graph */}
+        <div className="relative pt-2">
+          <svg viewBox="0 0 800 210" className="w-full h-44 overflow-visible">
+            {/* Grid lines */}
+            <line x1="60" y1="20" x2="780" y2="20" stroke="#334155" strokeWidth="0.5" strokeDasharray="3 3" opacity="0.3" />
+            <line x1="60" y1="65" x2="780" y2="65" stroke="#334155" strokeWidth="0.5" strokeDasharray="3 3" opacity="0.3" />
+            <line x1="60" y1="110" x2="780" y2="110" stroke="#334155" strokeWidth="0.5" strokeDasharray="3 3" opacity="0.3" />
+            <line x1="60" y1="155" x2="780" y2="155" stroke="#334155" strokeWidth="1" opacity="0.5" />
+
+            {/* Y Axis Labels */}
+            <text x="50" y="24" textAnchor="end" fill="#94a3b8" fontSize="10">15%</text>
+            <text x="50" y="69" textAnchor="end" fill="#94a3b8" fontSize="10">10%</text>
+            <text x="50" y="114" textAnchor="end" fill="#94a3b8" fontSize="10">5%</text>
+            <text x="50" y="159" textAnchor="end" fill="#94a3b8" fontSize="10">0%</text>
+
+            {/* Volume Shaded Area */}
+            <polygon
+              points="60,155 180,155 180,110 340,110 340,65 540,65 540,20 780,20 780,155"
+              fill="url(#discountGradient)"
+              opacity="0.25"
+            />
+            <defs>
+              <linearGradient id="discountGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#10b981" stopOpacity="0.8" />
+                <stop offset="100%" stopColor="#10b981" stopOpacity="0.05" />
+              </linearGradient>
+            </defs>
+
+            {/* Step Line for Volume Discount */}
+            <polyline
+              points="60,155 180,155 180,110 340,110 340,65 540,65 540,20 780,20"
+              fill="none"
+              stroke="#10b981"
+              strokeWidth="3"
+            />
+
+            {/* Autonomous Limit Line */}
+            <polyline
+              points="60,155 180,155 180,110 340,110 340,90 540,90 540,65 780,65"
+              fill="none"
+              stroke="#f59e0b"
+              strokeWidth="2"
+              strokeDasharray="4 4"
+            />
+
+            {/* Data Points */}
+            <circle cx="180" cy="110" r="4.5" fill="#10b981" stroke="#ffffff" strokeWidth="2" />
+            <circle cx="340" cy="65" r="4.5" fill="#10b981" stroke="#ffffff" strokeWidth="2" />
+            <circle cx="540" cy="20" r="4.5" fill="#10b981" stroke="#ffffff" strokeWidth="2" />
+
+            {/* X Axis Labels */}
+            <text x="60" y="178" textAnchor="middle" fill="#94a3b8" fontSize="10">0kg (Standard)</text>
+            <text x="180" y="178" textAnchor="middle" fill="#94a3b8" fontSize="10">50kg Tier (5%)</text>
+            <text x="340" y="178" textAnchor="middle" fill="#94a3b8" fontSize="10">100kg Tier (10%)</text>
+            <text x="540" y="178" textAnchor="middle" fill="#94a3b8" fontSize="10">500kg Tier (15%)</text>
+            <text x="760" y="178" textAnchor="middle" fill="#94a3b8" fontSize="10">1000kg+ (Custom)</text>
+          </svg>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
