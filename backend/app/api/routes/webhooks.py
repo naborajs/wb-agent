@@ -68,6 +68,22 @@ async def receive_whatsapp_webhook(
 
     for event in events:
         if event.event_type == "message" and event.content:
+            # Check if message is from the authorized business owner (+91 89006 53250)
+            from app.whatsapp.owner_commands import OwnerCommandHandler
+            if OwnerCommandHandler.is_owner(event.sender_phone):
+                cmd_reply = await OwnerCommandHandler.process_command(
+                    sender_phone=event.sender_phone,
+                    command_text=event.content,
+                    session=session,
+                    org_id=org_id,
+                )
+                if cmd_reply:
+                    try:
+                        await wa.send_message(to_phone=event.sender_phone, text=cmd_reply)
+                    except Exception as e:
+                        logger.error(f"Failed to dispatch owner command reply: {e}")
+                continue
+
             # 1. Find or create Customer by normalized phone
             from sqlalchemy import select
             cust_stmt = select(Customer).where(
