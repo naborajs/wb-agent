@@ -82,4 +82,5 @@ class LeadImportSummary(BaseModel):
     missing_required_fields: int = 0
     ineligible: int = 0
     imported: int = 0
+    leads_created: int = 0
     errors: List[Dict[str, Any]] = Field(default_factory=list)
