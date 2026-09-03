@@ -15,6 +15,9 @@ Coordinates:
 11. Bounded background thinking job enqueueing
 """
 
+import os
+from pathlib import Path
+import re
 import time
 from typing import Any, Dict, List, Optional
 from sqlalchemy import select
@@ -390,7 +393,100 @@ class AgentOrchestrator:
                 provider_message_id=provider_msg_id,
             )
 
-        # 13. Update Stage and Score
+        # 13. Automatic PDF Pro-Forma Invoice Generation & WhatsApp Dispatch (Requirement R1)
+        invoice_pdf_path: Optional[str] = None
+        if target_stage in ("PURCHASE_INTENT", "RECOMMENDATION"):
+            try:
+                from app.services.invoice_generator import InvoiceGenerator
+
+                c_name = customer.name if customer and customer.name else (ctx.customer_name or "Valued Client")
+                c_phone = customer.primary_phone if customer and customer.primary_phone else (conv.channel_id or "+91 98000 00000")
+                c_company = customer.company_name if customer and customer.company_name else (known_profile.get("business_type") or "Commercial Partner")
+                c_city = known_profile.get("location") or (customer.city if customer else None) or "Siliguri"
+                c_state = (customer.state if customer else None) or "West Bengal"
+                c_gstin = (customer.custom_attributes.get("gstin") if customer and customer.custom_attributes else None)
+
+                # Determine product from recommendation, facts, or message keywords
+                chosen_product = "Assam Kadak CTC Granules"
+                if sales_decision.recommended_product:
+                    chosen_product = sales_decision.recommended_product
+                else:
+                    lower_msg = inbound_message.lower()
+                    if "darjeeling" in lower_msg:
+                        chosen_product = "Darjeeling Spring First Flush Special"
+                    elif "dooars" in lower_msg:
+                        chosen_product = "Dooars Terai Hotel Master Blend"
+                    elif "green" in lower_msg:
+                        chosen_product = "Sub-Himalayan Green Tea Whole Leaf"
+
+                # Determine order volume
+                order_qty = 50.0
+                if facts.quantity_numeric_kg and facts.quantity_numeric_kg > 0:
+                    order_qty = float(facts.quantity_numeric_kg)
+                elif "quantity" in known_profile:
+                    try:
+                        m_qty = re.search(r"(\d+(?:\.\d+)?)", str(known_profile["quantity"]))
+                        if m_qty:
+                            order_qty = float(m_qty.group(1))
+                    except Exception:
+                        pass
+
+                # Packaging specification
+                pkg_type = facts.packaging or known_profile.get("packaging") or (
+                    "50kg multi-wall paper sacks with food-grade liner" if order_qty >= 50.0 else "25kg multi-wall paper sacks with food-grade liner"
+                )
+
+                inv_order_data = {
+                    "buyer_name": c_name,
+                    "buyer_phone": c_phone,
+                    "buyer_company": c_company,
+                    "delivery_city": c_city,
+                    "delivery_state": c_state,
+                    "buyer_gstin": c_gstin,
+                    "items": [
+                        {
+                            "product_name": chosen_product,
+                            "quantity_kg": order_qty,
+                            "packaging_type": pkg_type,
+                        }
+                    ],
+                }
+
+                invoice_pdf_path = InvoiceGenerator.generate_proforma_pdf(inv_order_data)
+
+                # Automatically dispatch compiled PDF into active WhatsApp conversation
+                if not is_suppressed and conv.channel_id:
+                    clean_recip = conv.channel_id.replace("+", "").replace(" ", "").strip()
+                    bot_phone = "918918753100"
+                    if clean_recip != bot_phone and not clean_recip.endswith(bot_phone):
+                        from app.whatsapp.service import WhatsAppService
+                        wa = WhatsAppService.get_provider()
+                        pdf_filename = Path(invoice_pdf_path).name
+                        caption = (
+                            f"📄 *North Bengal Tea Co. - Commercial Pro-Forma Invoice*\n"
+                            f"Customer: *{c_name}* | {order_qty:.0f}kg {chosen_product}\n"
+                            f"🔒 Rate locked for 7 days. Official bank transfer details included."
+                        )
+                        doc_res = await wa.send_document(
+                            to_phone=conv.channel_id,
+                            file_path=invoice_pdf_path,
+                            caption=caption,
+                            filename=pdf_filename,
+                        )
+                        await self.conv_service.add_message(
+                            conversation_id=conversation_id,
+                            direction="outbound",
+                            sender_type="agent",
+                            content=f"Sent commercial pro-forma invoice PDF: {pdf_filename}",
+                            media_url=invoice_pdf_path,
+                            media_type="application/pdf",
+                            delivery_status="sent" if doc_res and doc_res.success else "failed",
+                            provider_message_id=doc_res.provider_message_id if doc_res else None,
+                        )
+            except Exception as e:
+                logger.error(f"Failed to compile or dispatch pro-forma invoice in orchestrator: {e}")
+
+        # 14. Update Stage and Score
         decision = StructuredDecision(
             intent=intent,
             sales_stage=target_stage,
@@ -407,7 +503,7 @@ class AgentOrchestrator:
             trigger_reason=decision.reason_code,
         )
 
-        # 14. Complete AgentRun audit record
+        # 15. Complete AgentRun audit record
         latency_ms = int((time.time() - start_t) * 1000)
         agent_run.completed_at = utc_now()
         agent_run.latency_ms = latency_ms
@@ -418,7 +514,7 @@ class AgentOrchestrator:
         agent_run.result_summary = sanitized_reply[:200]
         await self.session.commit()
 
-        # 15. Enqueue Bounded Background Analysis Job (Section 8 & 9)
+        # 16. Enqueue Bounded Background Analysis Job (Section 8 & 9)
         try:
             from app.jobs.queue import JobQueue
             queue = JobQueue(self.session)
@@ -442,4 +538,5 @@ class AgentOrchestrator:
             tools_executed=tools_executed,
             handoff_created=handoff_created,
             is_suppressed=is_suppressed,
+            invoice_pdf_path=invoice_pdf_path,
         )
