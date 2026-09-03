@@ -110,7 +110,6 @@ export default function PromptsPage() {
       setDraftContent(sections[activeTab].content);
     }
     loadHistory(activeTab);
-    setStatusMsg(null);
   }, [activeTab]);
 
   // Handle Save New Version
@@ -121,24 +120,22 @@ export default function PromptsPage() {
 
     try {
       const res = await fetch(`/api/v1/prompts/${activeTab}`, {
-        method: "POST",
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          content: draftContent.trim(),
-          change_summary: changeSummary.trim() || "Dashboard update",
-          author: "Admin Operator",
+          content: draftContent,
+          change_summary: changeSummary || undefined,
         }),
       });
 
       if (res.ok) {
-        const data = await res.json();
-        setStatusMsg({ text: `Version ${data.version} published and activated successfully!` });
+        setStatusMsg({ text: `Successfully updated ${SECTION_METADATA[activeTab]?.label || activeTab}!` });
         setChangeSummary("");
         await loadSections();
         await loadHistory(activeTab);
       } else {
         const err = await res.json();
-        setStatusMsg({ text: err.detail || "Failed to save prompt version", error: true });
+        setStatusMsg({ text: err.detail || "Failed to update prompt section", error: true });
       }
     } catch (err: any) {
       setStatusMsg({ text: err.message || "Network error", error: true });
@@ -181,10 +178,10 @@ export default function PromptsPage() {
     <div className="space-y-6 max-w-7xl mx-auto pb-12">
       {/* Header */}
       <div>
-        <h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
+        <h2 className="text-xl font-bold tracking-tight text-[var(--ed-text-primary)]">
           Modular System Prompts
         </h2>
-        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+        <p className="text-xs text-[var(--ed-text-muted)] mt-1">
           Independent, version-controlled system instruction sections with live editing and rollback (Sections 66, 67, 68).
         </p>
       </div>
@@ -193,11 +190,11 @@ export default function PromptsPage() {
         <div
           className={`p-3.5 rounded-xl border flex items-center gap-2.5 text-xs font-semibold ${
             statusMsg.error
-              ? "bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800"
-              : "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800"
+              ? "bg-[var(--ed-danger)]/10 text-[var(--ed-danger)] border-[var(--ed-danger)]/30"
+              : "bg-[var(--ed-success)]/10 text-[var(--ed-success)] border-[var(--ed-success)]/30"
           }`}
         >
-          {statusMsg.error ? <AlertCircle className="w-4 h-4 shrink-0" /> : <CheckCircle className="w-4 h-4 shrink-0" />}
+          {statusMsg.error ? <AlertCircle className="w-4 h-4 shrink-0 text-[var(--ed-danger)]" /> : <CheckCircle className="w-4 h-4 shrink-0 text-[var(--ed-success)]" />}
           {statusMsg.text}
         </div>
       )}
@@ -215,37 +212,37 @@ export default function PromptsPage() {
               <button
                 key={key}
                 onClick={() => setActiveTab(key)}
-                className={`w-full text-left p-3.5 rounded-xl border transition-all ${
+                className={`ed-press ed-focus-ring w-full text-left p-3.5 rounded-xl border transition-all ${
                   isSelected
-                    ? "bg-amber-50/80 dark:bg-amber-950/30 border-amber-500/50 shadow-sm"
-                    : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                    ? "bg-[var(--ed-surface)] border-l-2 border-[var(--ed-accent)] border-[var(--ed-border)] shadow-sm"
+                    : "bg-[var(--ed-surface)] border border-[var(--ed-border)] text-[var(--ed-text-muted)] hover:bg-[var(--ed-bg)] hover:text-[var(--ed-text-primary)]"
                 }`}
               >
                 <div className="flex items-center justify-between mb-1">
                   <div className="flex items-center gap-2">
-                    <SectionIcon className={`w-4 h-4 ${isSelected ? "text-amber-600 dark:text-amber-400" : "text-slate-400"}`} />
-                    <span className={`text-xs font-bold ${isSelected ? "text-amber-900 dark:text-amber-200" : "text-slate-800 dark:text-slate-200"}`}>
+                    <SectionIcon className={`w-4 h-4 ${isSelected ? "text-[var(--ed-accent)]" : "text-[var(--ed-text-muted)]"}`} />
+                    <span className={`text-xs font-bold ${isSelected ? "text-[var(--ed-text-primary)]" : "text-[var(--ed-text-muted)]"}`}>
                       {meta.label}
                     </span>
                   </div>
-                  {meta.protected && <Lock className="w-3 h-3 text-slate-400" />}
+                  {meta.protected && <Lock className="w-3 h-3 text-[var(--ed-text-muted)]" />}
                 </div>
-                <div className="flex items-center justify-between text-[10px] text-slate-400 mt-2">
-                  <span>Version {secData?.version || 1}</span>
-                  {secData?.is_default && <span className="text-amber-600 font-semibold">Default</span>}
+                <div className="flex items-center justify-between text-[10px] text-[var(--ed-text-muted)] mt-2">
+                  <span className="font-data">Version {secData?.version || 1}</span>
+                  {secData?.is_default && <span className="text-[var(--ed-accent)] font-semibold">Default</span>}
                 </div>
               </button>
             );
           })}
 
           {/* Prompt Assembly Token Distribution Donut Card */}
-          <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm space-y-3">
-            <div className="flex items-center justify-between text-xs font-bold text-slate-900 dark:text-white">
+          <div className="ed-panel rounded-xl p-4 space-y-3">
+            <div className="flex items-center justify-between text-xs font-bold text-[var(--ed-text-primary)]">
               <span className="flex items-center gap-1.5">
-                <PieIcon className="w-3.5 h-3.5 text-purple-500" />
+                <PieIcon className="w-3.5 h-3.5 text-purple-400" />
                 Prompt Token Budget
               </span>
-              <span className="font-mono text-[10px] text-slate-400">
+              <span className="font-data text-[10px] text-[var(--ed-text-muted)]">
                 ~{Math.round(Object.values(sections).reduce((a, s) => a + (s?.content?.length || 0), 0) / 4)} tokens
               </span>
             </div>
@@ -255,11 +252,11 @@ export default function PromptsPage() {
               <svg width="120" height="120" viewBox="0 0 120 120" className="transform -rotate-90">
                 {(() => {
                   const palette: Record<string, string> = {
-                    core_safety: "#ef4444",
-                    core_identity: "#8b5cf6",
-                    business_policy: "#f59e0b",
-                    sales_style: "#10b981",
-                    business_profile: "#3b82f6",
+                    core_safety: "#EF4444",
+                    core_identity: "#8B5CF6",
+                    business_policy: "#F59E0B",
+                    sales_style: "#10B981",
+                    business_profile: "#3B82F6",
                   };
                   const total = Object.values(sections).reduce((a, s) => a + (s?.content?.length || 1), 0) || 1;
                   const circ = 2 * Math.PI * 40;
@@ -271,7 +268,7 @@ export default function PromptsPage() {
                     const dash = ratio * circ;
                     const offset = -accumulated * circ;
                     accumulated += ratio;
-                    const color = palette[k] || "#64748b";
+                    const color = palette[k] || "#64748B";
 
                     return (
                       <circle
@@ -296,22 +293,22 @@ export default function PromptsPage() {
             <div className="space-y-1.5 text-[10px]">
               {Object.entries(SECTION_METADATA).map(([k, m]) => {
                 const palette: Record<string, string> = {
-                  core_safety: "#ef4444",
-                  core_identity: "#8b5cf6",
-                  business_policy: "#f59e0b",
-                  sales_style: "#10b981",
-                  business_profile: "#3b82f6",
+                  core_safety: "#EF4444",
+                  core_identity: "#8B5CF6",
+                  business_policy: "#F59E0B",
+                  sales_style: "#10B981",
+                  business_profile: "#3B82F6",
                 };
                 const total = Object.values(sections).reduce((a, s) => a + (s?.content?.length || 1), 0) || 1;
                 const len = sections[k]?.content?.length || 100;
                 const pct = Math.round((len / total) * 100);
                 return (
-                  <div key={k} className="flex items-center justify-between text-slate-600 dark:text-slate-400">
+                  <div key={k} className="flex items-center justify-between text-[var(--ed-text-muted)]">
                     <div className="flex items-center gap-1.5 truncate">
                       <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: palette[k] }} />
                       <span className="truncate">{m.label.split(" ")[0]}</span>
                     </div>
-                    <span className="font-mono font-semibold">{pct}%</span>
+                    <span className="font-data font-semibold">{pct}%</span>
                   </div>
                 );
               })}
@@ -321,17 +318,17 @@ export default function PromptsPage() {
 
         {/* Center/Right: Active Editor & Version History */}
         <div className="lg:col-span-3 space-y-6">
-          <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 space-y-4 shadow-sm">
+          <div className="ed-panel rounded-xl p-6 space-y-4">
             <div className="flex items-start justify-between">
               <div>
-                <h3 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
-                  <Icon className="w-4 h-4 text-amber-600" />
+                <h3 className="font-bold text-sm text-[var(--ed-text-primary)] flex items-center gap-2">
+                  <Icon className="w-4 h-4 text-[var(--ed-accent)]" />
                   {currentMeta.label}
-                  <span className="text-xs px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-mono">
+                  <span className="text-xs px-2 py-0.5 rounded border border-[var(--ed-border)] text-[var(--ed-text-muted)] font-data" style={{ background: "var(--ed-bg)" }}>
                     v{currentSection?.version || 1}
                   </span>
                 </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                <p className="text-xs text-[var(--ed-text-muted)] mt-1">
                   {currentMeta.description}
                 </p>
               </div>
@@ -339,7 +336,7 @@ export default function PromptsPage() {
               <button
                 onClick={handleSave}
                 disabled={isSaving || !draftContent.trim()}
-                className="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold shadow-sm transition-colors disabled:opacity-50"
+                className="ed-btn-primary ed-press ed-focus-ring inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-xs font-semibold shadow-md transition-all disabled:opacity-50"
               >
                 <Save className="w-3.5 h-3.5" />
                 {isSaving ? "Saving..." : "Save & Activate"}
@@ -347,19 +344,19 @@ export default function PromptsPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+              <label className="block text-xs font-semibold text-[var(--ed-text-primary)] mb-1.5">
                 Instruction Text
               </label>
               <textarea
                 rows={12}
                 value={draftContent}
                 onChange={(e) => setDraftContent(e.target.value)}
-                className="w-full p-3.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 font-mono text-xs text-slate-900 dark:text-white leading-relaxed focus:outline-none focus:ring-2 focus:ring-amber-500"
+                className="w-full p-3.5 rounded-lg border border-[var(--ed-border)] bg-[var(--ed-bg)] font-mono text-xs text-[var(--ed-text-primary)] leading-relaxed ed-focus-ring"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+              <label className="block text-xs font-semibold text-[var(--ed-text-primary)] mb-1.5">
                 Change Summary (Audit Log)
               </label>
               <input
@@ -367,39 +364,39 @@ export default function PromptsPage() {
                 placeholder="e.g. Updated discovery questions for restaurant chains"
                 value={changeSummary}
                 onChange={(e) => setChangeSummary(e.target.value)}
-                className="w-full px-3.5 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                className="w-full px-3.5 py-2 rounded-lg border border-[var(--ed-border)] bg-[var(--ed-bg)] text-xs text-[var(--ed-text-primary)] ed-focus-ring"
               />
             </div>
           </div>
 
           {/* Version History Table */}
-          <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
-            <h4 className="font-bold text-xs text-slate-900 dark:text-white flex items-center gap-1.5 mb-3">
-              <History className="w-3.5 h-3.5 text-slate-400" />
+          <div className="ed-panel rounded-xl p-6">
+            <h4 className="font-bold text-xs text-[var(--ed-text-primary)] flex items-center gap-1.5 mb-3">
+              <History className="w-3.5 h-3.5 text-[var(--ed-text-muted)]" />
               Version History & Rollback
             </h4>
 
             {history.length === 0 ? (
-              <p className="text-xs text-slate-400">No previous versions recorded for this section.</p>
+              <p className="text-xs text-[var(--ed-text-muted)]">No previous versions recorded for this section.</p>
             ) : (
-              <div className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
+              <div className="divide-y divide-[var(--ed-border)] text-xs">
                 {history.map((h) => (
                   <div key={h.version} className="py-3 flex items-center justify-between gap-4">
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="font-mono font-bold text-slate-900 dark:text-white">
+                        <span className="font-data font-bold text-[var(--ed-text-primary)]">
                           v{h.version}
                         </span>
                         {h.is_active && (
-                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[var(--ed-success)]/10 text-[var(--ed-success)] border border-[var(--ed-success)]/20">
                             Active
                           </span>
                         )}
-                        <span className="text-slate-500 dark:text-slate-400 text-[11px]">
+                        <span className="text-[var(--ed-text-muted)] text-[11px]">
                           by {h.author}
                         </span>
                       </div>
-                      <p className="text-slate-600 dark:text-slate-300 text-[11px] mt-0.5">
+                      <p className="text-[var(--ed-text-muted)] text-[11px] mt-0.5">
                         {h.change_summary || "No description"}
                       </p>
                     </div>
@@ -407,7 +404,7 @@ export default function PromptsPage() {
                     {!h.is_active && (
                       <button
                         onClick={() => handleRollback(h.version)}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-[11px] font-medium transition-colors"
+                        className="ed-press ed-focus-ring inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-[var(--ed-border)] bg-[var(--ed-bg)] text-[var(--ed-text-primary)] hover:bg-[var(--ed-surface)] text-[11px] font-medium transition-all"
                       >
                         <RotateCcw className="w-3 h-3" /> Rollback
                       </button>
