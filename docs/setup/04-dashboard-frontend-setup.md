@@ -125,28 +125,75 @@ npm run start
 
 ---
 
-## 🧭 5. Dashboard Pages Tour
+## 🧭 5. Dashboard Pages Tour & Visual Reference
 
-### 📊 Overview (`/`)
+> [!TIP]
+> For the complete visual tour with high-resolution screenshots of all 12 operational views and mobile responsive designs, visit **[docs/visual-tour.md](../visual-tour.md)**.
+
+### 💬 Live 3-Panel Inbox & Sales Console (`/conversations`)
+The central workspace for real-time buyer conversations, consultative reasoning, and atomic takeover:
+
+![Live Inbox Console](../screenshots/live_inbox.png)
+
+- **Left Panel**: Scrollable conversation list with search, filter tabs (`All`, `🔥 Hot`, `Takeover`), lead score badges (0–100), and unread indicators.
+- **Center Panel**: Real-time WhatsApp timeline displaying customer, AI consultant, and human operator messages with delivery checkmarks and single-click **Report / Correct Response** feedback.
+- **Right Panel**: Real-time customer profile, long-term memory facts with verification badges (`CUSTOMER_SAID`, `SYSTEM_VERIFIED`), rolling AI summary, and atomic takeover buttons (`Take Over` / `Resume AI`).
+
+---
+
+### 📊 Wholesale Operations Center (`/`)
+Executive command center with live sales telemetry:
+
+![Wholesale Operations Center](../screenshots/overview.png)
+
 - KPI Summary: Total Leads, Active Conversations, 🔥 Hot Leads, Pending Handoffs, Won Deals, and Net Pipeline (INR).
 - Live 16-stage sales funnel distribution chart.
 - System health and queue depth monitor.
 
-### 💬 Live 3-Panel Inbox (`/conversations`)
-- **Left Panel**: Scrollable conversation list with search, filter tabs (`All`, `🔥 Hot`, `Human`), lead score badges (0-100), and unread indicators.
-- **Center Panel**: Real-time WhatsApp timeline displaying customer, AI consultant, and human operator Rajiv messages with delivery checkmarks and manual operator reply box.
-- **Right Panel**: Real-time customer profile, long-term memory facts with verification badges (`CUSTOMER_SAID`, `SYSTEM_VERIFIED`), rolling AI summary, and atomic takeover buttons (`Take Over` / `Resume AI`).
+---
 
-### 👥 Leads Directory (`/leads`)
+### 🏷️ Deterministic Pricing & Volume Curve (`/pricing`)
+Zero-hallucination wholesale calculation engine:
+
+![Deterministic Pricing Rules](../screenshots/pricing_rules.png)
+
+- Live table of deterministic volume discount tiers (50kg, 100kg, 500kg).
+- Interactive SVG volume discount curve and margin threshold visualizer.
+- Interactive quote and margin calculator testing discount limits and human escalation flags.
+
+---
+
+### ⚙️ Model Architecture & Fallback Hierarchy (`/integrations`)
+Model management console with local `.env` synchronization:
+
+![Model Architecture](../screenshots/integrations.png)
+
+- Multi-tier model selector: Primary thinking model (Nemotron-3 Ultra 550B) and fallback sequence.
+- Local `.env` persistence for API keys and hyperparameters.
+- Live benchmark response speed curves and fallback reliability telemetry.
+
+---
+
+### 📝 Modular System Prompts & Token Budget (`/prompts`)
+Version-controlled instruction management:
+
+![Modular Prompts](../screenshots/modular_prompts.png)
+
+- 5 isolated prompt modules (`core_safety`, `core_identity`, `business_policy`, `sales_style`, `business_profile`).
+- Live Prompt Token Budget donut chart.
+- 1-click historical rollback and audit log tracking.
+
+---
+
+### 👥 Leads Directory & Proposal Pipeline (`/leads`)
 - Searchable directory of wholesale buyers with E.164 phone normalization.
 - Multipart CSV batch import button with row-level error reporting and deduplication.
 
-### ☕ Tea Catalog (`/products`)
-- Wholesale catalog of North Bengal Tea Co.: Darjeeling First Flush, Assam Kadak CTC, and Dooars Hotel Blend with packaging weights (5kg, 10kg, 20kg, 30kg, 50kg) and Minimum Order Quantities (MOQs).
+### 📦 Wholesale Commercial Orders (`/orders`)
+- Order lifecycle tracking, status filters, and pro-forma invoice generator.
 
-### 🏷️ Pricing & Negotiation Rules (`/pricing`)
-- Live table of deterministic volume discount tiers (50kg, 100kg, 500kg).
-- Interactive quote and margin calculator testing discount limits and human escalation flags.
+### ☕ Tea Catalog (`/products`)
+- Wholesale catalog of North Bengal Tea Co.: Darjeeling First Flush, Assam Kadak CTC, and Dooars Hotel Blend with packaging weights (5kg to 50kg) and Minimum Order Quantities (MOQs).
 
 ### 📚 Knowledge Base & Vector RAG (`/knowledge`)
 - List of active ingested markdown policy documents, certifications, and tasting sample guides.
