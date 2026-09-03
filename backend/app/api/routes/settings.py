@@ -1,32 +1,41 @@
 """
-System Settings and Emergency Stop controls (Section 55 & 114).
+System Settings and Operational controls (Section 55 & 114).
+Full customization support for autonomous toggles, owner notifications, and follow-up cadences.
 """
 
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
-from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
-from app.database.session import get_db
 
 router = APIRouter(prefix="/settings", tags=["Settings"])
 
 
 class SettingsUpdateRequest(BaseModel):
-    global_autonomous_enabled: bool
-    dry_run_mode: bool
-    sandbox_mode: bool
-    owner_whatsapp_number: str
+    global_autonomous_enabled: Optional[bool] = None
+    dry_run_mode: Optional[bool] = None
+    sandbox_mode: Optional[bool] = None
+    owner_whatsapp_number: Optional[str] = None
+    owner_notification_enabled: Optional[bool] = None
+    followup_inactivity_minutes: Optional[int] = None
+    followup_midterm_hours: Optional[int] = None
+    followup_final_days: Optional[int] = None
+    quiet_hours_enabled: Optional[bool] = None
 
 
 @router.get("")
 async def get_system_settings():
     """Returns current operational settings and emergency stop status."""
     return {
-        "global_autonomous_enabled": settings.GLOBAL_AUTONOMOUS_ENABLED,
-        "dry_run_mode": settings.DRY_RUN_MODE,
-        "sandbox_mode": settings.SANDBOX_MODE,
-        "owner_whatsapp_number": settings.OWNER_WHATSAPP_NUMBER,
+        "global_autonomous_enabled": getattr(settings, "GLOBAL_AUTONOMOUS_ENABLED", True),
+        "dry_run_mode": getattr(settings, "DRY_RUN_MODE", False),
+        "sandbox_mode": getattr(settings, "SANDBOX_MODE", False),
+        "owner_whatsapp_number": getattr(settings, "OWNER_WHATSAPP_NUMBER", "+918900653250"),
+        "owner_notification_enabled": getattr(settings, "OWNER_NOTIFICATION_ENABLED", True),
+        "followup_inactivity_minutes": getattr(settings, "FOLLOWUP_INACTIVITY_MINUTES", 20),
+        "followup_midterm_hours": getattr(settings, "FOLLOWUP_MIDTERM_HOURS", 8),
+        "followup_final_days": getattr(settings, "FOLLOWUP_FINAL_DAYS", 7),
+        "quiet_hours_enabled": getattr(settings, "QUIET_HOURS_ENABLED", True),
         "whatsapp_provider": settings.WHATSAPP_PROVIDER,
         "llm_provider": settings.LLM_PROVIDER,
         "worker_count": settings.WORKER_COUNT,
@@ -36,9 +45,24 @@ async def get_system_settings():
 
 @router.patch("")
 async def update_system_settings(req: SettingsUpdateRequest):
-    """Updates operational toggles."""
-    settings.GLOBAL_AUTONOMOUS_ENABLED = req.global_autonomous_enabled
-    settings.DRY_RUN_MODE = req.dry_run_mode
-    settings.SANDBOX_MODE = req.sandbox_mode
-    settings.OWNER_WHATSAPP_NUMBER = req.owner_whatsapp_number
+    """Updates operational toggles and parameters."""
+    if req.global_autonomous_enabled is not None:
+        settings.GLOBAL_AUTONOMOUS_ENABLED = req.global_autonomous_enabled
+    if req.dry_run_mode is not None:
+        settings.DRY_RUN_MODE = req.dry_run_mode
+    if req.sandbox_mode is not None:
+        settings.SANDBOX_MODE = req.sandbox_mode
+    if req.owner_whatsapp_number is not None:
+        settings.OWNER_WHATSAPP_NUMBER = req.owner_whatsapp_number
+    if req.owner_notification_enabled is not None:
+        settings.OWNER_NOTIFICATION_ENABLED = req.owner_notification_enabled
+    if req.followup_inactivity_minutes is not None:
+        setattr(settings, "FOLLOWUP_INACTIVITY_MINUTES", req.followup_inactivity_minutes)
+    if req.followup_midterm_hours is not None:
+        setattr(settings, "FOLLOWUP_MIDTERM_HOURS", req.followup_midterm_hours)
+    if req.followup_final_days is not None:
+        setattr(settings, "FOLLOWUP_FINAL_DAYS", req.followup_final_days)
+    if req.quiet_hours_enabled is not None:
+        setattr(settings, "QUIET_HOURS_ENABLED", req.quiet_hours_enabled)
+
     return {"success": True, "settings": await get_system_settings()}
