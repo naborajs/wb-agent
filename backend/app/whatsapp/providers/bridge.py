@@ -56,6 +56,45 @@ class BridgeWhatsAppProvider(WhatsAppProvider):
         # For non-official multi-device connections, templates are rendered as standard text
         return await self.send_message(to_phone, f"[{template_name}] Notification")
 
+    async def send_document(
+        self,
+        to_phone: str,
+        file_path: str,
+        caption: Optional[str] = None,
+        filename: Optional[str] = None,
+    ) -> OutboundWhatsAppResult:
+        norm_phone = normalize_phone_number(to_phone)
+        url = f"{self.bridge_url}/send-document"
+        doc_name = filename or (file_path.split("/")[-1].split("\\")[-1] if file_path else "proforma_invoice.pdf")
+        payload = {
+            "to": norm_phone,
+            "filePath": file_path,
+            "fileName": doc_name,
+            "caption": caption or "",
+        }
+
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                resp = await client.post(url, json=payload)
+                data = resp.json()
+                if resp.status_code == 200 and data.get("success"):
+                    return OutboundWhatsAppResult(
+                        success=True,
+                        provider_message_id=data.get("messageId"),
+                        raw_response=data,
+                    )
+                return OutboundWhatsAppResult(
+                    success=False,
+                    error_message=data.get("error", f"HTTP {resp.status_code}"),
+                    raw_response=data,
+                )
+        except Exception as e:
+            logger.error(f"Failed to dispatch document via WhatsApp bridge ({e})")
+            return OutboundWhatsAppResult(
+                success=False,
+                error_message=str(e),
+            )
+
     async def mark_read(self, message_id: str) -> bool:
         return True
 
