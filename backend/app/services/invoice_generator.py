@@ -12,6 +12,10 @@ from pathlib import Path
 import random
 from typing import Any, Dict, List, Optional
 
+import reportlab.rl_config
+
+reportlab.rl_config.pageCompression = 0
+
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
