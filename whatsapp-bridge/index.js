@@ -222,12 +222,16 @@ async function startSocket() {
 
     if (connection === "close") {
       isConnected = false;
-      const shouldReconnect =
-        lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
-      console.log("[BRIDGE] Connection closed. Reconnecting:", shouldReconnect);
-      if (shouldReconnect) {
-        setTimeout(startSocket, 3000);
+      const statusCode = lastDisconnect?.error?.output?.statusCode;
+      const isLoggedOut = statusCode === DisconnectReason.loggedOut;
+      console.log(`[BRIDGE] Connection closed (code ${statusCode}). Logged out: ${isLoggedOut}`);
+      if (isLoggedOut) {
+        console.log("[BRIDGE] Session logged out. Clearing auth cache and generating new QR...");
+        try {
+          fs.rmSync(AUTH_DIR, { recursive: true, force: true });
+        } catch (e) {}
       }
+      setTimeout(startSocket, 2000);
     } else if (connection === "open") {
       isConnected = true;
       latestQR = null;
