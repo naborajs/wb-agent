@@ -55,36 +55,39 @@ export default function KnowledgeBasePage() {
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       <div>
-        <h2 className="text-2xl font-bold tracking-tight text-slate-900">Knowledge Base & Vector RAG</h2>
-        <p className="text-sm text-slate-500 mt-1">
+        <h2 className="text-2xl font-bold tracking-tight text-[var(--ed-text-primary)]">Knowledge Base & Vector RAG</h2>
+        <p className="text-sm text-[var(--ed-text-muted)] mt-1">
           Grounding truth architecture: parsed company documentation, FAQs, and semantic vector embeddings.
         </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Document Ingestion Table */}
-        <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-          <div className="p-4 border-b border-slate-100 flex justify-between items-center">
-            <span className="font-bold text-xs uppercase tracking-wider text-slate-400">
+        <div className="lg:col-span-2 ed-panel rounded-xl overflow-hidden">
+          <div className="p-4 border-b border-[var(--ed-border)] flex justify-between items-center">
+            <span className="font-bold text-xs uppercase tracking-wider text-[var(--ed-text-muted)]">
               Active Documents
             </span>
           </div>
 
-          <div className="divide-y divide-slate-100">
+          <div className="divide-y divide-[var(--ed-border)]">
             {docs.map((d, idx) => (
-              <div key={idx} className="p-4 flex items-center justify-between hover:bg-slate-50">
+              <div key={idx} className="p-4 flex items-center justify-between hover:bg-[var(--ed-bg)] transition-colors">
                 <div className="flex items-start gap-3">
-                  <div className="p-2 rounded-lg bg-amber-50 text-amber-800 mt-0.5">
+                  <div
+                    className="p-2 rounded-lg text-[var(--ed-accent)] mt-0.5"
+                    style={{ background: "color-mix(in srgb, var(--ed-accent) 8%, transparent)" }}
+                  >
                     <FileText className="w-4 h-4" />
                   </div>
                   <div>
-                    <h4 className="font-semibold text-xs text-slate-900">{d.title}</h4>
-                    <div className="text-[11px] text-slate-400 mt-0.5">
-                      Version {d.version} • {d.chunks} vector chunks • {d.type}
+                    <h4 className="font-semibold text-xs text-[var(--ed-text-primary)]">{d.title}</h4>
+                    <div className="text-[11px] text-[var(--ed-text-muted)] mt-0.5">
+                      Version <span className="font-data">{d.version}</span> • <span className="font-data">{d.chunks}</span> vector chunks • {d.type}
                     </div>
                   </div>
                 </div>
-                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600">
+                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--ed-success)]">
                   <CheckCircle2 className="w-3.5 h-3.5" /> Indexed
                 </span>
               </div>
@@ -93,9 +96,9 @@ export default function KnowledgeBasePage() {
         </div>
 
         {/* Semantic Vector Search Tester */}
-        <div className="p-5 bg-white rounded-xl border border-slate-200 shadow-sm space-y-4">
-          <div className="font-bold text-slate-900 text-sm flex items-center gap-2">
-            <Search className="w-4 h-4 text-amber-700" />
+        <div className="p-5 ed-panel rounded-xl space-y-4">
+          <div className="font-bold text-[var(--ed-text-primary)] text-sm flex items-center gap-2">
+            <Search className="w-4 h-4 text-[var(--ed-accent)]" />
             Semantic Retrieval Test
           </div>
 
@@ -106,11 +109,13 @@ export default function KnowledgeBasePage() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-              className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none"
+              className="w-full p-2.5 border border-[var(--ed-border)] rounded-lg text-[var(--ed-text-primary)] placeholder:text-[var(--ed-text-muted)] ed-focus-ring focus:outline-none"
+              style={{ background: "var(--ed-bg)" }}
             />
             <button
               onClick={handleSearch}
-              className="w-full py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg font-semibold text-xs transition-colors"
+              className="ed-interactive ed-press ed-focus-ring w-full px-6 py-3 rounded-xl text-sm font-semibold text-white shadow-sm transition-colors flex items-center justify-center"
+              style={{ background: "var(--ed-accent)", minHeight: "44px" }}
             >
               {searching ? "Searching Vector Space..." : "Test RAG Query"}
             </button>
@@ -118,12 +123,16 @@ export default function KnowledgeBasePage() {
 
           <div className="space-y-3 pt-2">
             {results.map((r, idx) => (
-              <div key={idx} className="p-3 bg-slate-50 border border-slate-200/80 rounded-lg text-xs space-y-1">
-                <div className="flex justify-between items-center text-[10px] text-slate-400 font-medium">
+              <div
+                key={idx}
+                className="p-3 border border-[var(--ed-border)] rounded-lg text-xs space-y-1"
+                style={{ background: "var(--ed-bg)" }}
+              >
+                <div className="flex justify-between items-center text-[10px] text-[var(--ed-text-muted)] font-medium">
                   <span>{r.document_title}</span>
-                  <span className="font-bold text-amber-700">Score: {r.similarity_score}</span>
+                  <span className="font-bold text-[var(--ed-accent)] font-data">Score: {r.similarity_score}</span>
                 </div>
-                <div className="text-slate-800 leading-relaxed">{r.content}</div>
+                <div className="text-[var(--ed-text-primary)] leading-relaxed">{r.content}</div>
               </div>
             ))}
           </div>
