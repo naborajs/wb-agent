@@ -17,6 +17,10 @@ import {
   MapPin,
   Calendar,
   CheckCircle,
+  Plus,
+  AlertTriangle,
+  X,
+  FileCheck,
 } from "lucide-react";
 
 interface ConversationItem {
@@ -40,6 +44,9 @@ interface Message {
   sender_type: string;
   content: string;
   delivery_status: string;
+  reported?: boolean;
+  correction_category?: string;
+  corrected_text?: string;
   created_at: string;
 }
 
@@ -52,6 +59,22 @@ export default function LiveInboxPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // New Chat Modal State
+  const [isNewChatOpen, setIsNewChatOpen] = useState(false);
+  const [newPhone, setNewPhone] = useState("");
+  const [newName, setNewName] = useState("");
+  const [newCompany, setNewCompany] = useState("");
+  const [newInitialMsg, setNewInitialMsg] = useState("");
+  const [isInitiating, setIsInitiating] = useState(false);
+
+  // Report Response Modal State
+  const [reportingMessage, setReportingMessage] = useState<Message | null>(null);
+  const [reportCategory, setReportCategory] = useState("wrong_price");
+  const [reportExplanation, setReportExplanation] = useState("");
+  const [reportCorrectedText, setReportCorrectedText] = useState("");
+  const [reportIsKnowledge, setReportIsKnowledge] = useState(false);
+  const [isSubmittingReport, setIsSubmittingReport] = useState(false);
 
   // Active conversation object
   const activeConv = conversations.find((c) => c.id === activeConvId);
@@ -157,6 +180,80 @@ export default function LiveInboxPage() {
     }
   };
 
+  // Handle Initiate New Conversation
+  const handleInitiateChat = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPhone.trim()) return;
+    setIsInitiating(true);
+
+    try {
+      const res = await fetch("/api/v1/conversations/initiate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          phone: newPhone.trim(),
+          name: newName.trim() || undefined,
+          company_name: newCompany.trim() || undefined,
+          initial_message: newInitialMsg.trim() || undefined,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setIsNewChatOpen(false);
+        setNewPhone("");
+        setNewName("");
+        setNewCompany("");
+        setNewInitialMsg("");
+        loadConversations();
+        if (data.conversation_id) {
+          setActiveConvId(data.conversation_id);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to initiate chat:", err);
+    } finally {
+      setIsInitiating(false);
+    }
+  };
+
+  // Handle Submit Report / Correction
+  const handleSubmitReport = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reportingMessage || !activeConvId || !reportExplanation.trim()) return;
+    setIsSubmittingReport(true);
+
+    try {
+      const res = await fetch(
+        `/api/v1/conversations/${activeConvId}/messages/${reportingMessage.id}/report`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            category: reportCategory,
+            explanation: reportExplanation.trim(),
+            corrected_text: reportCorrectedText.trim() || undefined,
+            is_business_knowledge: reportIsKnowledge,
+          }),
+        }
+      );
+      if (res.ok) {
+        setReportingMessage(null);
+        setReportExplanation("");
+        setReportCorrectedText("");
+        setReportIsKnowledge(false);
+        // Refresh active conversation details
+        const updated = await fetch(`/api/v1/conversations/${activeConvId}`).then(
+          (r) => (r.ok ? r.json() : null)
+        );
+        if (updated) setActiveConvDetail(updated);
+      }
+    } catch (err) {
+      console.error("Failed to submit report:", err);
+    } finally {
+      setIsSubmittingReport(false);
+    }
+  };
+
   const filteredConversations = conversations.filter((c) => {
     if (filterMode === "hot" && !c.is_hot) return false;
     if (filterMode === "human" && c.mode !== "HUMAN") return false;
@@ -174,41 +271,67 @@ export default function LiveInboxPage() {
     <div className="h-[calc(100vh-6.5rem)] flex rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-sm">
       {/* 1. Left Panel: Conversation Threads */}
       <div className="w-80 border-r border-slate-200 dark:border-slate-800 flex flex-col shrink-0 bg-white dark:bg-slate-900">
-        {/* Search & Tabs */}
+        {/* Search & Actions */}
         <div className="p-3 border-b border-slate-100 dark:border-slate-800 space-y-2">
-          <div className="relative">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-            <input
-              type="text"
-              placeholder="Search conversations..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
-            />
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+              <input
+                type="text"
+                placeholder="Search leads, phone..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-9 pr-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
+              />
+            </div>
+            <button
+              onClick={() => setIsNewChatOpen(true)}
+              title="Start New Chat by Phone"
+              className="p-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white transition-colors shrink-0 shadow-sm"
+            >
+              <Plus className="w-4 h-4" />
+            </button>
           </div>
 
-          <div className="flex gap-1">
-            {["all", "hot", "human"].map((mode) => (
-              <button
-                key={mode}
-                onClick={() => setFilterMode(mode)}
-                className={`flex-1 py-1.5 rounded-md text-[11px] font-bold uppercase tracking-wider transition-colors ${
-                  filterMode === mode
-                    ? "bg-slate-900 dark:bg-amber-600 text-white"
-                    : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
-                }`}
-              >
-                {mode === "hot" ? "🔥 Hot" : mode === "human" ? "Human" : "All"}
-              </button>
-            ))}
+          <div className="flex gap-1 text-[11px] font-medium text-slate-500 dark:text-slate-400">
+            <button
+              onClick={() => setFilterMode("all")}
+              className={`px-2.5 py-1 rounded-md transition-colors ${
+                filterMode === "all"
+                  ? "bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white font-bold"
+                  : "hover:bg-slate-50 dark:hover:bg-slate-800/50"
+              }`}
+            >
+              All ({conversations.length})
+            </button>
+            <button
+              onClick={() => setFilterMode("hot")}
+              className={`px-2.5 py-1 rounded-md flex items-center gap-1 transition-colors ${
+                filterMode === "hot"
+                  ? "bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 font-bold"
+                  : "hover:bg-slate-50 dark:hover:bg-slate-800/50"
+              }`}
+            >
+              <Flame className="w-3 h-3 text-rose-500" /> Hot
+            </button>
+            <button
+              onClick={() => setFilterMode("human")}
+              className={`px-2.5 py-1 rounded-md transition-colors ${
+                filterMode === "human"
+                  ? "bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 font-bold"
+                  : "hover:bg-slate-50 dark:hover:bg-slate-800/50"
+              }`}
+            >
+              Takeover
+            </button>
           </div>
         </div>
 
-        {/* Conversation List */}
-        <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
+        {/* Thread List */}
+        <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60">
           {filteredConversations.length === 0 ? (
             <div className="p-8 text-center text-xs text-slate-400">
-              No conversations found.
+              No conversations found
             </div>
           ) : (
             filteredConversations.map((c) => {
@@ -219,37 +342,35 @@ export default function LiveInboxPage() {
                   onClick={() => setActiveConvId(c.id)}
                   className={`p-3.5 cursor-pointer transition-colors ${
                     isSelected
-                      ? "bg-amber-500/10 dark:bg-amber-950/40 border-l-4 border-amber-600 dark:border-amber-500"
-                      : "hover:bg-slate-50 dark:hover:bg-slate-800/40"
+                      ? "bg-amber-50/70 dark:bg-amber-950/30 border-l-4 border-amber-600"
+                      : "hover:bg-slate-50 dark:hover:bg-slate-800/50"
                   }`}
                 >
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-start justify-between gap-1 mb-1">
                     <span className="font-bold text-xs text-slate-900 dark:text-white truncate">
-                      {c.customer_name || c.channel_id}
+                      {c.customer_name || c.company_name || c.channel_id}
                     </span>
-                    <div className="flex items-center gap-1.5">
-                      {c.is_hot && (
-                        <span className="flex items-center text-[10px] font-bold text-rose-500 dark:text-rose-400">
-                          <Flame className="w-3 h-3 fill-rose-500" />
-                        </span>
-                      )}
-                      <span className="text-[10px] font-semibold text-slate-400 font-mono">
-                        {c.lead_score}/100
+                    {c.is_hot && (
+                      <span className="shrink-0 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300">
+                        <Flame className="w-2.5 h-2.5" /> HOT
                       </span>
-                    </div>
+                    )}
                   </div>
 
-                  <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 truncate">
-                    {c.company_name || c.channel_id}
+                  <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate mb-2">
+                    {c.company_name ? `${c.company_name} • ` : ""}
+                    {c.channel_id}
                   </div>
 
-                  <div className="flex items-center justify-between mt-2 text-[10px]">
-                    <span className="px-1.5 py-0.5 rounded font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                  <div className="flex items-center justify-between text-[10px] text-slate-400">
+                    <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 font-medium">
                       {c.sales_stage}
                     </span>
                     <span
                       className={`font-semibold ${
-                        c.mode === "HUMAN" ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"
+                        c.mode === "HUMAN"
+                          ? "text-amber-600 dark:text-amber-400"
+                          : "text-emerald-600 dark:text-emerald-400"
                       }`}
                     >
                       {c.mode === "HUMAN" ? "● Human" : "● AI"}
@@ -273,8 +394,7 @@ export default function LiveInboxPage() {
               No Conversation Selected
             </h4>
             <p className="text-xs text-slate-400 mt-1 max-w-sm">
-              Select a conversation from the left inbox or send a message on WhatsApp to{" "}
-              <span className="font-semibold text-slate-600 dark:text-slate-300">+91 8918753100</span>!
+              Select a conversation from the left inbox or start a new chat!
             </p>
           </div>
         ) : (
@@ -320,6 +440,7 @@ export default function LiveInboxPage() {
             <div className="flex-1 overflow-y-auto p-6 space-y-4">
               {(activeConvDetail?.messages || []).map((msg: Message) => {
                 const isInbound = msg.direction === "inbound";
+                const isAI = !isInbound && msg.sender_type !== "human";
                 return (
                   <div
                     key={msg.id}
@@ -336,30 +457,58 @@ export default function LiveInboxPage() {
                           : "bg-slate-900 dark:bg-amber-950/80 border border-slate-800 dark:border-amber-700/50 text-white rounded-tr-sm"
                       }`}
                     >
-                      <div className="flex items-center gap-1.5 mb-1 opacity-70 text-[10px]">
-                        {isInbound ? (
-                          <>
-                            <User className="w-3 h-3" />
-                            <span>Customer</span>
-                          </>
-                        ) : msg.sender_type === "human" ? (
-                          <>
-                            <User className="w-3 h-3 text-amber-200" />
-                            <span className="text-amber-200 font-semibold">
-                              Operator
-                            </span>
-                          </>
-                        ) : (
-                          <>
-                            <Sparkles className="w-3 h-3 text-emerald-400" />
-                            <span className="text-emerald-400 font-semibold">
-                              EDITH (Nemotron AI)
-                            </span>
-                          </>
+                      <div className="flex items-center justify-between gap-3 mb-1 opacity-80 text-[10px]">
+                        <div className="flex items-center gap-1.5">
+                          {isInbound ? (
+                            <>
+                              <User className="w-3 h-3" />
+                              <span>Customer</span>
+                            </>
+                          ) : msg.sender_type === "human" ? (
+                            <>
+                              <User className="w-3 h-3 text-amber-200" />
+                              <span className="text-amber-200 font-semibold">
+                                Operator
+                              </span>
+                            </>
+                          ) : (
+                            <>
+                              <Sparkles className="w-3 h-3 text-emerald-400" />
+                              <span className="text-emerald-400 font-semibold">
+                                EDITH (Nemotron AI)
+                              </span>
+                            </>
+                          )}
+                        </div>
+
+                        {/* Report & Feedback Button for AI Messages */}
+                        {isAI && (
+                          <div>
+                            {msg.reported ? (
+                              <span className="inline-flex items-center gap-1 text-[9px] font-bold text-amber-300 bg-amber-900/60 px-1.5 py-0.5 rounded border border-amber-500/40">
+                                <AlertTriangle className="w-2.5 h-2.5" /> Reported ({msg.correction_category})
+                              </span>
+                            ) : (
+                              <button
+                                onClick={() => setReportingMessage(msg)}
+                                title="Report / Correct this response"
+                                className="inline-flex items-center gap-1 text-[9px] opacity-70 hover:opacity-100 text-amber-300 hover:underline"
+                              >
+                                <AlertTriangle className="w-2.5 h-2.5" /> Correct
+                              </button>
+                            )}
+                          </div>
                         )}
                       </div>
 
                       <div className="whitespace-pre-wrap">{msg.content}</div>
+
+                      {/* Corrected Text Display */}
+                      {msg.reported && msg.corrected_text && (
+                        <div className="mt-2 pt-2 border-t border-white/10 text-[10px] text-emerald-200 bg-emerald-950/40 p-1.5 rounded">
+                          <span className="font-bold">Human Correction:</span> {msg.corrected_text}
+                        </div>
+                      )}
 
                       <div className="mt-1.5 text-[9px] opacity-60 text-right">
                         {new Date(msg.created_at).toLocaleTimeString([], {
@@ -408,60 +557,259 @@ export default function LiveInboxPage() {
               Customer Profile
             </div>
             <div className="font-bold text-sm text-slate-900 dark:text-white">
-              {activeConvDetail.customer?.name || "Prospective Buyer"}
+              {activeConvDetail.customer.name || "Unknown Lead"}
             </div>
-            <div className="text-slate-500 dark:text-slate-400 mt-0.5">
-              {activeConvDetail.customer?.company_name || "Commercial Buyer"}
-            </div>
-            <div className="text-slate-400 text-[11px] mt-0.5">
-              {activeConvDetail.customer?.primary_phone}
+            <div className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">
+              {activeConvDetail.customer.company_name || "Company Not Provided"}
             </div>
           </div>
 
-          <div className="space-y-2 pt-3 border-t border-slate-100 dark:border-slate-800">
-            <div className="flex justify-between">
-              <span className="text-slate-500 dark:text-slate-400">Sales Stage:</span>
-              <span className="font-bold text-slate-900 dark:text-white">
-                {activeConvDetail.conversation?.sales_stage}
-              </span>
+          <div className="space-y-2 text-slate-600 dark:text-slate-300">
+            <div className="flex items-center gap-2">
+              <Phone className="w-3.5 h-3.5 text-slate-400" />
+              <span>{activeConvDetail.customer.phone || "—"}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-slate-500 dark:text-slate-400">Lead Score:</span>
-              <span className="font-bold text-emerald-600 dark:text-emerald-400 font-mono">
-                {activeConvDetail.conversation?.lead_score}/100
-              </span>
+            <div className="flex items-center gap-2">
+              <Building className="w-3.5 h-3.5 text-slate-400" />
+              <span>Type: {activeConvDetail.customer.company_type || "Wholesale"}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-slate-500 dark:text-slate-400">City / State:</span>
-              <span className="font-medium text-slate-800 dark:text-slate-200">
-                {activeConvDetail.customer?.city || "India"}
-              </span>
+            <div className="flex items-center gap-2">
+              <Tag className="w-3.5 h-3.5 text-slate-400" />
+              <span>Language: {activeConvDetail.customer.preferred_language || "English"}</span>
             </div>
           </div>
 
-          {/* Extracted Customer Memory */}
-          <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
-            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-              Extracted Facts & Memory
+          {/* AI Sales Intelligence */}
+          <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">
+              Sales Intelligence
             </div>
-            <div className="space-y-1 text-[11px]">
-              <div className="p-2 rounded bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
-                <span className="text-slate-400 block text-[9px] uppercase font-bold">
-                  Business Type
-                </span>
-                <span className="font-semibold text-slate-800 dark:text-slate-200">
-                  {activeConvDetail.customer?.company_type || "Hospitality / Cafe"}
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-slate-500">Lead Score:</span>
+                <span className="font-bold text-amber-600 dark:text-amber-400">
+                  {activeConvDetail.conversation.lead_score}/100
                 </span>
               </div>
-              <div className="p-2 rounded bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
-                <span className="text-slate-400 block text-[9px] uppercase font-bold">
-                  Opt-In Permission
+              <div className="flex justify-between items-center">
+                <span className="text-slate-500">Sales Stage:</span>
+                <span className="font-semibold text-slate-800 dark:text-slate-200 px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded">
+                  {activeConvDetail.conversation.sales_stage}
                 </span>
-                <span className="font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                  <CheckCircle className="w-3 h-3" /> Confirmed
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-500">Control Mode:</span>
+                <span className="font-bold text-emerald-600">
+                  {activeConvDetail.conversation.mode}
                 </span>
               </div>
             </div>
+          </div>
+
+          {/* Conversation Summary */}
+          <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">
+              Structured Memory Summary
+            </div>
+            <p className="text-slate-600 dark:text-slate-300 text-xs leading-relaxed bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-lg border border-slate-100 dark:border-slate-800">
+              {activeConvDetail.summary ||
+                "Discovery stage active. Gathering beverage menu details, estimated volume, and delivery destination."}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Initiate New Chat */}
+      {isNewChatOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 w-full max-w-md p-6 shadow-xl">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
+                <Plus className="w-5 h-5 text-amber-600" /> Start New WhatsApp Chat
+              </h3>
+              <button
+                onClick={() => setIsNewChatOpen(false)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleInitiateChat} className="space-y-4 text-xs">
+              <div>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Phone Number *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="+91 98765 43210"
+                  value={newPhone}
+                  onChange={(e) => setNewPhone(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Contact Name
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Rajesh Mehra"
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Company Name
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Darjeeling Chai Cafe"
+                    value={newCompany}
+                    onChange={(e) => setNewCompany(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Opening Message (Optional)
+                </label>
+                <textarea
+                  rows={3}
+                  placeholder="Type an opening outreach message..."
+                  value={newInitialMsg}
+                  onChange={(e) => setNewInitialMsg(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsNewChatOpen(false)}
+                  className="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isInitiating || !newPhone.trim()}
+                  className="px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-semibold shadow-sm transition-colors disabled:opacity-50"
+                >
+                  {isInitiating ? "Initiating..." : "Start Chat"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Report / Correct AI Response */}
+      {reportingMessage && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 w-full max-w-lg p-6 shadow-xl">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-amber-500" /> Report & Correct AI Response
+              </h3>
+              <button
+                onClick={() => setReportingMessage(null)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg text-xs text-slate-600 dark:text-slate-300 mb-4 border border-slate-200 dark:border-slate-700">
+              <span className="font-bold block text-slate-900 dark:text-white mb-1">Reported Message:</span>
+              "{reportingMessage.content}"
+            </div>
+
+            <form onSubmit={handleSubmitReport} className="space-y-4 text-xs">
+              <div>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Issue Category *
+                </label>
+                <select
+                  value={reportCategory}
+                  onChange={(e) => setReportCategory(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
+                >
+                  <option value="wrong_price">Wrong Price / Unsupported Discount</option>
+                  <option value="wrong_info">Factual Error / Unsupported Claim</option>
+                  <option value="wrong_tone">Unprofessional or Inappropriate Tone</option>
+                  <option value="missed_context">Missed Prior Context / Repeated Question</option>
+                  <option value="repeated_question">Repeated Question</option>
+                  <option value="unauthorized_claim">Unauthorized Commitment / Delivery Promise</option>
+                  <option value="other">Other Sales Mistake</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Explanation *
+                </label>
+                <textarea
+                  required
+                  rows={2}
+                  placeholder="Explain why this response was inaccurate or suboptimal..."
+                  value={reportExplanation}
+                  onChange={(e) => setReportExplanation(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Ideal Corrected Response (Optional)
+                </label>
+                <textarea
+                  rows={3}
+                  placeholder="How should EDITH have answered this customer turn?"
+                  value={reportCorrectedText}
+                  onChange={(e) => setReportCorrectedText(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 pt-1">
+                <input
+                  type="checkbox"
+                  id="chkKnowledge"
+                  checked={reportIsKnowledge}
+                  onChange={(e) => setReportIsKnowledge(e.target.checked)}
+                  className="rounded text-amber-600 focus:ring-amber-500"
+                />
+                <label htmlFor="chkKnowledge" className="text-slate-700 dark:text-slate-300 cursor-pointer">
+                  Promote to verified Business Knowledge candidate for operator approval
+                </label>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setReportingMessage(null)}
+                  className="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingReport || !reportExplanation.trim()}
+                  className="px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-semibold shadow-sm transition-colors disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  <FileCheck className="w-3.5 h-3.5" />
+                  {isSubmittingReport ? "Submitting..." : "Submit Correction"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
