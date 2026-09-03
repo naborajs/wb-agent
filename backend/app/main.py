@@ -16,6 +16,7 @@ from app.api.routes import (
     leads,
     orders,
     products,
+    prompts,
     proposals,
     quotes,
     settings as settings_router,
@@ -56,6 +57,7 @@ app.include_router(orders.router, prefix=api_v1)
 app.include_router(quotes.router, prefix=api_v1)
 app.include_router(conversations.router, prefix=api_v1)
 app.include_router(products.router, prefix=api_v1)
+app.include_router(prompts.router, prefix=api_v1)
 app.include_router(proposals.router, prefix=api_v1)
 app.include_router(agent.router, prefix=api_v1)
 app.include_router(knowledge.router, prefix=api_v1)
