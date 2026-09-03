@@ -2,23 +2,67 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================================
+   EDITH Design Tokens — Royal Pitch Black (dark) / Estate White (light)
+   ============================================================ */
+
 :root {
-  --foreground-rgb: 24, 24, 27;
+  /* Light theme — "Estate White" */
+  --ed-bg: #F8F8FA;
+  --ed-surface: #FFFFFF;
+  --ed-surface-elevated: rgba(255, 255, 255, 0.85);
+  --ed-border: #D8D8E0;
+  --ed-text-primary: #111118;
+  --ed-text-muted: #71717A;
+  --ed-accent: #DC1B35;
+  --ed-accent-hover: #B91630;
+  --ed-accent-glow: rgba(220, 27, 53, 0.10);
+  --ed-success: #059669;
+  --ed-warning: #D97706;
+  --ed-danger: #DC2626;
+
+  /* Light panel shadow — directional, not generic even spread */
+  --ed-shadow-panel: 0 1px 3px rgba(0, 0, 0, 0.06), 0 4px 12px rgba(0, 0, 0, 0.04);
+  --ed-shadow-elevated: 0 2px 8px rgba(0, 0, 0, 0.08), 0 8px 24px rgba(0, 0, 0, 0.06);
+
+  --foreground-rgb: 17, 17, 24;
 }
 
 .dark {
-  --foreground-rgb: 248, 250, 252;
+  /* Dark theme — "Royal Pitch Black" */
+  --ed-bg: #07070B;
+  --ed-surface: #0F0F14;
+  --ed-surface-elevated: rgba(18, 18, 26, 0.75);
+  --ed-border: #1A1A24;
+  --ed-text-primary: #F0F0F5;
+  --ed-text-muted: #6B6B80;
+  --ed-accent: #F02341;
+  --ed-accent-hover: #D91E3A;
+  --ed-accent-glow: rgba(240, 35, 65, 0.15);
+  --ed-success: #10B981;
+  --ed-warning: #F59E0B;
+  --ed-danger: #EF4444;
+
+  --ed-shadow-panel: 0 1px 3px rgba(0, 0, 0, 0.3), 0 4px 12px rgba(0, 0, 0, 0.2);
+  --ed-shadow-elevated: 0 2px 8px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.3);
+
+  --foreground-rgb: 240, 240, 245;
 }
 
+/* ============================================================
+   Base body styles
+   ============================================================ */
 body {
   color: rgb(var(--foreground-rgb));
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   margin: 0;
   padding: 0;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Custom sleek scrollbar */
+/* ============================================================
+   Custom scrollbar
+   ============================================================ */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -27,12 +71,125 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.4);
+  background: var(--ed-text-muted);
+  opacity: 0.4;
   border-radius: 9999px;
 }
-.dark ::-webkit-scrollbar-thumb {
-  background: rgba(71, 85, 105, 0.6);
-}
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.7);
+  opacity: 0.7;
+}
+
+/* ============================================================
+   Button interaction utilities
+   ============================================================ */
+@layer utilities {
+  /* Press state — scale down on active */
+  .ed-press {
+    transition: transform 150ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 150ms ease-out, background-color 150ms ease-out;
+    will-change: transform;
+  }
+  .ed-press:active {
+    transform: scale(0.97);
+  }
+
+  /* Hover lift — slight translateY + shadow increase */
+  .ed-lift {
+    transition: transform 150ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 150ms ease-out, background-color 150ms ease-out;
+    will-change: transform;
+  }
+  .ed-lift:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--ed-shadow-elevated);
+  }
+
+  /* Combined press + lift for interactive elements */
+  .ed-interactive {
+    transition: transform 150ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 150ms ease-out, background-color 150ms ease-out;
+    will-change: transform;
+  }
+  .ed-interactive:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--ed-shadow-elevated);
+  }
+  .ed-interactive:active {
+    transform: scale(0.97);
+    box-shadow: var(--ed-shadow-panel);
+  }
+
+  /* Glass surface — frosted translucent */
+  .ed-glass {
+    background: var(--ed-surface-elevated);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--ed-border);
+  }
+
+  /* Accent glow — subtle ambient wash */
+  .ed-glow {
+    box-shadow: 0 0 30px var(--ed-accent-glow), 0 0 60px var(--ed-accent-glow);
+  }
+
+  /* Panel base — solid surface with directional shadow */
+  .ed-panel {
+    background: var(--ed-surface);
+    border: 1px solid var(--ed-border);
+    box-shadow: var(--ed-shadow-panel);
+  }
+
+  /* Focus ring for keyboard accessibility */
+  .ed-focus-ring:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--ed-bg), 0 0 0 4px var(--ed-accent);
+  }
+
+  /* Numeric data font */
+  .font-data {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* ============================================================
+   Respect prefers-reduced-motion
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  .ed-press,
+  .ed-lift,
+  .ed-interactive {
+    transition: opacity 100ms ease-out, background-color 100ms ease-out !important;
+    will-change: auto !important;
+  }
+  .ed-press:active,
+  .ed-interactive:active {
+    transform: none !important;
+  }
+  .ed-lift:hover,
+  .ed-interactive:hover {
+    transform: none !important;
+    box-shadow: var(--ed-shadow-panel) !important;
+  }
+
+  /* Kill all entrance animations */
+  .ed-entrance {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+/* ============================================================
+   Entrance animation for hero stat cards (stagger via style)
+   ============================================================ */
+@keyframes ed-settle-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ed-entrance {
+  animation: ed-settle-in 300ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
