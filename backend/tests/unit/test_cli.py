@@ -18,8 +18,26 @@ async def test_cli_doctor_runs(capsys):
 
 
 @pytest.mark.asyncio
-async def test_cli_status_runs(capsys):
+async def test_cli_status_runs(capsys, monkeypatch):
     """Verifies that run_status queries live tables and prints counts."""
+    import contextlib
+    from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
+    from app.database.base import Base
+
+    test_engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+    async with test_engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+    test_factory = async_sessionmaker(bind=test_engine, class_=AsyncSession, expire_on_commit=False)
+
+    @contextlib.asynccontextmanager
+    async def mock_get_db_context():
+        async with test_factory() as session:
+            yield session
+
+    monkeypatch.setattr("app.database.session.get_engine", lambda: test_engine)
+    monkeypatch.setattr("app.database.session.get_db_context", mock_get_db_context)
+
     await run_status()
     captured = capsys.readouterr()
     assert "WB-AGENT / EDITH -- LIVE SYSTEM STATUS" in captured.out
