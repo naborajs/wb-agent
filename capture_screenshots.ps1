@@ -5,6 +5,8 @@ $pages = @(
     @{ name = "overview.png"; url = "http://localhost:3000/"; width = 1600; height = 1050 },
     @{ name = "live_inbox.png"; url = "http://localhost:3000/conversations"; width = 1600; height = 1050 },
     @{ name = "leads_pipeline.png"; url = "http://localhost:3000/leads"; width = 1600; height = 1050 },
+    @{ name = "campaigns.png"; url = "http://localhost:3000/campaigns"; width = 1600; height = 1050 },
+    @{ name = "analytics.png"; url = "http://localhost:3000/analytics"; width = 1600; height = 1050 },
     @{ name = "orders.png"; url = "http://localhost:3000/orders"; width = 1600; height = 1050 },
     @{ name = "catalog.png"; url = "http://localhost:3000/products"; width = 1600; height = 1050 },
     @{ name = "pricing_rules.png"; url = "http://localhost:3000/pricing"; width = 1600; height = 1050 },
