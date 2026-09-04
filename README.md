@@ -75,35 +75,49 @@ Wholesale lead acquisition engine with E.164 normalization, multipart CSV batch 
 
 ---
 
-### 9. Knowledge Grounding & Vector RAG Query Tester
+### 9. Automated B2B Campaign Drip & Anti-Ban Jitter Outreach
+Rate-limited WhatsApp cold campaigns enforcing randomized inter-message jitter (**25.0s – 45.0s**), daily volume ceilings, live outreach funnels, and automated handoff to EDITH upon buyer reply:
+
+![Automated B2B Campaigns](docs/screenshots/campaigns.png)
+
+---
+
+### 10. Sales Intelligence & Objection Analytics Dashboard
+Executive analytics suite featuring **Objection Pareto Analysis (80/20 rule)**, regional lead density and revenue tables across Eastern India corridors, pipeline stage forecasting, and **1-click executive CSV export**:
+
+![Sales Intelligence & Analytics](docs/screenshots/analytics.png)
+
+---
+
+### 11. Knowledge Grounding & Vector RAG Query Tester
 Ground truth knowledge base maintaining estate certifications, transit timelines, and tasting sample policies with live semantic vector search diagnostics:
 
 ![Knowledge Base & Vector RAG](docs/screenshots/knowledge_rag.png)
 
 ---
 
-### 10. Automated Follow-up Cadence & Stop Conditions
+### 12. Automated Follow-up Cadence & Stop Conditions
 Context-aware, bounded follow-up sequences (Day 0, Day 1, Day 3) enforcing preflight rules, quiet hours (9 PM – 9 AM IST), and instant auto-cancellation upon buyer reply:
 
 ![Follow-up Sequences](docs/screenshots/followups.png)
 
 ---
 
-### 11. Human Escalations & Handoff Queue
+### 13. Human Escalations & Handoff Queue
 High-value buyer handoff queue with explainable trigger categories (`HOT_LEAD`, `CUSTOM_PRICING`, `COMPLAINT`, `KNOWLEDGE_GAP`) and instant WhatsApp owner alerts:
 
 ![Human Handoff Queue](docs/screenshots/handoffs.png)
 
 ---
 
-### 12. Platform Safety & Global Kill-Switch
+### 14. Platform Safety & Global Kill-Switch
 Autonomous control panel featuring the master AI messaging kill-switch, humanized follow-up intervals, quiet hours enforcement, and owner escalation phone (`+91 89006 53250`):
 
 ![Platform Settings](docs/screenshots/settings.png)
 
 ---
 
-### 13. Mobile Responsive Design
+### 15. Mobile Responsive Design
 Fully responsive touch experience optimized for mobile operators on iOS Safari and Android Chrome:
 
 | Mobile Operations Center | Mobile Live Chat Stream |
