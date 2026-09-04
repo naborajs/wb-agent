@@ -99,7 +99,41 @@ class PricingValidator:
                         break
 
             if not product:
-                return False, None, f"Item [{idx}] refers to unknown or uncatalogued product: '{p_name or p_id}'"
+                from app.products.catalog import DEMO_PRODUCTS
+                matched_demo = None
+                clean_n = clean_name if p_name else ""
+                for dp in DEMO_PRODUCTS:
+                    if clean_n and (clean_n in dp["name"].lower() or dp["name"].lower() in clean_n):
+                        matched_demo = dp
+                        break
+                if not matched_demo:
+                    return False, None, f"Item [{idx}] refers to unknown or uncatalogued product: '{p_name or p_id}'"
+
+                # Validate against catalog definition
+                moq = Decimal(str(matched_demo.get("min_order_quantity_kg", "10.0")))
+                if qty_dec < moq:
+                    return False, None, f"Item [{idx}] quantity ({qty_dec}kg) is below required MOQ ({moq}kg) for {matched_demo['name']}"
+                base_rate = Decimal("340.0")
+                for v in matched_demo.get("variants", []):
+                    base_rate = Decimal(str(v.get("base_price_per_kg", base_rate)))
+                disc_pct = Decimal("5.0") if qty_dec >= Decimal("50.0") else Decimal("0.0")
+                eff_rate = base_rate * (Decimal("1.0") - disc_pct / Decimal("100.0"))
+                subtot = base_rate * qty_dec
+                tot = eff_rate * qty_dec
+                verified_items.append({
+                    "product_id": matched_demo["sku"],
+                    "product_name": matched_demo["name"],
+                    "tea_grade": matched_demo.get("tea_grade", "Commercial Wholesale"),
+                    "quantity_kg": float(qty_dec),
+                    "base_price_per_kg": float(base_rate),
+                    "discount_percentage": float(disc_pct),
+                    "unit_price": float(eff_rate),
+                    "subtotal": float(subtot),
+                    "discount_amount": float(subtot - tot),
+                    "total": float(tot),
+                    "packaging_type": item.get("packaging_type") or "Standard multi-wall bag with food-grade liner",
+                })
+                continue
 
             # Parse quantity
             try:
