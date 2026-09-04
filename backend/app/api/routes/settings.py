@@ -79,18 +79,32 @@ async def test_model_endpoint(req: ModelTestRequest):
     """
     Actively tests inference connectivity and latency for a specified model.
     """
-    from app.agent.providers.router import LLMRouter
+    from app.ai.router import ai_router
 
-    api_key = req.api_key or settings.NVIDIA_API_KEY
+    api_key = req.api_key or settings.nvidia_primary_key
     base_url = req.base_url or settings.NVIDIA_BASE_URL
 
-    router_inst = LLMRouter()
-    res = await router_inst.test_model_connection(
+    res = await ai_router.test_model_connection(
         model=req.model,
         api_key=api_key,
         base_url=base_url,
     )
     return res
+
+
+@router.get("/ai/metrics")
+async def get_ai_metrics():
+    """
+    Returns real-time cost, latency, and reliability telemetry for the NVIDIA NIM layer (Directive §4.6).
+    """
+    from app.ai.router import ai_router
+    from app.ai.circuit_breaker import circuit_breaker
+
+    return {
+        "metrics": ai_router.metrics,
+        "circuit_breaker_active": len(circuit_breaker._state) > 0,
+        "circuit_cooldown_seconds": circuit_breaker.cooldown_seconds,
+    }
 
 
 import os
@@ -109,44 +123,84 @@ class ModelSettingsUpdateRequest(BaseModel):
 
 AVAILABLE_MODELS = [
     {
-        "id": "nvidia/nemotron-3-ultra-550b-a55b",
-        "name": "Nemotron-3 Ultra 550B (Flagship Thinking)",
-        "params": "550B",
-        "category": "Flagship Thinking",
-        "latency_label": "~20s",
-        "description": "NVIDIA flagship 550B parameter model for deep consultative sales reasoning and custom proposals.",
-    },
-    {
-        "id": "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning",
-        "name": "Nemotron-3 Nano Omni 30B (Ultra-Fast Reasoning)",
-        "params": "30B",
-        "category": "Fast Reasoning",
-        "latency_label": "~1.4s",
-        "description": "High-throughput 30B reasoning model for rapid turn-by-turn dialogue and negotiation.",
-    },
-    {
         "id": "nvidia/nemotron-3-super-120b-a12b",
-        "name": "Nemotron-3 Super 120B (High Performance)",
+        "name": "Nemotron-3 Super 120B (Frontier Reasoning)",
         "params": "120B",
-        "category": "Balanced",
+        "category": "Frontier Reasoning",
         "latency_label": "~790ms",
-        "description": "Sub-second 120B model ideal for objection handling and multi-product comparisons.",
-    },
-    {
-        "id": "google/gemma-4-31b-it",
-        "name": "Google Gemma 4 31B IT",
-        "params": "31B",
-        "category": "Multimodal / Instruction",
-        "latency_label": "Variable",
-        "description": "Google 31B instruction-tuned model for structured policy adherence.",
+        "description": "Frontier reasoning & agentic deliberation with 1M context. Primary sales conversation brain.",
     },
     {
         "id": "nvidia/nemotron-3.5-lightning-30b-a3b",
-        "name": "Nemotron-3.5 Lightning 30B",
+        "name": "Nemotron-3.5 Lightning 30B (Fast Routing)",
         "params": "30B",
         "category": "Speed-Optimized",
         "latency_label": "~650ms",
-        "description": "NVIDIA lightning inference model tuned for fast message classification and greeting turns.",
+        "description": "Fast agentic routing, live lead scoring, and structured invoice data extraction.",
+    },
+    {
+        "id": "openai/gpt-oss-20b",
+        "name": "OpenAI GPT-OSS 20B (Math & Logic)",
+        "params": "20B",
+        "category": "Logic / Arithmetic",
+        "latency_label": "~500ms",
+        "description": "General text, logic, and numeric sanity checks for pricing calculations.",
+    },
+    {
+        "id": "google/diffusiongemma-26b-a4b-it",
+        "name": "DiffusionGemma 26B IT (Ultra Low-Latency)",
+        "params": "26B",
+        "category": "Ultra Low-Latency",
+        "latency_label": "~200ms",
+        "description": "Ultra-low-latency parallel generation for split-second inbound message triage.",
+    },
+    {
+        "id": "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning",
+        "name": "Nemotron-3 Nano Omni 30B (Voice & Speech)",
+        "params": "30B",
+        "category": "Omni-Modal",
+        "latency_label": "~1.2s",
+        "description": "Native omni-modal model handling customer voice notes and multimodal audio understanding.",
+    },
+    {
+        "id": "meta/llama-3.2-11b-vision-instruct",
+        "name": "Llama-3.2 11B Vision Instruct (OCR / Specs)",
+        "params": "11B",
+        "category": "Vision & OCR",
+        "latency_label": "~450ms",
+        "description": "Fast vision-language OCR for product photos, packaging specs, competitor quotes, and KYC documents.",
+    },
+    {
+        "id": "meta/muse-glimmer-30b",
+        "name": "Muse Glimmer 30B (Diagrams & Blueprints)",
+        "params": "30B",
+        "category": "Multimodal + Tool Calling",
+        "latency_label": "~1.8s",
+        "description": "Multimodal reasoning with tool calling for technical specifications and factory floor plans.",
+    },
+    {
+        "id": "nvidia/riva-translate-4b-instruct-v2",
+        "name": "Riva Translate 4B Instruct v2 (37 Languages)",
+        "params": "4B",
+        "category": "Dedicated Translation",
+        "latency_label": "~300ms",
+        "description": "Dedicated translation layer covering 37 regional and international languages.",
+    },
+    {
+        "id": "nvidia/nemotron-3.5-content-safety",
+        "name": "Nemotron-3.5 Content Safety (Input Guardrail)",
+        "params": "Content Safety",
+        "category": "Safety Moderation",
+        "latency_label": "~250ms",
+        "description": "Fail-closed input safety classifier protecting against prompt injection and jailbreaks.",
+    },
+    {
+        "id": "nvidia/llama-3.1-nemotron-safety-guard-8b-v3",
+        "name": "Nemotron Safety Guard 8B v3 (Output Guardrail)",
+        "params": "8B",
+        "category": "Output Guardrail",
+        "latency_label": "~300ms",
+        "description": "Fail-closed output policy verifier ensuring safe, accurate outbound customer communications.",
     },
 ]
 
