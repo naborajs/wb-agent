@@ -604,7 +604,7 @@ class AIRouter:
             "  \"items\": [\n"
             "    {\n"
             "      \"product_name\": \"...\",\n"
-            "      \"quantity_kg\": 50.0,\n"
+            "      \"quantity_kg\": 0.0,\n"
             "      \"packaging_type\": \"...\"\n"
             "    }\n"
             "  ]\n"
@@ -652,6 +652,22 @@ class AIRouter:
                     pass
 
         if parsed_order is not None:
+            # Zero-hallucination cross-check: verify quantity_kg matches what customer stated
+            m_qty = re.search(r"(\d+(?:\.\d+)?)\s*(?:kg|kilos|kilo|ton|tons|quintal)", inbound_text, re.IGNORECASE)
+            if m_qty:
+                try:
+                    stated_qty = float(m_qty.group(1))
+                    if 0 < stated_qty <= 50000:
+                        for item in parsed_order.get("items", []):
+                            model_qty = item.get("quantity_kg", 0)
+                            if model_qty != stated_qty:
+                                logger.info(
+                                    f"[AIRouter] Zero-hallucination override: model returned quantity_kg={model_qty}, "
+                                    f"customer stated {stated_qty}kg. Correcting."
+                                )
+                                item["quantity_kg"] = stated_qty
+                except (ValueError, TypeError):
+                    pass
             return parsed_order
 
         logger.warning("[AIRouter] Direct JSON parsing failed in extract_pricing_order; extracting deterministically from message text.")
