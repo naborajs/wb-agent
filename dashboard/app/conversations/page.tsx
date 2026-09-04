@@ -22,6 +22,10 @@ import {
   X,
   FileCheck,
   ExternalLink,
+  Volume2,
+  VolumeX,
+  Mic,
+  Radio,
 } from "lucide-react";
 
 interface ConversationItem {
@@ -82,6 +86,46 @@ export default function LiveInboxPage() {
   // Active conversation object
   const activeConv = conversations.find((c) => c.id === activeConvId);
 
+  // Real-Time WebSocket & Audio Notification State (R3)
+  const [wsConnected, setWsConnected] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [isTranscribingAudio, setIsTranscribingAudio] = useState(false);
+  const audioInputRef = useRef<HTMLInputElement>(null);
+
+  // Web Audio Synthesizer Chime
+  const playChime = (type: "hot" | "normal" = "normal") => {
+    if (!soundEnabled || typeof window === "undefined") return;
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      if (type === "hot") {
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(880, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(1320, ctx.currentTime + 0.15);
+        gain.gain.setValueAtTime(0.25, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.35);
+      } else {
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.1);
+        gain.gain.setValueAtTime(0.18, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.25);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.25);
+      }
+    } catch (e) {
+      console.warn("Audio chime prevented by browser audio policy:", e);
+    }
+  };
+
   // Load conversations from backend
   const loadConversations = () => {
     fetch("/api/v1/conversations")
@@ -100,12 +144,71 @@ export default function LiveInboxPage() {
       .catch((err) => console.error("Error loading conversations:", err));
   };
 
-  // Poll conversations list every 3 seconds
+  // Poll conversations list every 3 seconds (fallback if WS reconnecting)
   useEffect(() => {
     loadConversations();
-    const interval = setInterval(loadConversations, 3000);
+    const interval = setInterval(loadConversations, 4000);
     return () => clearInterval(interval);
   }, []);
+
+  // Persistent WebSocket stream for live inbox events (R3)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    let ws: WebSocket | null = null;
+    let reconnectTimer: any = null;
+
+    const connectWebSocket = () => {
+      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+      const host = window.location.hostname || "localhost";
+      const wsUrl = `${protocol}//${host}:8000/api/v1/ws/conversations`;
+
+      try {
+        ws = new WebSocket(wsUrl);
+
+        ws.onopen = () => {
+          setWsConnected(true);
+        };
+
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            loadConversations();
+            if (activeConvId) {
+              fetch(`/api/v1/conversations/${activeConvId}`)
+                .then((r) => (r.ok ? r.json() : null))
+                .then((d) => d && setActiveConvDetail(d))
+                .catch(() => {});
+            }
+
+            if (data?.is_hot || (data?.lead_score && data.lead_score >= 80)) {
+              playChime("hot");
+            } else if (data?.type === "message" || data?.event === "message_received") {
+              playChime("normal");
+            }
+          } catch {
+            // Keep-alive or non-json message
+          }
+        };
+
+        ws.onclose = () => {
+          setWsConnected(false);
+          reconnectTimer = setTimeout(connectWebSocket, 4000);
+        };
+
+        ws.onerror = () => {
+          ws?.close();
+        };
+      } catch {
+        reconnectTimer = setTimeout(connectWebSocket, 5000);
+      }
+    };
+
+    connectWebSocket();
+    return () => {
+      if (ws) ws.close();
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+    };
+  }, [activeConvId, soundEnabled]);
 
   // Poll active conversation details every 2 seconds
   useEffect(() => {
@@ -167,10 +270,10 @@ export default function LiveInboxPage() {
   };
 
   // Handle Send Message (either Operator or Simulated Customer Turn)
-  const handleSendMessage = async () => {
-    if (!inputText.trim() || !activeConvId || isSending) return;
-    const textToSend = inputText.trim();
-    setInputText("");
+  const handleSendMessage = async (textOverride?: string) => {
+    const textToSend = (textOverride !== undefined ? textOverride : inputText).trim();
+    if (!textToSend || !activeConvId || isSending) return;
+    if (textOverride === undefined) setInputText("");
     setIsSending(true);
 
     try {
@@ -204,6 +307,38 @@ export default function LiveInboxPage() {
       console.error(e);
     } finally {
       setIsSending(false);
+    }
+  };
+
+  // Handle Voice Note Audio Upload (R2)
+  const handleAudioUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !activeConvId) return;
+    setIsTranscribingAudio(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch("/api/v1/audio/transcribe", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.transcript) {
+          setInputText(data.transcript);
+          if (isSimulatingCustomer) {
+            await handleSendMessage(data.transcript);
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Audio upload error:", err);
+    } finally {
+      setIsTranscribingAudio(false);
+      if (audioInputRef.current) audioInputRef.current.value = "";
     }
   };
 
@@ -445,6 +580,25 @@ export default function LiveInboxPage() {
               </div>
 
               <div className="flex items-center gap-2">
+                {/* WebSocket Live Sync & Sound Chime (R3) */}
+                <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg border border-[var(--ed-border)] text-[10px] font-semibold">
+                  <Radio className={`w-3 h-3 ${wsConnected ? "text-emerald-500 animate-pulse" : "text-amber-500"}`} />
+                  <span className={wsConnected ? "text-emerald-500" : "text-amber-500"}>
+                    {wsConnected ? "WS Live" : "Polling"}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSoundEnabled(!soundEnabled)}
+                  title={soundEnabled ? "Mute Operator Chime" : "Enable Operator Chime"}
+                  className={`p-1.5 rounded-lg border transition-all ${
+                    soundEnabled
+                      ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-500"
+                      : "border-[var(--ed-border)] text-[var(--ed-text-muted)] hover:text-[var(--ed-text-primary)]"
+                  }`}
+                >
+                  {soundEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
+                </button>
                 {activeConv.mode === "HUMAN" ? (
                   <button
                     onClick={() => handleTakeover("AI")}
@@ -634,8 +788,26 @@ export default function LiveInboxPage() {
                       : "border-[var(--ed-border)] bg-slate-50 dark:bg-slate-800 ed-focus-ring"
                   }`}
                 />
+                <input
+                  type="file"
+                  ref={audioInputRef}
+                  onChange={handleAudioUpload}
+                  accept="audio/*,.ogg,.opus,.mp3,.wav"
+                  className="hidden"
+                />
                 <button
-                  onClick={handleSendMessage}
+                  type="button"
+                  onClick={() => audioInputRef.current?.click()}
+                  disabled={isTranscribingAudio || isSending}
+                  title="Upload WhatsApp Voice Note (.ogg, .opus, .mp3)"
+                  className={`p-2.5 rounded-xl border border-[var(--ed-border)] hover:border-purple-500/50 hover:bg-purple-500/10 text-[var(--ed-text-muted)] hover:text-purple-400 transition-all shrink-0 ${
+                    isTranscribingAudio ? "animate-pulse border-purple-500 text-purple-400" : ""
+                  }`}
+                >
+                  <Mic className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => handleSendMessage()}
                   disabled={isSending || !inputText.trim()}
                   className={`px-5 py-2.5 rounded-xl text-white font-semibold text-xs disabled:opacity-40 transition-all inline-flex items-center gap-1.5 shrink-0 ed-press ed-focus-ring ${
                     isSimulatingCustomer
