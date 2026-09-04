@@ -59,21 +59,20 @@ async def run_doctor():
 
     # 4. NVIDIA / LLM Connectivity
     try:
-        from app.agent.providers.router import LLMRouter
-        router = LLMRouter()
-        diag = await router.test_model_connection(
+        from app.ai.router import ai_router
+        diag = await ai_router.test_model_connection(
             model=settings.NVIDIA_MODEL,
-            api_key=settings.NVIDIA_API_KEY,
+            api_key=settings.nvidia_primary_key,
             base_url=settings.NVIDIA_BASE_URL,
             timeout=5,
         )
         if diag.get("status") == "connected":
-            print(f"[OK] NVIDIA Inference API: CONNECTED (Model: {diag.get('model')}, Latency: {diag.get('latency_ms')}ms)")
+            print(f"[OK] NVIDIA NIM Multi-Model Intelligence Layer: CONNECTED (Model: {diag.get('model')}, Latency: {diag.get('latency_ms')}ms)")
         else:
-            print(f"[!] NVIDIA Inference API: {diag.get('status', 'ERROR').upper()} ({diag.get('error')})")
-            print(f"    Fallback engine ready: Deterministic Simulator")
+            print(f"[!] NVIDIA NIM Multi-Model Intelligence Layer: {diag.get('status', 'ERROR').upper()} ({diag.get('error')})")
+            print(f"    Dual-key fallback ready: Fallback key + Simulator")
     except Exception as e:
-        print(f"[!] LLM Router check: {e}")
+        print(f"[!] AI Router check: {e}")
 
     # 5. Core Environment Configuration
     print(f"[*] Default Organization ID: {settings.DEFAULT_ORG_ID}")
