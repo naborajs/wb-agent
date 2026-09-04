@@ -31,6 +31,7 @@ class MessageResponse(MessageBase):
     provider_message_id: Optional[str] = None
     delivery_status: str
     error_message: Optional[str] = None
+    reasoning_content: Optional[str] = None
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
