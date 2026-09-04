@@ -4,6 +4,7 @@ Swaps only `model`, `base_url`, and `api_key`. Captures reasoning_content
 and returns structured ModelResponse objects.
 """
 
+import json
 import re
 import time
 from typing import Any, Dict, List, Optional
@@ -136,17 +137,112 @@ class NIMClient:
             f"Evaluated inquiry using {model}. Grounded in verified tea estate catalog and MOQ rules."
         )
 
-        # Capability C: Structured Pricing Extraction simulation
-        if "pricing_extraction" in str(request.metadata) or "extract" in last_user_msg or "invoice" in last_user_msg:
-            simulated_content = (
-                '{"items": [{"product_name": "Assam Kadak CTC Granules", "quantity_kg": 50, "unit_price": 340.0}]}'
+        cap_name = str(request.metadata.get("capability", ""))
+
+        # Capability B: Message-level Intent Routing & Lead Scoring simulation (§3.B)
+        if (
+            "intent_scoring" in str(request.metadata)
+            or cap_name == "intent_scoring"
+            or "intent router" in str(request.messages[0].content if request.messages else "").lower()
+        ):
+            detected_intent = "greeting"
+            detected_conf = 0.90
+            detected_obj = "NONE"
+            signals: List[str] = []
+
+            if any(w in last_user_msg for w in ["buy", "order", "proceed", "invoice", "confirm", "send invoice"]):
+                detected_intent = "purchase_intent"
+                detected_conf = 0.98
+                signals.append("purchase_intent")
+            elif any(w in last_user_msg for w in ["price", "rate", "cost", "quote", "discount", "kitna"]):
+                detected_intent = "price_inquiry"
+                detected_conf = 0.95
+            elif any(w in last_user_msg for w in ["sample", "tasting", "kit"]):
+                detected_intent = "sample_request"
+                detected_conf = 0.95
+                signals.append("sample_requested")
+            elif any(w in last_user_msg for w in ["darjeeling", "assam", "dooars", "tea", "chai", "blend"]):
+                detected_intent = "product_inquiry"
+                detected_conf = 0.92
+
+            if any(w in last_user_msg for w in ["kg", "kilo", "ton", "quintal"]):
+                signals.append("volume_specified")
+
+            simulated_content = json.dumps({
+                "intent": detected_intent,
+                "confidence": detected_conf,
+                "objection": detected_obj,
+                "additional_signals": signals,
+            })
+
+        # Capability C: Structured Pricing & Order Extraction simulation (§3.C)
+        elif (
+            "pricing_extraction" in str(request.metadata)
+            or cap_name == "pricing_extraction"
+            or "extract" in last_user_msg
+            or "invoice extraction" in str(request.messages[0].content if request.messages else "").lower()
+        ):
+            p_name = "Assam Kadak CTC Granules"
+            if "darjeeling" in last_user_msg:
+                p_name = "Darjeeling Spring First Flush Special"
+            elif "dooars" in last_user_msg:
+                p_name = "Dooars Terai Hotel Master Blend"
+            elif "green" in last_user_msg:
+                p_name = "Sub-Himalayan Green Tea Whole Leaf"
+
+            extracted_qty = 50.0
+            m = re.search(r"(\d+(?:\.\d+)?)\s*(?:kg|kilo|ton)?", last_user_msg)
+            if m:
+                try:
+                    val = float(m.group(1))
+                    if val > 0:
+                        extracted_qty = val
+                except Exception:
+                    pass
+
+            pkg = (
+                "50kg multi-wall paper sacks with food-grade liner"
+                if extracted_qty >= 50.0
+                else "25kg multi-wall paper sacks with food-grade liner"
             )
-        # Translation simulation
-        elif "translate" in last_user_msg:
-            simulated_content = "Namaste, hume Siliguri cafe ke liye 50kg chai chahiye."
-        # Safety simulation
+
+            order_json = {
+                "buyer_name": "Siliguri Wholesale Partner",
+                "buyer_phone": "+919832012345",
+                "buyer_company": "Siliguri Commercial Cafe",
+                "delivery_city": "Siliguri",
+                "delivery_state": "West Bengal",
+                "items": [
+                    {
+                        "product_name": p_name,
+                        "quantity_kg": extracted_qty,
+                        "packaging_type": pkg,
+                    }
+                ],
+            }
+            simulated_content = json.dumps(order_json)
+
+        # Capability E: Vision & Document Understanding simulation (§3.E)
+        elif "vision" in model.lower() or "vision_document" in str(request.metadata):
+            simulated_content = json.dumps({
+                "document_type": "tea_spec_and_quotation",
+                "extracted_product": "Assam Kadak CTC Granules",
+                "tea_grade": "BP",
+                "verified_moq_kg": 25.0,
+                "notes": "Verified authentic wholesale specification and commercial trade terms.",
+            })
+
+        # Capability F: Translation simulation (§3.F)
+        elif "translate" in model.lower() or "translation" in str(request.metadata) or "translate" in last_user_msg:
+            if "hindi" in str(request.metadata).lower() or "hindi" in last_user_msg:
+                simulated_content = "नमस्ते, हमें सिलीगुड़ी कैफे के लिए 50 किलो चाय चाहिए, कृपया दर बताइए।"
+            else:
+                simulated_content = "Namaste, we need 50kg Assam CTC tea for our Siliguri cafe, please share the wholesale price."
+
+        # Safety Guardrails simulation (§3.G)
         elif "safety" in model.lower() or "guard" in model.lower():
-            simulated_content = '{"verdict": "safe", "categories": []}'
+            simulated_content = '{"is_safe": true, "reason": null}'
+
         # Standard sales dialogue
         elif "darjeeling" in last_user_msg:
             simulated_content = (
