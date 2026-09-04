@@ -14,7 +14,6 @@ import time
 from typing import Any, Dict, List, Optional, Tuple
 import httpx
 
-from app.agent.providers.base import LLMMessage, LLMResponse
 from app.ai.chains import get_capability_chain
 from app.ai.circuit_breaker import circuit_breaker
 from app.ai.client import NIMClient
@@ -391,20 +390,25 @@ class AIRouter:
     # -------------------------------------------------------------------------
     async def generate(
         self,
-        messages: List[LLMMessage],
+        messages: List[Any],
         temperature: Optional[float] = None,
         max_tokens: Optional[int] = None,
         tools: Optional[List[Dict[str, Any]]] = None,
         task_class: Any = None,
         capability: Capability = Capability.CORE_BRAIN,
-    ) -> LLMResponse:
+    ) -> Any:
         """
         Drop-in backward-compatible bridge for legacy orchestrator and test suites.
         """
+        from app.agent.providers.base import LLMResponse
+
         temp = temperature if temperature is not None else settings.LLM_TEMPERATURE
         max_t = max_tokens if max_tokens is not None else settings.LLM_MAX_TOKENS
 
-        model_msgs = [ModelMessage(role=m.role, content=m.content) for m in messages]
+        model_msgs = [
+            ModelMessage(role=getattr(m, "role", "user"), content=getattr(m, "content", str(m)))
+            for m in messages
+        ]
         req = ModelRequest(
             messages=model_msgs,
             temperature=temp,
