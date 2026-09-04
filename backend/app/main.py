@@ -1,7 +1,5 @@
-"""
-WB-Agent: FastAPI Application Entrypoint (Section 58).
-"""
-
+import asyncio
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.middleware import CorrelationIdMiddleware, SecurityHeadersMiddleware
@@ -23,10 +21,34 @@ from app.api.routes import (
     quotes,
     settings as settings_router,
     webhooks,
+    whatsapp,
     ws,
 )
 from app.config import settings
+from app.jobs.worker import Worker
 from app.utils.logging import logger
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    FastAPI Lifespan: Automatically starts the background Worker daemon
+    to continuously process inbound WhatsApp messages, follow-ups, and sales jobs.
+    """
+    worker = Worker("fastapi_lifespan_worker")
+    worker_task = asyncio.create_task(worker.start(poll_interval=0.5))
+    logger.info("FastAPI Lifespan: Autonomous Worker daemon started.")
+    try:
+        yield
+    finally:
+        worker.stop()
+        worker_task.cancel()
+        try:
+            await worker_task
+        except (asyncio.CancelledError, Exception):
+            pass
+        logger.info("FastAPI Lifespan: Autonomous Worker daemon stopped gracefully.")
+
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -35,6 +57,7 @@ app = FastAPI(
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
     docs_url=f"{settings.API_V1_STR}/docs",
     redoc_url=f"{settings.API_V1_STR}/redoc",
+    lifespan=lifespan,
 )
 
 # 1. Custom Security and Tracing Middleware
@@ -68,6 +91,7 @@ app.include_router(knowledge.router, prefix=api_v1)
 app.include_router(handoffs.router, prefix=api_v1)
 app.include_router(analytics.router, prefix=api_v1)
 app.include_router(webhooks.router, prefix=api_v1)
+app.include_router(whatsapp.router, prefix=api_v1)
 app.include_router(settings_router.router, prefix=api_v1)
 app.include_router(ws.router, prefix=api_v1)
 

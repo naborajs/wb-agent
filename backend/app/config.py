@@ -94,7 +94,15 @@ class Settings(BaseSettings):
     # Networking & Security
     API_URL: str = "http://localhost:8000"
     DASHBOARD_URL: str = "http://localhost:3000"
-    CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:8000"]
+    WHATSAPP_BRIDGE_URL: str = "http://localhost:3001"
+    CORS_ORIGINS: List[str] = [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+        "http://localhost:3001",
+        "http://127.0.0.1:3001",
+    ]
 
     # Storage Paths
     STORAGE_BASE_PATH: str = "./storage"
