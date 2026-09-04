@@ -70,6 +70,7 @@ class AgentOrchestrator:
         inbound_message: str,
         sender_id: Optional[str] = None,
         provider_message_id: Optional[str] = None,
+        is_simulation: bool = False,
     ) -> AgentTurnResponse:
         """
         Executes a single consultative sales conversational turn.
@@ -367,8 +368,14 @@ class AgentOrchestrator:
             logger.info(f"Send aborted: conversation {conversation_id} is in mode '{fresh_conv.mode}'.")
             is_suppressed = True
 
-        if not is_suppressed and sanitized_reply:
-            provider_msg_id = None
+        can_dispatch_whatsapp = (
+            not is_suppressed
+            and not is_simulation
+            and conv.channel == "whatsapp"
+            and bool(conv.channel_id)
+        )
+        provider_msg_id = None
+        if can_dispatch_whatsapp and sanitized_reply:
             clean_recipient = conv.channel_id.replace("+", "").replace(" ", "").strip() if conv.channel_id else ""
             bot_num = "918918753100"
             if clean_recipient == bot_num or clean_recipient.endswith(bot_num):
@@ -377,13 +384,13 @@ class AgentOrchestrator:
                 try:
                     from app.whatsapp.service import WhatsAppService
                     wa = WhatsAppService.get_provider()
-                    if conv.channel_id:
-                        send_res = await wa.send_message(to_phone=conv.channel_id, text=sanitized_reply)
-                        if send_res and send_res.provider_message_id:
-                            provider_msg_id = send_res.provider_message_id
+                    send_res = await wa.send_message(to_phone=conv.channel_id, text=sanitized_reply)
+                    if send_res and send_res.provider_message_id:
+                        provider_msg_id = send_res.provider_message_id
                 except Exception as e:
                     logger.error(f"Failed to dispatch outbound WhatsApp message: {e}")
 
+        if not is_suppressed and sanitized_reply:
             await self.conv_service.add_message(
                 conversation_id=conversation_id,
                 direction="outbound",
@@ -395,7 +402,17 @@ class AgentOrchestrator:
 
         # 13. Automatic PDF Pro-Forma Invoice Generation & WhatsApp Dispatch (Requirement R1)
         invoice_pdf_path: Optional[str] = None
-        if target_stage in ("PURCHASE_INTENT", "RECOMMENDATION"):
+        should_generate_invoice = False
+        if target_stage == "PURCHASE_INTENT":
+            should_generate_invoice = True
+        elif target_stage == "RECOMMENDATION":
+            has_qty = bool(facts.quantity_numeric_kg and facts.quantity_numeric_kg > 0)
+            inbound_lower = inbound_message.lower()
+            wants_quote = any(kw in inbound_lower for kw in ["quote", "invoice", "cost", "price", "rate", "order", "sample", "kg", "ton", "bulk"])
+            if has_qty or wants_quote or "quantity" in known_profile:
+                should_generate_invoice = True
+
+        if should_generate_invoice:
             try:
                 from app.services.invoice_generator import InvoiceGenerator
 
@@ -454,8 +471,10 @@ class AgentOrchestrator:
 
                 invoice_pdf_path = InvoiceGenerator.generate_proforma_pdf(inv_order_data)
 
-                # Automatically dispatch compiled PDF into active WhatsApp conversation
-                if not is_suppressed and conv.channel_id:
+                # Automatically dispatch compiled PDF into active WhatsApp conversation if live
+                doc_provider_msg_id = None
+                doc_delivery_status = "sent"
+                if can_dispatch_whatsapp:
                     clean_recip = conv.channel_id.replace("+", "").replace(" ", "").strip()
                     bot_phone = "918918753100"
                     if clean_recip != bot_phone and not clean_recip.endswith(bot_phone):
@@ -473,16 +492,21 @@ class AgentOrchestrator:
                             caption=caption,
                             filename=pdf_filename,
                         )
-                        await self.conv_service.add_message(
-                            conversation_id=conversation_id,
-                            direction="outbound",
-                            sender_type="agent",
-                            content=f"Sent commercial pro-forma invoice PDF: {pdf_filename}",
-                            media_url=invoice_pdf_path,
-                            media_type="application/pdf",
-                            delivery_status="sent" if doc_res and doc_res.success else "failed",
-                            provider_message_id=doc_res.provider_message_id if doc_res else None,
-                        )
+                        if doc_res:
+                            doc_provider_msg_id = doc_res.provider_message_id
+                            doc_delivery_status = "sent" if doc_res.success else "failed"
+
+                pdf_filename = Path(invoice_pdf_path).name
+                await self.conv_service.add_message(
+                    conversation_id=conversation_id,
+                    direction="outbound",
+                    sender_type="agent",
+                    content=f"Sent commercial pro-forma invoice PDF: {pdf_filename}",
+                    media_url=invoice_pdf_path,
+                    media_type="application/pdf",
+                    delivery_status=doc_delivery_status,
+                    provider_message_id=doc_provider_msg_id,
+                )
             except Exception as e:
                 logger.error(f"Failed to compile or dispatch pro-forma invoice in orchestrator: {e}")
 

@@ -159,6 +159,7 @@ async def simulate_inbound_message(
         conversation_id=conv.id,
         inbound_message=req.message,
         sender_id=norm_phone,
+        is_simulation=True,
     )
 
     return {

@@ -62,7 +62,7 @@ async def run_agent_simulation(req: SimulationRequest, session: AsyncSession = D
     history: List[Dict[str, Any]] = []
 
     for turn_text in req.turns:
-        resp = await orchestrator.process_turn(conv.id, turn_text)
+        resp = await orchestrator.process_turn(conv.id, turn_text, is_simulation=True)
         history.append({
             "inbound": turn_text,
             "reply": resp.reply_text,

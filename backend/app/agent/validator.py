@@ -55,8 +55,16 @@ class ResponseValidator:
         elif len(text) > 2000:
             issues.append("Response exceeds WhatsApp single message comfortable length (2000 chars).")
 
-        # 4. Clean up repetitive whitespace
-        sanitized = re.sub(r"\n{3,}", "\n\n", text.strip())
+        # 4. Strip internal strategy leakage and reasoning scratchpads (e.g. *(Asking only one targeted question as per strategy...)*)
+        sanitized = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL)
+        sanitized = re.sub(
+            r"[\*\_]*\s*[\(\[](?:asking only one|strategy|internal note|note to|as per strategy|system prompt|guideline)[^\)\]]*[\)\]]\s*[\*\_]*",
+            "",
+            sanitized,
+            flags=re.IGNORECASE,
+        )
+        # Clean up repetitive whitespace
+        sanitized = re.sub(r"\n{3,}", "\n\n", sanitized.strip())
 
         is_valid = len(issues) == 0
         return is_valid, issues, sanitized
