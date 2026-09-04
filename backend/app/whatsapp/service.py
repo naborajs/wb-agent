@@ -50,7 +50,6 @@ class WhatsAppService:
                     app_secret=settings.WHATSAPP_WEBHOOK_SECRET,
                 )
             elif settings.WHATSAPP_PROVIDER == "bridge":
-                from app.whatsapp.providers.bridge import BridgeWhatsAppProvider
                 bridge_url = getattr(settings, "WHATSAPP_BRIDGE_URL", "http://localhost:3001")
                 cls._instance = BridgeWhatsAppProvider(bridge_url=bridge_url)
             else:

@@ -1,0 +1,40 @@
+# EDITH (WB-Agent) End-to-End Real Test Log
+
+This document records the real, live interactive test results across all 14 dashboard routes, global controls, the FastAPI backend, and the WhatsApp bridge. Tests are conducted against live services with real data mutation and real WhatsApp transmission to owner number `+918900653250`.
+
+| Feature/element                       | Expected behavior                                                                             | Actual behavior                                                   | Status | Fix applied (if any) |
+| ---------------------------------------| -----------------------------------------------------------------------------------------------| -------------------------------------------------------------------| --------| ----------------------|
+| **System Service: FastAPI Backend**   | Responds on `http://127.0.0.1:8000/api/v1/health` with `status: ok`                           | Returned `{"status":"ok","service":"wb-agent","version":"0.1.0"}` | PASS   | None                 |
+| **System Service: WhatsApp Bridge**   | Responds on `http://127.0.0.1:3001/health` with `connected: true` on bot phone `918918753100` | Authenticated Baileys session active, returns `connected: true`   | PASS   | None                 |
+| **System Service: Next.js Dashboard** | Dev server active and responsive on `http://localhost:3000`                                   | Dev server compiled in 1815ms, accessible on port 3000            | PASS   | None                 |
+| **System Service: Job Worker Daemon** | Polling SQLite database jobs every 1.0s                                                       | Worker daemon started and listening for jobs                      | PASS   | None                 |
+| **Topbar: Dark Mode Toggle**           | Toggles theme between Light and Dark mode, updates `localStorage` and `<html>` class           | Toggles `dark` class on `<html>` and updates `wb_theme` in storage | PASS   | None                 |
+| **Topbar: Live WebSocket Pill**        | Displays live connection status and roundtrip latency                                         | Connects to `ws://localhost:8000/api/v1/ws`, shows "Live · 3ms"   | PASS   | None                 |
+| **Topbar: AI Watchdog Supervisor**     | Opens diagnostic dropdown, displays model info, provides on-demand "Audit Now" button          | Opens panel, "Audit Now" executes real-time diagnostic audit      | PASS   | None                 |
+| **Topbar: Profile Avatar Dropdown**    | Opens operator profile, displays configured numbers (`Bot: +918918753100`, `Owner: +918900653250`) | Displays exact configured info and controls cleanly               | PASS   | None                 |
+| **Overview: KPI Summary Cards**        | Live cards for Hot Leads, Human Handoffs, Won Deals, Pipeline Value                           | Displays live values, polled from `/api/v1/analytics/overview`     | PASS   | None                 |
+| **Overview: Funnel/Donut View Toggle**  | Switches between horizontal stage bar charts and dynamic SVG donut chart with percentages      | Switches view smoothly, calculates stage distribution and legend   | PASS   | None                 |
+| **Overview: Open Live Inbox Link**     | Navigates operator from Overview to `/conversations`                                           | Cleanly transitions route to `http://localhost:3000/conversations` | PASS   | None                 |
+| **Conversations: Filter Tabs**         | Filters chat list by 'All', 'Needs Human', 'Hot Leads', 'Autonomous'                          | Filters conversations list dynamically by state/mode               | PASS   | None                 |
+| **Conversations: Takeover / AI Resume** | Toggles conversation mode between AI and HUMAN to pause/resume autonomous replies             | Updates conversation mode in DB, suppresses AI when in HUMAN mode  | PASS   | None                 |
+| **Conversations: Real WhatsApp Outbound** | Dispatches operator message to recipient phone over live Baileys WhatsApp Bridge             | Successfully sent message to owner `+918900653250` via Baileys     | PASS   | None                 |
+| **Conversations: AI Catalog Reasoning** | Customer query triggers live AI catalog pricing calculation and sales stage progression       | Correctly calculated Assam CTC price (100kg × ₹340 = ₹34,000)      | PASS   | None                 |
+| **Conversations: Start New Chat Modal** | Initiates new conversation with phone, contact name, company, and opening message              | Failed with 500 `UnboundLocalError` in `WhatsAppService.get_provider` | FIXED  | Removed redundant local import of `BridgeWhatsAppProvider` inside `get_provider` |
+| **Leads: Table Listing**               | Loads leads list from `/api/v1/leads` with company, phone, score, and status                   | Successfully loaded leads from DB with full metadata                | PASS   | None                 |
+| **Leads: Live Search**                 | Filters leads by name, company, and phone query in real-time                                   | Filtering "Heritage" isolates Rahul Sharma; clears cleanly          | PASS   | None                 |
+| **Leads: Status Filter Tabs**          | Filters leads by stage: ALL, NEW, CONTACTED, QUALIFIED, CONVERTED                              | Accurately filters rows for each stage category                     | PASS   | None                 |
+| **Leads: Send Custom Proposal Action** | Dispatches tailored B2B commercial proposal via `/api/v1/proposals/send/{leadId}`              | Advances lead status to CONTACTED, renders green Proposal Sent badge| PASS   | None                 |
+| **Campaigns: Pause / Resume Drip**    | Toggles cold campaign status between active and paused, updating pacing and quotas             | Changes status pill and button label cleanly between active/paused  | PASS   | None                 |
+| **Campaigns: Create Campaign Modal**   | Opens campaign creation modal, configures target segment, name, and daily quota                 | Creates `TEST - Jalpaiguri Hotel Outreach`, renders at top of list  | PASS   | None                 |
+| **Analytics: Refresh Button**          | Re-queries `/api/v1/analytics/intelligence` and spins icon during fetch                         | Correctly displays `animate-spin`, re-queries backend data cleanly | PASS   | None                 |
+| **Analytics: Pareto & Regional Heatmap** | Renders objection distribution and 5 regional hub metrics                                      | Accurately computes cumulative % and displays regional table        | PASS   | None                 |
+| **Analytics: Executive CSV Export**    | Link points to `/api/v1/analytics/export?format=csv` with download attribute                   | Direct CSV download link correctly wired to backend export handler | PASS   | None                 |
+| **Orders: Listing & Status Tabs**      | Lists orders with order number, customer, status, total amount, and filters by status tabs      | Renders orders accurately, filtering by ALL, PENDING, CONFIRMED, DISPATCHED, DELIVERED works | PASS   | None                 |
+| **Orders: Status Transition Action**   | Clicking action button (e.g. 'Dispatch') advances order lifecycle state                         | Dispatched order #NBT-260904-450, badge changed to DISPATCHED immediately                     | PASS   | None                 |
+| **Orders: Create Order Modal & Dispatch** | Create Order modal populates customers, items, discounts, calculates totals, and creates order | Fixed two bugs: 1) customer dropdown empty due to response format; 2) backend customer resolution and discount schema mismatch. Successfully created order & dispatched real WhatsApp alert to owner | FIXED  | 1) Updated `orders/page.tsx` leads parsing; 2) Updated `app/api/routes/orders.py` customer phone resolution & discount schema |
+
+
+
+
+
+

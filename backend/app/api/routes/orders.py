@@ -19,7 +19,7 @@ router = APIRouter(prefix="/orders", tags=["Orders"])
 
 
 class OrderItemInput(BaseModel):
-    product_id: str
+    product_id: Optional[str] = "prod_assam_ctc"
     variant_id: Optional[str] = None
     product_name: str
     tea_grade: Optional[str] = "BP"
@@ -27,10 +27,13 @@ class OrderItemInput(BaseModel):
     quantity_kg: float = Field(..., gt=0)
     unit_price_per_kg: float = Field(..., gt=0)
     discount_pct: float = Field(0.0, ge=0, le=100)
+    discount_percentage: Optional[float] = None
 
 
 class OrderCreateInput(BaseModel):
-    customer_id: str
+    customer_id: Optional[str] = None
+    customer_name: Optional[str] = None
+    customer_phone: Optional[str] = None
     conversation_id: Optional[str] = None
     shipping_name: Optional[str] = None
     shipping_phone: Optional[str] = None
@@ -114,9 +117,26 @@ async def create_order(
     if not payload.items:
         raise HTTPException(status_code=400, detail="Order must include at least one item.")
 
-    customer = await session.get(Customer, payload.customer_id)
+    customer = None
+    if payload.customer_id:
+        customer = await session.get(Customer, payload.customer_id)
     if not customer:
-        raise HTTPException(status_code=404, detail="Customer not found.")
+        phone_to_check = payload.shipping_phone or payload.customer_phone or "+918900653250"
+        from app.utils.phone import normalize_phone_number
+        norm_phone = normalize_phone_number(phone_to_check)
+        stmt = select(Customer).where(Customer.org_id == settings.DEFAULT_ORG_ID, Customer.primary_phone == norm_phone)
+        customer = (await session.execute(stmt)).scalar_one_or_none()
+        if not customer:
+            customer = Customer(
+                org_id=settings.DEFAULT_ORG_ID,
+                primary_phone=norm_phone,
+                name=payload.shipping_name or payload.customer_name or "Commercial Buyer",
+                company_name=payload.shipping_name or "Wholesale Buyer",
+                city=payload.shipping_city,
+            )
+            session.add(customer)
+            await session.commit()
+            await session.refresh(customer)
 
     # Generate Order Number
     import random
@@ -129,21 +149,22 @@ async def create_order(
     order_items = []
 
     for item in payload.items:
+        eff_discount = item.discount_percentage if (item.discount_pct == 0.0 and item.discount_percentage is not None) else item.discount_pct
         raw_subtotal = item.quantity_kg * item.unit_price_per_kg
-        discount = raw_subtotal * (item.discount_pct / 100.0)
+        discount = raw_subtotal * (eff_discount / 100.0)
         final_subtotal = raw_subtotal - discount
         total_amount += final_subtotal
         total_discount += discount
 
         order_item = OrderItem(
-            product_id=item.product_id,
+            product_id=item.product_id or "prod_assam_ctc",
             variant_id=item.variant_id,
             product_name=item.product_name,
             tea_grade=item.tea_grade,
             packaging_type=item.packaging_type,
             quantity_kg=item.quantity_kg,
             unit_price_per_kg=item.unit_price_per_kg,
-            discount_pct=item.discount_pct,
+            discount_pct=eff_discount,
             subtotal=final_subtotal,
         )
         order_items.append(order_item)

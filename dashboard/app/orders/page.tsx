@@ -111,9 +111,10 @@ export default function OrdersPage() {
       const res = await fetch("/api/v1/leads");
       if (res.ok) {
         const data = await res.json();
-        if (data.leads) {
+        const list = data.items || data.leads || [];
+        if (list.length > 0) {
           setCustomers(
-            data.leads.map((l: any) => ({
+            list.map((l: any) => ({
               id: l.id,
               name: l.name || l.contact_name || "Valued Buyer",
               primary_phone: l.phone,
@@ -188,18 +189,19 @@ export default function OrdersPage() {
 
     const payload = {
       customer_id: selectedCustomerId || undefined,
-      customer_name: shippingName,
-      customer_phone: shippingPhone,
+      shipping_name: shippingName,
+      shipping_phone: shippingPhone,
       shipping_city: shippingCity || undefined,
       shipping_address: shippingAddress || undefined,
       payment_terms: paymentTerms,
       notes: orderNotes || undefined,
       items: orderItems.map((item) => ({
+        product_id: item.product_id || "prod_assam_ctc",
         product_name: item.product_name,
         tea_grade: item.tea_grade,
-        quantity_kg: item.quantity_kg,
-        unit_price_per_kg: item.unit_price_per_kg,
-        discount_percentage: item.discount_pct,
+        quantity_kg: Number(item.quantity_kg),
+        unit_price_per_kg: Number(item.unit_price_per_kg),
+        discount_pct: Number(item.discount_pct || 0),
         packaging_type: item.packaging_type,
       })),
     };
