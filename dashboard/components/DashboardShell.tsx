@@ -24,12 +24,16 @@ import {
   Cpu,
   Menu,
   X,
+  Send,
+  TrendingUp,
 } from "lucide-react";
 
 const navigation = [
   { name: "Overview", href: "/", icon: BarChart3 },
   { name: "Live Inbox", href: "/conversations", icon: Inbox },
   { name: "Leads", href: "/leads", icon: Users },
+  { name: "Campaigns", href: "/campaigns", icon: Send },
+  { name: "Analytics", href: "/analytics", icon: TrendingUp },
   { name: "Orders", href: "/orders", icon: ShoppingBag },
   { name: "Catalog", href: "/products", icon: Coffee },
   { name: "Pricing Rules", href: "/pricing", icon: DollarSign },
