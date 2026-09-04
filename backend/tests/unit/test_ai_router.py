@@ -135,3 +135,86 @@ async def test_reasoning_content_capture():
     resp = await router.execute(capability=Capability.CORE_BRAIN, request=req)
     assert resp.reasoning_content is not None
     assert len(resp.reasoning_content) > 0
+
+
+@pytest.mark.asyncio
+async def test_transcribe_voice_capability_d():
+    """
+    Directive §3.D: Voice note understanding with Nemotron Omni, scoped Gemini fallback,
+    and Riva translation when customer speaks in Hindi/Hinglish.
+    """
+    router = AIRouter()
+
+    # Audio with simulated speech token
+    voice_payload = b"RIFF_test_audio: TRANSCRIPT: Bhai 50kg Assam CTC rate batao"
+    transcript = await router.transcribe_voice(voice_payload, mime_type="audio/ogg", working_language="en")
+    assert transcript == "Bhai 50kg Assam CTC rate batao"
+
+    # Audio without token -> uses domain simulation and Riva translation pass
+    raw_audio = b"RIFF_darjeeling_buffet_voice_bytes"
+    res = await router.transcribe_voice(raw_audio, mime_type="audio/ogg", working_language="en")
+    assert "Darjeeling" in res
+
+
+@pytest.mark.asyncio
+async def test_extract_pricing_order_capability_c():
+    """
+    Directive §3.C: Structured pricing / order data extraction converts message into structured JSON.
+    """
+    router = AIRouter()
+    order = await router.extract_pricing_order(
+        inbound_text="We need 100kg Assam CTC delivered to our Siliguri cafe, please send the invoice",
+        context={"buyer_name": "Siliguri Cafe", "buyer_phone": "+919832012345"},
+    )
+    assert order is not None
+    assert "items" in order
+    assert len(order["items"]) >= 1
+    assert order["items"][0]["quantity_kg"] == 100.0
+
+
+@pytest.mark.asyncio
+async def test_translate_text_capability_f():
+    """
+    Directive §3.F: Multilingual translation layer using Riva Translate.
+    """
+    router = AIRouter()
+    translated = await router.translate_text(
+        text="Hume Siliguri cafe ke liye 50kg chai chahiye",
+        target_language="English",
+    )
+    assert translated is not None
+    assert len(translated) > 0
+
+
+@pytest.mark.asyncio
+async def test_inspect_document_capability_e():
+    """
+    Directive §3.E: Vision & document understanding using Llama-3.2 Vision.
+    """
+    router = AIRouter()
+    resp = await router.inspect_document(
+        image_data=b"mock_tea_spec_sheet_bytes",
+        mime_type="image/jpeg",
+    )
+    assert resp is not None
+    assert "tea_spec_and_quotation" in resp.content or "spec" in resp.content.lower()
+
+
+@pytest.mark.asyncio
+async def test_translation_does_not_fall_back_to_gemini(monkeypatch):
+    """
+    Directive §3.F: For translation, fall through to core chat models — do NOT reach for Gemini.
+    """
+    from app.config import settings
+    monkeypatch.setattr(settings, "GEMINI_API_KEY", "mock-gemini-key")
+
+    router = AIRouter(primary_key="dead-key-1", fallback_key="dead-key-2")
+    # All NIM models will fail on dead keys
+    resp = await router.execute(
+        capability=Capability.TRANSLATION,
+        request=ModelRequest(messages=[ModelMessage(role="user", content="Translate this")]),
+    )
+    # Must NOT use Gemini
+    assert resp.provider != "gemini_emergency"
+    assert resp.model != "gemini-1.5-flash"
+

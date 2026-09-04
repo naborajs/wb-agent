@@ -201,11 +201,15 @@ class NIMClient:
                 p_name = "Sub-Himalayan Green Tea Whole Leaf"
 
             extracted_qty = 50.0
-            m = re.search(r"(\d+(?:\.\d+)?)\s*(?:kg|kilo|ton)?", last_user_msg)
+            # Look for explicit weight units first (e.g., 100kg, 50 kilo)
+            m = re.search(r"(\d+(?:\.\d+)?)\s*(?:kg|kilos|kilo|ton|tons|quintal)", last_user_msg)
+            if not m:
+                # Bounded quantity (1-4 digits) to avoid 10-12 digit phone numbers
+                m = re.search(r"(?:quantity|volume|qty|need|order)?\s*:?\s*\b(\d{1,4}(?:\.\d+)?)\b", last_user_msg)
             if m:
                 try:
                     val = float(m.group(1))
-                    if val > 0:
+                    if 0 < val <= 50000:
                         extracted_qty = val
                 except Exception:
                     pass
