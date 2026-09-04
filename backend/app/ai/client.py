@@ -93,13 +93,21 @@ class NIMClient:
         )
 
         # Extract embedded <think>...</think> tags if present in raw content
-        if "<think>" in raw_content and "</think>" in raw_content:
-            m = re.search(r"<think>(.*?)</think>", raw_content, flags=re.DOTALL)
-            if m:
-                extracted_reasoning = m.group(1).strip()
-                raw_content = re.sub(r"<think>.*?</think>", "", raw_content, flags=re.DOTALL).strip()
-                if not reasoning_content:
-                    reasoning_content = extracted_reasoning
+        if "<think>" in raw_content:
+            if "</think>" in raw_content:
+                m = re.search(r"<think>(.*?)</think>", raw_content, flags=re.DOTALL)
+                if m:
+                    extracted_reasoning = m.group(1).strip()
+                    raw_content = re.sub(r"<think>.*?</think>", "", raw_content, flags=re.DOTALL).strip()
+                    if not reasoning_content:
+                        reasoning_content = extracted_reasoning
+            else:
+                m = re.search(r"<think>(.*)", raw_content, flags=re.DOTALL)
+                if m:
+                    extracted_reasoning = m.group(1).strip()
+                    raw_content = ""
+                    if not reasoning_content:
+                        reasoning_content = extracted_reasoning
 
         return ModelResponse(
             content=raw_content,
