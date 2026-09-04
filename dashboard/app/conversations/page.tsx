@@ -26,6 +26,9 @@ import {
   VolumeX,
   Mic,
   Radio,
+  QrCode,
+  Copy,
+  Check,
 } from "lucide-react";
 
 interface ConversationItem {
@@ -64,8 +67,18 @@ export default function LiveInboxPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [isSimulatingCustomer, setIsSimulatingCustomer] = useState(false);
-  const [waStatus, setWaStatus] = useState<{ connected: boolean; pairingCode?: string } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [waStatus, setWaStatus] = useState<{
+    connected: boolean;
+    pairingCode?: string;
+    botPhone?: string;
+    hasQR?: boolean;
+  } | null>(null);
+  const [isWaModalOpen, setIsWaModalOpen] = useState(false);
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  const [isSendingPing, setIsSendingPing] = useState(false);
+  const [pingStatus, setPingStatus] = useState<string | null>(null);
+  const [copiedCode, setCopiedCode] = useState(false);
 
   // New Chat Modal State
   const [isNewChatOpen, setIsNewChatOpen] = useState(false);
@@ -236,18 +249,64 @@ export default function LiveInboxPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [activeConvDetail?.messages]);
 
-  // Monitor WhatsApp Bridge Connection
+  // Fetch QR Code data URL from bridge proxy
+  const fetchQrData = () => {
+    fetch("/api/v1/whatsapp/qr")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data?.qrDataUrl) setQrDataUrl(data.qrDataUrl);
+      })
+      .catch(() => {});
+  };
+
+  // Dispatch WhatsApp Diagnostic Ping
+  const handleSendPing = async () => {
+    setIsSendingPing(true);
+    setPingStatus(null);
+    try {
+      const res = await fetch("/api/v1/whatsapp/send-ping", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setPingStatus("✅ Ping sent to WhatsApp! Check your phone (+91 89006 53250).");
+      } else {
+        setPingStatus(`⚠️ ${data.detail || "Failed to send ping"}`);
+      }
+    } catch (e: any) {
+      setPingStatus(`❌ Error: ${e.message}`);
+    } finally {
+      setIsSendingPing(false);
+      setTimeout(() => setPingStatus(null), 6000);
+    }
+  };
+
+  // Monitor WhatsApp Bridge Connection via FastAPI Proxy
   useEffect(() => {
     const checkWa = () => {
-      fetch("http://localhost:3001/status")
+      fetch("/api/v1/whatsapp/status")
         .then((r) => (r.ok ? r.json() : null))
-        .then((data) => setWaStatus(data))
+        .then((data) => {
+          if (data) {
+            setWaStatus({
+              connected: !!data.connected,
+              pairingCode: data.pairing_code,
+              botPhone: data.bot_phone,
+              hasQR: data.has_qr,
+            });
+            if (!data.connected && data.has_qr && !qrDataUrl) {
+              fetchQrData();
+            }
+          }
+        })
         .catch(() => setWaStatus({ connected: false }));
     };
     checkWa();
-    const interval = setInterval(checkWa, 4000);
+    const interval = setInterval(checkWa, 3000);
     return () => clearInterval(interval);
-  }, []);
+  }, [qrDataUrl]);
 
   // Handle Takeover Mode (AI <-> HUMAN)
   const handleTakeover = async (mode: string) => {
@@ -580,6 +639,44 @@ export default function LiveInboxPage() {
               </div>
 
               <div className="flex items-center gap-2">
+                {/* Real-Time WhatsApp Bot Connection Badge */}
+                {waStatus?.connected ? (
+                  <button
+                    type="button"
+                    onClick={() => setIsWaModalOpen(true)}
+                    title="WhatsApp Bot is Active! Click for connection details"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-500 text-[10px] font-semibold hover:bg-emerald-500/20 transition-all cursor-pointer"
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span>WhatsApp Live</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      fetchQrData();
+                      setIsWaModalOpen(true);
+                    }}
+                    title="WhatsApp is disconnected. Click to connect bot"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-amber-500/40 bg-amber-500/10 text-amber-500 text-[10px] font-semibold hover:bg-amber-500/20 transition-all cursor-pointer animate-pulse"
+                  >
+                    <AlertTriangle className="w-3 h-3" />
+                    <span>Connect WhatsApp</span>
+                  </button>
+                )}
+
+                {/* WhatsApp Test Ping Button */}
+                <button
+                  type="button"
+                  onClick={handleSendPing}
+                  disabled={isSendingPing}
+                  title="Send instant WhatsApp ping to verify live message delivery"
+                  className="px-2.5 py-1 rounded-lg border border-[var(--ed-border)] hover:border-emerald-500/40 hover:bg-emerald-500/10 text-[10px] font-semibold text-[var(--ed-text-muted)] hover:text-emerald-500 transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                >
+                  <Send className="w-2.5 h-2.5" />
+                  {isSendingPing ? "Pinging..." : "Test Ping"}
+                </button>
+
                 {/* WebSocket Live Sync & Sound Chime (R3) */}
                 <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg border border-[var(--ed-border)] text-[10px] font-semibold">
                   <Radio className={`w-3 h-3 ${wsConnected ? "text-emerald-500 animate-pulse" : "text-amber-500"}`} />
@@ -617,32 +714,36 @@ export default function LiveInboxPage() {
               </div>
             </div>
 
-            {/* WhatsApp Connection Warning Banner */}
+            {/* Quick Ping Status Notification Pill */}
+            {pingStatus && (
+              <div className="bg-emerald-500/10 border-b border-emerald-500/20 px-4 py-1.5 text-xs text-emerald-500 flex items-center justify-between shrink-0 animate-in fade-in duration-200">
+                <span>{pingStatus}</span>
+                <button onClick={() => setPingStatus(null)} className="text-emerald-500 hover:text-emerald-300">
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+
+            {/* WhatsApp Connection Warning Banner (Only Shown When Disconnected) */}
             {waStatus && !waStatus.connected && (
-              <div className="bg-[var(--ed-accent)]/10 border-b border-[var(--ed-accent)]/20 px-4 py-2 text-xs flex items-center justify-between text-[var(--ed-accent)] shrink-0">
+              <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 py-2 text-xs flex items-center justify-between text-amber-500 shrink-0">
                 <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-[var(--ed-accent)] animate-ping shrink-0" />
+                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping shrink-0" />
                   <span>
-                    <strong>WhatsApp Disconnected:</strong> Link bot (+91 89187 53100) using code <strong className="font-mono bg-[var(--ed-accent)]/15 px-1 py-0.5 rounded">6K571G8A</strong> to chat from your phone, OR use <strong>🧪 Simulate Customer</strong> below to test AI right now!
+                    <strong>WhatsApp Bot is Offline:</strong> Link bot phone (+91 89187 53100) to chat live from phone, OR use <strong>🧪 Simulate Customer</strong> below to test AI right now!
                   </span>
                 </div>
                 <div className="flex items-center gap-3 shrink-0 text-[11px] font-bold">
-                  <a
-                    href="http://localhost:3001/code"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="underline hover:text-[var(--ed-accent)] dark:hover:text-white inline-flex items-center gap-0.5"
+                  <button
+                    type="button"
+                    onClick={() => {
+                      fetchQrData();
+                      setIsWaModalOpen(true);
+                    }}
+                    className="underline hover:text-amber-300 inline-flex items-center gap-1 cursor-pointer"
                   >
-                    Pairing Code <ExternalLink className="w-3 h-3" />
-                  </a>
-                  <a
-                    href="http://localhost:3001/qr"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="underline hover:text-[var(--ed-accent)] dark:hover:text-white inline-flex items-center gap-0.5"
-                  >
-                    Scan QR <ExternalLink className="w-3 h-3" />
-                  </a>
+                    <QrCode className="w-3.5 h-3.5" /> Scan QR / Pair Code
+                  </button>
                 </div>
               </div>
             )}
@@ -1085,6 +1186,172 @@ export default function LiveInboxPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: WhatsApp Bot Hub & Device Connection */}
+      {isWaModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-[var(--ed-surface)] rounded-2xl border border-[var(--ed-border)] w-full max-w-md p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex justify-between items-center mb-4">
+              <div className="flex items-center gap-2">
+                <div className={`w-3 h-3 rounded-full ${waStatus?.connected ? "bg-emerald-500 animate-pulse" : "bg-amber-500"}`} />
+                <h3 className="font-bold text-base text-[var(--ed-text-primary)]">
+                  WhatsApp Bot Connection Hub
+                </h3>
+              </div>
+              <button
+                onClick={() => setIsWaModalOpen(false)}
+                className="text-[var(--ed-text-muted)] hover:text-[var(--ed-text-primary)] p-1 rounded-lg hover:bg-[var(--ed-bg)] transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Connection Status Card */}
+            <div className={`p-4 rounded-xl border mb-5 flex items-center justify-between ${
+              waStatus?.connected
+                ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400"
+                : "bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400"
+            }`}>
+              <div>
+                <div className="text-[11px] font-semibold uppercase tracking-wider opacity-80">
+                  Connection Status
+                </div>
+                <div className="text-base font-bold flex items-center gap-1.5 mt-0.5">
+                  {waStatus?.connected ? "🟢 Online & Active" : "🔴 Disconnected"}
+                </div>
+                <div className="text-xs opacity-90 mt-1 font-mono">
+                  Bot Line: +{waStatus?.botPhone || "918918753100"}
+                </div>
+              </div>
+              <button
+                onClick={handleSendPing}
+                disabled={isSendingPing}
+                className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-sm transition-all flex items-center gap-1 shrink-0"
+              >
+                <Send className="w-3 h-3" />
+                {isSendingPing ? "Sending..." : "Test Ping"}
+              </button>
+            </div>
+
+            {pingStatus && (
+              <div className="mb-4 p-2.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-[var(--ed-border)] text-xs text-center font-medium animate-in fade-in">
+                {pingStatus}
+              </div>
+            )}
+
+            {/* Connected View */}
+            {waStatus?.connected ? (
+              <div className="space-y-4 text-xs text-[var(--ed-text-muted)]">
+                <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-[var(--ed-border)] space-y-2">
+                  <div className="font-bold text-[var(--ed-text-primary)] flex items-center gap-1.5">
+                    <CheckCircle className="w-4 h-4 text-emerald-500" /> WhatsApp Multi-Device Paired
+                  </div>
+                  <p>
+                    EDITH is actively connected on <strong>+{waStatus?.botPhone || "918918753100"}</strong>. Any buyer messaging this line receives automated consultative sales assistance with 0 latency.
+                  </p>
+                </div>
+                <div className="p-3 bg-purple-500/8 border border-purple-500/20 rounded-xl text-purple-600 dark:text-purple-400 space-y-1">
+                  <div className="font-bold flex items-center gap-1">
+                    <Sparkles className="w-3.5 h-3.5" /> Testing Directly from Phone:
+                  </div>
+                  <p>
+                    Send any message from your phone (+91 89006 53250) to the bot (+91 89187 53100) to chat with EDITH live, or use the <strong>🧪 Simulate Customer</strong> toggle in this dashboard!
+                  </p>
+                </div>
+                <div className="flex justify-end gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsWaModalOpen(false)}
+                    className="px-4 py-2 rounded-xl bg-[var(--ed-surface)] border border-[var(--ed-border)] hover:bg-[var(--ed-bg)] font-semibold text-[var(--ed-text-primary)]"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* Disconnected Linking View */
+              <div className="space-y-4 text-xs">
+                <p className="text-[var(--ed-text-muted)]">
+                  Link your WhatsApp bot to start receiving and answering customer inquiries:
+                </p>
+
+                {/* QR Code Section */}
+                <div className="flex flex-col items-center justify-center p-4 bg-white dark:bg-slate-900 rounded-xl border border-[var(--ed-border)] shadow-inner">
+                  {qrDataUrl ? (
+                    <img
+                      src={qrDataUrl}
+                      alt="Scan WhatsApp QR"
+                      className="w-52 h-52 object-contain rounded-lg shadow-sm"
+                    />
+                  ) : (
+                    <div className="w-52 h-52 flex flex-col items-center justify-center text-center p-4 space-y-2 text-slate-400">
+                      <QrCode className="w-12 h-12 stroke-[1.5] animate-pulse" />
+                      <span className="text-[11px]">Generating fresh QR Code...</span>
+                    </div>
+                  )}
+                  <div className="text-[10px] text-slate-500 mt-2 flex items-center gap-1">
+                    <RefreshCw className="w-3 h-3 animate-spin" /> Auto-refreshes automatically
+                  </div>
+                </div>
+
+                {/* 8-Digit Pairing Code Alternative */}
+                {waStatus?.pairingCode && (
+                  <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-[var(--ed-border)] flex items-center justify-between">
+                    <div>
+                      <div className="text-[10px] font-semibold text-[var(--ed-text-muted)] uppercase">
+                        Or Link With Code:
+                      </div>
+                      <div className="font-mono text-lg font-extrabold tracking-widest text-emerald-500">
+                        {waStatus.pairingCode}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (waStatus.pairingCode) {
+                          navigator.clipboard.writeText(waStatus.pairingCode);
+                          setCopiedCode(true);
+                          setTimeout(() => setCopiedCode(false), 2000);
+                        }
+                      }}
+                      className="px-3 py-1.5 rounded-lg border border-[var(--ed-border)] hover:bg-[var(--ed-bg)] font-semibold flex items-center gap-1 transition-all"
+                    >
+                      {copiedCode ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                      {copiedCode ? "Copied!" : "Copy"}
+                    </button>
+                  </div>
+                )}
+
+                {/* Step-by-Step Instructions */}
+                <ol className="list-decimal pl-5 space-y-1 text-[11px] text-[var(--ed-text-muted)]">
+                  <li>Open WhatsApp on the bot phone (<strong>+{waStatus?.botPhone || "918918753100"}</strong>)</li>
+                  <li>Tap <strong>Settings / 3 dots &gt; Linked Devices</strong></li>
+                  <li>Tap <strong>Link a Device</strong> and point phone at the QR above</li>
+                </ol>
+
+                <div className="flex justify-end gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      fetchQrData();
+                    }}
+                    className="px-3 py-2 rounded-xl border border-[var(--ed-border)] hover:bg-[var(--ed-bg)] font-semibold text-[var(--ed-text-primary)] flex items-center gap-1"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" /> Refresh QR
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsWaModalOpen(false)}
+                    className="px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold hover:bg-slate-800"
+                  >
+                    Done
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
