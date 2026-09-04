@@ -166,7 +166,7 @@ async def simulate_inbound_message(
         "conversation_id": conv.id,
         "sales_stage": result.sales_stage_after,
         "lead_score": result.lead_score_after,
-        "agent_reply": result.reply_message.content if result.reply_message else None,
+        "agent_reply": result.reply_text,
         "handoff_created": result.handoff_created,
         "is_suppressed": result.is_suppressed,
     }
