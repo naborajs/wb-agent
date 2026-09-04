@@ -11,6 +11,7 @@ router = APIRouter(tags=["Realtime"])
 
 
 @router.websocket("/ws")
+@router.websocket("/ws/conversations")
 async def websocket_endpoint(
     websocket: WebSocket,
     org_id: str = Query(default=settings.DEFAULT_ORG_ID),
