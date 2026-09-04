@@ -24,7 +24,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agent.extractor import PassiveInformationExtractor
-from app.agent.intent import detect_intent_and_objection, detect_language
+from app.agent.intent import classify_intent_llm, detect_intent_and_objection, detect_language
 from app.agent.providers.base import LLMMessage
 from app.agent.providers.router import LLMRouter
 from app.agent.sales_engine import ConsultativeSalesEngine
@@ -150,10 +150,10 @@ class AgentOrchestrator:
                 is_suppressed=True,
             )
 
-        # 3. Passive Information Extraction & Intent Detection (Sections 13 & 14)
+        # 3. Passive Information Extraction & Intent Detection (Sections 13 & 14, Directive §3.B)
         facts = PassiveInformationExtractor.extract(inbound_message)
         language = detect_language(inbound_message)
-        intent, confidence, objection_cat = detect_intent_and_objection(inbound_message)
+        intent, confidence, objection_cat = await classify_intent_llm(inbound_message)
 
         # Update language preference if detected
         if language and customer and customer.preferred_language != language:
@@ -510,62 +510,49 @@ class AgentOrchestrator:
                 c_state = (customer.state if customer else None) or "West Bengal"
                 c_gstin = (customer.custom_attributes.get("gstin") if customer and customer.custom_attributes else None)
 
-                # Determine product from recommendation, facts, or message keywords
-                chosen_product = "Assam Kadak CTC Granules"
-                if sales_decision.recommended_product:
-                    chosen_product = sales_decision.recommended_product
-                else:
-                    lower_msg = inbound_message.lower()
-                    if "darjeeling" in lower_msg:
-                        chosen_product = "Darjeeling Spring First Flush Special"
-                    elif "dooars" in lower_msg:
-                        chosen_product = "Dooars Terai Hotel Master Blend"
-                    elif "green" in lower_msg:
-                        chosen_product = "Sub-Himalayan Green Tea Whole Leaf"
-
-                # Determine order volume
-                order_qty = 50.0
-                if facts.quantity_numeric_kg and facts.quantity_numeric_kg > 0:
-                    order_qty = float(facts.quantity_numeric_kg)
-                elif "quantity" in known_profile:
-                    try:
-                        m_qty = re.search(r"(\d+(?:\.\d+)?)", str(known_profile["quantity"]))
-                        if m_qty:
-                            order_qty = float(m_qty.group(1))
-                    except Exception:
-                        pass
-
-                # Packaging specification
-                pkg_type = facts.packaging or known_profile.get("packaging") or (
-                    "50kg multi-wall paper sacks with food-grade liner" if order_qty >= 50.0 else "25kg multi-wall paper sacks with food-grade liner"
-                )
-
-                inv_order_data = {
+                # Step 1: Structured Pricing & Order Data Extraction via Capability C cascade (§3.C)
+                order_ctx = {
                     "buyer_name": c_name,
                     "buyer_phone": c_phone,
                     "buyer_company": c_company,
                     "delivery_city": c_city,
                     "delivery_state": c_state,
-                    "buyer_gstin": c_gstin,
-                    "items": [
-                        {
-                            "product_name": chosen_product,
-                            "quantity_kg": order_qty,
-                            "packaging_type": pkg_type,
-                        }
-                    ],
+                    "recommended_product": sales_decision.recommended_product,
+                    "known_quantity": known_profile.get("quantity") or facts.quantity,
+                    "known_packaging": known_profile.get("packaging") or facts.packaging,
                 }
+                raw_extracted_order = await self.ai_router.extract_pricing_order(
+                    inbound_text=inbound_message,
+                    context=order_ctx,
+                )
 
-                # Zero-Hallucination verification against DB/CSV (Directive §3.C)
+                # Ensure buyer details and fallback fields are properly populated
+                if not raw_extracted_order.get("buyer_name"):
+                    raw_extracted_order["buyer_name"] = c_name
+                if not raw_extracted_order.get("buyer_phone"):
+                    raw_extracted_order["buyer_phone"] = c_phone
+                if not raw_extracted_order.get("buyer_company"):
+                    raw_extracted_order["buyer_company"] = c_company
+                if not raw_extracted_order.get("delivery_city"):
+                    raw_extracted_order["delivery_city"] = c_city
+                if not raw_extracted_order.get("delivery_state"):
+                    raw_extracted_order["delivery_state"] = c_state
+                if c_gstin and not raw_extracted_order.get("buyer_gstin"):
+                    raw_extracted_order["buyer_gstin"] = c_gstin
+
+                # Step 2: Zero-Hallucination verification against DB/CSV (Directive §3.C)
                 is_val, verified_order_data, val_err = await PricingValidator.validate_extracted_order(
                     session=self.session,
                     org_id=self.org_id,
-                    extracted_data=inv_order_data,
+                    extracted_data=raw_extracted_order,
                 )
                 if not is_val:
                     logger.error(f"Invoice generation rejected by PricingValidator: {val_err}")
                 else:
-                    target_order = verified_order_data if verified_order_data else inv_order_data
+                    target_order = verified_order_data if verified_order_data else raw_extracted_order
+                    first_item = target_order.get("items", [{}])[0]
+                    order_qty = float(first_item.get("quantity_kg", 50.0))
+                    chosen_product = first_item.get("product_name", "Assam Kadak CTC Granules")
                     invoice_pdf_path = InvoiceGenerator.generate_proforma_pdf(target_order)
 
                     # Automatically dispatch compiled PDF into active WhatsApp conversation if live
