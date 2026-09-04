@@ -316,3 +316,39 @@ async def report_message_response(
         "category": req.category,
     }
 
+
+@router.post("/{conversation_id}/reset")
+async def reset_conversation(
+    conversation_id: str,
+    session: AsyncSession = Depends(get_db),
+):
+    """
+    Clears all messages in a conversation and resets sales stage and lead score to initial state.
+    """
+    from sqlalchemy import delete
+    from app.database.models import CustomerMemory
+
+    org_id = settings.DEFAULT_ORG_ID
+    stmt = select(Conversation).where(Conversation.id == conversation_id, Conversation.org_id == org_id)
+    conv = (await session.execute(stmt)).scalar_one_or_none()
+    if not conv:
+        raise HTTPException(status_code=404, detail="Conversation not found.")
+
+    # 1. Delete all messages for this conversation
+    await session.execute(delete(Message).where(Message.conversation_id == conversation_id))
+
+    # 2. Reset conversation state
+    conv.sales_stage = "DISCOVERY"
+    conv.lead_score = 0
+    conv.is_hot = False
+    conv.unread_count = 0
+    conv.mode = "AI"
+
+    # 3. Clean up customer memory if customer exists
+    if conv.customer_id:
+        await session.execute(delete(CustomerMemory).where(CustomerMemory.customer_id == conv.customer_id))
+
+    await session.commit()
+    return {"success": True, "conversation_id": conversation_id, "message": "Conversation reset successfully"}
+
+
