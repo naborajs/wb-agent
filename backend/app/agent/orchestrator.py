@@ -30,6 +30,9 @@ from app.agent.providers.router import LLMRouter
 from app.agent.sales_engine import ConsultativeSalesEngine
 from app.agent.tools.registry import ToolRegistry
 from app.agent.validator import ResponseValidator
+from app.ai.pricing_validator import PricingValidator
+from app.ai.router import AIRouter, ai_router
+from app.ai.types import Capability, ModelMessage, ModelRequest
 from app.config import settings
 from app.conversations.context import ContextBuilder
 from app.conversations.service import ConversationService
@@ -62,7 +65,8 @@ class AgentOrchestrator:
         self.conv_service = ConversationService(session, org_id)
         self.memory_service = CustomerMemoryService(session, org_id)
         self.unknown_mgr = UnknownKnowledgeManager(session, org_id)
-        self.llm_router = LLMRouter()
+        self.ai_router = ai_router
+        self.llm_router = ai_router
 
     async def process_turn(
         self,
@@ -95,6 +99,56 @@ class AgentOrchestrator:
         # 2. Build working context & customer profile
         ctx = await self.context_builder.build_context(conversation_id, inbound_message)
         customer = await self.session.get(Customer, ctx.customer_id)
+
+        # Stage G1 Guardrail: Input Safety Check (Directive §3.G - Fail Closed)
+        input_verdict = await self.ai_router.check_input_safety(inbound_message)
+        if not input_verdict.is_safe:
+            logger.warning(
+                f"Inbound message from {conv.channel_id} held by input safety guardrail: {input_verdict.reason}"
+            )
+            handoff = Handoff(
+                org_id=self.org_id,
+                conversation_id=conversation_id,
+                customer_id=ctx.customer_id,
+                reason="guardrail_violation",
+                summary=f"Held by input guardrail: {input_verdict.reason or 'Safety policy violation'}",
+                customer_intent="Customer message triggered input safety guardrail",
+            )
+            self.session.add(handoff)
+            await self.conv_service.update_mode(conversation_id, "HUMAN", reason="input_guardrail_hold")
+            safe_reply = (
+                "Thank you for contacting North Bengal Tea Co. We have flagged your request for our commercial manager, "
+                "who will assist you personally."
+            )
+            await self.conv_service.add_message(
+                conversation_id=conversation_id,
+                direction="outbound",
+                sender_type="agent",
+                content=safe_reply,
+                delivery_status="sent",
+            )
+            await self.session.commit()
+            return AgentTurnResponse(
+                conversation_id=conversation_id,
+                reply_text=safe_reply,
+                decision=StructuredDecision(
+                    intent="guardrail_held",
+                    sales_stage=conv.sales_stage,
+                    confidence=1.0,
+                    recommended_action="handoff",
+                    tools_required=[],
+                    reason_code="SAFETY_INPUT_GUARDRAIL_HOLD",
+                    handoff_required=True,
+                    handoff_reason=input_verdict.reason,
+                ),
+                sales_stage_before=conv.sales_stage,
+                sales_stage_after=conv.sales_stage,
+                lead_score_before=conv.lead_score,
+                lead_score_after=conv.lead_score,
+                tools_executed=[],
+                handoff_created=True,
+                is_suppressed=True,
+            )
 
         # 3. Passive Information Extraction & Intent Detection (Sections 13 & 14)
         facts = PassiveInformationExtractor.extract(inbound_message)
@@ -198,6 +252,7 @@ class AgentOrchestrator:
         handoff_created = False
         target_stage = conv.sales_stage
         score_delta = 0
+        reasoning_trace: Optional[str] = None
 
         # 6. Consultative Sales Engine Decision (Section 10 & 11)
         sales_decision = ConsultativeSalesEngine.decide(
@@ -341,8 +396,17 @@ class AgentOrchestrator:
 
             prompt_msgs.append(LLMMessage(role="user", content=inbound_message))
 
-            llm_resp = await self.llm_router.generate(prompt_msgs)
+            llm_resp = await self.ai_router.execute(
+                capability=Capability.CORE_BRAIN,
+                request=ModelRequest(
+                    messages=[ModelMessage(role=m.role, content=m.content) for m in prompt_msgs],
+                    temperature=settings.LLM_TEMPERATURE,
+                    max_tokens=settings.LLM_MAX_TOKENS,
+                    metadata={"capability": "core_brain"},
+                ),
+            )
             reply_text = llm_resp.content
+            reasoning_trace = llm_resp.reasoning_content
 
         # 11. Self-Reflective Critic Check & Response Refinement (Section 75, 135)
         from app.agent.critic import SelfReflectiveCritic
@@ -361,9 +425,28 @@ class AgentOrchestrator:
                 "What approximate monthly volume does your establishment require?"
             )
 
+        is_suppressed: bool = False
+
+        # Stage G2 Guardrail: Output Safety Check (Directive §3.G - Fail Closed)
+        output_verdict = await self.ai_router.check_output_safety(sanitized_reply)
+        if not output_verdict.is_safe:
+            logger.warning(
+                f"Drafted reply held by output safety guardrail: {output_verdict.reason}. Suppressing outbound send."
+            )
+            is_suppressed = True
+            handoff = Handoff(
+                org_id=self.org_id,
+                conversation_id=conversation_id,
+                customer_id=ctx.customer_id,
+                reason="output_guardrail_violation",
+                summary=f"Draft reply held by output guardrail: {output_verdict.reason or 'Policy violation'}",
+                customer_intent="Agent reply triggered output safety guardrail",
+            )
+            self.session.add(handoff)
+            await self.conv_service.update_mode(conversation_id, "HUMAN", reason="output_guardrail_hold")
+
         # 12. Atomic Pre-Send State Check (Human Takeover Race Protection, Section 27)
         fresh_conv = await self.session.get(Conversation, conversation_id)
-        is_suppressed = False
         if fresh_conv and fresh_conv.mode not in ("AI", "HUMAN"):
             logger.info(f"Send aborted: conversation {conversation_id} is in mode '{fresh_conv.mode}'.")
             is_suppressed = True
@@ -391,6 +474,9 @@ class AgentOrchestrator:
                     logger.error(f"Failed to dispatch outbound WhatsApp message: {e}")
 
         if not is_suppressed and sanitized_reply:
+            msg_payload = {}
+            if reasoning_trace:
+                msg_payload["reasoning_content"] = reasoning_trace
             await self.conv_service.add_message(
                 conversation_id=conversation_id,
                 direction="outbound",
@@ -398,6 +484,7 @@ class AgentOrchestrator:
                 content=sanitized_reply,
                 delivery_status="sent",
                 provider_message_id=provider_msg_id,
+                raw_payload=msg_payload,
             )
 
         # 13. Automatic PDF Pro-Forma Invoice Generation & WhatsApp Dispatch (Requirement R1)
@@ -469,44 +556,54 @@ class AgentOrchestrator:
                     ],
                 }
 
-                invoice_pdf_path = InvoiceGenerator.generate_proforma_pdf(inv_order_data)
-
-                # Automatically dispatch compiled PDF into active WhatsApp conversation if live
-                doc_provider_msg_id = None
-                doc_delivery_status = "sent"
-                if can_dispatch_whatsapp:
-                    clean_recip = conv.channel_id.replace("+", "").replace(" ", "").strip()
-                    bot_phone = "918918753100"
-                    if clean_recip != bot_phone and not clean_recip.endswith(bot_phone):
-                        from app.whatsapp.service import WhatsAppService
-                        wa = WhatsAppService.get_provider()
-                        pdf_filename = Path(invoice_pdf_path).name
-                        caption = (
-                            f"📄 *North Bengal Tea Co. - Commercial Pro-Forma Invoice*\n"
-                            f"Customer: *{c_name}* | {order_qty:.0f}kg {chosen_product}\n"
-                            f"🔒 Rate locked for 7 days. Official bank transfer details included."
-                        )
-                        doc_res = await wa.send_document(
-                            to_phone=conv.channel_id,
-                            file_path=invoice_pdf_path,
-                            caption=caption,
-                            filename=pdf_filename,
-                        )
-                        if doc_res:
-                            doc_provider_msg_id = doc_res.provider_message_id
-                            doc_delivery_status = "sent" if doc_res.success else "failed"
-
-                pdf_filename = Path(invoice_pdf_path).name
-                await self.conv_service.add_message(
-                    conversation_id=conversation_id,
-                    direction="outbound",
-                    sender_type="agent",
-                    content=f"Sent commercial pro-forma invoice PDF: {pdf_filename}",
-                    media_url=invoice_pdf_path,
-                    media_type="application/pdf",
-                    delivery_status=doc_delivery_status,
-                    provider_message_id=doc_provider_msg_id,
+                # Zero-Hallucination verification against DB/CSV (Directive §3.C)
+                is_val, verified_order_data, val_err = await PricingValidator.validate_extracted_order(
+                    session=self.session,
+                    org_id=self.org_id,
+                    extracted_data=inv_order_data,
                 )
+                if not is_val:
+                    logger.error(f"Invoice generation rejected by PricingValidator: {val_err}")
+                else:
+                    target_order = verified_order_data if verified_order_data else inv_order_data
+                    invoice_pdf_path = InvoiceGenerator.generate_proforma_pdf(target_order)
+
+                    # Automatically dispatch compiled PDF into active WhatsApp conversation if live
+                    doc_provider_msg_id = None
+                    doc_delivery_status = "sent"
+                    if can_dispatch_whatsapp and invoice_pdf_path:
+                        clean_recip = conv.channel_id.replace("+", "").replace(" ", "").strip()
+                        bot_phone = "918918753100"
+                        if clean_recip != bot_phone and not clean_recip.endswith(bot_phone):
+                            from app.whatsapp.service import WhatsAppService
+                            wa = WhatsAppService.get_provider()
+                            pdf_filename = Path(invoice_pdf_path).name
+                            caption = (
+                                f"📄 *North Bengal Tea Co. - Commercial Pro-Forma Invoice*\n"
+                                f"Customer: *{c_name}* | {order_qty:.0f}kg {chosen_product}\n"
+                                f"🔒 Rate locked for 7 days. Official bank transfer details included."
+                            )
+                            doc_res = await wa.send_document(
+                                to_phone=conv.channel_id,
+                                file_path=invoice_pdf_path,
+                                caption=caption,
+                                filename=pdf_filename,
+                            )
+                            if doc_res:
+                                doc_provider_msg_id = doc_res.provider_message_id
+                                doc_delivery_status = "sent" if doc_res.success else "failed"
+
+                    pdf_filename = Path(invoice_pdf_path).name
+                    await self.conv_service.add_message(
+                        conversation_id=conversation_id,
+                        direction="outbound",
+                        sender_type="agent",
+                        content=f"Sent commercial pro-forma invoice PDF: {pdf_filename}",
+                        media_url=invoice_pdf_path,
+                        media_type="application/pdf",
+                        delivery_status=doc_delivery_status,
+                        provider_message_id=doc_provider_msg_id,
+                    )
             except Exception as e:
                 logger.error(f"Failed to compile or dispatch pro-forma invoice in orchestrator: {e}")
 
@@ -536,6 +633,8 @@ class AgentOrchestrator:
         agent_run.tools_used = tools_executed
         agent_run.decision_action = sales_decision.action
         agent_run.result_summary = sanitized_reply[:200]
+        if reasoning_trace:
+            agent_run.knowledge_sources = [{"reasoning_content": reasoning_trace}]
         await self.session.commit()
 
         # 16. Enqueue Bounded Background Analysis Job (Section 8 & 9)
