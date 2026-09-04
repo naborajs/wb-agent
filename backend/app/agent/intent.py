@@ -94,3 +94,52 @@ def detect_intent_and_objection(text: str) -> Tuple[str, float, str]:
         return "greeting", 0.95, "NONE"
 
     return "discovery_inquiry", 0.70, "NONE"
+
+
+async def classify_intent_llm(
+    text: str,
+    default_intent: str = "discovery_inquiry",
+    default_confidence: float = 0.70,
+    default_objection: str = "NONE",
+) -> Tuple[str, float, str]:
+    """
+    Message-level intent classification via Capability B fallback chain (Directive §3.B).
+    Uses nemotron-3.5-lightning-30b-a3b -> diffusiongemma-26b-a4b-it -> gpt-oss-20b.
+    """
+    import json
+    from app.ai.router import ai_router
+    from app.ai.types import Capability, ModelMessage, ModelRequest
+
+    # Fast-path for deterministic opt-out and compliance (never trust LLM alone for opt-outs)
+    heuristic_intent, heuristic_conf, heuristic_obj = detect_intent_and_objection(text)
+    if heuristic_intent in ("opt_out", "human_request"):
+        return heuristic_intent, heuristic_conf, heuristic_obj
+
+    req = ModelRequest(
+        messages=[
+            ModelMessage(
+                role="system",
+                content=(
+                    "You are an intent router for a B2B tea sales platform. Classify customer intent and objection. "
+                    "Valid intents: 'greeting', 'product_inquiry', 'price_inquiry', 'sample_request', 'purchase_intent', "
+                    "'objection', 'discovery_inquiry', 'human_request'. "
+                    "Valid objections: 'NONE', 'PRICE', 'QUALITY', 'DELIVERY', 'TRUST'. "
+                    "Output JSON: {\"intent\": \"...\", \"confidence\": 0.95, \"objection\": \"...\"}"
+                ),
+            ),
+            ModelMessage(role="user", content=text),
+        ],
+        temperature=0.1,
+        max_tokens=64,
+        metadata={"capability": "intent_scoring"},
+    )
+
+    try:
+        resp = await ai_router.execute(Capability.INTENT_SCORING, req)
+        data = json.loads(resp.content)
+        intent = data.get("intent", heuristic_intent)
+        conf = float(data.get("confidence", heuristic_conf))
+        obj = data.get("objection", heuristic_obj)
+        return intent, conf, obj
+    except Exception:
+        return heuristic_intent, heuristic_conf, heuristic_obj
