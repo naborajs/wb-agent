@@ -56,6 +56,7 @@ interface Message {
   reported?: boolean;
   correction_category?: string;
   corrected_text?: string;
+  reasoning_content?: string;
   created_at: string;
 }
 
@@ -853,6 +854,19 @@ export default function LiveInboxPage() {
                       </div>
 
                       <div className="whitespace-pre-wrap">{msg.content}</div>
+
+                      {/* Mission Control AI Reasoning Trace Display (Directive §3.A) */}
+                      {isAI && msg.reasoning_content && (
+                        <details className="mt-2 text-[10px] bg-purple-500/10 border border-purple-500/20 rounded-md p-2 text-purple-300">
+                          <summary className="font-semibold cursor-pointer select-none text-purple-400 hover:text-purple-300 flex items-center gap-1">
+                            <Sparkles className="w-2.5 h-2.5" />
+                            <span>AI Deliberation / Reasoning Trace</span>
+                          </summary>
+                          <div className="mt-1.5 whitespace-pre-wrap font-mono text-[9px] text-purple-200/90 leading-normal pl-2 border-l border-purple-500/30">
+                            {msg.reasoning_content}
+                          </div>
+                        </details>
+                      )}
 
                       {/* Corrected Text Display */}
                       {msg.reported && msg.corrected_text && (
