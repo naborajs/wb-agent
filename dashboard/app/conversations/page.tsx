@@ -29,6 +29,7 @@ import {
   QrCode,
   Copy,
   Check,
+  RotateCcw,
 } from "lucide-react";
 
 interface ConversationItem {
@@ -366,6 +367,32 @@ export default function LiveInboxPage() {
       console.error(e);
     } finally {
       setIsSending(false);
+    }
+  };
+
+  // Handle Reset / Clear Chat History
+  const [isResetting, setIsResetting] = useState(false);
+  const handleResetChat = async () => {
+    if (!activeConvId || isResetting) return;
+    if (!window.confirm("Are you sure you want to clear all messages and reset the sales stage for this conversation?")) {
+      return;
+    }
+    setIsResetting(true);
+    try {
+      const res = await fetch(`/api/v1/conversations/${activeConvId}/reset`, {
+        method: "POST",
+      });
+      if (res.ok) {
+        const updated = await fetch(`/api/v1/conversations/${activeConvId}`).then(
+          (r) => (r.ok ? r.json() : null)
+        );
+        if (updated) setActiveConvDetail(updated);
+        loadConversations();
+      }
+    } catch (e) {
+      console.error("Failed to reset conversation:", e);
+    } finally {
+      setIsResetting(false);
     }
   };
 
@@ -711,6 +738,18 @@ export default function LiveInboxPage() {
                     <Pause className="w-3.5 h-3.5" /> Take Over
                   </button>
                 )}
+
+                {/* Reset Chat Button */}
+                <button
+                  type="button"
+                  onClick={handleResetChat}
+                  disabled={isResetting}
+                  title="Clear messages and reset conversation to initial state"
+                  className="px-2.5 py-1.5 rounded-xl border border-rose-500/30 hover:border-rose-500/60 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-xs font-semibold transition-all inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                >
+                  <RotateCcw className={`w-3.5 h-3.5 ${isResetting ? "animate-spin" : ""}`} />
+                  <span>{isResetting ? "Resetting..." : "Reset"}</span>
+                </button>
               </div>
             </div>
 
