@@ -90,7 +90,7 @@ async def receive_whatsapp_webhook(
                         await wa.send_message(to_phone=event.sender_phone, text=cmd_reply)
                     except Exception as e:
                         logger.error(f"Failed to dispatch owner command reply: {e}")
-                continue
+                    continue
 
             # 1. Find or create Customer by normalized phone
             from sqlalchemy import select

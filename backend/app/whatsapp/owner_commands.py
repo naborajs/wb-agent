@@ -230,9 +230,7 @@ class OwnerCommandHandler:
                 )
             return "\n".join(lines)
 
-        # UNRECOGNIZED OWNER COMMAND
+        # NON-ADMINISTRATIVE MESSAGE: Allow owner to test sales conversation naturally
         else:
-            return (
-                f"❓ Unrecognized owner command: *{action}*\n\n"
-                "Type *HELP* to see all available commands (STATUS, HOT LEADS, ORDERS, LEAD, PAUSE, RESUME, LEARNINGS)."
-            )
+            logger.info(f"Owner message '{action}' is not an admin command; routing to sales consultation.")
+            return None
