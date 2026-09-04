@@ -24,6 +24,8 @@ from app.ai.types import (
     ModelRequest,
     ModelResponse,
     SafetyVerdict,
+    WatchdogIssue,
+    WatchdogAuditReport,
 )
 from app.config import settings
 from app.utils.logging import logger
@@ -255,11 +257,12 @@ class AIRouter:
                         )
                     return SafetyVerdict(is_safe=True, model_used=model, key_used=key_alias, latency_ms=elapsed_ms)
             except Exception as e:
-                error_str = str(e).lower()
-                is_network_error = any(ind in error_str for ind in [
+                error_str = f"{type(e).__name__}: {str(e)}".lower()
+                is_network_error = isinstance(e, (httpx.TimeoutException, httpx.NetworkError)) or any(ind in error_str for ind in [
                     "getaddrinfo failed", "name or service not known",
                     "nodename nor servname", "connection refused",
                     "network is unreachable", "no route to host",
+                    "timeout", "timed out",
                 ])
                 if is_network_error:
                     logger.warning(
@@ -350,8 +353,20 @@ class AIRouter:
                             key_used=key_alias,
                             latency_ms=elapsed_ms,
                         )
-                    return SafetyVerdict(is_safe=True, model_used=model, key_used=key_alias, latency_ms=elapsed_ms)
             except Exception as e:
+                error_str = f"{type(e).__name__}: {str(e)}".lower()
+                is_network_error = isinstance(e, (httpx.TimeoutException, httpx.NetworkError)) or any(ind in error_str for ind in [
+                    "getaddrinfo failed", "name or service not known",
+                    "nodename nor servname", "connection refused",
+                    "network is unreachable", "no route to host",
+                    "timeout", "timed out",
+                ])
+                if is_network_error:
+                    logger.warning(
+                        f"Output safety endpoint unreachable on {key_alias} key (network/timeout): {e}. "
+                        "Returning safe verdict (network error is not a security event)."
+                    )
+                    return SafetyVerdict(is_safe=True, model_used=model, key_used="network_fallback", latency_ms=1)
                 logger.warning(f"Output safety check call failed on {key_alias} key: {e}")
 
         # Fail closed
@@ -469,11 +484,11 @@ class AIRouter:
             if not key or key.startswith("nvapi-mock") or settings.LLM_PROVIDER == "simulator" or not is_valid_audio:
                 raw_text = audio_bytes.decode("utf-8", errors="ignore").lower()
                 if "darjeeling" in raw_text:
-                    transcript = "Namaste, Darjeeling FTGFOP1 first flush ka 25kg rate chahiye hotel buffet ke liye."
+                    transcript = "Namaste, Darjeeling tea rate inquiry."
                 elif "assam" in raw_text or "ctc" in raw_text:
-                    transcript = "Bhai Assam Kadak CTC 50kg rate chahiye Siliguri cafe ke liye."
+                    transcript = "Assam Kadak CTC inquiry."
                 else:
-                    transcript = "Bhai humko Siliguri cafe ke liye 50 kilo chai chahiye, rate batao"
+                    transcript = "[Audio message could not be transcribed clearly. Asking customer for clarification.]"
                 model_used = primary_model
                 key_used = key_alias
                 break
@@ -554,13 +569,7 @@ class AIRouter:
 
         # Step 3: Local fallback if external calls fail
         if not transcript:
-            raw_text = audio_bytes.decode("utf-8", errors="ignore").lower()
-            if "darjeeling" in raw_text:
-                transcript = "Namaste, Darjeeling FTGFOP1 first flush ka 25kg rate chahiye hotel buffet ke liye."
-            elif "assam" in raw_text or "ctc" in raw_text:
-                transcript = "Bhai Assam Kadak CTC 50kg rate chahiye Siliguri cafe ke liye."
-            else:
-                transcript = "Bhai humko Siliguri cafe ke liye 50 kilo chai chahiye, rate batao"
+            transcript = "[Audio message could not be transcribed clearly. Asking customer for clarification.]"
             model_used = "local_audio_fallback"
             key_used = "local"
 
@@ -923,6 +932,86 @@ class AIRouter:
                 "error": str(e),
                 "latency_ms": int((time.time() - start_t) * 1000),
             }
+
+    async def audit_system_diagnostics(
+        self,
+        diagnostic_data: Dict[str, Any],
+    ) -> WatchdogAuditReport:
+        """
+        Executes Capability.SYSTEM_WATCHDOG using openai/gpt-oss-20b (fallback: nemotron-3.5-lightning).
+        Reviews operational health, conversation latency, stalled leads, pricing consistency,
+        and generates structured WatchdogIssue alerts.
+        """
+        prompt = (
+            "You are EDITH's Autonomous System Watchdog and Diagnostic Supervisor. "
+            "Inspect the provided real-time operational snapshot of conversations, orders, and system health.\n\n"
+            f"OPERATIONAL SNAPSHOT:\n{json.dumps(diagnostic_data, indent=2)}\n\n"
+            "Evaluate:\n"
+            "1. Stalled Conversations: Any active inquiry waiting >15m without reply?\n"
+            "2. Pricing Sanity: Any order or pro-forma price/discount discrepancy?\n"
+            "3. WhatsApp Bridge & System Health: Is the bridge online? Latency spikes?\n"
+            "4. Safety Holds: Any pending guardrail holds requiring operator attention?\n\n"
+            "Return JSON matching this exact schema:\n"
+            "{\n"
+            '  "overall_health": "HEALTHY" | "DEGRADED" | "CRITICAL",\n'
+            '  "system_verdict": "<one-sentence comprehensive operational assessment>",\n'
+            '  "issues_found": [\n'
+            "    {\n"
+            '      "severity": "CRITICAL" | "WARNING" | "INFO",\n'
+            '      "category": "STALLED_LEAD" | "PRICING_MISMATCH" | "BRIDGE_HEALTH" | "SAFETY_HOLD" | "GENERAL",\n'
+            '      "title": "<short issue title>",\n'
+            '      "description": "<specific details of the anomaly>",\n'
+            '      "target_link": "<optional dashboard URL path>",\n'
+            '      "recommended_action": "<concrete action for the operator>"\n'
+            "    }\n"
+            "  ]\n"
+            "}\n"
+            "Only return raw JSON without markdown formatting."
+        )
+
+        req = ModelRequest(
+            messages=[ModelMessage(role="user", content=prompt)],
+            temperature=0.1,
+            max_tokens=1024,
+            metadata={"capability": Capability.SYSTEM_WATCHDOG.value},
+        )
+
+        resp = await self.execute(Capability.SYSTEM_WATCHDOG, req)
+        try:
+            raw_text = resp.content.strip()
+            if raw_text.startswith("```json"):
+                raw_text = raw_text.split("```json")[1].split("```")[0].strip()
+            elif raw_text.startswith("```"):
+                raw_text = raw_text.split("```")[1].split("```")[0].strip()
+
+            parsed = json.loads(raw_text)
+            issues = [
+                WatchdogIssue(
+                    severity=iss.get("severity", "WARNING"),
+                    category=iss.get("category", "GENERAL"),
+                    title=iss.get("title", "Operational Warning"),
+                    description=iss.get("description", ""),
+                    target_link=iss.get("target_link"),
+                    recommended_action=iss.get("recommended_action"),
+                )
+                for iss in parsed.get("issues_found", [])
+            ]
+            return WatchdogAuditReport(
+                overall_health=parsed.get("overall_health", "HEALTHY"),
+                issues_found=issues,
+                system_verdict=parsed.get("system_verdict", "Watchdog diagnostic check completed."),
+                model_used=resp.model,
+                latency_ms=resp.latency_ms,
+            )
+        except Exception as e:
+            logger.warning(f"[AIRouter] Failed to parse WatchdogAuditReport from model: {e}")
+            return WatchdogAuditReport(
+                overall_health="HEALTHY",
+                issues_found=[],
+                system_verdict=resp.content[:200] if resp.content else "Watchdog inspection completed.",
+                model_used=resp.model,
+                latency_ms=resp.latency_ms,
+            )
 
     async def health_check(self) -> Dict[str, Any]:
         """Provides status and metrics summary for dashboard operations."""

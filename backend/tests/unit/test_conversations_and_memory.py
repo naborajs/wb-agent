@@ -29,7 +29,7 @@ async def setup_db():
         customer = Customer(
             id="cust_conv_1",
             org_id=org_id,
-            primary_phone="+918900653250",
+            primary_phone="+15550000003",
             name="Vikram Seth",
             company_name="Seth Tea Emporium",
             company_type="Tea Shop",
@@ -89,7 +89,7 @@ async def test_conversation_service_and_locking(setup_db):
     conv = await conv_svc.get_or_create_conversation(
         customer_id=customer_id,
         channel="whatsapp",
-        channel_id="+918900653250"
+        channel_id="+15550000003"
     )
     assert conv.mode == "AI"
     assert conv.sales_stage == "NEW"

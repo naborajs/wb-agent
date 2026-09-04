@@ -20,6 +20,7 @@ from app.api.routes import (
     proposals,
     quotes,
     settings as settings_router,
+    watchdog,
     webhooks,
     whatsapp,
     ws,
@@ -33,21 +34,42 @@ from app.utils.logging import logger
 async def lifespan(app: FastAPI):
     """
     FastAPI Lifespan: Automatically starts the background Worker daemon
-    to continuously process inbound WhatsApp messages, follow-ups, and sales jobs.
+    to continuously process inbound WhatsApp messages, follow-ups, and sales jobs,
+    as well as the autonomous Watchdog AI Supervisor for continuous telemetry.
     """
     worker = Worker("fastapi_lifespan_worker")
     worker_task = asyncio.create_task(worker.start(poll_interval=0.5))
     logger.info("FastAPI Lifespan: Autonomous Worker daemon started.")
+
+    async def _periodic_watchdog():
+        await asyncio.sleep(15)
+        while True:
+            try:
+                from app.database.session import get_db_context
+                from app.watchdog.service import WatchdogService
+                async with get_db_context() as session:
+                    service = WatchdogService(session, org_id="org_default_tea")
+                    await service.run_full_diagnostic_audit()
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                logger.warning(f"Watchdog periodic supervisor audit notice: {e}")
+            await asyncio.sleep(180)
+
+    watchdog_task = asyncio.create_task(_periodic_watchdog())
+    logger.info("FastAPI Lifespan: Autonomous Watchdog supervisor daemon scheduled.")
+
     try:
         yield
     finally:
         worker.stop()
         worker_task.cancel()
+        watchdog_task.cancel()
         try:
-            await worker_task
-        except (asyncio.CancelledError, Exception):
+            await asyncio.gather(worker_task, watchdog_task, return_exceptions=True)
+        except Exception:
             pass
-        logger.info("FastAPI Lifespan: Autonomous Worker daemon stopped gracefully.")
+        logger.info("FastAPI Lifespan: Daemons stopped gracefully.")
 
 
 app = FastAPI(
@@ -93,6 +115,7 @@ app.include_router(analytics.router, prefix=api_v1)
 app.include_router(webhooks.router, prefix=api_v1)
 app.include_router(whatsapp.router, prefix=api_v1)
 app.include_router(settings_router.router, prefix=api_v1)
+app.include_router(watchdog.router, prefix=api_v1)
 app.include_router(ws.router, prefix=api_v1)
 
 

@@ -29,8 +29,8 @@ async def setup_followup_db():
         customer = Customer(
             id="cust_f1",
             org_id=org_id,
-            primary_phone="+918900653250",
-            name="Rahul Sharma",
+            primary_phone="+15550000001",
+            name="Test Customer",
             company_name="Heritage Cafe",
             opt_in_status=True,
         )
@@ -41,7 +41,7 @@ async def setup_followup_db():
             org_id=org_id,
             customer_id=customer.id,
             channel="whatsapp",
-            channel_id="+918900653250",
+            channel_id="+15550000001",
             mode="AI",
             sales_stage="DISCOVERY",
         )

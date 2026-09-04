@@ -192,7 +192,7 @@ def run_backup():
     if os.path.exists(db_path):
         target = os.path.join(backup_dir, f"wb_agent_{now_str}.db")
         shutil.copy2(db_path, target)
-        print(f"[OK] SQLite database backup created successfully: {target}")
+        print(f"[OK] SQLite database Backup created successfully: {target}")
     else:
         # For postgres or in-memory, write notification
         target = os.path.join(backup_dir, f"backup_manifest_{now_str}.txt")

@@ -26,6 +26,10 @@ import {
   X,
   Send,
   TrendingUp,
+  Bell,
+  CheckCircle,
+  RefreshCw,
+  Activity,
 } from "lucide-react";
 
 const navigation = [
@@ -45,6 +49,17 @@ const navigation = [
   { name: "Settings", href: "/settings", icon: Settings },
 ];
 
+interface WatchdogAlertItem {
+  id: string;
+  severity: "info" | "warning" | "critical";
+  category: string;
+  title: string;
+  description: string;
+  suggested_action?: string;
+  model_used?: string;
+  created_at?: string;
+}
+
 export default function DashboardShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [darkMode, setDarkMode] = useState(false);
@@ -52,6 +67,14 @@ export default function DashboardShell({ children }: { children: React.ReactNode
   const [profileOpen, setProfileOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
+
+  // Live WebSocket Heartbeat & Watchdog Alert Center state
+  const [wsConnected, setWsConnected] = useState(false);
+  const [wsLatency, setWsLatency] = useState<number | null>(null);
+  const [alerts, setAlerts] = useState<WatchdogAlertItem[]>([]);
+  const [watchdogOpen, setWatchdogOpen] = useState(false);
+  const [auditing, setAuditing] = useState(false);
+  const watchdogRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -65,16 +88,130 @@ export default function DashboardShell({ children }: { children: React.ReactNode
     }
   }, []);
 
-  // Close profile panel on outside click
+  // Fetch initial active watchdog alerts and setup real-time WebSocket connection
+  useEffect(() => {
+    fetch("http://localhost:8000/api/v1/watchdog/alerts")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && Array.isArray(data.alerts)) {
+          setAlerts(data.alerts);
+        }
+      })
+      .catch(() => {});
+
+    let ws: WebSocket | null = null;
+    let pingInterval: NodeJS.Timeout | null = null;
+    let pingStart = 0;
+
+    const connectWs = () => {
+      try {
+        ws = new WebSocket("ws://localhost:8000/api/v1/ws");
+
+        ws.onopen = () => {
+          setWsConnected(true);
+          pingInterval = setInterval(() => {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+              pingStart = performance.now();
+              ws.send(JSON.stringify({ type: "ping" }));
+            }
+          }, 8000);
+        };
+
+        ws.onmessage = (event) => {
+          try {
+            const msg = JSON.parse(event.data);
+            if (msg.event === "pong" || msg.type === "pong") {
+              if (pingStart > 0) {
+                const roundtrip = Math.round(performance.now() - pingStart);
+                setWsLatency(roundtrip);
+              }
+            } else if (msg.event === "watchdog_alert") {
+              const newAlert = msg.data;
+              if (newAlert && newAlert.id) {
+                setAlerts((prev) => {
+                  if (prev.some((a) => a.id === newAlert.id)) return prev;
+                  return [newAlert, ...prev];
+                });
+              }
+            } else if (msg.event === "watchdog_alert_resolved") {
+              const resolvedId = msg.data?.alert_id;
+              if (resolvedId) {
+                setAlerts((prev) => prev.filter((a) => a.id !== resolvedId));
+              }
+            }
+          } catch {}
+        };
+
+        ws.onclose = () => {
+          setWsConnected(false);
+          setWsLatency(null);
+          if (pingInterval) clearInterval(pingInterval);
+          setTimeout(connectWs, 3000);
+        };
+
+        ws.onerror = () => {
+          setWsConnected(false);
+          ws?.close();
+        };
+      } catch {
+        setWsConnected(false);
+      }
+    };
+
+    connectWs();
+
+    return () => {
+      if (pingInterval) clearInterval(pingInterval);
+      if (ws) ws.close();
+    };
+  }, []);
+
+  // Run on-demand diagnostic audit via Watchdog Supervisor
+  const runAuditNow = async () => {
+    setAuditing(true);
+    try {
+      const res = await fetch("http://localhost:8000/api/v1/watchdog/run-audit", { method: "POST" });
+      if (res.ok) {
+        const aRes = await fetch("http://localhost:8000/api/v1/watchdog/alerts");
+        const aData = await aRes.json();
+        if (aData && Array.isArray(aData.alerts)) {
+          setAlerts(aData.alerts);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to run watchdog audit:", err);
+    } finally {
+      setAuditing(false);
+    }
+  };
+
+  // Resolve an alert
+  const resolveAlertItem = async (alertId: string) => {
+    setAlerts((prev) => prev.filter((a) => a.id !== alertId));
+    try {
+      await fetch(`http://localhost:8000/api/v1/watchdog/alerts/${alertId}/resolve`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ resolved_by: "operator" }),
+      });
+    } catch (err) {
+      console.error("Failed to resolve watchdog alert:", err);
+    }
+  };
+
+  // Close panels on outside click
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
         setProfileOpen(false);
       }
+      if (watchdogRef.current && !watchdogRef.current.contains(e.target as Node)) {
+        setWatchdogOpen(false);
+      }
     };
-    if (profileOpen) document.addEventListener("mousedown", handleClickOutside);
+    if (profileOpen || watchdogOpen) document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [profileOpen]);
+  }, [profileOpen, watchdogOpen]);
 
   // Close mobile nav on route change
   useEffect(() => {
@@ -208,9 +345,122 @@ export default function DashboardShell({ children }: { children: React.ReactNode
               )}
             </button>
 
-            <span className="hidden sm:inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-semibold text-[var(--ed-success)] border border-[var(--ed-success)]/20" style={{ background: "color-mix(in srgb, var(--ed-success) 8%, transparent)" }}>
-              ● Live Baileys
+            {/* Live WebSocket Heartbeat Pill */}
+            <span
+              className={`hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold border transition-all ${
+                wsConnected
+                  ? "text-[var(--ed-success)] border-[var(--ed-success)]/25"
+                  : "text-[var(--ed-danger)] border-[var(--ed-danger)]/25"
+              }`}
+              style={{
+                background: wsConnected
+                  ? "color-mix(in srgb, var(--ed-success) 8%, transparent)"
+                  : "color-mix(in srgb, var(--ed-danger) 8%, transparent)",
+              }}
+              title={wsConnected ? `WebSocket connected · Latency: ${wsLatency !== null ? `${wsLatency}ms` : "OK"}` : "WebSocket disconnected"}
+            >
+              <span className={`w-1.5 h-1.5 rounded-full ${wsConnected ? "bg-[var(--ed-success)] animate-pulse" : "bg-[var(--ed-danger)]"}`} />
+              {wsConnected ? `Live · ${wsLatency !== null ? `${wsLatency}ms` : "Active"}` : "Reconnecting"}
             </span>
+
+            {/* AI Watchdog Supervisor Center */}
+            <div className="relative" ref={watchdogRef}>
+              <button
+                onClick={() => setWatchdogOpen(!watchdogOpen)}
+                aria-label="AI Watchdog Supervisor Center"
+                className="ed-press ed-focus-ring relative p-2.5 rounded-lg border border-[var(--ed-border)] text-[var(--ed-text-muted)] hover:text-[var(--ed-text-primary)] transition-colors"
+                style={{
+                  background: watchdogOpen ? "var(--ed-accent)" : "var(--ed-surface)",
+                  color: watchdogOpen ? "#fff" : undefined,
+                }}
+                title="AI Watchdog Diagnostics & Anomaly Monitor"
+              >
+                <Bell className="w-4 h-4" />
+                {alerts.length > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[var(--ed-danger)] px-1 text-[9px] font-bold text-white shadow-sm">
+                    {alerts.length}
+                  </span>
+                )}
+              </button>
+
+              {watchdogOpen && (
+                <div
+                  className="absolute right-0 top-12 w-80 sm:w-96 rounded-xl border border-[var(--ed-border)] shadow-ed-elevated z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-100"
+                  style={{ background: "var(--ed-surface)" }}
+                >
+                  {/* Watchdog Header */}
+                  <div className="p-3.5 border-b border-[var(--ed-border)] flex items-center justify-between" style={{ background: "var(--ed-bg)" }}>
+                    <div>
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-[var(--ed-text-primary)]">
+                        <Cpu className="w-3.5 h-3.5 text-[var(--ed-accent)]" />
+                        AI Watchdog Supervisor
+                      </div>
+                      <div className="text-[10px] text-[var(--ed-text-muted)]">
+                        Model: openai/gpt-oss-20b · Real-Time
+                      </div>
+                    </div>
+                    <button
+                      onClick={runAuditNow}
+                      disabled={auditing}
+                      className="ed-press px-2.5 py-1 rounded-md text-[11px] font-medium border border-[var(--ed-border)] bg-[var(--ed-surface)] text-[var(--ed-text-primary)] hover:bg-[var(--ed-border)] transition-all flex items-center gap-1 disabled:opacity-50"
+                    >
+                      <RefreshCw className={`w-3 h-3 ${auditing ? "animate-spin text-[var(--ed-accent)]" : ""}`} />
+                      {auditing ? "Auditing..." : "Audit Now"}
+                    </button>
+                  </div>
+
+                  {/* Watchdog Alerts List */}
+                  <div className="max-h-80 overflow-y-auto p-3 space-y-2.5">
+                    {alerts.length === 0 ? (
+                      <div className="py-6 text-center text-xs text-[var(--ed-text-muted)]">
+                        <CheckCircle className="w-6 h-6 mx-auto mb-1.5 text-[var(--ed-success)]" />
+                        All systems operational. No anomalies detected.
+                      </div>
+                    ) : (
+                      alerts.map((alert) => (
+                        <div
+                          key={alert.id}
+                          className="p-2.5 rounded-lg border border-[var(--ed-border)] text-xs space-y-1"
+                          style={{ background: "var(--ed-bg)" }}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span
+                              className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${
+                                alert.severity === "critical"
+                                  ? "bg-red-500/15 text-red-500 border border-red-500/30"
+                                  : alert.severity === "warning"
+                                  ? "bg-amber-500/15 text-amber-500 border border-amber-500/30"
+                                  : "bg-blue-500/15 text-blue-500 border border-blue-500/30"
+                              }`}
+                            >
+                              {alert.severity}
+                            </span>
+                            <span className="text-[10px] text-[var(--ed-text-muted)]">
+                              {alert.created_at ? new Date(alert.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "Just now"}
+                            </span>
+                          </div>
+                          <div className="font-semibold text-[var(--ed-text-primary)]">{alert.title}</div>
+                          <p className="text-[11px] text-[var(--ed-text-secondary)] leading-relaxed">{alert.description}</p>
+                          {alert.suggested_action && (
+                            <div className="text-[10px] text-[var(--ed-text-muted)] italic pt-0.5">
+                              Action: {alert.suggested_action}
+                            </div>
+                          )}
+                          <div className="pt-1 flex justify-end">
+                            <button
+                              onClick={() => resolveAlertItem(alert.id)}
+                              className="text-[10px] font-semibold text-[var(--ed-accent)] hover:underline"
+                            >
+                              Mark Resolved
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* Profile Avatar */}
             <div className="relative" ref={profileRef}>

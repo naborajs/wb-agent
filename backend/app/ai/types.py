@@ -21,6 +21,7 @@ class Capability(str, Enum):
     TRANSLATION = "translation"
     SAFETY_INPUT = "safety_input"
     SAFETY_OUTPUT = "safety_output"
+    SYSTEM_WATCHDOG = "system_watchdog"
 
 
 # §6 Dev-tooling model (flagged for developer / internal tooling, not wired into WhatsApp)
@@ -70,4 +71,23 @@ class SafetyVerdict(BaseModel):
     held_for_human: bool = False
     model_used: Optional[str] = None
     key_used: Optional[str] = None
+    latency_ms: int = 0
+
+
+class WatchdogIssue(BaseModel):
+    """Single diagnostic issue discovered by the Autonomous Watchdog Model."""
+    severity: str = "WARNING"  # CRITICAL, WARNING, INFO
+    category: str  # STALLED_LEAD, PRICING_MISMATCH, BRIDGE_HEALTH, SAFETY_HOLD, LATENCY_SPIKE, GENERAL
+    title: str
+    description: str
+    target_link: Optional[str] = None
+    recommended_action: Optional[str] = None
+
+
+class WatchdogAuditReport(BaseModel):
+    """Structured report produced by the Autonomous Watchdog model."""
+    overall_health: str = "HEALTHY"  # HEALTHY, DEGRADED, CRITICAL
+    issues_found: List[WatchdogIssue] = Field(default_factory=list)
+    system_verdict: str
+    model_used: str = "openai/gpt-oss-20b"
     latency_ms: int = 0

@@ -24,8 +24,8 @@ async def websocket_endpoint(
         while True:
             # Keep-alive ping/pong receiver
             data = await websocket.receive_text()
-            if data == "ping":
-                await websocket.send_text("pong")
+            if data == "ping" or '"ping"' in data:
+                await websocket.send_text('{"event":"pong"}')
     except WebSocketDisconnect:
         ws_manager.disconnect(websocket, org_id)
         logger.info(f"WebSocket client disconnected from org '{org_id}'.")

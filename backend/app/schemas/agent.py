@@ -32,6 +32,7 @@ class AgentTurnRequest(BaseModel):
     conversation_id: str
     inbound_message: str
     override_stage: Optional[str] = None
+    is_simulation: bool = False
 
 
 class AgentTurnResponse(BaseModel):

@@ -68,52 +68,64 @@ async def receive_whatsapp_webhook(
 
     for event in events:
         if event.event_type == "message" and event.content:
-            # Check if sender is the bot itself (prevent infinite self-chat loop)
             from app.utils.phone import normalize_phone_number
-            clean_sender = normalize_phone_number(event.sender_phone)
+            try:
+                clean_sender = normalize_phone_number(event.sender_phone)
+            except Exception:
+                clean_sender = event.sender_phone
+
             bot_phone = "918918753100"
-            if clean_sender.endswith(bot_phone) or bot_phone.endswith(clean_sender):
+            digits_sender = clean_sender.replace("+", "").strip()
+            if digits_sender.endswith(bot_phone) or bot_phone.endswith(digits_sender):
                 logger.info(f"Ignoring self-message from bot phone {event.sender_phone}")
                 continue
 
             # Check if message is from the authorized business owner (+91 89006 53250)
             from app.whatsapp.owner_commands import OwnerCommandHandler
-            if OwnerCommandHandler.is_owner(event.sender_phone):
+            if OwnerCommandHandler.is_owner(clean_sender):
                 cmd_reply = await OwnerCommandHandler.process_command(
-                    sender_phone=event.sender_phone,
+                    sender_phone=clean_sender,
                     command_text=event.content,
                     session=session,
                     org_id=org_id,
                 )
                 if cmd_reply:
                     try:
-                        await wa.send_message(to_phone=event.sender_phone, text=cmd_reply)
+                        await wa.send_message(to_phone=clean_sender, text=cmd_reply)
                     except Exception as e:
                         logger.error(f"Failed to dispatch owner command reply: {e}")
                     continue
 
-            # 1. Find or create Customer by normalized phone
-            from sqlalchemy import select
+            # 1. Find or create Customer by normalized or alternative phone format
+            from sqlalchemy import select, or_
             cust_stmt = select(Customer).where(
                 Customer.org_id == org_id,
-                Customer.primary_phone == event.sender_phone,
+                or_(
+                    Customer.primary_phone == clean_sender,
+                    Customer.primary_phone == event.sender_phone,
+                    Customer.primary_phone == f"+{digits_sender}",
+                    Customer.primary_phone == digits_sender,
+                ),
             )
             cust = (await session.execute(cust_stmt)).scalar_one_or_none()
             if not cust:
                 cust = Customer(
                     org_id=org_id,
-                    primary_phone=event.sender_phone,
+                    primary_phone=clean_sender,
                     preferred_language="English",
                     opt_in_status=True,
                 )
                 session.add(cust)
+                await session.commit()
+            elif cust.primary_phone != clean_sender:
+                cust.primary_phone = clean_sender
                 await session.commit()
 
             # 2. Get or create active conversation
             conv = await conv_svc.get_or_create_conversation(
                 customer_id=cust.id,
                 channel="whatsapp",
-                channel_id=event.sender_phone,
+                channel_id=clean_sender,
             )
 
             # 3. Enqueue transactional message processing job
@@ -123,10 +135,29 @@ async def receive_whatsapp_webhook(
                 payload={
                     "conversation_id": conv.id,
                     "content": event.content,
-                    "sender_id": event.sender_phone,
+                    "sender_id": clean_sender,
                     "provider_message_id": event.message_id,
                 },
                 priority=10,  # Customer messages receive HIGH priority
             )
+
+            # 4. Instant WebSocket broadcast to active dashboard operators (Directive: Zero polling latency)
+            try:
+                from app.realtime.connection_manager import ws_manager
+                await ws_manager.broadcast_to_org(
+                    org_id,
+                    "new_message",
+                    {
+                        "conversation_id": conv.id,
+                        "direction": "inbound",
+                        "sender_type": "customer",
+                        "content": event.content,
+                        "sender_id": clean_sender,
+                        "channel_id": clean_sender,
+                        "timestamp": event.timestamp.isoformat() if hasattr(event, "timestamp") and event.timestamp else None,
+                    },
+                )
+            except Exception as ws_err:
+                logger.debug(f"Failed to broadcast inbound message to WebSocket: {ws_err}")
 
     return {"status": "received", "events_count": len(events)}

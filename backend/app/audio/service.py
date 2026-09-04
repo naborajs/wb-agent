@@ -82,10 +82,5 @@ class AudioTranscriptionService:
 
     @classmethod
     def _local_fallback(cls, audio_bytes: bytes) -> str:
-        """Deterministic fallback when external AI is offline."""
-        raw_text = audio_bytes.decode("utf-8", errors="ignore")
-        if "darjeeling" in raw_text.lower():
-            return "Namaste, Darjeeling FTGFOP1 first flush ka 25kg rate chahiye hotel buffet ke liye."
-        if "assam" in raw_text.lower() or "ctc" in raw_text.lower():
-            return "Bhai Assam Kadak CTC 50kg rate chahiye Siliguri cafe ke liye."
-        return "Bhai humko Siliguri cafe ke liye 50 kilo chai chahiye, rate batao"
+        """Safe fallback when external AI audio transcription is offline or fails."""
+        return "[Voice note received, but audio could not be transcribed clearly. Asking customer for clarification.]"

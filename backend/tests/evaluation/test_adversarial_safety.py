@@ -34,7 +34,7 @@ async def adversarial_env():
         customer = Customer(
             id="cust_adv_1",
             org_id=org_id,
-            primary_phone="+918900653250",
+            primary_phone="+15550000002",
             name="Adversarial Buyer",
             opt_in_status=True,
         )
@@ -45,7 +45,7 @@ async def adversarial_env():
             org_id=org_id,
             customer_id=customer.id,
             channel="whatsapp",
-            channel_id="+918900653250",
+            channel_id="+15550000002",
             mode="AI",
             sales_stage="DISCOVERY",
             lead_score=20,

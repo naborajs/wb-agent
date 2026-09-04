@@ -60,8 +60,8 @@ class ContextBuilder:
 
         customer = conv.customer
 
-        # 1. Fetch recent messages
-        recent_msgs = await self.conv_memory.get_recent_messages(conversation_id, limit=8)
+        # 1. Fetch recent messages (up to 30 turns for rich conversational memory)
+        recent_msgs = await self.conv_memory.get_recent_messages(conversation_id, limit=30)
         serialized_msgs = [
             {
                 "direction": m.direction,

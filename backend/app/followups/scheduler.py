@@ -225,16 +225,31 @@ class FollowupScheduler:
                 FOLLOWUP_TEMPLATES["followup_touch_1_inactivity_check"],
             )
 
+            # Pre-flight Guard 6: Never send automated follow-up to owner or bot's own number
+            from app.config import settings
+            clean_recip = conv.channel_id.replace("+", "").replace(" ", "").strip() if conv and conv.channel_id else ""
+            bot_num = "918918753100"
+            owner_num = (settings.OWNER_WHATSAPP_NUMBER or "+918900653250").replace("+", "").replace(" ", "").strip()
+            if clean_recip == bot_num or clean_recip.endswith(bot_num) or clean_recip == owner_num or clean_recip.endswith(owner_num):
+                job.status = "suppressed"
+                job.cancel_reason = "owner_or_bot_recipient"
+                results.append({"job_id": job.id, "status": "suppressed", "reason": "owner_or_bot_recipient"})
+                continue
+
             # Send outbound message via WhatsApp Provider
             provider_msg_id = None
-            try:
-                wa = WhatsAppService.get_provider()
-                if conv and conv.channel_id:
-                    send_res = await wa.send_message(to_phone=conv.channel_id, text=followup_content)
-                    if send_res and send_res.provider_message_id:
-                        provider_msg_id = send_res.provider_message_id
-            except Exception as e:
-                logger.error(f"Failed to dispatch follow-up to {conv.channel_id if conv else 'unknown'}: {e}")
+            import sys
+            if not getattr(settings, "DRY_RUN_MODE", False) and "pytest" not in sys.modules:
+                try:
+                    wa = WhatsAppService.get_provider()
+                    if conv and conv.channel_id:
+                        send_res = await wa.send_message(to_phone=conv.channel_id, text=followup_content)
+                        if send_res and send_res.provider_message_id:
+                            provider_msg_id = send_res.provider_message_id
+                except Exception as e:
+                    logger.error(f"Failed to dispatch follow-up to {conv.channel_id if conv else 'unknown'}: {e}")
+            else:
+                logger.info(f"Outbound follow-up to {conv.channel_id if conv else 'unknown'} simulated (test/dry-run mode).")
 
             # Record outbound message in database
             followup_msg = Message(

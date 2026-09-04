@@ -16,7 +16,7 @@ class MessageBase(BaseModel):
 
 class MessageCreate(MessageBase):
     """Payload for operator or test message creation."""
-    conversation_id: str
+    conversation_id: Optional[str] = None
     direction: str = "outbound"
     sender_type: str = "human"
 

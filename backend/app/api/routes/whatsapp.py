@@ -96,6 +96,7 @@ async def send_whatsapp_ping(req: SendPingRequest) -> Dict[str, Any]:
     ping_text = req.message or (
         "🤖 *WB-Agent (EDITH) Diagnostic Ping*\n\n"
         "✅ WhatsApp integration is connected and healthy!\n"
+        f"• Target line: {normalized_target}\n"
         "• Bot line: +91 89187 53100\n"
         "• AI Engine: NVIDIA Nemotron\n"
         "• Status: Ready to assist wholesale buyers."
@@ -107,13 +108,14 @@ async def send_whatsapp_ping(req: SendPingRequest) -> Dict[str, Any]:
     if result.success:
         return {
             "success": True,
+            "target_phone": normalized_target,
             "message": f"Test WhatsApp ping successfully dispatched to {normalized_target}.",
             "provider_message_id": result.provider_message_id,
         }
     else:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"Failed to send test ping: {result.error_message}",
+            detail=f"Failed to send test ping to {normalized_target}: {result.error_message}",
         )
 
 

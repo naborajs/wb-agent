@@ -60,6 +60,9 @@ class ConversationService:
         res = await self.session.execute(stmt)
         existing = res.scalars().first()
         if existing:
+            if channel_id and existing.channel_id != channel_id:
+                existing.channel_id = channel_id
+                await self.session.commit()
             return existing
 
         # Create new conversation

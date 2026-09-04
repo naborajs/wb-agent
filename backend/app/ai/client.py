@@ -255,7 +255,20 @@ class NIMClient:
         elif "safety" in model.lower() or "guard" in model.lower():
             simulated_content = '{"is_safe": true, "reason": null}'
 
+        # Capability H: Autonomous Quality Watchdog simulation
+        elif "watchdog" in str(request.metadata) or cap_name == "system_watchdog" or "watchdog" in model.lower() or "audit" in str(request.messages[0].content if request.messages else "").lower():
+            simulated_content = json.dumps({
+                "overall_health": "HEALTHY",
+                "system_verdict": "All conversations and catalog pricing verified consistent. WhatsApp bridge responsive.",
+                "issues_found": [],
+            })
+
         # Standard sales dialogue
+        elif any(w in last_user_msg for w in ["sample", "tasting", "kit"]):
+            simulated_content = (
+                "Yes, certainly! We offer a 200g commercial tasting kit so your team can evaluate the cup and aroma before committing to bulk. "
+                "May I confirm your delivery destination to dispatch the sample kit?"
+            )
         elif "darjeeling" in last_user_msg:
             simulated_content = (
                 "Namaste! Our Darjeeling Spring First Flush Special is ₹1,450/kg, offering delicate floral and muscatel notes. "

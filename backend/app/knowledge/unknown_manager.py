@@ -78,12 +78,16 @@ class UnknownKnowledgeManager:
             f"👉 *Action Required:* Please reply with the verified answer to update EDITH and resolve this inquiry."
         )
 
-        try:
-            wa = WhatsAppService.get_provider()
-            await wa.send_message(to_phone=owner_phone, text=alert_text)
-            logger.info(f"Dispatched unknown knowledge alert to owner {owner_phone} for request {req.id}")
-        except Exception as e:
-            logger.error(f"Failed to dispatch owner alert for knowledge request: {e}")
+        import sys
+        if not getattr(settings, "DRY_RUN_MODE", False) and "pytest" not in sys.modules:
+            try:
+                wa = WhatsAppService.get_provider()
+                await wa.send_message(to_phone=owner_phone, text=alert_text)
+                logger.info(f"Dispatched unknown knowledge alert to owner {owner_phone} for request {req.id}")
+            except Exception as e:
+                logger.error(f"Failed to dispatch owner alert for knowledge request: {e}")
+        else:
+            logger.info(f"Unknown knowledge alert to owner {owner_phone} suppressed (test/dry-run mode).")
 
         return req
 

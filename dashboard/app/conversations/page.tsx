@@ -105,6 +105,8 @@ export default function LiveInboxPage() {
   const [wsConnected, setWsConnected] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [isTranscribingAudio, setIsTranscribingAudio] = useState(false);
+  const [isThinking, setIsThinking] = useState(false);
+  const [thinkingModel, setThinkingModel] = useState("NVIDIA Nemotron-3.5");
   const audioInputRef = useRef<HTMLInputElement>(null);
 
   // Web Audio Synthesizer Chime
@@ -187,18 +189,74 @@ export default function LiveInboxPage() {
         ws.onmessage = (event) => {
           try {
             const data = JSON.parse(event.data);
-            loadConversations();
-            if (activeConvId) {
-              fetch(`/api/v1/conversations/${activeConvId}`)
-                .then((r) => (r.ok ? r.json() : null))
-                .then((d) => d && setActiveConvDetail(d))
-                .catch(() => {});
-            }
 
-            if (data?.is_hot || (data?.lead_score && data.lead_score >= 80)) {
-              playChime("hot");
-            } else if (data?.type === "message" || data?.event === "message_received") {
-              playChime("normal");
+            if (data?.event === "agent_thinking") {
+              const info = data.data;
+              if (info?.conversation_id === activeConvId) {
+                setIsThinking(true);
+                if (info.model) setThinkingModel(info.model);
+              }
+            } else if (data?.event === "new_message") {
+              const msg = data.data;
+              if (msg?.conversation_id === activeConvId) {
+                setIsThinking(false);
+                setActiveConvDetail((prev: any) => {
+                  if (!prev) return prev;
+                  const currentMsgs = prev.messages || [];
+                  const exists = currentMsgs.some(
+                    (m: any) => m.content === msg.content && m.direction === msg.direction
+                  );
+                  if (exists) return prev;
+                  const newMsgObj = {
+                    id: "live_" + Date.now(),
+                    conversation_id: msg.conversation_id,
+                    direction: msg.direction,
+                    sender_type: msg.sender_type || (msg.direction === "inbound" ? "customer" : "agent"),
+                    content: msg.content,
+                    created_at: msg.timestamp || new Date().toISOString(),
+                    delivery_status: "delivered",
+                    raw_payload: msg.reasoning_content ? { reasoning_content: msg.reasoning_content } : undefined,
+                  };
+                  return {
+                    ...prev,
+                    messages: [...currentMsgs, newMsgObj],
+                    sales_stage: msg.sales_stage || prev.sales_stage,
+                    lead_score: msg.lead_score !== undefined ? msg.lead_score : prev.lead_score,
+                  };
+                });
+              }
+              loadConversations();
+              playChime(msg?.lead_score >= 80 ? "hot" : "normal");
+            } else if (data?.event === "stage_changed") {
+              const st = data.data;
+              if (st?.conversation_id === activeConvId) {
+                setActiveConvDetail((prev: any) =>
+                  prev ? { ...prev, sales_stage: st.stage_after } : prev
+                );
+              }
+              loadConversations();
+            } else if (data?.event === "score_updated") {
+              const sc = data.data;
+              if (sc?.conversation_id === activeConvId) {
+                setActiveConvDetail((prev: any) =>
+                  prev ? { ...prev, lead_score: sc.lead_score } : prev
+                );
+              }
+              loadConversations();
+            } else {
+              // Legacy/fallback payload
+              loadConversations();
+              if (activeConvId) {
+                fetch(`/api/v1/conversations/${activeConvId}`)
+                  .then((r) => (r.ok ? r.json() : null))
+                  .then((d) => d && setActiveConvDetail(d))
+                  .catch(() => {});
+              }
+              if (data?.is_hot || (data?.lead_score && data.lead_score >= 80)) {
+                playChime("hot");
+              } else if (data?.type === "message" || data?.event === "message_received") {
+                playChime("normal");
+              }
             }
           } catch {
             // Keep-alive or non-json message
@@ -273,7 +331,7 @@ export default function LiveInboxPage() {
       });
       const data = await res.json();
       if (res.ok && data.success) {
-        setPingStatus("✅ Ping sent to WhatsApp! Check your phone (+91 89006 53250).");
+        setPingStatus(`✅ Diagnostic ping sent to admin line (${data.target_phone})! Check phone.`);
       } else {
         setPingStatus(`⚠️ ${data.detail || "Failed to send ping"}`);
       }
@@ -306,7 +364,7 @@ export default function LiveInboxPage() {
         .catch(() => setWaStatus({ connected: false }));
     };
     checkWa();
-    const interval = setInterval(checkWa, 3000);
+    const interval = setInterval(checkWa, 2000);
     return () => clearInterval(interval);
   }, [qrDataUrl]);
 
@@ -337,15 +395,31 @@ export default function LiveInboxPage() {
     if (textOverride === undefined) setInputText("");
     setIsSending(true);
 
+    // Optimistic UI update for instant zero-latency feedback
+    if (!isSimulatingCustomer) {
+      const optimisticMsg: Message = {
+        id: `temp_${Date.now()}`,
+        direction: "outbound",
+        sender_type: "human",
+        content: textToSend,
+        delivery_status: "sent",
+        created_at: new Date().toISOString(),
+      };
+      setActiveConvDetail((prev: any) =>
+        prev ? { ...prev, messages: [...(prev.messages || []), optimisticMsg] } : prev
+      );
+    }
+
     try {
       if (isSimulatingCustomer) {
-        // Trigger live AI consultation turn
+        // Trigger live AI consultation turn (simulation mode: does not dispatch outbound WhatsApp)
         await fetch("/api/v1/agent/turn", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             conversation_id: activeConvId,
             inbound_message: textToSend,
+            is_simulation: true,
           }),
         });
       } else {
@@ -885,6 +959,23 @@ export default function LiveInboxPage() {
                   </div>
                 );
               })}
+              {isThinking && (
+                <div className="flex items-start gap-2.5 max-w-[85%] animate-in fade-in duration-200">
+                  <div className="w-7 h-7 rounded-full bg-purple-500/20 border border-purple-500/30 flex items-center justify-center shrink-0 text-[10px] font-bold text-purple-400">
+                    AI
+                  </div>
+                  <div className="px-3.5 py-2.5 rounded-2xl rounded-tl-sm bg-purple-500/10 border border-purple-500/20 text-xs text-purple-300 flex items-center gap-2.5 shadow-sm">
+                    <span className="flex gap-1 items-center">
+                      <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-bounce" style={{ animationDelay: "0ms" }} />
+                      <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-bounce" style={{ animationDelay: "150ms" }} />
+                      <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-bounce" style={{ animationDelay: "300ms" }} />
+                    </span>
+                    <span className="font-medium text-[11px]">
+                      EDITH is deliberating via {thinkingModel}...
+                    </span>
+                  </div>
+                </div>
+              )}
               <div ref={messagesEndRef} />
             </div>
 
@@ -916,9 +1007,15 @@ export default function LiveInboxPage() {
                     <Sparkles className="w-3 h-3" /> 🧪 Simulate Customer (AI Replies)
                   </button>
                 </div>
-                {isSimulatingCustomer && (
-                  <span className="text-[10px] text-purple-500 font-semibold">
-                    ⚡ EDITH will process your message and reply immediately!
+                {isSimulatingCustomer ? (
+                  <span className="text-[10px] text-purple-500 font-semibold flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse" />
+                    🧪 Safe Simulation (Internal Only — No WhatsApp messages sent to {activeConv.channel_id})
+                  </span>
+                ) : (
+                  <span className="text-[10px] text-emerald-500 font-medium flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                    Live WhatsApp to: <strong className="font-semibold text-emerald-400">{activeConv.channel_id}</strong>
                   </span>
                 )}
               </div>

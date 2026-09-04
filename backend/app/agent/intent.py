@@ -110,9 +110,9 @@ async def classify_intent_llm(
     from app.ai.router import ai_router
     from app.ai.types import Capability, ModelMessage, ModelRequest
 
-    # Fast-path for deterministic opt-out and compliance (never trust LLM alone for opt-outs)
+    # Fast-path for deterministic matches (opt-out, human takeover, or high-confidence intent)
     heuristic_intent, heuristic_conf, heuristic_obj = detect_intent_and_objection(text)
-    if heuristic_intent in ("opt_out", "human_request"):
+    if heuristic_intent in ("opt_out", "human_request") or heuristic_conf >= 0.85:
         return heuristic_intent, heuristic_conf, heuristic_obj
 
     req = ModelRequest(

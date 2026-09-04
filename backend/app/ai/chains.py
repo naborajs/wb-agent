@@ -66,6 +66,13 @@ CAPABILITY_CHAINS: Dict[Capability, List[str]] = {
     Capability.SAFETY_OUTPUT: [
         "nvidia/llama-3.1-nemotron-safety-guard-8b-v3",
     ],
+    # Capability H: Autonomous Quality Watchdog & System Supervisor
+    # Impartial diagnostic logic, stalled lead detection, pricing sanity auditing
+    Capability.SYSTEM_WATCHDOG: [
+        "openai/gpt-oss-20b",
+        "nvidia/nemotron-3.5-lightning-30b-a3b",
+        "google/diffusiongemma-26b-a4b-it",
+    ],
 }
 
 

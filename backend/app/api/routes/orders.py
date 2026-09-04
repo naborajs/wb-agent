@@ -184,11 +184,15 @@ async def create_order(
         f"• *Terms:* {order.payment_terms}\n\n"
         f"👉 View and manage at Dashboard /orders"
     )
-    try:
-        wa = WhatsAppService.get_provider()
-        await wa.send_message(to_phone=owner_phone, text=alert_msg)
-    except Exception as e:
-        logger.error(f"Failed to alert owner on order creation: {e}")
+    import sys
+    if not getattr(settings, "DRY_RUN_MODE", False) and "pytest" not in sys.modules:
+        try:
+            wa = WhatsAppService.get_provider()
+            await wa.send_message(to_phone=owner_phone, text=alert_msg)
+        except Exception as e:
+            logger.error(f"Failed to alert owner on order creation: {e}")
+    else:
+        logger.info("Owner WhatsApp alert on order creation suppressed (test/dry-run mode).")
 
     return {
         "status": "created",

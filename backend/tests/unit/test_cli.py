@@ -49,5 +49,5 @@ def test_cli_backup_runs(capsys):
     """Verifies that run_backup creates a timestamped backup artifact."""
     run_backup()
     captured = capsys.readouterr()
-    assert "Backup" in captured.out
+    assert "backup" in captured.out.lower()
     assert os.path.exists("backups")

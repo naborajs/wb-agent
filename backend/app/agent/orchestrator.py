@@ -96,7 +96,61 @@ class AgentOrchestrator:
             delivery_status="delivered",
         )
 
+        # Early Guard: If conversation is in HUMAN, PAUSED, or CLOSED mode, do not invoke AI
+        if conv.mode != "AI":
+            logger.info(f"Conversation {conversation_id} is in mode '{conv.mode}'. Suppressing AI turn execution.")
+            try:
+                from app.realtime.connection_manager import ws_manager
+                await ws_manager.broadcast_to_org(
+                    self.org_id,
+                    "new_message",
+                    {
+                        "conversation_id": conversation_id,
+                        "direction": "inbound",
+                        "sender_type": "customer",
+                        "content": inbound_message,
+                        "channel_id": conv.channel_id,
+                    },
+                )
+            except Exception:
+                pass
+            return AgentTurnResponse(
+                conversation_id=conversation_id,
+                reply_text="",
+                decision=StructuredDecision(
+                    intent="human_mode_suppressed",
+                    sales_stage=conv.sales_stage,
+                    confidence=1.0,
+                    recommended_action="none",
+                    tools_required=[],
+                    reason_code="HUMAN_MODE_ACTIVE",
+                    handoff_required=False,
+                ),
+                sales_stage_before=conv.sales_stage,
+                sales_stage_after=conv.sales_stage,
+                lead_score_before=conv.lead_score,
+                lead_score_after=conv.lead_score,
+                tools_executed=[],
+                handoff_created=False,
+                is_suppressed=True,
+            )
+
         # 2. Build working context & customer profile
+        try:
+            from app.realtime.connection_manager import ws_manager
+            await ws_manager.broadcast_to_org(
+                self.org_id,
+                "agent_thinking",
+                {
+                    "conversation_id": conversation_id,
+                    "channel_id": conv.channel_id,
+                    "status": "deliberating",
+                    "model": "nvidia/nemotron-3-super-120b-a12b",
+                },
+            )
+        except Exception:
+            pass
+
         ctx = await self.context_builder.build_context(conversation_id, inbound_message)
         customer = await self.session.get(Customer, ctx.customer_id)
 
@@ -353,12 +407,16 @@ class AgentOrchestrator:
             )
             self.session.add(owner_notif)
 
-            try:
-                from app.whatsapp.service import WhatsAppService
-                wa = WhatsAppService.get_provider()
-                await wa.send_message(to_phone=owner_phone, text=owner_alert)
-            except Exception as e:
-                logger.error(f"Failed to send owner handoff alert: {e}")
+            import sys
+            if not is_simulation and not getattr(settings, "DRY_RUN_MODE", False) and "pytest" not in sys.modules:
+                try:
+                    from app.whatsapp.service import WhatsAppService
+                    wa = WhatsAppService.get_provider()
+                    await wa.send_message(to_phone=owner_phone, text=owner_alert)
+                except Exception as e:
+                    logger.error(f"Failed to send owner handoff alert: {e}")
+            else:
+                logger.info("Owner WhatsApp alert suppressed (simulation/test mode active).")
 
             await self.conv_service.update_mode(conversation_id, "HUMAN", reason="purchase_intent")
             reply_text = (
@@ -391,33 +449,56 @@ class AgentOrchestrator:
                 ]
             catalog_text = "\n".join(catalog_lines)
 
+            summary_section = ""
+            if ctx.summary and ctx.summary.strip():
+                summary_section = f"\n### PREVIOUS CONVERSATION CONTEXT & SUMMARY:\n{ctx.summary.strip()}\n"
+
+            name_display = ctx.customer_name or "Not yet confirmed"
+            name_rule = (
+                "- CRITICAL NAME POLICY: If customer name is 'Not yet confirmed', NEVER invent or assume a name "
+                "(such as Rahul, Amit, etc.). Address the customer respectfully with 'Hello', 'Hi', or 'Namaste' "
+                "without any name until they state their name explicitly."
+            )
+
+            audio_clarification_rule = ""
+            if "[audio message could not be transcribed" in inbound_message.lower() or "[voice note received" in inbound_message.lower():
+                audio_clarification_rule = (
+                    "\n### AUDIO CLARIFICATION NOTICE:\n"
+                    "The customer sent a voice note that could not be transcribed clearly. "
+                    "Politely acknowledge that you received their voice note but could not hear the audio clearly, "
+                    "and ask them to send their query as text or re-record."
+                )
+
             system_prompt = (
                 f"You are {a_name}, the {a_role} for {b_name}. "
                 f"Industry / Focus: {b_ind}. {b_desc}\n"
                 "You are warm, consultative, highly professional, commercially savvy, and grounded in verified catalog facts. "
                 "Never invent prices, discounts, or delivery timelines. Use known facts. Ask at most one targeted question.\n\n"
                 f"### CUSTOMER PROFILE:\n"
-                f"- Name/Phone: {ctx.customer_name or 'Buyer'} ({conv.channel_id})\n"
+                f"- Name/Phone: {name_display} ({conv.channel_id})\n"
                 f"- Business Type: {known_profile.get('business_type', 'Hospitality/Retail')}\n"
                 f"- Location: {known_profile.get('location', 'Not yet confirmed')}\n"
                 f"- Detected Language: {language}\n"
                 f"- Known Quantity: {known_profile.get('quantity', 'Not yet provided')}\n"
                 f"- Known Use Case: {known_profile.get('use_case', 'Not yet provided')}\n"
-                f"- Known Packaging: {known_profile.get('packaging', 'Not yet provided')}\n\n"
+                f"- Known Packaging: {known_profile.get('packaging', 'Not yet provided')}\n"
+                f"{name_rule}\n"
+                f"{summary_section}"
                 f"### CONVERSATIONAL STRATEGY:\n"
                 f"- Action: {sales_decision.action}\n"
                 f"- Goal: {sales_decision.customer_goal}\n"
                 f"- Suggested Question / Focus: {sales_decision.suggested_question or sales_decision.recommended_product or 'Consultative advice'}\n\n"
                 f"### VERIFIED PRODUCTS & PRICING:\n"
                 f"{catalog_text}"
+                f"{audio_clarification_rule}"
             )
 
             prompt_msgs = [LLMMessage(role="system", content=system_prompt)]
 
-            # Feed prior multi-turn dialogue turns (up to 6) for true conversational memory
+            # Feed prior multi-turn dialogue turns (up to 20 turns) for true conversational memory
             if ctx.recent_messages:
                 past_turns = ctx.recent_messages[:-1] if len(ctx.recent_messages) > 1 else []
-                for p_msg in past_turns[-6:]:
+                for p_msg in past_turns[-20:]:
                     r = "user" if p_msg.get("direction") == "inbound" else "assistant"
                     c = (p_msg.get("content") or "").strip()
                     if c:
@@ -528,14 +609,21 @@ class AgentOrchestrator:
         # 13. Automatic PDF Pro-Forma Invoice Generation & WhatsApp Dispatch (Requirement R1)
         invoice_pdf_path: Optional[str] = None
         should_generate_invoice = False
-        if target_stage == "PURCHASE_INTENT":
+        inbound_lower = inbound_message.lower()
+        has_qty = bool((facts.quantity_numeric_kg and facts.quantity_numeric_kg > 0) or known_profile.get("quantity"))
+        explicit_invoice_keywords = [
+            "send invoice", "proforma", "pro-forma", "send proforma", "generate bill", "send bill",
+            "share invoice", "payment link", "bank details", "confirm order", "place order",
+            "book order", "book my order", "finalize order", "deal done", "order pack karo"
+        ]
+        wants_explicit_invoice = any(kw in inbound_lower for kw in explicit_invoice_keywords)
+
+        if target_stage == "PURCHASE_INTENT" and (facts.is_ready_to_buy or wants_explicit_invoice) and has_qty:
             should_generate_invoice = True
-        elif target_stage == "RECOMMENDATION":
-            has_qty = bool(facts.quantity_numeric_kg and facts.quantity_numeric_kg > 0)
-            inbound_lower = inbound_message.lower()
-            wants_quote = any(kw in inbound_lower for kw in ["quote", "invoice", "cost", "price", "rate", "order", "sample", "kg", "ton", "bulk"])
-            if has_qty or wants_quote or "quantity" in known_profile:
-                should_generate_invoice = True
+        elif target_stage == "RECOMMENDATION" and has_qty and any(
+            kw in inbound_lower for kw in ["quote", "invoice", "proforma", "need", "rate", "price", "sample", "cost", "order", "kg", "ton", "bulk"]
+        ):
+            should_generate_invoice = True
 
         if should_generate_invoice:
             try:
@@ -544,8 +632,8 @@ class AgentOrchestrator:
                 c_name = customer.name if customer and customer.name else (ctx.customer_name or "Valued Client")
                 c_phone = customer.primary_phone if customer and customer.primary_phone else (conv.channel_id or "+91 98000 00000")
                 c_company = customer.company_name if customer and customer.company_name else (known_profile.get("business_type") or "Commercial Partner")
-                c_city = known_profile.get("location") or (customer.city if customer else None) or "Siliguri"
-                c_state = (customer.state if customer else None) or "West Bengal"
+                c_city = known_profile.get("location") or (customer.city if customer else None) or "India"
+                c_state = (customer.state if customer else None) or ""
                 c_gstin = (customer.custom_attributes.get("gstin") if customer and customer.custom_attributes else None)
 
                 # Step 1: Structured Pricing & Order Data Extraction via Capability C cascade (§3.C)
@@ -675,6 +763,55 @@ class AgentOrchestrator:
             )
         except Exception as e:
             logger.warning(f"Could not enqueue background analysis job: {e}")
+
+        # Real-time WebSocket broadcasts to active dashboard operators (Zero polling latency)
+        try:
+            from app.realtime.connection_manager import ws_manager
+            # 1. Outbound message broadcast with reasoning trace
+            if not is_suppressed and sanitized_reply:
+                await ws_manager.broadcast_to_org(
+                    self.org_id,
+                    "new_message",
+                    {
+                        "conversation_id": conversation_id,
+                        "direction": "outbound",
+                        "sender_type": "agent",
+                        "content": sanitized_reply,
+                        "channel_id": conv.channel_id,
+                        "sales_stage": target_stage,
+                        "lead_score": conv.lead_score + score_delta,
+                        "reasoning_content": reasoning_trace,
+                        "timestamp": utc_now().isoformat(),
+                    },
+                )
+
+            # 2. Sales stage transition broadcast
+            if target_stage != conv.sales_stage:
+                await ws_manager.broadcast_to_org(
+                    self.org_id,
+                    "stage_changed",
+                    {
+                        "conversation_id": conversation_id,
+                        "stage_before": conv.sales_stage,
+                        "stage_after": target_stage,
+                        "channel_id": conv.channel_id,
+                    },
+                )
+
+            # 3. Lead score shift broadcast
+            if score_delta != 0:
+                await ws_manager.broadcast_to_org(
+                    self.org_id,
+                    "score_updated",
+                    {
+                        "conversation_id": conversation_id,
+                        "lead_score": conv.lead_score + score_delta,
+                        "score_delta": score_delta,
+                        "channel_id": conv.channel_id,
+                    },
+                )
+        except Exception as ws_err:
+            logger.debug(f"Failed to broadcast turn completion to WebSocket: {ws_err}")
 
         return AgentTurnResponse(
             conversation_id=conversation_id,

@@ -31,6 +31,7 @@ async def execute_agent_turn(req: AgentTurnRequest, session: AsyncSession = Depe
         resp = await orchestrator.process_turn(
             conversation_id=req.conversation_id,
             inbound_message=req.inbound_message,
+            is_simulation=req.is_simulation,
         )
         return resp
     except ValueError as e:

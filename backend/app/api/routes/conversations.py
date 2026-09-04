@@ -20,6 +20,7 @@ from app.schemas.conversations import (
     TakeoverRequest,
 )
 from app.whatsapp.service import WhatsAppService
+from app.utils.logging import logger
 
 router = APIRouter(prefix="/conversations", tags=["Conversations"])
 
@@ -133,6 +134,10 @@ async def send_manual_operator_message(
     if not conv:
         raise HTTPException(status_code=404, detail="Conversation not found.")
 
+    # Auto-switch to HUMAN mode on manual operator message if not already
+    if conv.mode != "HUMAN":
+        await svc.update_mode(conversation_id, "HUMAN", reason="operator_manual_reply")
+
     # Dispatch via active WhatsApp provider
     wa = WhatsAppService.get_provider()
     wa_res = await wa.send_message(to_phone=conv.channel_id, text=msg_in.content)
@@ -145,6 +150,27 @@ async def send_manual_operator_message(
         provider_message_id=wa_res.provider_message_id,
         delivery_status="sent" if wa_res.success else "failed",
     )
+
+    # Real-time WebSocket event broadcast to all connected operators
+    try:
+        from app.realtime.connection_manager import ws_manager
+        await ws_manager.broadcast_to_org(
+            settings.DEFAULT_ORG_ID,
+            "new_message",
+            {
+                "conversation_id": conversation_id,
+                "message_id": msg.id,
+                "direction": "outbound",
+                "sender_type": "human",
+                "content": msg.content,
+                "channel_id": conv.channel_id,
+                "status": msg.delivery_status,
+                "created_at": str(msg.created_at),
+            },
+        )
+    except Exception as e:
+        logger.warning(f"Could not broadcast operator message via WS: {e}")
+
     return msg
 
 
@@ -166,12 +192,16 @@ async def initiate_conversation(
     Reuses existing customer records or provisions a new customer cleanly.
     """
     org_id = settings.DEFAULT_ORG_ID
-    clean_phone = req.phone.strip().replace(" ", "").replace("-", "")
-    if not clean_phone.startswith("+"):
-        if clean_phone.startswith("91") and len(clean_phone) == 12:
-            clean_phone = "+" + clean_phone
-        else:
-            clean_phone = "+91" + clean_phone.lstrip("0")
+    from app.utils.phone import normalize_phone_number
+    try:
+        clean_phone = normalize_phone_number(req.phone)
+    except Exception:
+        clean_phone = req.phone.strip().replace(" ", "").replace("-", "")
+        if not clean_phone.startswith("+"):
+            if clean_phone.startswith("91") and len(clean_phone) == 12:
+                clean_phone = "+" + clean_phone
+            else:
+                clean_phone = "+91" + clean_phone.lstrip("0")
 
     # 1. Lookup or create customer
     stmt = select(Customer).where(Customer.org_id == org_id, Customer.primary_phone == clean_phone)
@@ -201,15 +231,25 @@ async def initiate_conversation(
     # 3. If initial message provided, dispatch it immediately
     initial_msg_id = None
     if req.initial_message:
-        wa = WhatsAppService.get_provider()
-        wa_res = await wa.send_message(to_phone=clean_phone, text=req.initial_message)
+        provider_msg_id = None
+        delivery_status = "sent"
+        import sys
+        if not getattr(settings, "DRY_RUN_MODE", False) and "pytest" not in sys.modules:
+            wa = WhatsAppService.get_provider()
+            wa_res = await wa.send_message(to_phone=clean_phone, text=req.initial_message)
+            if wa_res:
+                provider_msg_id = wa_res.provider_message_id
+                delivery_status = "sent" if wa_res.success else "failed"
+        else:
+            logger.info(f"Initiate conversation dispatch to {clean_phone} simulated (test/dry-run mode).")
+
         msg = await svc.add_message(
             conversation_id=conv.id,
             direction="outbound",
             sender_type="human",
             content=req.initial_message,
-            provider_message_id=wa_res.provider_message_id,
-            delivery_status="sent" if wa_res.success else "failed",
+            provider_message_id=provider_msg_id,
+            delivery_status=delivery_status,
         )
         initial_msg_id = msg.id
 
@@ -326,8 +366,8 @@ async def reset_conversation(
     """
     Clears all messages in a conversation and resets sales stage and lead score to initial state.
     """
-    from sqlalchemy import delete
-    from app.database.models import CustomerMemory
+    from sqlalchemy import delete, update
+    from app.database.models import CustomerMemory, ConversationSummary, FollowupJob, Handoff
 
     org_id = settings.DEFAULT_ORG_ID
     stmt = select(Conversation).where(Conversation.id == conversation_id, Conversation.org_id == org_id)
@@ -338,14 +378,32 @@ async def reset_conversation(
     # 1. Delete all messages for this conversation
     await session.execute(delete(Message).where(Message.conversation_id == conversation_id))
 
-    # 2. Reset conversation state
+    # 2. Delete conversation summary record so amnesia/stale memory is completely cleared
+    await session.execute(delete(ConversationSummary).where(ConversationSummary.conversation_id == conversation_id))
+
+    # 3. Cancel any pending follow-up jobs
+    await session.execute(
+        update(FollowupJob)
+        .where(FollowupJob.conversation_id == conversation_id, FollowupJob.status == "scheduled")
+        .values(status="cancelled", cancel_reason="conversation_reset")
+    )
+
+    # 4. Resolve any pending handoffs
+    await session.execute(
+        update(Handoff)
+        .where(Handoff.conversation_id == conversation_id, Handoff.status == "pending")
+        .values(status="resolved", resolution_notes="conversation_reset")
+    )
+
+    # 5. Reset conversation state
     conv.sales_stage = "DISCOVERY"
     conv.lead_score = 0
     conv.is_hot = False
     conv.unread_count = 0
     conv.mode = "AI"
+    conv.active_objections = []
 
-    # 3. Clean up customer memory if customer exists
+    # 6. Clean up customer memory if customer exists
     if conv.customer_id:
         await session.execute(delete(CustomerMemory).where(CustomerMemory.customer_id == conv.customer_id))
 

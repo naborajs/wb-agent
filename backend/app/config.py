@@ -64,7 +64,7 @@ class Settings(BaseSettings):
     LLM_TEMPERATURE: float = 0.2
     LLM_MAX_TOKENS: int = 1024
     LLM_REQUEST_TIMEOUT: int = 90
-    AI_REQUEST_TIMEOUT: int = 30
+    AI_REQUEST_TIMEOUT: int = 12
     AI_CIRCUIT_BREAKER_COOLDOWN_SECONDS: int = 60
     AI_CIRCUIT_BREAKER_FAILURE_THRESHOLD: int = 3
     ENABLE_MINIMAX_M3: bool = False  # TODO: remove minimaxai/minimax-m3 deprecated model
@@ -79,8 +79,8 @@ class Settings(BaseSettings):
         return self.NVIDIA_NIM_API_KEY_FALLBACK or self.NVIDIA_FALLBACK_API_KEY or ""
 
     # WhatsApp Channel Configuration
-    # Options: 'simulator', 'development', 'meta_cloud'
-    WHATSAPP_PROVIDER: str = "simulator"
+    # Options: 'simulator', 'bridge', 'meta_cloud'
+    WHATSAPP_PROVIDER: str = "bridge"
     WHATSAPP_PHONE_NUMBER_ID: str = "mock_phone_number_id"
     WHATSAPP_BUSINESS_ACCOUNT_ID: str = "mock_waba_id"
     WHATSAPP_ACCESS_TOKEN: str = "mock_access_token"
@@ -97,8 +97,8 @@ class Settings(BaseSettings):
     WORKER_COUNT: int = 2
     MAX_AGENT_CONCURRENCY: int = 10
     CONVERSATION_LOCK_TIMEOUT_SECONDS: int = 60
-    MESSAGE_DEBOUNCE_WINDOW_SECONDS: float = 2.5
-    JOB_POLL_INTERVAL_SECONDS: float = 1.0
+    MESSAGE_DEBOUNCE_WINDOW_SECONDS: float = 0.8
+    JOB_POLL_INTERVAL_SECONDS: float = 0.25
 
     # Follow-up Engine Cadence
     FOLLOWUP_ENGINE_ENABLED: bool = True
@@ -111,7 +111,7 @@ class Settings(BaseSettings):
     # Global Operations & Autonomous Safeguards
     GLOBAL_AUTONOMOUS_ENABLED: bool = True
     DRY_RUN_MODE: bool = False
-    SANDBOX_MODE: bool = True
+    SANDBOX_MODE: bool = False
 
     # Networking & Security
     API_URL: str = "http://localhost:8000"

@@ -40,7 +40,19 @@ app.use((req, res, next) => {
 
 app.use(express.json());
 
-// 1. Status API
+// 1. Status and Health APIs
+app.get(["/health", "/api/v1/health"], (req, res) => {
+  res.json({
+    status: isConnected ? "ok" : "disconnected",
+    connected: isConnected,
+    isReady: isConnected,
+    authenticated: isConnected,
+    botPhone: BOT_PHONE,
+    hasQR: !!latestQR,
+    pairingCode: latestPairingCode,
+  });
+});
+
 app.get("/status", (req, res) => {
   res.json({
     connected: isConnected,
@@ -189,12 +201,20 @@ const OWNER_PHONE = (process.env.OWNER_WHATSAPP_NUMBER || "918900653250").replac
 const lidToPhoneMap = new Map();
 const phoneToLidMap = new Map();
 const jidMap = new Map();
+const recentOutbounds = new Map();
 
 // Pre-seed known owner mapping
 lidToPhoneMap.set("249808719728891", OWNER_PHONE);
 phoneToLidMap.set(OWNER_PHONE, "249808719728891@lid");
 jidMap.set(OWNER_PHONE, "249808719728891@lid");
 jidMap.set("249808719728891", "249808719728891@lid");
+
+// User test contact (DEV SPACE / +919832439994)
+const USER_TEST_PHONE = "919832439994";
+lidToPhoneMap.set("89443348287532", USER_TEST_PHONE);
+phoneToLidMap.set(USER_TEST_PHONE, "89443348287532@lid");
+jidMap.set(USER_TEST_PHONE, "89443348287532@lid");
+jidMap.set("89443348287532", "89443348287532@lid");
 
 // 4. Outbound message sending endpoint
 app.post("/send", async (req, res) => {
@@ -215,10 +235,23 @@ app.post("/send", async (req, res) => {
     } else if (jidMap.has(cleanTo)) {
       jid = jidMap.get(cleanTo);
     } else if (!jid.includes("@")) {
-      jid = `${cleanTo}@s.whatsapp.net`;
+      try {
+        const [waCheck] = await sock.onWhatsApp(cleanTo);
+        if (waCheck && waCheck.exists) {
+          jid = waCheck.jid;
+          phoneToLidMap.set(cleanTo, jid);
+          jidMap.set(cleanTo, jid);
+          console.log(`[RESOLVED JID] Verified WhatsApp account for +${cleanTo} -> ${jid}`);
+        } else {
+          jid = `${cleanTo}@s.whatsapp.net`;
+        }
+      } catch (checkErr) {
+        jid = `${cleanTo}@s.whatsapp.net`;
+      }
     }
 
     console.log(`[OUTBOUND] Sending to ${jid}: "${text.slice(0, 80)}"`);
+    recentOutbounds.set(cleanTo, Date.now());
     const result = await sock.sendMessage(jid, { text });
     console.log(`[OUTBOUND] Delivered message to ${jid} (Msg ID: ${result.key.id})`);
     return res.json({
@@ -254,12 +287,24 @@ app.post("/send-document", async (req, res) => {
     } else if (jidMap.has(cleanTo)) {
       jid = jidMap.get(cleanTo);
     } else if (!jid.includes("@")) {
-      jid = `${cleanTo}@s.whatsapp.net`;
+      try {
+        const [waCheck] = await sock.onWhatsApp(cleanTo);
+        if (waCheck && waCheck.exists) {
+          jid = waCheck.jid;
+          phoneToLidMap.set(cleanTo, jid);
+          jidMap.set(cleanTo, jid);
+        } else {
+          jid = `${cleanTo}@s.whatsapp.net`;
+        }
+      } catch (checkErr) {
+        jid = `${cleanTo}@s.whatsapp.net`;
+      }
     }
 
     const fileBuffer = fs.readFileSync(filePath);
     const resolvedName = fileName || filePath.split(/[\/\\]/).pop() || "document.pdf";
     console.log(`[OUTBOUND] Sending document ${resolvedName} to ${jid}`);
+    recentOutbounds.set(cleanTo, Date.now());
 
     const result = await sock.sendMessage(jid, {
       document: fileBuffer,
@@ -356,7 +401,7 @@ async function startSocket() {
         continue;
       }
 
-      // Resolve WhatsApp Multi-Device LID to real phone number
+      // Resolve WhatsApp Multi-Device LID to real phone number safely without guessing
       const rawJidPhone = senderPhone;
       if (lidToPhoneMap.has(rawJidPhone)) {
         senderPhone = lidToPhoneMap.get(rawJidPhone);
@@ -365,22 +410,20 @@ async function startSocket() {
         // Try to resolve from participant metadata
         if (msg.key.participant) {
           const partPhone = msg.key.participant.split("@")[0].replace(/[^0-9]/g, "");
-          if (partPhone && !partPhone.includes("lid")) {
+          if (partPhone && !partPhone.includes("lid") && partPhone.length >= 10) {
             senderPhone = partPhone;
+            lidToPhoneMap.set(rawJidPhone, senderPhone);
+            phoneToLidMap.set(senderPhone, remoteJid);
+            console.log(`[LID RESOLVE] Registered participant LID mapping ${rawJidPhone} -> +${senderPhone}`);
           }
         }
-        // If still unresolved, keep the raw LID as the sender identifier
-        // DO NOT fall back to OWNER_PHONE — that causes cross-contamination!
-        if (senderPhone === rawJidPhone) {
-          console.log(`[LID WARNING] Could not resolve LID ${rawJidPhone} to a real phone number. Using LID as identifier.`);
-        }
-        lidToPhoneMap.set(rawJidPhone, senderPhone);
-        console.log(`[LID RESOLVE] Registered LID mapping ${rawJidPhone} -> +${senderPhone}`);
       }
 
       jidMap.set(senderPhone, remoteJid);
       jidMap.set(rawJidPhone, remoteJid);
-      phoneToLidMap.set(senderPhone, remoteJid);
+      if (senderPhone !== rawJidPhone) {
+        phoneToLidMap.set(senderPhone, remoteJid);
+      }
       const textBody =
         msg.message?.conversation ||
         msg.message?.extendedTextMessage?.text ||
