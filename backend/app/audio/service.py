@@ -65,18 +65,66 @@ class AudioTranscriptionService:
         if "TRANSCRIPT:" in text_str:
             return text_str.split("TRANSCRIPT:")[1].strip()
 
-        # If Gemini API key is configured, invoke Gemini Multimodal endpoint
-        api_key = settings.GEMINI_API_KEY
-        if api_key and api_key.strip():
+        # Step 1: Attempt Primary - Nemotron Omni (Directive §3.D Primary)
+        transcript = await cls._call_nemotron_omni(audio_bytes, mime_type)
+        if transcript and transcript.strip():
+            return transcript.strip()
+
+        # Step 2: Attempt Fallback 1 - Gemini Live Preview (Directive §3.D Fallback 1)
+        from app.ai.gemini_audio import GeminiAudioClient
+        gemini_client = GeminiAudioClient()
+        if gemini_client.api_key:
             try:
-                transcript = await cls._call_gemini_multimodal(audio_bytes, mime_type, api_key)
-                if transcript and transcript.strip():
-                    return transcript.strip()
+                gemini_transcript = await gemini_client.transcribe_audio(
+                    audio_bytes, mime_type=mime_type, model="gemini-3.1-flash-live-preview"
+                )
+                if gemini_transcript and gemini_transcript.strip():
+                    return gemini_transcript.strip()
             except Exception as e:
-                logger.warning(f"Gemini audio transcription failed, falling back: {e}")
+                logger.warning(f"Gemini Live audio fallback failed: {e}")
 
         # Local fallback simulation for B2B tea wholesale queries
         return cls._local_fallback(audio_bytes)
+
+    @classmethod
+    async def _call_nemotron_omni(cls, audio_bytes: bytes, mime_type: str) -> Optional[str]:
+        """
+        Invokes NVIDIA Nemotron Omni reasoning model for direct audio understanding (§3.D Primary).
+        """
+        primary_key = settings.nvidia_primary_key
+        if not primary_key or primary_key.startswith("nvapi-mock"):
+            return None
+
+        b64_audio = base64.b64encode(audio_bytes).decode("utf-8")
+        clean_mime = mime_type.lower().split(";")[0].strip()
+        url = f"{settings.NVIDIA_BASE_URL.rstrip('/')}/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {primary_key}",
+            "Content-Type": "application/json",
+        }
+        payload = {
+            "model": "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning",
+            "messages": [
+                {
+                    "role": "user",
+                    "content": (
+                        "Transcribe the customer's wholesale tea order voice note accurately in English or Hinglish: "
+                        f"data:{clean_mime};base64,{b64_audio}"
+                    ),
+                }
+            ],
+            "max_tokens": 256,
+            "temperature": 0.1,
+        }
+        try:
+            async with httpx.AsyncClient(timeout=float(settings.AI_REQUEST_TIMEOUT)) as client:
+                resp = await client.post(url, json=payload, headers=headers)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    return data["choices"][0]["message"]["content"].strip()
+        except Exception as e:
+            logger.warning(f"Nemotron Omni audio transcription call failed: {e}")
+        return None
 
     @classmethod
     async def _call_gemini_multimodal(cls, audio_bytes: bytes, mime_type: str, api_key: str) -> str:
