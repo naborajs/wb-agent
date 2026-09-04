@@ -183,7 +183,18 @@ app.get("/code", async (req, res) => {
   }
 });
 
+const OWNER_PHONE = (process.env.OWNER_WHATSAPP_NUMBER || "918900653250").replace(/[^0-9]/g, "");
+
+// Bi-directional LID <-> Real Phone Number mappings (solves WhatsApp Multi-Device LID privacy identifier)
+const lidToPhoneMap = new Map();
+const phoneToLidMap = new Map();
 const jidMap = new Map();
+
+// Pre-seed known owner mapping
+lidToPhoneMap.set("249808719728891", OWNER_PHONE);
+phoneToLidMap.set(OWNER_PHONE, "249808719728891@lid");
+jidMap.set(OWNER_PHONE, "249808719728891@lid");
+jidMap.set("249808719728891", "249808719728891@lid");
 
 // 4. Outbound message sending endpoint
 app.post("/send", async (req, res) => {
@@ -199,7 +210,9 @@ app.post("/send", async (req, res) => {
   try {
     const cleanTo = to.replace(/[^0-9]/g, "");
     let jid = to;
-    if (jidMap.has(cleanTo)) {
+    if (phoneToLidMap.has(cleanTo)) {
+      jid = phoneToLidMap.get(cleanTo);
+    } else if (jidMap.has(cleanTo)) {
       jid = jidMap.get(cleanTo);
     } else if (!jid.includes("@")) {
       jid = `${cleanTo}@s.whatsapp.net`;
@@ -236,7 +249,9 @@ app.post("/send-document", async (req, res) => {
   try {
     const cleanTo = to.replace(/[^0-9]/g, "");
     let jid = to;
-    if (jidMap.has(cleanTo)) {
+    if (phoneToLidMap.has(cleanTo)) {
+      jid = phoneToLidMap.get(cleanTo);
+    } else if (jidMap.has(cleanTo)) {
       jid = jidMap.get(cleanTo);
     } else if (!jid.includes("@")) {
       jid = `${cleanTo}@s.whatsapp.net`;
@@ -325,13 +340,35 @@ async function startSocket() {
       const remoteJid = msg.key.remoteJid;
       if (!remoteJid || remoteJid.includes("@g.us")) continue;
 
-      const senderPhone = remoteJid.split("@")[0].replace(/[^0-9]/g, "");
+      let senderPhone = remoteJid.split("@")[0].replace(/[^0-9]/g, "");
       // CRITICAL SELF-CHAT GUARD: Never forward messages originating from or addressed to the bot's own number!
       if (senderPhone === BOT_PHONE || senderPhone.endsWith(BOT_PHONE) || BOT_PHONE.endsWith(senderPhone)) {
         console.log(`[IGNORE] Suppressed self-message loop from bot phone ${senderPhone}`);
         continue;
       }
+
+      // Resolve WhatsApp Multi-Device LID to real phone number
+      const rawJidPhone = senderPhone;
+      if (lidToPhoneMap.has(rawJidPhone)) {
+        senderPhone = lidToPhoneMap.get(rawJidPhone);
+        console.log(`[LID RESOLVE] Mapped incoming LID ${rawJidPhone} -> Real Phone +${senderPhone}`);
+      } else if (remoteJid.endsWith("@lid")) {
+        if (msg.key.participant) {
+          const partPhone = msg.key.participant.split("@")[0].replace(/[^0-9]/g, "");
+          if (partPhone && !partPhone.includes("lid")) {
+            senderPhone = partPhone;
+          }
+        }
+        if (senderPhone === rawJidPhone && OWNER_PHONE) {
+          senderPhone = OWNER_PHONE;
+        }
+        lidToPhoneMap.set(rawJidPhone, senderPhone);
+        console.log(`[LID RESOLVE] Registered new LID mapping ${rawJidPhone} -> Real Phone +${senderPhone}`);
+      }
+
       jidMap.set(senderPhone, remoteJid);
+      jidMap.set(rawJidPhone, remoteJid);
+      phoneToLidMap.set(senderPhone, remoteJid);
       const textBody =
         msg.message?.conversation ||
         msg.message?.extendedTextMessage?.text ||
