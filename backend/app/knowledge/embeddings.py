@@ -71,17 +71,19 @@ class LocalMockEmbeddingProvider(EmbeddingProvider):
 
 class NvidiaEmbeddingProvider(EmbeddingProvider):
     """
-    Production embedding provider using NVIDIA NeMo Retriever API.
+    Production embedding provider using NVIDIA NeMo Retriever API with dual-key failover.
     """
 
     def __init__(
         self,
         api_key: str,
+        fallback_api_key: Optional[str] = None,
         model: str = "nvidia/nv-embedqa-e5-v5",
         base_url: str = "https://integrate.api.nvidia.com/v1",
         dimension: int = 1536,
     ):
         self.api_key = api_key
+        self.fallback_api_key = fallback_api_key
         self.model = model
         self.base_url = base_url
         self._dim = dimension
@@ -96,10 +98,6 @@ class NvidiaEmbeddingProvider(EmbeddingProvider):
             return await LocalMockEmbeddingProvider(dimension=self._dim).embed_texts(texts)
 
         url = f"{self.base_url}/embeddings"
-        headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json",
-        }
         payload = {
             "input": texts,
             "model": self.model,
@@ -107,22 +105,36 @@ class NvidiaEmbeddingProvider(EmbeddingProvider):
             "encoding_format": "float",
         }
 
-        try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
-                resp = await client.post(url, json=payload, headers=headers)
-                resp.raise_for_status()
-                data = resp.json()
-                return [item["embedding"] for item in data["data"]]
-        except Exception as e:
-            logger.warning(f"NVIDIA Embedding API call failed ({e}). Falling back to LocalMockEmbeddingProvider.")
-            return await LocalMockEmbeddingProvider(dimension=self._dim).embed_texts(texts)
+        keys_to_try = [self.api_key]
+        if self.fallback_api_key and self.fallback_api_key != self.api_key:
+            keys_to_try.append(self.fallback_api_key)
+
+        for k in keys_to_try:
+            try:
+                headers = {
+                    "Authorization": f"Bearer {k}",
+                    "Content-Type": "application/json",
+                }
+                async with httpx.AsyncClient(timeout=30.0) as client:
+                    resp = await client.post(url, json=payload, headers=headers)
+                    resp.raise_for_status()
+                    data = resp.json()
+                    return [item["embedding"] for item in data["data"]]
+            except Exception as e:
+                logger.warning(f"NVIDIA Embedding API call failed on key ending in ...{k[-4:] if len(k) >= 4 else k}: {e}")
+
+        logger.warning("All NVIDIA embedding keys failed. Falling back to LocalMockEmbeddingProvider.")
+        return await LocalMockEmbeddingProvider(dimension=self._dim).embed_texts(texts)
 
 
 def get_embedding_provider() -> EmbeddingProvider:
-    """Factory creating configured embedding provider with mock fallback."""
-    if settings.NVIDIA_API_KEY and not settings.NVIDIA_API_KEY.startswith("nvapi-mock"):
+    """Factory creating configured embedding provider with dual-key failover and mock fallback."""
+    primary = settings.nvidia_primary_key
+    fallback = settings.nvidia_fallback_key
+    if primary and not primary.startswith("nvapi-mock"):
         return NvidiaEmbeddingProvider(
-            api_key=settings.NVIDIA_API_KEY,
+            api_key=primary,
+            fallback_api_key=fallback,
             base_url=settings.NVIDIA_BASE_URL,
             model=settings.NVIDIA_EMBEDDING_MODEL,
         )
