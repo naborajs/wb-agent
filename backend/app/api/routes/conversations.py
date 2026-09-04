@@ -101,6 +101,7 @@ async def get_conversation_detail(conversation_id: str, session: AsyncSession = 
                 "reported": bool((m.raw_payload or {}).get("reported", False)),
                 "correction_category": (m.raw_payload or {}).get("correction_category"),
                 "corrected_text": (m.raw_payload or {}).get("corrected_text"),
+                "reasoning_content": (m.raw_payload or {}).get("reasoning_content"),
                 "created_at": m.created_at,
             }
             for m in conv.messages
