@@ -53,3 +53,45 @@ class LeadScoringEngine:
                 )
 
         return new_score, changes
+
+    @classmethod
+    async def evaluate_live_scoring_with_llm(
+        cls,
+        inbound_text: str,
+        current_score: int,
+        detected_signals: List[str],
+    ) -> Tuple[int, List[ScoreChange]]:
+        """
+        Live lead scoring refinement using Capability B router chain (Directive §3.B)
+        to identify implicit high-intent wholesale buying signals.
+        """
+        base_score, changes = cls.evaluate_signals(current_score, detected_signals)
+        from app.ai.router import ai_router
+        from app.ai.types import Capability, ModelMessage, ModelRequest
+        import json
+
+        req = ModelRequest(
+            messages=[
+                ModelMessage(
+                    role="system",
+                    content=(
+                        "Evaluate wholesale lead qualification for B2B tea buyer. Output JSON with any additional detected signals: "
+                        "{\"additional_signals\": [\"sample_requested\", \"volume_specified\", \"purchase_intent\"]}"
+                    ),
+                ),
+                ModelMessage(role="user", content=inbound_text),
+            ],
+            temperature=0.1,
+            max_tokens=64,
+            metadata={"capability": "intent_scoring"},
+        )
+        try:
+            resp = await ai_router.execute(Capability.INTENT_SCORING, req)
+            data = json.loads(resp.content)
+            add_sigs = [s for s in data.get("additional_signals", []) if s in cls.FACTORS and s not in detected_signals]
+            if add_sigs:
+                base_score, extra_changes = cls.evaluate_signals(base_score, add_sigs)
+                changes.extend(extra_changes)
+        except Exception:
+            pass
+        return base_score, changes
