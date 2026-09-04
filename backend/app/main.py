@@ -8,6 +8,7 @@ from app.api.middleware import CorrelationIdMiddleware, SecurityHeadersMiddlewar
 from app.api.routes import (
     agent,
     analytics,
+    audio,
     auth,
     conversations,
     handoffs,
@@ -57,6 +58,7 @@ app.include_router(leads.router, prefix=api_v1)
 app.include_router(orders.router, prefix=api_v1)
 app.include_router(quotes.router, prefix=api_v1)
 app.include_router(invoices.router, prefix=api_v1)
+app.include_router(audio.router, prefix=api_v1)
 app.include_router(conversations.router, prefix=api_v1)
 app.include_router(products.router, prefix=api_v1)
 app.include_router(prompts.router, prefix=api_v1)
