@@ -21,6 +21,15 @@ class SettingsUpdateRequest(BaseModel):
     followup_midterm_hours: Optional[int] = None
     followup_final_days: Optional[int] = None
     quiet_hours_enabled: Optional[bool] = None
+    # Domain & Business Customization
+    business_name: Optional[str] = None
+    business_industry: Optional[str] = None
+    business_tagline: Optional[str] = None
+    business_description: Optional[str] = None
+    agent_name: Optional[str] = None
+    agent_role: Optional[str] = None
+    currency_symbol: Optional[str] = None
+    catalog_unit: Optional[str] = None
 
 
 @router.get("")
@@ -40,6 +49,15 @@ async def get_system_settings():
         "llm_provider": settings.LLM_PROVIDER,
         "worker_count": settings.WORKER_COUNT,
         "message_debounce_seconds": settings.MESSAGE_DEBOUNCE_WINDOW_SECONDS,
+        # Domain & Business Profile
+        "business_name": getattr(settings, "BUSINESS_NAME", "North Bengal Tea Co."),
+        "business_industry": getattr(settings, "BUSINESS_INDUSTRY", "Wholesale Tea & Agro Produce"),
+        "business_tagline": getattr(settings, "BUSINESS_TAGLINE", "Direct Commercial Estate Wholesale"),
+        "business_description": getattr(settings, "BUSINESS_DESCRIPTION", "Commercial B2B supplier supplying fresh wholesale products directly to cafes, restaurants, hotels, and businesses."),
+        "agent_name": getattr(settings, "AGENT_NAME", "EDITH"),
+        "agent_role": getattr(settings, "AGENT_ROLE", "Principal Commercial Sales Consultant"),
+        "currency_symbol": getattr(settings, "CURRENCY_SYMBOL", "₹"),
+        "catalog_unit": getattr(settings, "CATALOG_UNIT", "kg"),
     }
 
 
@@ -64,6 +82,23 @@ async def update_system_settings(req: SettingsUpdateRequest):
         setattr(settings, "FOLLOWUP_FINAL_DAYS", req.followup_final_days)
     if req.quiet_hours_enabled is not None:
         setattr(settings, "QUIET_HOURS_ENABLED", req.quiet_hours_enabled)
+    # Domain & Business Profile updates
+    if req.business_name is not None:
+        setattr(settings, "BUSINESS_NAME", req.business_name)
+    if req.business_industry is not None:
+        setattr(settings, "BUSINESS_INDUSTRY", req.business_industry)
+    if req.business_tagline is not None:
+        setattr(settings, "BUSINESS_TAGLINE", req.business_tagline)
+    if req.business_description is not None:
+        setattr(settings, "BUSINESS_DESCRIPTION", req.business_description)
+    if req.agent_name is not None:
+        setattr(settings, "AGENT_NAME", req.agent_name)
+    if req.agent_role is not None:
+        setattr(settings, "AGENT_ROLE", req.agent_role)
+    if req.currency_symbol is not None:
+        setattr(settings, "CURRENCY_SYMBOL", req.currency_symbol)
+    if req.catalog_unit is not None:
+        setattr(settings, "CATALOG_UNIT", req.catalog_unit)
 
     return {"success": True, "settings": await get_system_settings()}
 

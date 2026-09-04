@@ -116,8 +116,9 @@ class AgentOrchestrator:
             )
             self.session.add(handoff)
             await self.conv_service.update_mode(conversation_id, "HUMAN", reason="input_guardrail_hold")
+            b_name = getattr(settings, "BUSINESS_NAME", "North Bengal Tea Co.")
             safe_reply = (
-                "Thank you for contacting North Bengal Tea Co. We have flagged your request for our commercial manager, "
+                f"Thank you for contacting {b_name}. We have flagged your request for our commercial manager, "
                 "who will assist you personally."
             )
             await self.conv_service.add_message(
@@ -273,8 +274,8 @@ class AgentOrchestrator:
                 customer.opt_in_status = False
                 customer.opt_out_timestamp = utc_now()
             target_stage = "OPTED_OUT"
-            score_delta = -50
-            reply_text = "You have been successfully opted out from North Bengal Tea Co. We will not send you further messages."
+            b_name = getattr(settings, "BUSINESS_NAME", "North Bengal Tea Co.")
+            reply_text = f"You have been successfully opted out from {b_name}. We will not send you further messages."
 
         # 8. Check Unknown Question (Sections 19, 21, 22)
         elif sales_decision.is_unknown_question:
@@ -327,14 +328,22 @@ class AgentOrchestrator:
 
             # Route WhatsApp Alert to Owner (+91 89006 53250)
             owner_phone = settings.OWNER_WHATSAPP_NUMBER or "+918900653250"
+            lead_qty = known_profile.get("quantity") or "Bulk Wholesale"
+            lead_pack = known_profile.get("packaging") or "Commercial Standard"
+            lead_dest = known_profile.get("location") or "Delivery Address Pending"
             owner_alert = (
-                f"🔥 *HOT LEAD PURCHASE INTENT DETECTED!*\n\n"
-                f"👤 *Customer:* {customer_name} ({customer_phone})\n"
-                f"🏢 *Company:* {customer_company}\n"
-                f"📦 *Requirements:* {known_profile.get('quantity', 'Bulk')} | Packaging: {known_profile.get('packaging', 'Standard')}\n"
-                f"📍 *Location:* {known_profile.get('location', 'India')}\n"
-                f"💬 *Latest Message:* \"{inbound_message}\"\n\n"
-                f"👉 *Recommended Action:* Open Dashboard to take over and share pro-forma invoice!"
+                f"🔥 *HOT LEAD PURCHASE INTENT DETECTED!*\n"
+                f"━━━━━━━━━━━━━━━━━━━━━━\n"
+                f"👤 *Customer:* {customer_name}\n"
+                f"📱 *Phone:* {customer_phone}\n"
+                f"🏢 *Business:* {customer_company}\n"
+                f"📦 *Volume & Spec:* {lead_qty} | {lead_pack}\n"
+                f"📍 *Destination:* {lead_dest}\n"
+                f"🎯 *Buying Signal:* \"{inbound_message}\"\n"
+                f"📊 *Score:* {min(100, conv.lead_score + score_delta)}/100 (Hot Prospect)\n"
+                f"━━━━━━━━━━━━━━━━━━━━━━\n"
+                f"👉 *Action:* Pro-forma invoice ready. Open Mission Control to manage:\n"
+                f"http://localhost:3000/conversations"
             )
             owner_notif = Notification(
                 org_id=self.org_id,
@@ -359,10 +368,33 @@ class AgentOrchestrator:
 
         # 10. Generate Context-Rich LLM Response via EDITH Persona
         else:
-            # Load EDITH System Prompt
+            # Load EDITH System Prompt with Dynamic Business Adaptation
+            b_name = getattr(settings, "BUSINESS_NAME", "North Bengal Tea Co.")
+            b_ind = getattr(settings, "BUSINESS_INDUSTRY", "Wholesale Produce & Goods")
+            b_desc = getattr(settings, "BUSINESS_DESCRIPTION", "Commercial B2B supplier supplying fresh wholesale products directly to businesses.")
+            a_name = getattr(settings, "AGENT_NAME", "EDITH")
+            a_role = getattr(settings, "AGENT_ROLE", "Autonomous B2B AI Sales Consultant")
+
+            catalog_lines = []
+            if available_products:
+                for prod in available_products:
+                    p_name = prod.get("name", "Product")
+                    p_grade = prod.get("grade", "Commercial Grade")
+                    p_cat = prod.get("category", "General")
+                    catalog_lines.append(f"- {p_name} ({p_cat} | {p_grade})")
+            if not catalog_lines:
+                catalog_lines = [
+                    "- Assam Kadak CTC: ₹340/kg (5% off at 50kg -> ₹323/kg; 10% off at 100kg -> ₹306/kg)",
+                    "- Dooars Hotel Special Blend: ₹230/kg (High color, value-engineered for cafes & hotels)",
+                    "- Darjeeling First Flush Special (Whole Leaf): ₹1,450/kg (Delicate, floral, muscatel)",
+                    "- 200g Commercial Tasting Kit available for verified cafes and restaurants."
+                ]
+            catalog_text = "\n".join(catalog_lines)
+
             system_prompt = (
-                "You are EDITH, the autonomous AI Sales Consultant for North Bengal Tea Co. "
-                "You are warm, consultative, highly professional, commercially savvy, and grounded in verified estate facts. "
+                f"You are {a_name}, the {a_role} for {b_name}. "
+                f"Industry / Focus: {b_ind}. {b_desc}\n"
+                "You are warm, consultative, highly professional, commercially savvy, and grounded in verified catalog facts. "
                 "Never invent prices, discounts, or delivery timelines. Use known facts. Ask at most one targeted question.\n\n"
                 f"### CUSTOMER PROFILE:\n"
                 f"- Name/Phone: {ctx.customer_name or 'Buyer'} ({conv.channel_id})\n"
@@ -377,10 +409,7 @@ class AgentOrchestrator:
                 f"- Goal: {sales_decision.customer_goal}\n"
                 f"- Suggested Question / Focus: {sales_decision.suggested_question or sales_decision.recommended_product or 'Consultative advice'}\n\n"
                 f"### VERIFIED PRODUCTS & PRICING:\n"
-                f"- Assam Kadak CTC: ₹340/kg (5% off at 50kg -> ₹323/kg; 10% off at 100kg -> ₹306/kg)\n"
-                f"- Dooars Hotel Special Blend: ₹230/kg (High color, value-engineered for cafes & hotels)\n"
-                f"- Darjeeling First Flush Special (Whole Leaf): ₹1,450/kg (Delicate, floral, muscatel)\n"
-                f"- 200g Commercial Tasting Kit available for verified cafes and restaurants."
+                f"{catalog_text}"
             )
 
             prompt_msgs = [LLMMessage(role="system", content=system_prompt)]
@@ -461,8 +490,17 @@ class AgentOrchestrator:
         if can_dispatch_whatsapp and sanitized_reply:
             clean_recipient = conv.channel_id.replace("+", "").replace(" ", "").strip() if conv.channel_id else ""
             bot_num = "918918753100"
+            owner_num = (settings.OWNER_WHATSAPP_NUMBER or "+918900653250").replace("+", "").replace(" ", "").strip()
+
+            # Guard 1: Never send AI sales replies to the bot's own number
             if clean_recipient == bot_num or clean_recipient.endswith(bot_num):
                 logger.info(f"Suppressed outbound dispatch to bot's own number {conv.channel_id}")
+            # Guard 2: Never send automated AI replies to the owner (owner gets alerts only, not sales replies)
+            elif clean_recipient == owner_num or clean_recipient.endswith(owner_num):
+                logger.info(f"Suppressed outbound AI reply to owner number {conv.channel_id} (owner receives alerts only)")
+            # Guard 3: Validate recipient looks like a real phone number (10-15 digits)
+            elif len(clean_recipient) < 10 or len(clean_recipient) > 15 or not clean_recipient.isdigit():
+                logger.warning(f"Suppressed outbound to invalid phone number: '{conv.channel_id}' (cleaned: '{clean_recipient}')")
             else:
                 try:
                     from app.whatsapp.service import WhatsAppService
@@ -554,6 +592,7 @@ class AgentOrchestrator:
                     order_qty = float(first_item.get("quantity_kg", 50.0))
                     chosen_product = first_item.get("product_name", "Assam Kadak CTC Granules")
                     invoice_pdf_path = InvoiceGenerator.generate_proforma_pdf(target_order)
+                    pdf_filename = Path(invoice_pdf_path).name if invoice_pdf_path else "proforma_invoice.pdf"
 
                     # Automatically dispatch compiled PDF into active WhatsApp conversation if live
                     doc_provider_msg_id = None
@@ -564,10 +603,11 @@ class AgentOrchestrator:
                         if clean_recip != bot_phone and not clean_recip.endswith(bot_phone):
                             from app.whatsapp.service import WhatsAppService
                             wa = WhatsAppService.get_provider()
-                            pdf_filename = Path(invoice_pdf_path).name
+                            b_name = getattr(settings, "BUSINESS_NAME", "Commercial Supplier")
+                            b_unit = getattr(settings, "CATALOG_UNIT", "kg")
                             caption = (
-                                f"📄 *North Bengal Tea Co. - Commercial Pro-Forma Invoice*\n"
-                                f"Customer: *{c_name}* | {order_qty:.0f}kg {chosen_product}\n"
+                                f"📄 *{b_name} - Commercial Pro-Forma Invoice*\n"
+                                f"Customer: *{c_name}* | {order_qty:.0f}{b_unit} {chosen_product}\n"
                                 f"🔒 Rate locked for 7 days. Official bank transfer details included."
                             )
                             doc_res = await wa.send_document(
@@ -580,7 +620,6 @@ class AgentOrchestrator:
                                 doc_provider_msg_id = doc_res.provider_message_id
                                 doc_delivery_status = "sent" if doc_res.success else "failed"
 
-                    pdf_filename = Path(invoice_pdf_path).name
                     await self.conv_service.add_message(
                         conversation_id=conversation_id,
                         direction="outbound",

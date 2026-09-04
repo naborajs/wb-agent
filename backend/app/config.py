@@ -32,9 +32,17 @@ class Settings(BaseSettings):
     DB_MAX_OVERFLOW: int = 20
     DB_POOL_TIMEOUT: int = 30
 
-    # Business / Multi-Tenant Context
+    # Business / Multi-Tenant Context & Domain Adaptation
     DEFAULT_ORG_ID: str = "org_default_tea"
     DEFAULT_ORG_NAME: str = "North Bengal Tea Co."
+    BUSINESS_NAME: str = "North Bengal Tea Co."
+    BUSINESS_INDUSTRY: str = "Wholesale Tea & Agro Produce"
+    BUSINESS_TAGLINE: str = "Direct Commercial Estate Wholesale"
+    BUSINESS_DESCRIPTION: str = "Commercial B2B supplier supplying fresh wholesale products directly to cafes, restaurants, hotels, and businesses."
+    AGENT_NAME: str = "EDITH"
+    AGENT_ROLE: str = "Principal Commercial Sales Consultant"
+    CURRENCY_SYMBOL: str = "₹"
+    CATALOG_UNIT: str = "kg"
 
     # Owner Escalation & Notifications (Normalized to E.164)
     OWNER_WHATSAPP_NUMBER: str = "+918900653250"

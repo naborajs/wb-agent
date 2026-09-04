@@ -283,15 +283,18 @@ class InvoiceGenerator:
 
         elements: List[Any] = []
 
+        seller_name = getattr(settings, "BUSINESS_NAME", cls.SELLER_NAME) or cls.SELLER_NAME
+        seller_tagline = getattr(settings, "BUSINESS_TAGLINE", cls.SELLER_TAGLINE) or cls.SELLER_TAGLINE
+
         # 1. Header Grid: Brand on Left, Pro-Forma Details on Right
         header_data = [
             [
-                Paragraph(f"<b>{cls.SELLER_NAME}</b>", title_style),
+                Paragraph(f"<b>{seller_name}</b>", title_style),
                 Paragraph("<b>PRO-FORMA INVOICE & COMMERCIAL QUOTE</b>", banner_title),
             ],
             [
                 Paragraph(
-                    f"{cls.SELLER_TAGLINE}<br/>"
+                    f"{seller_tagline}<br/>"
                     f"{cls.SELLER_ADDRESS}<br/>"
                     f"GSTIN: <b>{cls.SELLER_GSTIN}</b> | FSSAI: <b>{cls.SELLER_FSSAI}</b><br/>"
                     f"Phone: {cls.SELLER_PHONE} | Email: {cls.SELLER_EMAIL}",

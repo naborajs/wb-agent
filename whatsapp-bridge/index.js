@@ -332,6 +332,8 @@ async function startSocket() {
     }
   });
 
+  const bridgeBootTimeSeconds = Math.floor(Date.now() / 1000) - 30;
+
   // Forward incoming messages to FastAPI
   sock.ev.on("messages.upsert", async ({ messages, type }) => {
     if (type !== "notify") return;
@@ -339,6 +341,13 @@ async function startSocket() {
       if (msg.key.fromMe) continue;
       const remoteJid = msg.key.remoteJid;
       if (!remoteJid || remoteJid.includes("@g.us")) continue;
+
+      // Historical message guard: Do not process old messages buffered from before bridge started
+      const msgTimestamp = Number(msg.messageTimestamp || 0);
+      if (msgTimestamp && msgTimestamp < bridgeBootTimeSeconds) {
+        console.log(`[IGNORE HISTORICAL] Skipping buffered message from before bridge start (ts: ${msgTimestamp})`);
+        continue;
+      }
 
       let senderPhone = remoteJid.split("@")[0].replace(/[^0-9]/g, "");
       // CRITICAL SELF-CHAT GUARD: Never forward messages originating from or addressed to the bot's own number!
@@ -353,17 +362,20 @@ async function startSocket() {
         senderPhone = lidToPhoneMap.get(rawJidPhone);
         console.log(`[LID RESOLVE] Mapped incoming LID ${rawJidPhone} -> Real Phone +${senderPhone}`);
       } else if (remoteJid.endsWith("@lid")) {
+        // Try to resolve from participant metadata
         if (msg.key.participant) {
           const partPhone = msg.key.participant.split("@")[0].replace(/[^0-9]/g, "");
           if (partPhone && !partPhone.includes("lid")) {
             senderPhone = partPhone;
           }
         }
-        if (senderPhone === rawJidPhone && OWNER_PHONE) {
-          senderPhone = OWNER_PHONE;
+        // If still unresolved, keep the raw LID as the sender identifier
+        // DO NOT fall back to OWNER_PHONE — that causes cross-contamination!
+        if (senderPhone === rawJidPhone) {
+          console.log(`[LID WARNING] Could not resolve LID ${rawJidPhone} to a real phone number. Using LID as identifier.`);
         }
         lidToPhoneMap.set(rawJidPhone, senderPhone);
-        console.log(`[LID RESOLVE] Registered new LID mapping ${rawJidPhone} -> Real Phone +${senderPhone}`);
+        console.log(`[LID RESOLVE] Registered LID mapping ${rawJidPhone} -> +${senderPhone}`);
       }
 
       jidMap.set(senderPhone, remoteJid);

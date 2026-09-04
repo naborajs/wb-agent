@@ -11,7 +11,110 @@ import {
   Clock,
   CheckCircle2,
   Moon,
+  Building2,
+  Briefcase,
+  Bot,
+  Sparkles,
+  Globe,
+  Cpu,
+  Layers,
+  ArrowRight,
 } from "lucide-react";
+
+interface BusinessPreset {
+  id: string;
+  label: string;
+  icon: string;
+  name: string;
+  industry: string;
+  tagline: string;
+  description: string;
+  agentName: string;
+  agentRole: string;
+  unit: string;
+  currency: string;
+}
+
+const BUSINESS_PRESETS: BusinessPreset[] = [
+  {
+    id: "tea",
+    label: "Specialty Tea & Agro Estate",
+    icon: "🍵",
+    name: "North Bengal Tea Co.",
+    industry: "Wholesale Tea & Agro Produce",
+    tagline: "Direct Commercial Estate Wholesale",
+    description: "Direct commercial wholesale estate tea producer supplying single-estate Darjeeling, Dooars hotel blends, Assam Kadak CTC, and specialty Himalayan teas directly to cafes, restaurants, luxury hotels, and distributors across India.",
+    agentName: "EDITH",
+    agentRole: "Principal Commercial Sales Consultant",
+    unit: "kg",
+    currency: "₹",
+  },
+  {
+    id: "coffee",
+    label: "Artisan Coffee Roastery & Beans",
+    icon: "☕",
+    name: "EstateCraft Coffee Roasters",
+    industry: "Specialty Green & Roasted Coffee Wholesale",
+    tagline: "Farm-Direct Arabica & Robusta B2B Supply",
+    description: "Commercial supplier of high-altitude shade-grown Arabica and washed Robusta beans, single-origin micro-lots, and custom espresso blends engineered for cafes, hotels, and retail coffee chains.",
+    agentName: "EDITH",
+    agentRole: "Specialty Coffee Wholesale Consultant",
+    unit: "kg",
+    currency: "₹",
+  },
+  {
+    id: "spices",
+    label: "Spices, Herbs & Agro Produce",
+    icon: "🌶️",
+    name: "Himalayan Harvest Spices",
+    industry: "Wholesale Spices & Bulk Agricultural Commodities",
+    tagline: "Origin-Certified Whole & Ground Commercial Spices",
+    description: "Export-grade wholesale supplier of black pepper, green cardamom, organic turmeric, cumin, and whole spices for food processors, restaurants, and FMCG packaging brands.",
+    agentName: "EDITH",
+    agentRole: "Agro Commodity Trade Advisor",
+    unit: "kg",
+    currency: "₹",
+  },
+  {
+    id: "textiles",
+    label: "Textiles, Fabrics & Apparel",
+    icon: "👕",
+    name: "Apex Weaves & Textiles",
+    industry: "B2B Fabric & Garment Manufacturing",
+    tagline: "Mill-Direct Sustainable Cotton, Linen & Knits",
+    description: "High-volume fabric supplier providing organic cotton, linen blends, premium rayon, and custom finished textiles to garment exporters, fashion labels, and uniform manufacturers.",
+    agentName: "EDITH",
+    agentRole: "Textile Commercial Specialist",
+    unit: "meters",
+    currency: "₹",
+  },
+  {
+    id: "fmcg",
+    label: "FMCG, Beverages & Packaged Goods",
+    icon: "🥤",
+    name: "Zenith Food & Beverage Wholesale",
+    industry: "Commercial Beverage & Gourmet Grocery Distribution",
+    tagline: "Volume Wholesale for QSRs, Cloud Kitchens & Retailers",
+    description: "Authorized B2B distributor of specialty syrups, beverage bases, gourmet sauces, and commercial ingredients for cafes, quick-service chains, and supermarket networks.",
+    agentName: "EDITH",
+    agentRole: "B2B Account Director",
+    unit: "cases",
+    currency: "₹",
+  },
+  {
+    id: "hardware",
+    label: "Industrial, Hardware & Electronics",
+    icon: "⚙️",
+    name: "NexGen Industrial Supplies",
+    industry: "Commercial Electronics & Precision Fasteners",
+    tagline: "OEM Components, Sensors & Industrial Fasteners",
+    description: "Factory-direct supplier of precision hardware, IoT sensors, cabling harnesses, and industrial tooling for electronics manufacturers and infrastructure contractors.",
+    agentName: "EDITH",
+    agentRole: "Technical Sales Specialist",
+    unit: "units",
+    currency: "₹",
+  },
+];
 
 export default function SystemSettingsPage() {
   const [autonomous, setAutonomous] = useState(true);
@@ -21,6 +124,18 @@ export default function SystemSettingsPage() {
   const [touch1Minutes, setTouch1Minutes] = useState(20);
   const [touch2Hours, setTouch2Hours] = useState(8);
   const [touch3Days, setTouch3Days] = useState(7);
+  
+  // Business Profile State
+  const [businessName, setBusinessName] = useState("North Bengal Tea Co.");
+  const [businessIndustry, setBusinessIndustry] = useState("Wholesale Tea & Agro Produce");
+  const [businessTagline, setBusinessTagline] = useState("Direct Commercial Estate Wholesale");
+  const [businessDescription, setBusinessDescription] = useState("Commercial B2B supplier supplying fresh wholesale products directly to cafes, restaurants, hotels, and businesses.");
+  const [agentName, setAgentName] = useState("EDITH");
+  const [agentRole, setAgentRole] = useState("Principal Commercial Sales Consultant");
+  const [currencySymbol, setCurrencySymbol] = useState("₹");
+  const [catalogUnit, setCatalogUnit] = useState("kg");
+  const [activePreset, setActivePreset] = useState("tea");
+
   const [saved, setSaved] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -36,10 +151,31 @@ export default function SystemSettingsPage() {
           setTouch1Minutes(data.followup_inactivity_minutes ?? 20);
           setTouch2Hours(data.followup_midterm_hours ?? 8);
           setTouch3Days(data.followup_final_days ?? 7);
+          
+          if (data.business_name) setBusinessName(data.business_name);
+          if (data.business_industry) setBusinessIndustry(data.business_industry);
+          if (data.business_tagline) setBusinessTagline(data.business_tagline);
+          if (data.business_description) setBusinessDescription(data.business_description);
+          if (data.agent_name) setAgentName(data.agent_name);
+          if (data.agent_role) setAgentRole(data.agent_role);
+          if (data.currency_symbol) setCurrencySymbol(data.currency_symbol);
+          if (data.catalog_unit) setCatalogUnit(data.catalog_unit);
         }
       })
       .catch(() => {});
   }, []);
+
+  const handleApplyPreset = (preset: BusinessPreset) => {
+    setActivePreset(preset.id);
+    setBusinessName(preset.name);
+    setBusinessIndustry(preset.industry);
+    setBusinessTagline(preset.tagline);
+    setBusinessDescription(preset.description);
+    setAgentName(preset.agentName);
+    setAgentRole(preset.agentRole);
+    setCatalogUnit(preset.unit);
+    setCurrencySymbol(preset.currency);
+  };
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -55,11 +191,19 @@ export default function SystemSettingsPage() {
           followup_inactivity_minutes: touch1Minutes,
           followup_midterm_hours: touch2Hours,
           followup_final_days: touch3Days,
+          business_name: businessName,
+          business_industry: businessIndustry,
+          business_tagline: businessTagline,
+          business_description: businessDescription,
+          agent_name: agentName,
+          agent_role: agentRole,
+          currency_symbol: currencySymbol,
+          catalog_unit: catalogUnit,
         }),
       });
       if (res.ok) {
         setSaved(true);
-        setTimeout(() => setSaved(false), 3000);
+        setTimeout(() => setSaved(false), 4000);
       }
     } catch (e) {
       console.error("Error saving settings", e);
@@ -69,34 +213,47 @@ export default function SystemSettingsPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
+    <div className="space-y-8 max-w-5xl mx-auto pb-12">
+      {/* Header */}
       <div>
-        <h2 className="text-2xl font-bold tracking-tight text-[var(--ed-text-primary)]">
-          Platform Control & Safety Settings
-        </h2>
-        <p className="text-sm text-[var(--ed-text-muted)] mt-1">
-          Global autonomous controls, follow-up cadences, quiet hours, and owner escalation parameters.
-        </p>
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-xl text-white" style={{ background: "var(--ed-accent)" }}>
+            <Building2 className="w-5 h-5" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight text-[var(--ed-text-primary)]">
+              Business Configuration & Multi-Domain Adaptation
+            </h2>
+            <p className="text-sm text-[var(--ed-text-muted)] mt-0.5">
+              Transform WB-Agent for any B2B enterprise — customize business identity, industry persona, autonomous parameters, and model intelligence.
+            </p>
+          </div>
+        </div>
       </div>
 
       {saved && (
         <div
-          className="p-3 border border-[var(--ed-success)]/20 text-xs font-semibold text-[var(--ed-success)] rounded-lg flex items-center gap-2"
-          style={{ background: "color-mix(in srgb, var(--ed-success) 10%, transparent)" }}
+          className="p-4 border border-[var(--ed-success)]/30 text-sm font-semibold text-[var(--ed-success)] rounded-xl flex items-center gap-3 shadow-md animate-in fade-in duration-200"
+          style={{ background: "color-mix(in srgb, var(--ed-success) 12%, transparent)" }}
         >
-          <CheckCircle2 className="w-4 h-4 text-[var(--ed-success)]" />
-          Settings successfully synchronized with backend runtime and database.
+          <CheckCircle2 className="w-5 h-5 text-[var(--ed-success)] shrink-0" />
+          <div>
+            <div>Settings & Business Profile successfully synchronized!</div>
+            <div className="text-xs font-normal opacity-85 mt-0.5">
+              EDITH autonomous sales persona, pro-forma invoice generator, and model routing parameters are now actively configured for {businessName}.
+            </div>
+          </div>
         </div>
       )}
 
       {/* Emergency Stop Banner */}
       <div
-        className="p-5 rounded-xl border border-[var(--ed-danger)]/20 flex items-center justify-between"
+        className="p-5 rounded-2xl border border-[var(--ed-danger)]/25 flex items-center justify-between shadow-sm"
         style={{ background: "color-mix(in srgb, var(--ed-danger) 8%, transparent)" }}
       >
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3.5">
           <div
-            className="p-2.5 rounded-lg text-white"
+            className="p-2.5 rounded-xl text-white shadow-sm"
             style={{ background: "var(--ed-danger)" }}
           >
             <Power className="w-5 h-5" />
@@ -113,7 +270,7 @@ export default function SystemSettingsPage() {
 
         <button
           onClick={() => setAutonomous(!autonomous)}
-          className="ed-press ed-focus-ring px-4 py-2 rounded-lg text-xs font-bold text-white transition-colors hover:opacity-90 shadow-sm"
+          className="ed-press ed-focus-ring px-5 py-2.5 rounded-xl text-xs font-bold text-white transition-all hover:opacity-90 shadow-sm"
           style={{
             background: autonomous ? "var(--ed-danger)" : "var(--ed-success)",
           }}
@@ -122,33 +279,191 @@ export default function SystemSettingsPage() {
         </button>
       </div>
 
-      {/* Configuration Sections */}
+      {/* 1. Multi-Business Domain Presets */}
+      <div className="p-6 ed-panel rounded-2xl space-y-4 border border-[var(--ed-border)]">
+        <div className="flex items-center justify-between border-b border-[var(--ed-border)] pb-4">
+          <div className="flex items-center gap-2.5 font-bold text-sm text-[var(--ed-text-primary)]">
+            <Sparkles className="w-4 h-4 text-[var(--ed-accent)]" />
+            Quick Industry & Domain Presets
+          </div>
+          <span className="text-xs text-[var(--ed-text-muted)]">
+            Click any preset to adapt the AI persona and business profile instantly
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          {BUSINESS_PRESETS.map((p) => {
+            const isSelected = activePreset === p.id || businessName === p.name;
+            return (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => handleApplyPreset(p)}
+                className={`p-3 rounded-xl border text-left transition-all ${
+                  isSelected
+                    ? "border-[var(--ed-accent)] shadow-sm ring-1 ring-[var(--ed-accent)]/50"
+                    : "border-[var(--ed-border)] hover:border-[var(--ed-accent)]/40"
+                }`}
+                style={{
+                  background: isSelected
+                    ? "color-mix(in srgb, var(--ed-accent) 10%, transparent)"
+                    : "var(--ed-bg)",
+                }}
+              >
+                <div className="text-2xl mb-1.5">{p.icon}</div>
+                <div className="font-bold text-xs text-[var(--ed-text-primary)] line-clamp-1">
+                  {p.label}
+                </div>
+                <div className="text-[10px] text-[var(--ed-text-muted)] line-clamp-1 mt-0.5">
+                  {p.name}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 2. Business Profile & Persona Customization */}
+      <div className="p-6 ed-panel rounded-2xl space-y-5 border border-[var(--ed-border)]">
+        <div className="flex items-center gap-2.5 font-bold text-sm text-[var(--ed-text-primary)] border-b border-[var(--ed-border)] pb-4">
+          <Briefcase className="w-4 h-4 text-[var(--ed-accent)]" />
+          Business Identity & Sales Persona Details
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 text-xs">
+          <div>
+            <label className="block text-[var(--ed-text-muted)] font-medium mb-1.5">
+              Business / Company Name
+            </label>
+            <input
+              type="text"
+              value={businessName}
+              onChange={(e) => setBusinessName(e.target.value)}
+              placeholder="e.g. North Bengal Tea Co., Artisan Coffee Roasters"
+              className="w-full p-3 rounded-xl border border-[var(--ed-border)] text-[var(--ed-text-primary)] font-semibold text-sm focus:outline-none ed-focus-ring"
+              style={{ background: "var(--ed-bg)" }}
+            />
+            <span className="text-[11px] text-[var(--ed-text-muted)] mt-1 block">
+              Appears on WhatsApp headers, opt-out notices, and pro-forma invoice branding.
+            </span>
+          </div>
+
+          <div>
+            <label className="block text-[var(--ed-text-muted)] font-medium mb-1.5">
+              Industry / Commercial Domain
+            </label>
+            <input
+              type="text"
+              value={businessIndustry}
+              onChange={(e) => setBusinessIndustry(e.target.value)}
+              placeholder="e.g. Wholesale Tea, Specialty Coffee, Textile Exports"
+              className="w-full p-3 rounded-xl border border-[var(--ed-border)] text-[var(--ed-text-primary)] font-semibold text-sm focus:outline-none ed-focus-ring"
+              style={{ background: "var(--ed-bg)" }}
+            />
+            <span className="text-[11px] text-[var(--ed-text-muted)] mt-1 block">
+              Informs EDITH's conversational domain knowledge and vocabulary.
+            </span>
+          </div>
+
+          <div>
+            <label className="block text-[var(--ed-text-muted)] font-medium mb-1.5">
+              Business Tagline / Sub-Heading
+            </label>
+            <input
+              type="text"
+              value={businessTagline}
+              onChange={(e) => setBusinessTagline(e.target.value)}
+              placeholder="e.g. Direct Commercial Estate Wholesale"
+              className="w-full p-3 rounded-xl border border-[var(--ed-border)] text-[var(--ed-text-primary)] focus:outline-none ed-focus-ring"
+              style={{ background: "var(--ed-bg)" }}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[var(--ed-text-muted)] font-medium mb-1.5">
+                AI Agent Name
+              </label>
+              <input
+                type="text"
+                value={agentName}
+                onChange={(e) => setAgentName(e.target.value)}
+                placeholder="e.g. EDITH"
+                className="w-full p-3 rounded-xl border border-[var(--ed-border)] text-[var(--ed-text-primary)] font-semibold focus:outline-none ed-focus-ring"
+                style={{ background: "var(--ed-bg)" }}
+              />
+            </div>
+            <div>
+              <label className="block text-[var(--ed-text-muted)] font-medium mb-1.5">
+                Catalog Unit / Currency
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  type="text"
+                  value={catalogUnit}
+                  onChange={(e) => setCatalogUnit(e.target.value)}
+                  placeholder="Unit (kg/units)"
+                  className="w-full p-3 rounded-xl border border-[var(--ed-border)] text-[var(--ed-text-primary)] font-mono text-center focus:outline-none ed-focus-ring"
+                  style={{ background: "var(--ed-bg)" }}
+                />
+                <input
+                  type="text"
+                  value={currencySymbol}
+                  onChange={(e) => setCurrencySymbol(e.target.value)}
+                  placeholder="Currency (₹/$)"
+                  className="w-full p-3 rounded-xl border border-[var(--ed-border)] text-[var(--ed-text-primary)] font-mono text-center focus:outline-none ed-focus-ring"
+                  style={{ background: "var(--ed-bg)" }}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="md:col-span-2">
+            <label className="block text-[var(--ed-text-muted)] font-medium mb-1.5">
+              Commercial Sales Value Proposition & Operational Scope
+            </label>
+            <textarea
+              rows={3}
+              value={businessDescription}
+              onChange={(e) => setBusinessDescription(e.target.value)}
+              placeholder="Describe your wholesale products, target customers (cafes, hotels, distributors), and pricing approach."
+              className="w-full p-3 rounded-xl border border-[var(--ed-border)] text-[var(--ed-text-primary)] text-xs focus:outline-none ed-focus-ring leading-relaxed"
+              style={{ background: "var(--ed-bg)" }}
+            />
+            <span className="text-[11px] text-[var(--ed-text-muted)] mt-1 block">
+              Injected directly into NVIDIA Nemotron system prompts for grounded, domain-specific consultative selling.
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* 3. Communication & Safety Controls */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Escalation & Owner WhatsApp */}
-        <div className="p-5 ed-panel rounded-xl space-y-4">
-          <div className="flex items-center gap-2 font-bold text-sm text-[var(--ed-text-primary)] border-b border-[var(--ed-border)] pb-3">
+        <div className="p-6 ed-panel rounded-2xl space-y-4 border border-[var(--ed-border)]">
+          <div className="flex items-center gap-2.5 font-bold text-sm text-[var(--ed-text-primary)] border-b border-[var(--ed-border)] pb-3">
             <Radio className="w-4 h-4 text-[var(--ed-accent)]" />
             Owner Escalation Channel
           </div>
 
-          <div className="space-y-3 text-xs">
+          <div className="space-y-3.5 text-xs">
             <div>
-              <label className="block text-[var(--ed-text-muted)] font-medium mb-1">
-                Owner WhatsApp Number (E.164)
+              <label className="block text-[var(--ed-text-muted)] font-medium mb-1.5">
+                Owner WhatsApp Number (E.164 format)
               </label>
               <input
                 type="text"
                 value={ownerPhone}
                 onChange={(e) => setOwnerPhone(e.target.value)}
-                className="w-full p-2.5 rounded-lg border border-[var(--ed-border)] text-[var(--ed-text-primary)] font-data font-bold focus:outline-none ed-focus-ring"
+                className="w-full p-3 rounded-xl border border-[var(--ed-border)] text-[var(--ed-text-primary)] font-mono font-bold focus:outline-none ed-focus-ring"
                 style={{ background: "var(--ed-bg)" }}
               />
               <span className="text-[11px] text-[var(--ed-text-muted)] mt-1 block">
-                Receives instant hot-lead alerts, wholesale order briefings, and WhatsApp command queries.
+                Receives instant hot-lead alerts, wholesale order pro-formas, and owner WhatsApp command queries.
               </span>
             </div>
 
-            <label className="flex items-center gap-2 cursor-pointer pt-2">
+            <label className="flex items-center gap-2.5 cursor-pointer pt-2">
               <input
                 type="checkbox"
                 checked={ownerNotification}
@@ -156,21 +471,21 @@ export default function SystemSettingsPage() {
                 className="w-4 h-4 rounded accent-[var(--ed-accent)] ed-focus-ring"
               />
               <span className="font-semibold text-[var(--ed-text-primary)]">
-                Send Real-Time WhatsApp Alerts on Hot Lead Intent
+                Send Real-Time WhatsApp Alerts on Hot Lead Purchase Intent
               </span>
             </label>
           </div>
         </div>
 
         {/* Follow-up Intervals & Quiet Hours */}
-        <div className="p-5 ed-panel rounded-xl space-y-4">
-          <div className="flex items-center gap-2 font-bold text-sm text-[var(--ed-text-primary)] border-b border-[var(--ed-border)] pb-3">
+        <div className="p-6 ed-panel rounded-2xl space-y-4 border border-[var(--ed-border)]">
+          <div className="flex items-center gap-2.5 font-bold text-sm text-[var(--ed-text-primary)] border-b border-[var(--ed-border)] pb-3">
             <Clock className="w-4 h-4 text-[var(--ed-accent)]" />
             Humanized Follow-Up Cadence
           </div>
 
-          <div className="space-y-3 text-xs">
-            <div className="grid grid-cols-3 gap-2">
+          <div className="space-y-3.5 text-xs">
+            <div className="grid grid-cols-3 gap-2.5">
               <div>
                 <label className="block text-[var(--ed-text-muted)] font-medium mb-1">
                   Touch 1 (Min)
@@ -181,7 +496,7 @@ export default function SystemSettingsPage() {
                   max="120"
                   value={touch1Minutes}
                   onChange={(e) => setTouch1Minutes(Number(e.target.value))}
-                  className="w-full p-2 rounded-lg border border-[var(--ed-border)] text-[var(--ed-text-primary)] font-data font-bold focus:outline-none ed-focus-ring"
+                  className="w-full p-2.5 rounded-xl border border-[var(--ed-border)] text-[var(--ed-text-primary)] font-mono font-bold text-center focus:outline-none ed-focus-ring"
                   style={{ background: "var(--ed-bg)" }}
                 />
               </div>
@@ -195,7 +510,7 @@ export default function SystemSettingsPage() {
                   max="48"
                   value={touch2Hours}
                   onChange={(e) => setTouch2Hours(Number(e.target.value))}
-                  className="w-full p-2 rounded-lg border border-[var(--ed-border)] text-[var(--ed-text-primary)] font-data font-bold focus:outline-none ed-focus-ring"
+                  className="w-full p-2.5 rounded-xl border border-[var(--ed-border)] text-[var(--ed-text-primary)] font-mono font-bold text-center focus:outline-none ed-focus-ring"
                   style={{ background: "var(--ed-bg)" }}
                 />
               </div>
@@ -209,13 +524,13 @@ export default function SystemSettingsPage() {
                   max="30"
                   value={touch3Days}
                   onChange={(e) => setTouch3Days(Number(e.target.value))}
-                  className="w-full p-2 rounded-lg border border-[var(--ed-border)] text-[var(--ed-text-primary)] font-data font-bold focus:outline-none ed-focus-ring"
+                  className="w-full p-2.5 rounded-xl border border-[var(--ed-border)] text-[var(--ed-text-primary)] font-mono font-bold text-center focus:outline-none ed-focus-ring"
                   style={{ background: "var(--ed-bg)" }}
                 />
               </div>
             </div>
 
-            <label className="flex items-center gap-2 cursor-pointer pt-2">
+            <label className="flex items-center gap-2.5 cursor-pointer pt-2">
               <input
                 type="checkbox"
                 checked={quietHours}
@@ -223,23 +538,62 @@ export default function SystemSettingsPage() {
                 className="w-4 h-4 rounded accent-[var(--ed-accent)] ed-focus-ring"
               />
               <span className="font-semibold text-[var(--ed-text-primary)]">
-                Enforce Quiet Hours (No follow-up messages between 9 PM and 9 AM IST)
+                Enforce Quiet Hours (No automated messages between 9 PM and 9 AM IST)
               </span>
             </label>
           </div>
         </div>
       </div>
 
+      {/* 4. NVIDIA NIM Intelligence Layer Rollup */}
+      <div className="p-6 ed-panel rounded-2xl space-y-4 border border-[var(--ed-border)]">
+        <div className="flex items-center justify-between border-b border-[var(--ed-border)] pb-3">
+          <div className="flex items-center gap-2.5 font-bold text-sm text-[var(--ed-text-primary)]">
+            <Cpu className="w-4 h-4 text-[var(--ed-accent)]" />
+            NVIDIA NIM Multi-Model Intelligence Layer
+          </div>
+          <span className="px-2.5 py-1 rounded-full text-[11px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20">
+            7 Active Capability Chains
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+          <div className="p-3 rounded-xl border border-[var(--ed-border)]" style={{ background: "var(--ed-bg)" }}>
+            <div className="font-bold text-[var(--ed-text-primary)]">A. Core Sales Brain</div>
+            <div className="text-[11px] text-[var(--ed-text-muted)] mt-0.5">nemotron-3-super-120b</div>
+            <div className="text-[10px] text-emerald-400 mt-1 font-mono">Reasoning Extraction Active</div>
+          </div>
+
+          <div className="p-3 rounded-xl border border-[var(--ed-border)]" style={{ background: "var(--ed-bg)" }}>
+            <div className="font-bold text-[var(--ed-text-primary)]">B. Intent & Lead Scoring</div>
+            <div className="text-[11px] text-[var(--ed-text-muted)] mt-0.5">nemotron-3.5-lightning-30b</div>
+            <div className="text-[10px] text-emerald-400 mt-1 font-mono">Low-Latency Parallel</div>
+          </div>
+
+          <div className="p-3 rounded-xl border border-[var(--ed-border)]" style={{ background: "var(--ed-bg)" }}>
+            <div className="font-bold text-[var(--ed-text-primary)]">C. Structured Pricing</div>
+            <div className="text-[11px] text-[var(--ed-text-muted)] mt-0.5">nemotron-3.5 + DB Cross-Check</div>
+            <div className="text-[10px] text-emerald-400 mt-1 font-mono">Zero-Hallucination DB Rule</div>
+          </div>
+
+          <div className="p-3 rounded-xl border border-[var(--ed-border)]" style={{ background: "var(--ed-bg)" }}>
+            <div className="font-bold text-[var(--ed-text-primary)]">G. Safety Guardrails</div>
+            <div className="text-[11px] text-[var(--ed-text-muted)] mt-0.5">nemotron-3.5 & llama-3.1-guard</div>
+            <div className="text-[10px] text-emerald-400 mt-1 font-mono">Fail-Closed Human Hold</div>
+          </div>
+        </div>
+      </div>
+
       {/* Save Button */}
-      <div className="flex justify-end pt-4">
+      <div className="flex justify-end pt-2">
         <button
           onClick={handleSave}
           disabled={isSaving}
-          className="ed-interactive ed-press ed-focus-ring inline-flex items-center gap-2 px-6 py-3 rounded-xl text-white font-semibold text-sm shadow-lg transition-all disabled:opacity-50 hover:opacity-90"
-          style={{ background: "var(--ed-accent)", minHeight: "44px" }}
+          className="ed-interactive ed-press ed-focus-ring inline-flex items-center gap-2.5 px-8 py-3.5 rounded-xl text-white font-bold text-sm shadow-xl transition-all disabled:opacity-50 hover:opacity-90"
+          style={{ background: "var(--ed-accent)", minHeight: "48px" }}
         >
           <Save className="w-4 h-4" />
-          {isSaving ? "Saving Settings..." : "Save Settings"}
+          {isSaving ? "Saving & Synchronizing..." : "Save & Synchronize Platform"}
         </button>
       </div>
     </div>

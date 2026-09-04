@@ -103,16 +103,20 @@ class PricingValidator:
                     .where(Product.org_id == org_id)
                 )
                 all_prods = (await session.execute(stmt)).scalars().all()
+                clean_words = [w for w in clean_name.split() if len(w) > 1]
                 for p in all_prods:
-                    if clean_name in p.name.lower() or p.name.lower() in clean_name:
+                    p_lower = p.name.lower()
+                    if clean_name in p_lower or p_lower in clean_name or (clean_words and all(w in p_lower for w in clean_words)):
                         product = p
                         break
 
             if not product:
                 from app.products.catalog import DEMO_PRODUCTS
                 matched_demo = None
+                clean_words = [w for w in clean_name.split() if len(w) > 1]
                 for dp in DEMO_PRODUCTS:
-                    if clean_name and (clean_name in dp["name"].lower() or dp["name"].lower() in clean_name):
+                    dp_lower = dp["name"].lower()
+                    if clean_name and (clean_name in dp_lower or dp_lower in clean_name or (clean_words and all(w in dp_lower for w in clean_words))):
                         matched_demo = dp
                         break
                 if not matched_demo:

@@ -81,7 +81,7 @@ async def setup_agent_db():
         customer = Customer(
             id="cust_agent_1",
             org_id=org_id,
-            primary_phone="+918900653250",
+            primary_phone="+919832099001",
             name="Rahul Sharma",
             company_name="Heritage Cafe",
             company_type="Cafe",
@@ -95,7 +95,7 @@ async def setup_agent_db():
             org_id=org_id,
             customer_id=customer.id,
             channel="whatsapp",
-            channel_id="+918900653250",
+            channel_id="+919832099001",
             mode="AI",
             sales_stage="NEW",
             lead_score=15,

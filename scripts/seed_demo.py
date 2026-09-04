@@ -226,7 +226,7 @@ For genuine B2B buyers (cafes, hotels, restaurants, distributors):
 
         # 6. Sample Initial Leads
         sample_leads = [
-            ("Rahul Sharma", "+918900653250", "Heritage Cafe & Bakery", "Cafe", "qualified", 85, "Darjeeling First Flush"),
+            ("Rahul Sharma", "+919832099001", "Heritage Cafe & Bakery", "Cafe", "qualified", 85, "Darjeeling First Flush"),
             ("Anita Paul", "+919832012345", "Paul Sweets & Tea Stall", "Restaurant", "new", 30, "Assam Kadak CTC"),
             ("Suresh Khosla", "+919832054321", "Khosla Tea Mart Siliguri", "Wholesaler", "converted", 95, "Dooars Hotel Blend"),
         ]
