@@ -175,12 +175,22 @@ class NIMClient:
                 "additional_signals": signals,
             })
 
+        # Capability E: Vision & Document Understanding simulation (§3.E)
+        elif "vision" in model.lower() or "vision_document" in str(request.metadata) or cap_name == "vision_document":
+            simulated_content = json.dumps({
+                "document_type": "tea_spec_and_quotation",
+                "extracted_product": "Assam Kadak CTC Granules",
+                "tea_grade": "BP",
+                "verified_moq_kg": 25.0,
+                "notes": "Verified authentic wholesale specification and commercial trade terms.",
+            })
+
         # Capability C: Structured Pricing & Order Extraction simulation (§3.C)
         elif (
             "pricing_extraction" in str(request.metadata)
             or cap_name == "pricing_extraction"
-            or "extract" in last_user_msg
             or "invoice extraction" in str(request.messages[0].content if request.messages else "").lower()
+            or ("extract" in last_user_msg and any(w in last_user_msg for w in ["order", "invoice", "price", "quote", "buyer"]))
         ):
             p_name = "Assam Kadak CTC Granules"
             if "darjeeling" in last_user_msg:
@@ -221,16 +231,6 @@ class NIMClient:
                 ],
             }
             simulated_content = json.dumps(order_json)
-
-        # Capability E: Vision & Document Understanding simulation (§3.E)
-        elif "vision" in model.lower() or "vision_document" in str(request.metadata):
-            simulated_content = json.dumps({
-                "document_type": "tea_spec_and_quotation",
-                "extracted_product": "Assam Kadak CTC Granules",
-                "tea_grade": "BP",
-                "verified_moq_kg": 25.0,
-                "notes": "Verified authentic wholesale specification and commercial trade terms.",
-            })
 
         # Capability F: Translation simulation (§3.F)
         elif "translate" in model.lower() or "translation" in str(request.metadata) or "translate" in last_user_msg:
