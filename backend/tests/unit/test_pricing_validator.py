@@ -161,3 +161,82 @@ async def test_pricing_validator_rejects_moq_violation(db_session: AsyncSession)
 
     assert is_valid is False
     assert "below required MOQ" in err
+
+
+@pytest.mark.asyncio
+async def test_pricing_validator_demo_products_fallback(db_session: AsyncSession):
+    """
+    Verifies that when a product is not seeded in DB, it safely falls back to
+    the DEMO_PRODUCTS catalog without UnboundLocalError or crash.
+    """
+    order_payload = {
+        "buyer_name": "Siliguri Local Cafe",
+        "items": [
+            {
+                "product_name": "Assam Kadak CTC",
+                "quantity_kg": 50,
+            }
+        ],
+    }
+
+    is_valid, verified_data, err = await PricingValidator.validate_extracted_order(
+        session=db_session,
+        org_id="org_unseeded",
+        extracted_data=order_payload,
+    )
+
+    assert is_valid is True
+    assert err is None
+    assert verified_data is not None
+    assert verified_data["total_amount"] == 16150.0  # 50kg * 323.0
+    assert verified_data["items"][0]["unit_price"] == 323.0
+
+
+@pytest.mark.asyncio
+async def test_pricing_validator_rejects_hallucinated_price_in_catalog_fallback(db_session: AsyncSession):
+    """
+    Verifies that zero-hallucination enforcement works on DEMO_PRODUCTS catalog fallback.
+    """
+    hallucinated_order = {
+        "buyer_name": "Corner Stall",
+        "items": [
+            {
+                "product_name": "Assam Kadak CTC",
+                "quantity_kg": 50,
+                "unit_price": 99.0,  # Invented price
+            }
+        ],
+    }
+
+    is_valid, verified_data, err = await PricingValidator.validate_extracted_order(
+        session=db_session,
+        org_id="org_unseeded",
+        extracted_data=hallucinated_order,
+    )
+
+    assert is_valid is False
+    assert verified_data is None
+    assert "Zero-Hallucination violation" in err
+
+
+@pytest.mark.asyncio
+async def test_pricing_validator_rejects_invalid_quantity(db_session: AsyncSession):
+    """Verifies that non-numeric and negative quantities are rejected."""
+    bad_qty_order = {
+        "items": [{"product_name": "Assam Kadak CTC", "quantity_kg": "not_a_number"}]
+    }
+    is_valid, _, err = await PricingValidator.validate_extracted_order(
+        session=db_session, org_id="org_test", extracted_data=bad_qty_order
+    )
+    assert is_valid is False
+    assert "invalid non-numeric quantity" in err
+
+    neg_qty_order = {
+        "items": [{"product_name": "Assam Kadak CTC", "quantity_kg": -10}]
+    }
+    is_valid, _, err = await PricingValidator.validate_extracted_order(
+        session=db_session, org_id="org_test", extracted_data=neg_qty_order
+    )
+    assert is_valid is False
+    assert "non-positive quantity" in err
+

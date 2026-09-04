@@ -73,6 +73,16 @@ class PricingValidator:
             p_name = item.get("product_name") or item.get("name") or ""
             p_id = item.get("product_id") or item.get("id")
 
+            # Parse quantity first so qty_dec is available for all branches
+            try:
+                raw_qty = item.get("quantity_kg") or item.get("quantity") or 0
+                qty_dec = Decimal(str(raw_qty))
+            except (InvalidOperation, TypeError):
+                return False, None, f"Item [{idx}] has invalid non-numeric quantity: '{item.get('quantity_kg')}'"
+
+            if qty_dec <= Decimal("0"):
+                return False, None, f"Item [{idx}] has non-positive quantity: {qty_dec}kg"
+
             # Match product in DB by ID or Name
             product: Optional[Product] = None
             if p_id:
@@ -84,9 +94,9 @@ class PricingValidator:
                 res = await session.execute(stmt)
                 product = res.scalar_one_or_none()
 
+            clean_name = str(p_name).strip().lower() if p_name else ""
             if not product and p_name:
                 # Search by exact or partial name
-                clean_name = str(p_name).strip().lower()
                 stmt = (
                     select(Product)
                     .options(selectinload(Product.variants))
@@ -101,9 +111,8 @@ class PricingValidator:
             if not product:
                 from app.products.catalog import DEMO_PRODUCTS
                 matched_demo = None
-                clean_n = clean_name if p_name else ""
                 for dp in DEMO_PRODUCTS:
-                    if clean_n and (clean_n in dp["name"].lower() or dp["name"].lower() in clean_n):
+                    if clean_name and (clean_name in dp["name"].lower() or dp["name"].lower() in clean_name):
                         matched_demo = dp
                         break
                 if not matched_demo:
@@ -113,11 +122,37 @@ class PricingValidator:
                 moq = Decimal(str(matched_demo.get("min_order_quantity_kg", "10.0")))
                 if qty_dec < moq:
                     return False, None, f"Item [{idx}] quantity ({qty_dec}kg) is below required MOQ ({moq}kg) for {matched_demo['name']}"
+
                 base_rate = Decimal("340.0")
                 for v in matched_demo.get("variants", []):
                     base_rate = Decimal(str(v.get("base_price_per_kg", base_rate)))
-                disc_pct = Decimal("5.0") if qty_dec >= Decimal("50.0") else Decimal("0.0")
+
+                disc_pct = Decimal("0.0")
+                if qty_dec >= Decimal("100.0"):
+                    disc_pct = Decimal("10.0")
+                elif qty_dec >= Decimal("50.0"):
+                    disc_pct = Decimal("5.0")
+
                 eff_rate = base_rate * (Decimal("1.0") - disc_pct / Decimal("100.0"))
+
+                # Zero-hallucination check for catalog items
+                model_unit_price = item.get("unit_price") or item.get("price_per_kg") or item.get("base_price_per_kg")
+                if model_unit_price is not None:
+                    try:
+                        model_price_dec = Decimal(str(model_unit_price))
+                        diff = abs(model_price_dec - eff_rate)
+                        if diff > Decimal("0.50"):
+                            diff_base = abs(model_price_dec - base_rate)
+                            if diff_base > Decimal("0.50"):
+                                return (
+                                    False,
+                                    None,
+                                    f"Zero-Hallucination violation on {matched_demo['name']}: "
+                                    f"Model claimed unit price ₹{model_price_dec}, but catalog verified rate is ₹{eff_rate} (base ₹{base_rate}). Rejected.",
+                                )
+                    except (InvalidOperation, TypeError):
+                        return False, None, f"Item [{idx}] contains unparseable unit_price: '{model_unit_price}'"
+
                 subtot = base_rate * qty_dec
                 tot = eff_rate * qty_dec
                 verified_items.append({
@@ -134,16 +169,6 @@ class PricingValidator:
                     "packaging_type": item.get("packaging_type") or "Standard multi-wall bag with food-grade liner",
                 })
                 continue
-
-            # Parse quantity
-            try:
-                raw_qty = item.get("quantity_kg") or item.get("quantity") or 0
-                qty_dec = Decimal(str(raw_qty))
-            except (InvalidOperation, TypeError):
-                return False, None, f"Item [{idx}] has invalid non-numeric quantity: '{item.get('quantity_kg')}'"
-
-            if qty_dec <= Decimal("0"):
-                return False, None, f"Item [{idx}] has non-positive quantity: {qty_dec}kg"
 
             # Enforce Minimum Order Quantity (MOQ)
             if qty_dec < Decimal(str(product.min_order_quantity_kg)):
