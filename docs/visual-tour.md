@@ -176,7 +176,35 @@ Bulk wholesale lead onboarding and custom proposal engine:
 
 ---
 
-## 10. Knowledge Base & Vector RAG (`/knowledge`)
+## 10. Automated B2B Campaign Drip & Anti-Ban Outreach (`/campaigns`)
+
+Proactive cold-outreach sequencer with strict WhatsApp platform policy safeguards:
+
+![Automated B2B Campaigns](screenshots/campaigns.png)
+
+### Key Capabilities:
+- **Anti-Ban Jitter Scheduler**: Automatically enforces randomized inter-message delays between **25.0s and 45.0s** to prevent algorithmic spam bans.
+- **Daily Volume Ceilings**: Enforces per-sender sending limits (e.g. 50–100 messages/day) with live dispatch counters.
+- **Outreach Lifecycle Management**: Control status with `Start Drip`, `Pause Drip`, and `Resume` triggers.
+- **Consultative Auto-Handoff**: When a prospect replies, the campaign sequence terminates immediately, and the buyer is seamlessly handed over to EDITH's conversational discovery engine.
+
+---
+
+## 11. Sales Intelligence & Objection Analytics (`/analytics`)
+
+Deep commercial analytics and conversion diagnostics:
+
+![Sales Intelligence & Analytics](screenshots/analytics.png)
+
+### Key Capabilities:
+- **Objection Pareto Distribution**: Identifies primary conversion bottlenecks using the 80/20 rule (`price_too_high`, `needs_quality_proof`, `minimum_order_quantity_too_high`, `logistics_delivery_timeline`).
+- **Regional Lead Density Table**: Tracks leads, closed won deals, win rates, and total revenue across Siliguri, Kolkata, Darjeeling, Jalpaiguri, and Delhi NCR corridors.
+- **Pipeline Stage Probability Forecasting**: Real-time revenue projection weighted by consultative sales stage (`QUALIFIED` 20%, `RECOMMENDATION` 40%, `PURCHASE_INTENT` 70%, `WON` 100%).
+- **1-Click Executive CSV Export**: Direct download button streaming complete CRM activity and deal summaries (`edith_sales_intelligence_export.csv`).
+
+---
+
+## 12. Knowledge Base & Vector RAG (`/knowledge`)
 
 Ground-truth grounding documentation:
 
@@ -188,7 +216,7 @@ Ground-truth grounding documentation:
 
 ---
 
-## 11. Automated Follow-up Sequences (`/followups`)
+## 13. Automated Follow-up Sequences (`/followups`)
 
 Bounded, polite follow-up execution:
 
@@ -201,7 +229,7 @@ Bounded, polite follow-up execution:
 
 ---
 
-## 12. Human Escalations & Handoff Queue (`/handoffs`)
+## 14. Human Escalations & Handoff Queue (`/handoffs`)
 
 Escalation queue for deals requiring executive intervention:
 
@@ -214,7 +242,7 @@ Escalation queue for deals requiring executive intervention:
 
 ---
 
-## 13. Platform Safety & Platform Settings (`/settings`)
+## 15. Platform Safety & Platform Settings (`/settings`)
 
 Global system configuration and kill-switch:
 
@@ -227,7 +255,7 @@ Global system configuration and kill-switch:
 
 ---
 
-## 14. Mobile Responsive Layouts
+## 16. Mobile Responsive Layouts
 
 Optimized for mobile operators monitoring sales on the go:
 
