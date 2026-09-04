@@ -26,6 +26,18 @@ let latestQR = null;
 let latestPairingCode = null;
 
 const app = express();
+
+// Enable CORS for all local dashboard origins
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
 app.use(express.json());
 
 // 1. Status API
@@ -36,6 +48,22 @@ app.get("/status", (req, res) => {
     hasQR: !!latestQR,
     pairingCode: latestPairingCode,
   });
+});
+
+// 1b. QR Data URL JSON API for in-dashboard modal display
+app.get("/qr-data", async (req, res) => {
+  if (isConnected) {
+    return res.json({ connected: true, botPhone: BOT_PHONE, qrDataUrl: null });
+  }
+  if (!latestQR) {
+    return res.json({ connected: false, botPhone: BOT_PHONE, qrDataUrl: null, waiting: true });
+  }
+  try {
+    const qrDataUrl = await QRCode.toDataURL(latestQR);
+    return res.json({ connected: false, botPhone: BOT_PHONE, qrDataUrl, waiting: false });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
 });
 
 // 2. Web UI for QR Code
@@ -337,11 +365,12 @@ async function startSocket() {
           ],
         };
 
-        await fetch(WEBHOOK_URL, {
+        const waResp = await fetch(WEBHOOK_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(webhookPayload),
         });
+        console.log(`[FORWARD] Dispatched to FastAPI webhook (${waResp.status} ${waResp.statusText})`);
       } catch (err) {
         console.error("[BRIDGE] Failed to forward message to FastAPI:", err);
       }
