@@ -42,19 +42,33 @@ class Settings(BaseSettings):
     OWNER_VERBOSE_MODE: bool = False
 
     # AI & LLM Provider Configuration
-    # Production: NVIDIA Nemotron; Development/Test: Provider abstraction with fallback
+    # NVIDIA NIM Dual-Key Configuration (Section 4: Primary & Fallback keys)
+    NVIDIA_NIM_API_KEY_PRIMARY: str = ""
+    NVIDIA_NIM_API_KEY_FALLBACK: str = ""
     NVIDIA_API_KEY: str = "nvapi-mock-key-for-local-dev"
     NVIDIA_FALLBACK_API_KEY: str = ""
     NVIDIA_BASE_URL: str = "https://integrate.api.nvidia.com/v1"
-    NVIDIA_MODEL: str = "nvidia/nemotron-3-ultra-550b-a55b"
-    NVIDIA_FALLBACK_MODELS: str = "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning,nvidia/nemotron-3-super-120b-a12b,google/gemma-4-31b-it"
+    NVIDIA_MODEL: str = "nvidia/nemotron-3-super-120b-a12b"
+    NVIDIA_FALLBACK_MODELS: str = "nvidia/nemotron-3.5-lightning-30b-a3b,openai/gpt-oss-20b"
     NVIDIA_EMBEDDING_MODEL: str = "nvidia/nv-embedqa-e5-v5"
     LLM_PROVIDER: str = "simulator"  # Options: 'nvidia', 'simulator', 'fallback'
     LLM_FALLBACK_PROVIDER: str = "simulator"
     LLM_TEMPERATURE: float = 0.2
     LLM_MAX_TOKENS: int = 1024
     LLM_REQUEST_TIMEOUT: int = 90
+    AI_REQUEST_TIMEOUT: int = 30
+    AI_CIRCUIT_BREAKER_COOLDOWN_SECONDS: int = 60
+    AI_CIRCUIT_BREAKER_FAILURE_THRESHOLD: int = 3
+    ENABLE_MINIMAX_M3: bool = False  # TODO: remove minimaxai/minimax-m3 deprecated model
     GEMINI_API_KEY: str = ""
+
+    @property
+    def nvidia_primary_key(self) -> str:
+        return self.NVIDIA_NIM_API_KEY_PRIMARY or self.NVIDIA_API_KEY or ""
+
+    @property
+    def nvidia_fallback_key(self) -> str:
+        return self.NVIDIA_NIM_API_KEY_FALLBACK or self.NVIDIA_FALLBACK_API_KEY or ""
 
     # WhatsApp Channel Configuration
     # Options: 'simulator', 'development', 'meta_cloud'
