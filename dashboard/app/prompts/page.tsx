@@ -728,7 +728,7 @@ export default function PromptsPage() {
               <div className="flex items-center gap-3">
                 {/* Brain / Connected Dots Constellation Icon (replaces the pencil/wand icon) */}
                 <div className="w-9 h-9 rounded-xl bg-sky-50 dark:bg-sky-950/60 border border-sky-200/80 dark:border-sky-800/60 flex items-center justify-center shadow-sm shrink-0 text-sky-600 dark:text-sky-400">
-                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="20" height="20" viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
                     {/* Brain profile outline */}
                     <path d="M12 2a5 5 0 0 0-4.9 4A4.5 4.5 0 0 0 4 10.5 4.5 4.5 0 0 0 6 14.8V17a3 3 0 0 0 3 3h6a3 3 0 0 0 3-3v-2.2a4.5 4.5 0 0 0 2-4.3 4.5 4.5 0 0 0-3.1-4.5A5 5 0 0 0 12 2Z" stroke="currentColor" strokeOpacity="0.35" strokeDasharray="2 2" />
                     {/* Neural network connection lines */}
