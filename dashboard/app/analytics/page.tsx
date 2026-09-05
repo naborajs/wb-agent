@@ -231,7 +231,7 @@ export default function AnalyticsPage() {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
+            <table className="w-full text-left text-xs border-collapse min-w-[460px]">
               <thead>
                 <tr className="border-b border-[var(--ed-border)] text-[10px] uppercase font-bold text-[var(--ed-text-muted)]">
                   <th className="py-2">Hub Region</th>
