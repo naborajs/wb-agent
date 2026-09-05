@@ -241,44 +241,40 @@ AVAILABLE_MODELS = [
 
 
 def update_local_env_file(updates: Dict[str, str]):
-    """Safely updates variables in the local .env file to persist dashboard changes."""
-    candidates = [
-        os.path.join(os.getcwd(), ".env"),
-        os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), ".env"),
-    ]
-    target_path = None
-    for p in candidates:
-        if os.path.exists(p):
-            target_path = p
-            break
+    """Safely updates variables in all local .env files to persist dashboard changes."""
+    candidates = {
+        os.path.abspath(os.path.join(os.getcwd(), ".env")),
+        os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), ".env")),
+        os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), "backend", ".env")),
+    }
+    for target_path in candidates:
+        if not os.path.exists(target_path):
+            continue
+        try:
+            with open(target_path, "r", encoding="utf-8") as f:
+                lines = f.readlines()
 
-    if not target_path:
-        target_path = candidates[0]
-        with open(target_path, "w", encoding="utf-8") as f:
-            f.write("# WB-Agent Environment Configuration\n")
+            keys_found = set()
+            new_lines = []
+            for line in lines:
+                stripped = line.strip()
+                if stripped and not stripped.startswith("#") and "=" in stripped:
+                    k, _ = stripped.split("=", 1)
+                    k = k.strip()
+                    if k in updates:
+                        new_lines.append(f"{k}={updates[k]}\n")
+                        keys_found.add(k)
+                        continue
+                new_lines.append(line)
 
-    with open(target_path, "r", encoding="utf-8") as f:
-        lines = f.readlines()
+            for k, v in updates.items():
+                if k not in keys_found:
+                    new_lines.append(f"{k}={v}\n")
 
-    keys_found = set()
-    new_lines = []
-    for line in lines:
-        stripped = line.strip()
-        if stripped and not stripped.startswith("#") and "=" in stripped:
-            k, _ = stripped.split("=", 1)
-            k = k.strip()
-            if k in updates:
-                new_lines.append(f"{k}={updates[k]}\n")
-                keys_found.add(k)
-                continue
-        new_lines.append(line)
-
-    for k, v in updates.items():
-        if k not in keys_found:
-            new_lines.append(f"{k}={v}\n")
-
-    with open(target_path, "w", encoding="utf-8") as f:
-        f.writelines(new_lines)
+            with open(target_path, "w", encoding="utf-8") as f:
+                f.writelines(new_lines)
+        except Exception:
+            pass
 
 
 @router.get("/models")
