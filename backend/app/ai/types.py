@@ -4,8 +4,8 @@ Supports dual-key NIM routing, fail-closed safety verdicts, and reasoning trace 
 """
 
 from enum import Enum
-from typing import Any, Dict, List, Optional
-from pydantic import BaseModel, Field
+from typing import Any, Dict, List, Optional, Union
+from pydantic import BaseModel, Field, field_validator
 
 
 class Capability(str, Enum):
@@ -112,4 +112,13 @@ class PromptOptimizationResult(BaseModel):
     summary_of_changes: str
     model_used: str = "nvidia/nemotron-3-ultra-550b-a55b"
     latency_ms: int = 0
+
+    @field_validator("summary_of_changes", mode="before")
+    @classmethod
+    def coerce_summary(cls, v: Any) -> str:
+        if isinstance(v, list):
+            return "\n".join(str(item) for item in v)
+        if isinstance(v, dict):
+            return "\n".join(f"{k}: {val}" for k, val in v.items())
+        return str(v or "System prompt updated based on user intent.")
 
