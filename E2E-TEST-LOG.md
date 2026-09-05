@@ -37,6 +37,10 @@ This document records the real, live interactive test results across all 14 dash
 | **Products: Add New Tea Modal**        | Opens form modal, validates inputs, creates product and default packaging variant in DB        | Created 'TEST - Mirik White Tea Reserve' with SKU NBT-SPEC-845, ₹1200/kg, MOQ 5kg, persisted cleanly | PASS   | None                 |
 | **Products: 1-Click Stock Toggle**     | Toggles in_stock status on product and linked variants with optimistic UI update              | `PATCH /api/v1/products/{id}` flips in_stock between true and false; UI badge updates immediately | PASS   | None                 |
 | **Products: Edit & Delete Lifecycle**  | Allows editing name/grade/MOQ in modal, and deleting product with confirmation                 | MOQ updated and verified; delete removed test item cleanly from database and UI                | PASS   | None                 |
+| **Pricing: Interactive Volume Curve**  | Renders dynamic SVG step curve showing volume discount % and autonomous authority ceiling       | Curve rendered accurately across 0kg, 50kg, 100kg, 500kg, and 1000kg+ breakpoints             | PASS   | None                 |
+| **Pricing: Deterministic Quote Sim**   | Simulates wholesale quote given kg and negotiated discount request                              | 150kg correctly applied 10% Tier 2 discount (₹45,900 total); 15% discount flagged human approval | PASS   | None                 |
+| **Pricing: Add Tier Modal & Persistence** | Modal configures min/max qty, discount %, max autonomous %, and human approval toggle          | Added 'TEST - Tier 4: Mega Volume 1000kg+' (18% disc, 12% auto, human req: true), persisted to DB | PASS   | None                 |
+| **Pricing: Edit & Delete Lifecycle**   | Allows editing tier discount % and deleting tier with live backend sync                         | Updated discount to 20.0%, verified persistence in DB, deleted cleanly                        | PASS   | None                 |
 
 
 
