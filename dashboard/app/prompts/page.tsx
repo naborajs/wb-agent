@@ -530,8 +530,34 @@ export default function PromptsPage() {
 
       {/* Grid: Sections Navigation + Editor */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Left: Section Selector */}
-        <div className="space-y-2">
+        {/* Mobile Horizontal Section Tabs (< lg) */}
+        <div className="lg:hidden flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+          {Object.entries(SECTION_METADATA).map(([key, meta]) => {
+            const SectionIcon = meta.icon;
+            const isSelected = activeTab === key;
+            const secData = sections[key];
+            return (
+              <button
+                key={key}
+                onClick={() => setActiveTab(key)}
+                className={`ed-press ed-focus-ring flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold shrink-0 transition-all border ${
+                  isSelected
+                    ? "bg-[var(--ed-accent)] text-white border-[var(--ed-accent)] shadow-sm"
+                    : "bg-[var(--ed-surface)] text-[var(--ed-text-muted)] border-[var(--ed-border)] hover:text-[var(--ed-text-primary)]"
+                }`}
+              >
+                <SectionIcon className="w-3.5 h-3.5" />
+                <span>{meta.label}</span>
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-data ${isSelected ? "bg-black/20 text-white" : "bg-[var(--ed-bg)] text-[var(--ed-text-muted)]"}`}>
+                  v{secData?.version || 1}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Left: Section Selector (Desktop >= lg) */}
+        <div className="hidden lg:block space-y-2">
           {Object.entries(SECTION_METADATA).map(([key, meta]) => {
             const SectionIcon = meta.icon;
             const isSelected = activeTab === key;
@@ -654,7 +680,7 @@ export default function PromptsPage() {
         {/* Center/Right Column: 1. Main Editor -> 2. AI Prompt Architect -> 3. Version History */}
         <div className="lg:col-span-3 space-y-6">
           {/* 1. MAIN SYSTEM PROMPT EDITOR PANEL (Keep at top for immediate view & live reflection) */}
-          <div className="ed-panel rounded-xl p-6 space-y-4 border border-[var(--ed-border)] bg-[var(--ed-surface)]">
+          <div className="ed-panel rounded-xl p-4 sm:p-6 space-y-4 border border-[var(--ed-border)] bg-[var(--ed-surface)]">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div>
                 <h3 className="font-bold text-sm text-[var(--ed-text-primary)] flex items-center gap-2 flex-wrap">
