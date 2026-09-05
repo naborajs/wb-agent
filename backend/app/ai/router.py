@@ -111,12 +111,12 @@ class AIRouter:
                     continue
 
                 try:
-                    # Adaptive timeout: 550b fails fast (1.0s) because NIM 550B is currently unresponsive; PROMPT_ARCHITECT gets snappy 6.0s per candidate; others get full headroom (25s)
+                    # Adaptive timeout: 550b fails fast (1.0s) because NIM 550B is currently unresponsive; PROMPT_ARCHITECT gets 16.0s for lightning-30b; others get full headroom (25s)
                     req_timeout = timeout
                     if "ultra-550b" in model:
                         req_timeout = 1.0
                     elif req_timeout is None:
-                        req_timeout = 6.0 if capability == Capability.PROMPT_ARCHITECT else 25.0
+                        req_timeout = 16.0 if capability == Capability.PROMPT_ARCHITECT else 25.0
 
                     logger.debug(
                         f"Executing capability '{capability.value}' on model '{model}' using {key_alias} key "
@@ -164,6 +164,9 @@ class AIRouter:
                         f"[AIRouter] Attempt failed for capability '{capability.value}' on model '{model}' "
                         f"with {key_alias} key: {exc}. Advancing to next candidate..."
                     )
+                    # If this attempt timed out (upstream server unresponsive), skip trying the same model on the second key
+                    if "timed out" in str(exc).lower() or isinstance(exc, (httpx.TimeoutException, TimeoutError)):
+                        break
 
         # True last-resort fallback (§5): Only after all NVIDIA models have failed on both keys
         # Note: Directive §3.F explicitly states for translation: "don't reach for Gemini here."
@@ -1109,7 +1112,7 @@ class AIRouter:
                 ModelMessage(role="user", content=user_content),
             ],
             temperature=0.2,
-            max_tokens=2048,
+            max_tokens=800,
             metadata={"capability": Capability.PROMPT_ARCHITECT.value, "section": section_name},
         )
 
