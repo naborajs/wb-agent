@@ -231,10 +231,10 @@ export default function DashboardShell({ children }: { children: React.ReactNode
   };
 
   const sidebarContent = (
-    <>
-      <div>
+    <div className="flex flex-col h-full justify-between overflow-hidden">
+      <div className="flex flex-col min-h-0 flex-1 overflow-hidden">
         {/* Brand Header */}
-        <div className="p-4 border-b border-[var(--ed-border)] flex items-center gap-3">
+        <div className="p-4 border-b border-[var(--ed-border)] flex items-center gap-3 shrink-0">
           <div className="relative w-12 h-12 rounded-2xl ed-brand-avatar flex items-center justify-center shrink-0 group">
             <img
               src="/logo-icon.png"
@@ -265,8 +265,8 @@ export default function DashboardShell({ children }: { children: React.ReactNode
           </div>
         </div>
 
-        {/* Navigation Links */}
-        <nav className="p-3 space-y-0.5">
+        {/* Navigation Links with Smooth Scroll for mobile & smaller screens */}
+        <nav className="p-3 space-y-0.5 overflow-y-auto flex-1">
           {navigation.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href;
@@ -289,7 +289,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
       </div>
 
       {/* Owner Notification Channel Footer */}
-      <div className="p-4 border-t border-[var(--ed-border)]" style={{ background: "var(--ed-bg)" }}>
+      <div className="p-4 border-t border-[var(--ed-border)] shrink-0" style={{ background: "var(--ed-bg)" }}>
         <div className="text-[10px] text-[var(--ed-text-muted)] font-semibold mb-1">
           Owner Command Channel
         </div>
@@ -301,7 +301,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
           Baileys Bridge v20.0
         </div>
       </div>
-    </>
+    </div>
   );
 
   return (
@@ -311,17 +311,25 @@ export default function DashboardShell({ children }: { children: React.ReactNode
         {sidebarContent}
       </aside>
 
-      {/* Mobile Sidebar Overlay */}
+      {/* Mobile Sidebar Overlay with smooth touch bounds */}
       {mobileNavOpen && (
         <div className="fixed inset-0 z-50 md:hidden">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileNavOpen(false)} />
-          <aside className="absolute left-0 top-0 bottom-0 w-72 flex flex-col justify-between shadow-2xl" style={{ background: "var(--ed-surface)" }}>
-            <div className="flex items-center justify-end p-3">
+          <aside className="absolute left-0 top-0 bottom-0 w-72 max-w-[85vw] flex flex-col justify-between shadow-2xl overflow-hidden" style={{ background: "var(--ed-surface)" }}>
+            <div className="flex items-center justify-between p-3 border-b border-[var(--ed-border)]">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg ed-brand-avatar flex items-center justify-center p-0.5">
+                  <img src="/logo-icon.png" alt="EDITH" className="w-5 h-5 object-contain" />
+                </div>
+                <span className="font-bold text-sm text-[var(--ed-text-primary)]">Menu</span>
+              </div>
               <button onClick={() => setMobileNavOpen(false)} className="ed-press p-2 rounded-lg text-[var(--ed-text-muted)] hover:text-[var(--ed-text-primary)]">
                 <X className="w-5 h-5" />
               </button>
             </div>
-            {sidebarContent}
+            <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+              {sidebarContent}
+            </div>
           </aside>
         </div>
       )}
@@ -329,8 +337,8 @@ export default function DashboardShell({ children }: { children: React.ReactNode
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Top Bar */}
-        <header className="h-14 border-b border-[var(--ed-border)] px-4 md:px-6 flex items-center justify-between shrink-0 transition-colors duration-200" style={{ background: "var(--ed-surface)" }}>
-          <div className="flex items-center gap-3">
+        <header className="h-14 border-b border-[var(--ed-border)] px-3 sm:px-4 md:px-6 flex items-center justify-between shrink-0 transition-colors duration-200" style={{ background: "var(--ed-surface)" }}>
+          <div className="flex items-center gap-2 sm:gap-3">
             {/* Mobile hamburger */}
             <button
               onClick={() => setMobileNavOpen(true)}
@@ -360,12 +368,12 @@ export default function DashboardShell({ children }: { children: React.ReactNode
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-1.5 sm:gap-2.5">
             {/* Dark Mode Toggle */}
             <button
               onClick={toggleTheme}
               aria-label="Toggle Dark Mode"
-              className="ed-press ed-focus-ring p-2.5 rounded-lg border border-[var(--ed-border)] text-[var(--ed-text-muted)] hover:text-[var(--ed-text-primary)] transition-colors"
+              className="ed-press ed-focus-ring p-2 sm:p-2.5 rounded-lg border border-[var(--ed-border)] text-[var(--ed-text-muted)] hover:text-[var(--ed-text-primary)] transition-colors"
               style={{ background: "var(--ed-surface)" }}
             >
               {mounted && darkMode ? (
@@ -380,32 +388,27 @@ export default function DashboardShell({ children }: { children: React.ReactNode
               className={`hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold border transition-all ${
                 wsConnected
                   ? "text-[var(--ed-success)] border-[var(--ed-success)]/25"
-                  : "text-[var(--ed-danger)] border-[var(--ed-danger)]/25"
+                  : "text-[var(--ed-warning)] border-[var(--ed-warning)]/25"
               }`}
-              style={{
-                background: wsConnected
-                  ? "color-mix(in srgb, var(--ed-success) 8%, transparent)"
-                  : "color-mix(in srgb, var(--ed-danger) 8%, transparent)",
-              }}
-              title={wsConnected ? `WebSocket connected · Latency: ${wsLatency !== null ? `${wsLatency}ms` : "OK"}` : "WebSocket disconnected"}
+              style={{ background: wsConnected ? "color-mix(in srgb, var(--ed-success) 8%, transparent)" : "color-mix(in srgb, var(--ed-warning) 8%, transparent)" }}
             >
-              <span className={`w-1.5 h-1.5 rounded-full ${wsConnected ? "bg-[var(--ed-success)] animate-pulse" : "bg-[var(--ed-danger)]"}`} />
-              {wsConnected ? `Live · ${wsLatency !== null ? `${wsLatency}ms` : "Active"}` : "Reconnecting"}
+              <Radio className={`w-3 h-3 ${wsConnected ? "animate-pulse" : ""}`} />
+              {wsConnected ? (wsLatency !== null ? `${wsLatency}ms` : "Live") : "Reconnecting"}
             </span>
 
-            {/* AI Watchdog Supervisor Center */}
+            {/* Watchdog AI Alert Center Icon */}
             <div className="relative" ref={watchdogRef}>
               <button
                 onClick={() => setWatchdogOpen(!watchdogOpen)}
-                aria-label="AI Watchdog Supervisor Center"
-                className="ed-press ed-focus-ring relative p-2.5 rounded-lg border border-[var(--ed-border)] text-[var(--ed-text-muted)] hover:text-[var(--ed-text-primary)] transition-colors"
-                style={{
-                  background: watchdogOpen ? "var(--ed-accent)" : "var(--ed-surface)",
-                  color: watchdogOpen ? "#fff" : undefined,
-                }}
-                title="AI Watchdog Diagnostics & Anomaly Monitor"
+                className={`ed-press ed-focus-ring relative p-2 sm:p-2.5 rounded-lg border transition-all ${
+                  alerts.length > 0
+                    ? "border-amber-500/40 bg-amber-500/10 text-amber-500"
+                    : "border-[var(--ed-border)] text-[var(--ed-text-muted)] hover:text-[var(--ed-text-primary)]"
+                }`}
+                style={alerts.length === 0 ? { background: "var(--ed-surface)" } : {}}
+                aria-label="Watchdog Alerts"
               >
-                <Bell className="w-4 h-4" />
+                <Activity className="w-4 h-4" />
                 {alerts.length > 0 && (
                   <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[var(--ed-danger)] px-1 text-[9px] font-bold text-white shadow-sm">
                     {alerts.length}
@@ -415,7 +418,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
 
               {watchdogOpen && (
                 <div
-                  className="absolute right-0 top-12 w-80 sm:w-96 rounded-xl border border-[var(--ed-border)] shadow-ed-elevated z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-100"
+                  className="fixed inset-x-3 top-16 sm:absolute sm:inset-x-auto sm:right-0 sm:top-12 w-auto sm:w-96 max-w-[calc(100vw-1.5rem)] rounded-xl border border-[var(--ed-border)] shadow-ed-elevated z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-100"
                   style={{ background: "var(--ed-surface)" }}
                 >
                   {/* Watchdog Header */}
@@ -479,9 +482,9 @@ export default function DashboardShell({ children }: { children: React.ReactNode
                           <div className="pt-1 flex justify-end">
                             <button
                               onClick={() => resolveAlertItem(alert.id)}
-                              className="text-[10px] font-semibold text-[var(--ed-accent)] hover:underline"
+                              className="text-[10px] font-semibold text-[var(--ed-accent)] hover:underline flex items-center gap-1"
                             >
-                              Mark Resolved
+                              <CheckCircle className="w-3 h-3" /> Mark Resolved
                             </button>
                           </div>
                         </div>
@@ -508,7 +511,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
 
               {/* Profile Dropdown Panel */}
               {profileOpen && (
-                <div className="absolute right-0 top-12 w-72 rounded-2xl border border-[var(--ed-border)] shadow-ed-elevated z-50 overflow-hidden" style={{ background: "var(--ed-surface)" }}>
+                <div className="fixed inset-x-3 top-16 sm:absolute sm:inset-x-auto sm:right-0 sm:top-12 w-auto sm:w-72 max-w-[calc(100vw-1.5rem)] rounded-2xl border border-[var(--ed-border)] shadow-ed-elevated z-50 overflow-hidden" style={{ background: "var(--ed-surface)" }}>
                   {/* Profile header */}
                   <div className="p-4 border-b border-[var(--ed-border)]" style={{ background: "var(--ed-bg)" }}>
                     <div className="flex items-center gap-3">
