@@ -111,12 +111,12 @@ class AIRouter:
                     continue
 
                 try:
-                    # Adaptive timeout: 550b fails fast (1.0s) because NIM 550B is currently unresponsive; PROMPT_ARCHITECT gets 16.0s for lightning-30b; others get full headroom (25s)
+                    # Adaptive timeout: 550b fails fast (1.0s) because NIM 550B is currently unresponsive; PROMPT_ARCHITECT gets 18.0s for super-120b; others get full headroom (25s)
                     req_timeout = timeout
                     if "ultra-550b" in model:
                         req_timeout = 1.0
                     elif req_timeout is None:
-                        req_timeout = 16.0 if capability == Capability.PROMPT_ARCHITECT else 25.0
+                        req_timeout = 18.0 if capability == Capability.PROMPT_ARCHITECT else 25.0
 
                     logger.debug(
                         f"Executing capability '{capability.value}' on model '{model}' using {key_alias} key "
@@ -1112,7 +1112,7 @@ class AIRouter:
                 ModelMessage(role="user", content=user_content),
             ],
             temperature=0.2,
-            max_tokens=800,
+            max_tokens=1500,
             metadata={"capability": Capability.PROMPT_ARCHITECT.value, "section": section_name},
         )
 
