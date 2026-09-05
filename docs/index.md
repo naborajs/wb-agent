@@ -74,9 +74,10 @@ Explore the core algorithms, design principles, and guardrails:
 - [[error-catalog-and-solutions|Comprehensive Error Catalog & Solutions]]: Detailed encyclopedia of common errors across database connections, vector extensions, WhatsApp webhooks, HMAC signature mismatches, NVIDIA API responses, Windows encoding, and Next.js builds.
 
 ### 4. ⚙️ Operations & Reference
-- [[operations-runbook|Operations Runbook & Kill-Switch]]: Emergency kill-switch trigger, queue scaling, worker daemon management, and troubleshooting.
+- [[operations-runbook|Operations Runbook & Kill-Switch]]: Emergency kill-switch trigger, queue scaling, worker daemon management, and unified `python run.py` launcher.
+- [[visual-tour|Dashboard Visual Operations Tour]]: Complete visual UI tour across desktop and mobile responsive views with dual themes.
 - [[api-reference|REST API & WebSocket Reference]]: Complete endpoint specifications, query schemas, and live WebSocket streaming protocol.
-- [[decisions/0001-postgresql-primary-storage|Architectural Decision Records (ADRs 0001 to 0011)]]: Technical decisions and architectural rationales.
+- [[decisions/0001-postgresql-primary-storage|Architectural Decision Records (ADRs 0001 to 0014)]]: Technical decisions and architectural rationales.
 
 ---
 
