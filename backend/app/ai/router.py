@@ -116,7 +116,10 @@ class AIRouter:
                     if "ultra-550b" in model:
                         req_timeout = 1.0
                     elif req_timeout is None:
-                        req_timeout = 18.0 if capability == Capability.PROMPT_ARCHITECT else 25.0
+                        if capability == Capability.PROMPT_ARCHITECT:
+                            req_timeout = 8.0 if "super-120b" in model else 12.0
+                        else:
+                            req_timeout = 25.0
 
                     logger.debug(
                         f"Executing capability '{capability.value}' on model '{model}' using {key_alias} key "
