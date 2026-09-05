@@ -111,12 +111,12 @@ class AIRouter:
                     continue
 
                 try:
-                    # Adaptive timeout: 550b fails fast (1.0s) because NIM 550B is currently unresponsive; 120b & others get full headroom (25s)
+                    # Adaptive timeout: 550b fails fast (1.0s) because NIM 550B is currently unresponsive; PROMPT_ARCHITECT gets snappy 10.0s per candidate; others get full headroom (25s)
                     req_timeout = timeout
                     if "ultra-550b" in model:
                         req_timeout = 1.0
                     elif req_timeout is None:
-                        req_timeout = 25.0
+                        req_timeout = 10.0 if capability == Capability.PROMPT_ARCHITECT else 25.0
 
                     logger.debug(
                         f"Executing capability '{capability.value}' on model '{model}' using {key_alias} key "
