@@ -117,7 +117,7 @@ class AIRouter:
                         req_timeout = 1.0
                     elif req_timeout is None:
                         if capability == Capability.PROMPT_ARCHITECT:
-                            req_timeout = 8.0 if "super-120b" in model else 12.0
+                            req_timeout = 45.0 if "super-120b" in model else 30.0
                         else:
                             req_timeout = 25.0
 
@@ -1115,7 +1115,7 @@ class AIRouter:
                 ModelMessage(role="user", content=user_content),
             ],
             temperature=0.2,
-            max_tokens=1500,
+            max_tokens=4096,
             metadata={"capability": Capability.PROMPT_ARCHITECT.value, "section": section_name},
         )
 
@@ -1161,7 +1161,7 @@ class AIRouter:
             elif raw_text.startswith("```"):
                 raw_text = raw_text.split("```")[1].split("```")[0].strip()
 
-            parsed = json.loads(raw_text)
+            parsed = json.loads(raw_text, strict=False)
             bd = parsed.get("rating_breakdown", {})
             breakdown = PromptRatingBreakdown(
                 clarity=int(bd.get("clarity", 95)),
@@ -1200,19 +1200,17 @@ class AIRouter:
             cleaned_content = re.sub(r"<thought>.*?</thought>", "", cleaned_content, flags=re.DOTALL)
             cleaned_content = re.sub(r"<reasoning>.*?</reasoning>", "", cleaned_content, flags=re.DOTALL)
 
-            match_opt = re.search(r'"optimized_prompt":\s*"([^"\\]*(?:\\.[^"\\]*)*)"', cleaned_content, re.DOTALL)
+            match_opt = re.search(r'"optimized_prompt"\s*:\s*"([\s\S]*?)(?:",\s*"\w+"|"\}|$)', cleaned_content)
             if match_opt:
-                extracted_prompt = match_opt.group(1).replace('\\"', '"').replace('\\n', '\n')
+                extracted_prompt = match_opt.group(1).replace('\\"', '"').replace('\\n', '\n').replace('\\t', '\t').strip()
+            elif any(cleaned_content.strip().upper().startswith(p) for p in ["CORE IDENTITY", "CORE SAFETY", "BUSINESS POLICY", "CONSULTATIVE SALES", "BUSINESS PROFILE", "YOU ARE"]):
+                extracted_prompt = cleaned_content.strip()
+            elif cleaned_content.startswith("```"):
+                cleaned_code = re.sub(r"^```[a-z]*\n", "", cleaned_content)
+                cleaned_code = re.sub(r"\n```$", "", cleaned_code)
+                extracted_prompt = cleaned_code.strip() if len(cleaned_code) > 40 and not cleaned_code.startswith("{") else current_prompt
             else:
-                # If commentary or thinking is present, do not leak it into prompt
-                if any(w in cleaned_content.lower()[:80] for w in ["we need to", "thinking", "i will", "the user wants", "here is"]):
-                    extracted_prompt = current_prompt
-                elif cleaned_content.startswith("```"):
-                    cleaned_content = re.sub(r"^```[a-z]*\n", "", cleaned_content)
-                    cleaned_content = re.sub(r"\n```$", "", cleaned_content)
-                    extracted_prompt = cleaned_content if len(cleaned_content) > 50 and not cleaned_content.startswith("{") else current_prompt
-                else:
-                    extracted_prompt = current_prompt
+                extracted_prompt = current_prompt
 
             # Apply deterministic entity updates to fallback prompt
             extracted_prompt = self._apply_deterministic_entity_updates(extracted_prompt, user_intent)
@@ -1232,18 +1230,44 @@ class AIRouter:
     def _apply_deterministic_entity_updates(prompt: str, user_intent: str) -> str:
         """
         Deterministically detects persona rename requests (e.g. 'change the name to edit',
-        'rename to rakesh', 'set agent name to vikram') and updates the prompt accordingly.
+        'rename to rakesh', 'set agent name to vikram', 'his name shoud be EDITH') and updates the prompt accordingly.
         """
         lower_intent = user_intent.lower()
-        name_match = re.search(r"(?:change|rename|set)\s+(?:the\s+)?name\s+(?:from\s+[a-z0-9_]+\s+)?to\s+([a-z0-9_]+)", lower_intent)
-        if not name_match:
-            name_match = re.search(r"(?:call\s+(?:the\s+)?agent|name\s+is)\s+([a-z0-9_]+)", lower_intent)
+        patterns = [
+            r"(?:change|rename|set|switch)\s+(?:the\s+)?name\s+(?:from\s+[a-z0-9_]+\s+)?to\s+([a-z0-9_]+)",
+            r"(?:his|her|its|agent(?:'s)?)\s+name\s+(?:should|shoud|must|will|is|ought\s+to)\s+(?:be\s+)?([a-z0-9_]+)",
+            r"(?:keep|make|set)\s+(?:the\s+)?name\s+(?:as\s+)?([a-z0-9_]+)",
+            r"(?:call|name)\s+(?:the\s+agent|him|her)\s+([a-z0-9_]+)",
+            r"name\s+is\s+([a-z0-9_]+)",
+            r"(?:change|rename)\s+from\s+[a-z0-9_]+\s+to\s+([a-z0-9_]+)",
+        ]
 
-        if not name_match:
-            return prompt
+        raw_new_name = None
+        for p in patterns:
+            m = re.search(p, lower_intent)
+            if m:
+                raw_new_name = m.group(1).strip()
+                break
 
-        raw_new_name = name_match.group(1).strip()
+        if not raw_new_name:
+            if "name edit" in lower_intent or "name edith" in lower_intent:
+                raw_new_name = "EDITH"
+            elif "rakesh" in lower_intent:
+                raw_new_name = "Rakesh"
+            else:
+                return prompt
+
         target_name = "EDITH" if raw_new_name.lower() in ("edit", "edith") else raw_new_name.capitalize()
+
+        # If user explicitly asks to make the prompt smaller or concise
+        if any(w in lower_intent for w in ["make the prompt smaller", "make it smaller", "shorter", "smaller prompt", "dont think so much", "don't think so much"]):
+            return (
+                f"CORE IDENTITY - {target_name.upper()}:\n"
+                f"YOU ARE {target_name.upper()}, an elite autonomous B2B sales consultant for North Bengal Tea Co.\n"
+                f"YOUR PRIMARY IDENTITY IS TO BE a professional, warm, respectful, and consultative commercial partner.\n"
+                f"YOU MUST actively listen, ask focused discovery questions, and guide purchase decisions with commercial expertise.\n"
+                f"YOU MUST NEVER sound desperate, pushy, or robotic. Never engage with unprofessional language."
+            )
 
         cur_match = re.search(r"CORE IDENTITY\s*-\s*([A-Za-z0-9_]+)", prompt, re.IGNORECASE)
         current_names = set()
@@ -1256,6 +1280,8 @@ class AIRouter:
 
         current_names.add("EDITH")
         current_names.add("Edith")
+        current_names.add("RAKESH")
+        current_names.add("Rakesh")
 
         updated = prompt
         for old in current_names:

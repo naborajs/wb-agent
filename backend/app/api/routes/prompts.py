@@ -218,6 +218,14 @@ async def ai_optimize_prompt_section(
         },
     )
 
+    # Strict validation: Ensure the model produced actual prompt changes before saving to DB
+    if not result.optimized_prompt or result.optimized_prompt.strip() == base_prompt.strip():
+        logger.warning(f"[prompts.py] AI optimization for section '{section}' produced no prompt changes.")
+        raise HTTPException(
+            status_code=422,
+            detail="NemoTron deliberation was unable to synthesize prompt changes for this request. Please provide more specific requirements or retry.",
+        )
+
     # Persist and activate the new version directly in the database
     meta = {
         "rating_score": result.rating_score,
