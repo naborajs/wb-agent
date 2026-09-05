@@ -243,8 +243,9 @@ export default function PricingRulesPage() {
         </div>
 
         {/* SVG Step Curve Graph */}
-        <div className="relative pt-2">
-          <svg viewBox="0 0 800 210" className="w-full h-44 overflow-visible">
+        <div className="relative pt-2 overflow-x-auto">
+          <div className="min-w-[600px] sm:min-w-0">
+            <svg viewBox="0 0 800 210" className="w-full h-40 sm:h-44">
             {/* Grid lines */}
             <line x1="60" y1="20" x2="780" y2="20" stroke="var(--ed-border)" strokeWidth="0.5" strokeDasharray="3 3" opacity="0.4" />
             <line x1="60" y1="65" x2="780" y2="65" stroke="var(--ed-border)" strokeWidth="0.5" strokeDasharray="3 3" opacity="0.4" />
@@ -299,6 +300,7 @@ export default function PricingRulesPage() {
             <text x="540" y="178" textAnchor="middle" fill="var(--ed-text-muted)" fontSize="10">500kg (15%)</text>
             <text x="760" y="178" textAnchor="middle" fill="var(--ed-text-muted)" fontSize="10">1000kg+ (Custom)</text>
           </svg>
+          </div>
         </div>
       </div>
 
@@ -309,7 +311,7 @@ export default function PricingRulesPage() {
             Active Volume Tiers in Database
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs text-[var(--ed-text-primary)]">
+            <table className="w-full text-left text-xs text-[var(--ed-text-primary)] min-w-[620px]">
               <thead className="text-[var(--ed-text-muted)] uppercase tracking-wider border-b border-[var(--ed-border)]" style={{ background: "var(--ed-bg)" }}>
                 <tr>
                   <th className="py-3 px-4">Tier / Name</th>
