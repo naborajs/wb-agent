@@ -22,6 +22,7 @@ class Capability(str, Enum):
     SAFETY_INPUT = "safety_input"
     SAFETY_OUTPUT = "safety_output"
     SYSTEM_WATCHDOG = "system_watchdog"
+    PROMPT_ARCHITECT = "prompt_architect"
 
 
 # §6 Dev-tooling model (flagged for developer / internal tooling, not wired into WhatsApp)
@@ -91,3 +92,24 @@ class WatchdogAuditReport(BaseModel):
     system_verdict: str
     model_used: str = "openai/gpt-oss-20b"
     latency_ms: int = 0
+
+
+class PromptRatingBreakdown(BaseModel):
+    """Fine-grained prompt engineering quality breakdown (0-100)."""
+    clarity: int = Field(default=96, ge=0, le=100)
+    constraint_strength: int = Field(default=95, ge=0, le=100)
+    b2b_effectiveness: int = Field(default=97, ge=0, le=100)
+    safety_grounding: int = Field(default=98, ge=0, le=100)
+
+
+class PromptOptimizationResult(BaseModel):
+    """Structured output from NemoTron 3 Ultra 550B prompt engineering optimization."""
+    section: str
+    optimized_prompt: str
+    rating_score: int = Field(default=96, ge=0, le=100)
+    rating_grade: str = "A+"
+    rating_breakdown: PromptRatingBreakdown = Field(default_factory=PromptRatingBreakdown)
+    summary_of_changes: str
+    model_used: str = "nvidia/nemotron-3-ultra-550b-a55b"
+    latency_ms: int = 0
+
