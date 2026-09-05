@@ -41,6 +41,9 @@ This document records the real, live interactive test results across all 14 dash
 | **Pricing: Deterministic Quote Sim**   | Simulates wholesale quote given kg and negotiated discount request                              | 150kg correctly applied 10% Tier 2 discount (₹45,900 total); 15% discount flagged human approval | PASS   | None                 |
 | **Pricing: Add Tier Modal & Persistence** | Modal configures min/max qty, discount %, max autonomous %, and human approval toggle          | Added 'TEST - Tier 4: Mega Volume 1000kg+' (18% disc, 12% auto, human req: true), persisted to DB | PASS   | None                 |
 | **Pricing: Edit & Delete Lifecycle**   | Allows editing tier discount % and deleting tier with live backend sync                         | Updated discount to 20.0%, verified persistence in DB, deleted cleanly                        | PASS   | None                 |
+| **Follow-ups: Automation Cadence Table** | Displays scheduled 3-day nudge sequence with automatic cancellation policy upon buyer response | Renders customer, channel, step ('Day 0 Nudge', 'Value Prop'), scheduled time, and status pills | PASS   | None                 |
+| **Handoffs: Operator Queue & Takeover** | Loads pending human escalations from `/api/v1/handoffs` or renders autonomous idle state        | Fixed frontend mock fallback; verified live queue loading, reason tag, and summary rendering    | FIXED  | Updated `handoffs/page.tsx` to handle empty queue and live API data properly |
+| **Handoffs: Resolve & Resume AI**       | Resolves open handoff, restores conversation mode to `AI`, and updates badge to 'Resolved'      | Real test handoff resolved via `POST /api/v1/handoffs/{id}/resolve`, restored conv.mode to `AI` in DB | PASS   | None                 |
 
 
 
