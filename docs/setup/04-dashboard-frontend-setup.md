@@ -101,21 +101,26 @@ Expected build output:
  ✓ Compiled successfully
    Linting and checking validity of types ...
    Collecting page data ...
- ✓ Generating static pages (12/12)
+ ✓ Generating static pages (19/19)
    Finalizing page optimization ...
 
 Route (app)                              Size     First Load JS
-┌ ○ /                                    3.02 kB        90.2 kB
+┌ ○ /                                    4.39 kB        91.7 kB
 ├ ○ /_not-found                          873 B          88.1 kB
-├ ○ /conversations                       4.55 kB        91.8 kB
-├ ○ /followups                           1.66 kB        88.9 kB
-├ ○ /handoffs                            2 kB           89.2 kB
-├ ○ /knowledge                           2.24 kB        89.5 kB
-├ ○ /leads                               2.68 kB        89.9 kB
-├ ○ /pricing                             2.53 kB        89.8 kB
-├ ○ /products                            2.2 kB         89.4 kB
-└ ○ /settings                            1.9 kB         89.1 kB
-+ First Load JS shared by all            87.2 kB
+├ ○ /analytics                           3.84 kB        91.1 kB
+├ ○ /campaigns                           4.03 kB        91.3 kB
+├ ○ /conversations                       13.1 kB         100 kB
+├ ○ /followups                           1.76 kB          89 kB
+├ ○ /handoffs                            2.31 kB        89.6 kB
+├ ○ /integrations                        7.54 kB        94.8 kB
+├ ○ /knowledge                           2.66 kB        89.9 kB
+├ ○ /leads                               3.39 kB        90.7 kB
+├ ○ /orders                              5.44 kB        92.7 kB
+├ ○ /pricing                             5.45 kB        92.7 kB
+├ ○ /products                            5.18 kB        92.4 kB
+├ ○ /prompts                             11.1 kB        98.4 kB
+└ ○ /settings                            7.07 kB        94.3 kB
++ First Load JS shared by all            87.3 kB
 ```
 
 To run the optimized production server:
