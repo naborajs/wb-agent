@@ -256,7 +256,7 @@ export default function ProductsCatalogPage() {
           />
         </div>
 
-        <div className="flex items-center gap-2 overflow-x-auto w-full sm:w-auto">
+        <div className="flex items-center gap-2 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0 scrollbar-none">
           {["ALL", "Darjeeling", "Assam CTC", "Dooars", "Green Tea"].map((cat) => (
             <button
               key={cat}
@@ -348,39 +348,37 @@ export default function ProductsCatalogPage() {
                       </div>
                     ))
                   ) : (
-                    <div className="text-xs text-[var(--ed-text-muted)] italic">No packaging variants configured</div>
+                    <div className="text-xs text-[var(--ed-text-muted)] italic">No packaging variants defined</div>
                   )}
                 </div>
               </div>
             </div>
 
-            {/* Footer with 1-Click In Stock Toggle */}
-            <div className="mt-5 pt-3 border-t border-[var(--ed-border)] flex items-center justify-between text-xs">
-              <span className="text-[var(--ed-text-muted)]">
-                MOQ: <strong className="text-[var(--ed-text-primary)] font-data">{p.min_order_quantity_kg} kg</strong>
+            {/* Card Footer */}
+            <div className="mt-5 pt-4 border-t border-[var(--ed-border)] flex items-center justify-between">
+              <span className="text-xs text-[var(--ed-text-muted)] font-semibold">
+                MOQ: <span className="font-data font-bold text-[var(--ed-text-primary)]">{p.min_order_quantity_kg}kg</span>
               </span>
-
-              {/* Toggle Button */}
               <button
                 onClick={() => handleToggleStock(p)}
-                className="ed-press ed-focus-ring inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-semibold text-[11px] transition-colors hover:opacity-90"
+                className={`ed-press ed-focus-ring px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 border transition-all ${
+                  p.in_stock
+                    ? "text-[var(--ed-success)] border-[var(--ed-success)]/20"
+                    : "text-[var(--ed-danger)] border-[var(--ed-danger)]/20"
+                }`}
                 style={{
                   background: p.in_stock
-                    ? "color-mix(in srgb, var(--ed-success) 12%, transparent)"
-                    : "color-mix(in srgb, var(--ed-danger) 12%, transparent)",
-                  color: p.in_stock ? "var(--ed-success)" : "var(--ed-danger)",
-                  border: `1px solid color-mix(in srgb, ${p.in_stock ? "var(--ed-success)" : "var(--ed-danger)"} 30%, transparent)`,
+                    ? "color-mix(in srgb, var(--ed-success) 10%, transparent)"
+                    : "color-mix(in srgb, var(--ed-danger) 10%, transparent)",
                 }}
               >
                 {p.in_stock ? (
                   <>
-                    <CheckCircle2 className="w-3.5 h-3.5 text-[var(--ed-success)]" />
-                    <span>In Stock</span>
+                    <CheckCircle2 className="w-3.5 h-3.5 text-[var(--ed-success)]" /> In Stock
                   </>
                 ) : (
                   <>
-                    <XCircle className="w-3.5 h-3.5 text-[var(--ed-danger)]" />
-                    <span>Out of Stock</span>
+                    <XCircle className="w-3.5 h-3.5 text-[var(--ed-danger)]" /> Sold Out
                   </>
                 )}
               </button>
@@ -389,25 +387,25 @@ export default function ProductsCatalogPage() {
         ))}
       </div>
 
-      {/* ADD PRODUCT MODAL */}
+      {/* ADD NEW PRODUCT MODAL */}
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="ed-panel rounded-2xl shadow-2xl max-w-xl w-full p-6 space-y-4">
+          <div className="rounded-2xl border border-[var(--ed-border)] shadow-2xl max-w-lg w-full p-6 space-y-4" style={{ background: "var(--ed-surface)" }}>
             <div className="flex items-center justify-between border-b border-[var(--ed-border)] pb-3">
-              <h3 className="font-bold text-lg text-[var(--ed-text-primary)] flex items-center gap-2">
-                <Coffee className="w-5 h-5 text-[var(--ed-accent)]" />
-                Add New Wholesale Tea to Catalog
+              <h3 className="font-bold text-base text-[var(--ed-text-primary)] flex items-center gap-2">
+                <Package className="w-5 h-5 text-[var(--ed-accent)]" />
+                Add Wholesale Tea to Catalog
               </h3>
               <button
                 onClick={() => setIsAddModalOpen(false)}
-                className="ed-press ed-focus-ring p-1 rounded-lg text-[var(--ed-text-muted)] hover:text-[var(--ed-text-primary)] hover:bg-[var(--ed-bg)] transition-colors"
+                className="ed-press p-1 rounded-lg text-[var(--ed-text-muted)] hover:text-[var(--ed-text-primary)]"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <form onSubmit={handleCreateProduct} className="space-y-4 text-xs">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block font-semibold text-[var(--ed-text-primary)] mb-1">
                     Tea Blend / Product Name
@@ -441,7 +439,7 @@ export default function ProductsCatalogPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="block font-semibold text-[var(--ed-text-primary)] mb-1">
                     Tea Grade
@@ -522,11 +520,10 @@ export default function ProductsCatalogPage() {
                   </button>
                   <button
                     type="submit"
-                    className="ed-interactive ed-press ed-focus-ring inline-flex items-center gap-2 px-6 py-3 rounded-xl text-white font-semibold text-sm shadow-lg transition-all hover:opacity-90"
-                    style={{ background: "var(--ed-accent)", minHeight: "44px" }}
+                    className="ed-btn-primary ed-press ed-focus-ring px-5 py-2.5 rounded-xl font-semibold text-xs flex items-center gap-1.5 shadow-md"
                   >
                     <Save className="w-4 h-4" />
-                    Save Product
+                    Save Tea
                   </button>
                 </div>
               </div>
@@ -538,14 +535,14 @@ export default function ProductsCatalogPage() {
       {/* EDIT PRODUCT MODAL */}
       {editingProduct && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="ed-panel rounded-2xl shadow-2xl max-w-lg w-full p-6 space-y-4">
+          <div className="rounded-2xl border border-[var(--ed-border)] shadow-2xl max-w-md w-full p-6 space-y-4" style={{ background: "var(--ed-surface)" }}>
             <div className="flex items-center justify-between border-b border-[var(--ed-border)] pb-3">
-              <h3 className="font-bold text-lg text-[var(--ed-text-primary)]">
-                Edit Product: {editingProduct.name}
+              <h3 className="font-bold text-base text-[var(--ed-text-primary)]">
+                Edit Tea: {editingProduct.name}
               </h3>
               <button
                 onClick={() => setEditingProduct(null)}
-                className="ed-press ed-focus-ring p-1 rounded-lg text-[var(--ed-text-muted)] hover:text-[var(--ed-text-primary)] hover:bg-[var(--ed-bg)] transition-colors"
+                className="ed-press p-1 rounded-lg text-[var(--ed-text-muted)] hover:text-[var(--ed-text-primary)]"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -566,7 +563,7 @@ export default function ProductsCatalogPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block font-semibold text-[var(--ed-text-primary)] mb-1">
                     Tea Grade
