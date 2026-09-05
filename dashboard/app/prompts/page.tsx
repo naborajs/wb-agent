@@ -169,49 +169,100 @@ export default function PromptsPage() {
   const [elapsedSeconds, setElapsedSeconds] = useState<number>(0);
   const [aiResult, setAiResult] = useState<OptimizationResult | null>(null);
   const [autoSaveOnUpgrade, setAutoSaveOnUpgrade] = useState<boolean>(true);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  const [lastRefreshedAt, setLastRefreshedAt] = useState<Date>(new Date());
   const editorRef = useRef<HTMLTextAreaElement>(null);
 
-  // Load active sections
-  const loadSections = async () => {
+  /**
+   * In-Page Reactive Refresh Engine:
+   * Re-syncs sections, version history, and active editor content directly from the backend
+   * using strict cache-busting (?_t=Date.now() and cache: no-store).
+   * Refreshes the information seamlessly without reloading the browser page.
+   */
+  const refreshData = async (targetTab?: string, preserveDraftIfDirty: boolean = false) => {
+    const tabToSync = targetTab || activeTab;
+    setIsRefreshing(true);
     try {
-      const res = await fetch("/api/v1/prompts");
-      if (res.ok) {
-        const data = await res.json();
-        setSections(data.sections || {});
-        if (data.sections && data.sections[activeTab]) {
-          setDraftContent(data.sections[activeTab].content);
+      const cacheBust = Date.now();
+      const fetchOpts: RequestInit = {
+        cache: "no-store",
+        headers: {
+          "Cache-Control": "no-cache",
+          Pragma: "no-cache",
+        },
+      };
+
+      // Concurrently fetch all sections, active tab history, and single section detail
+      const [allSectionsRes, historyRes, tabRes] = await Promise.all([
+        fetch(`/api/v1/prompts?_t=${cacheBust}`, fetchOpts),
+        fetch(`/api/v1/prompts/${tabToSync}/history?_t=${cacheBust}`, fetchOpts),
+        fetch(`/api/v1/prompts/${tabToSync}?_t=${cacheBust}`, fetchOpts),
+      ]);
+
+      if (allSectionsRes.ok) {
+        const data = await allSectionsRes.json();
+        const freshSections = data.sections || {};
+        setSections(freshSections);
+
+        if (!preserveDraftIfDirty && freshSections[tabToSync]) {
+          setDraftContent(freshSections[tabToSync].content);
         }
       }
-    } catch (e) {
-      console.error("Failed to load prompts:", e);
-    }
-  };
 
-  // Load history for active section
-  const loadHistory = async (sec: string) => {
-    try {
-      const res = await fetch(`/api/v1/prompts/${sec}/history`);
-      if (res.ok) {
-        const data = await res.json();
-        setHistory(data.history || []);
+      if (tabRes.ok) {
+        const tabData = await tabRes.json();
+        if (!preserveDraftIfDirty && tabData.content) {
+          setDraftContent(tabData.content);
+        }
+        setSections((prev) => ({
+          ...prev,
+          [tabToSync]: {
+            name: tabToSync,
+            version: tabData.version || 1,
+            content: tabData.content,
+            is_default: tabData.is_default || false,
+            author: tabData.author,
+            rating_score: tabData.rating_score,
+            rating_grade: tabData.rating_grade,
+          },
+        }));
       }
+
+      if (historyRes.ok) {
+        const histData = await historyRes.json();
+        setHistory(histData.history || []);
+      }
+
+      setLastRefreshedAt(new Date());
     } catch (e) {
-      console.error("Failed to load history:", e);
+      console.error("Failed to refresh prompt data in-page:", e);
+    } finally {
+      setIsRefreshing(false);
     }
   };
 
+  // Initial load
   useEffect(() => {
-    loadSections();
+    refreshData(activeTab, false);
   }, []);
 
+  // When active tab changes, silently re-sync that tab's data
   useEffect(() => {
-    if (sections[activeTab]) {
-      setDraftContent(sections[activeTab].content);
-    }
     setAiResult(null);
     setUserIntent("");
-    loadHistory(activeTab);
+    refreshData(activeTab, false);
   }, [activeTab]);
+
+  // Periodic background sync every 7 seconds to keep information 100% current without reloading
+  useEffect(() => {
+    const interval = setInterval(() => {
+      // Only silent sync if user is not currently optimizing or editing
+      if (!isOptimizing && !isSaving && !userIntent.trim()) {
+        refreshData(activeTab, true);
+      }
+    }, 7000);
+    return () => clearInterval(interval);
+  }, [activeTab, isOptimizing, isSaving, userIntent]);
 
   // Real-time WebSocket connection for live prompt sync across tabs and operators
   useEffect(() => {
@@ -228,25 +279,11 @@ export default function PromptsPage() {
           try {
             const msg = JSON.parse(event.data);
             if (msg.event_type === "prompt_updated" && msg.data) {
-              const { section, version, content, author, rating_score, rating_grade } = msg.data;
-              setSections((prev: any) => ({
-                ...prev,
-                [section]: {
-                  ...(prev[section] || {}),
-                  name: section,
-                  version: version,
-                  content: content,
-                  is_default: false,
-                },
-              }));
-
-              if (section === activeTab) {
-                setDraftContent(content);
-                loadHistory(section);
-                setStatusMsg({
-                  text: `⚡ Real-time sync: Active prompt updated to v${version} by ${author || "NemoTron"} (Score ${rating_score || 94}/100).`,
-                });
-              }
+              const { section, version, author, rating_score } = msg.data;
+              refreshData(activeTab, false);
+              setStatusMsg({
+                text: `⚡ Real-time sync: Active prompt updated to v${version} by ${author || "NemoTron"} (Score ${rating_score || 94}/100).`,
+              });
             }
           } catch (e) {
             console.error("Failed to parse prompt WS event:", e);
@@ -320,8 +357,9 @@ export default function PromptsPage() {
       if (res.ok) {
         setChangeSummary("");
         setUserIntent("");
-        await loadSections();
-        await loadHistory(activeTab);
+        // Seamlessly refresh information without reloading the page
+        await refreshData(activeTab, false);
+        setStatusMsg({ text: "✨ Prompt saved & activated as new production version!" });
         return true;
       } else {
         const err = await res.json();
@@ -368,28 +406,13 @@ export default function PromptsPage() {
           editorRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
         }
 
-        // 2. Synchronize section state and history from backend
-        await loadSections();
-        await loadHistory(activeTab);
+        // 2. Seamless in-page reactive refresh: immediately synchronize fresh sections, versions & history
+        await refreshData(activeTab, false);
 
-        // 3. Perform live verification against the backend API to guarantee parity
-        try {
-          const verifyRes = await fetch(`/api/v1/prompts/${activeTab}/verify`);
-          if (verifyRes.ok) {
-            const verifyData = await verifyRes.json();
-            setStatusMsg({
-              text: `✨ Prompt upgraded & activated as v${data.version || verifyData.version}! Verified live in database (Score ${data.rating_score}/100 · ${data.rating_grade}).`,
-            });
-          } else {
-            setStatusMsg({
-              text: `✨ Prompt upgraded & activated! New version saved (Score ${data.rating_score}/100 · ${data.rating_grade}).`,
-            });
-          }
-        } catch {
-          setStatusMsg({
-            text: `✨ Prompt upgraded & activated! New version saved (Score ${data.rating_score}/100 · ${data.rating_grade}).`,
-          });
-        }
+        // 3. Status confirmation
+        setStatusMsg({
+          text: `✨ Prompt upgraded & activated as v${data.version}! In-page data refreshed live (Score ${data.rating_score}/100 · ${data.rating_grade}).`,
+        });
       } else {
         const err = await res.json();
         setStatusMsg({ text: err.detail || "Optimization failed. Please try again.", error: true });
@@ -411,9 +434,9 @@ export default function PromptsPage() {
         method: "POST",
       });
       if (res.ok) {
-        setStatusMsg({ text: `Successfully rolled back to Version ${version}!` });
-        await loadSections();
-        await loadHistory(activeTab);
+        // Seamlessly refresh information without reloading the page
+        await refreshData(activeTab, false);
+        setStatusMsg({ text: `⚡ Successfully rolled back to Version ${version}!` });
       } else {
         const err = await res.json();
         setStatusMsg({ text: err.detail || "Rollback failed", error: true });
@@ -448,6 +471,24 @@ export default function PromptsPage() {
           <p className="text-xs text-[var(--ed-text-muted)] mt-1">
             Independent, version-controlled system instruction sections with live AI prompt engineering and instant rollback.
           </p>
+        </div>
+
+        {/* Live Sync & Reactive In-Page Refresh Controls */}
+        <div className="flex items-center gap-2.5 shrink-0">
+          <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-[var(--ed-border)] bg-[var(--ed-surface)] text-[11px] font-mono text-[var(--ed-text-muted)]">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+            <span>Synced {lastRefreshedAt ? lastRefreshedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : "now"}</span>
+          </div>
+
+          <button
+            onClick={() => refreshData(activeTab, false)}
+            disabled={isRefreshing}
+            title="Silently refresh prompt data without reloading page"
+            className="ed-press ed-focus-ring inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold border border-[var(--ed-border)] bg-[var(--ed-surface)] hover:bg-[var(--ed-bg)] text-[var(--ed-text-primary)] shadow-sm transition-all disabled:opacity-50"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 text-purple-400 ${isRefreshing ? "animate-spin" : ""}`} />
+            <span>{isRefreshing ? "Refreshing..." : "Refresh Data"}</span>
+          </button>
         </div>
       </div>
 
@@ -616,14 +657,26 @@ export default function PromptsPage() {
                 <p className="text-xs text-[var(--ed-text-muted)] mt-1">{currentMeta.description}</p>
               </div>
 
-              <button
-                onClick={() => handleSave()}
-                disabled={isSaving || !draftContent.trim()}
-                className="ed-btn-primary ed-press ed-focus-ring inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-xs font-semibold shadow-md transition-all disabled:opacity-50 shrink-0"
-              >
-                <Save className="w-3.5 h-3.5" />
-                {isSaving ? "Saving..." : "Save & Activate"}
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => refreshData(activeTab, false)}
+                  disabled={isRefreshing}
+                  title="In-page refresh: Re-sync latest active prompt and history from database"
+                  className="ed-press ed-focus-ring inline-flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-semibold border border-[var(--ed-border)] bg-[var(--ed-bg)] hover:bg-[var(--ed-surface)] text-[var(--ed-text-primary)] transition-all disabled:opacity-50 shrink-0"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 text-purple-400 ${isRefreshing ? "animate-spin" : ""}`} />
+                  <span className="hidden sm:inline">{isRefreshing ? "Syncing..." : "Sync Live"}</span>
+                </button>
+
+                <button
+                  onClick={() => handleSave()}
+                  disabled={isSaving || !draftContent.trim()}
+                  className="ed-btn-primary ed-press ed-focus-ring inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-xs font-semibold shadow-md transition-all disabled:opacity-50 shrink-0"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  {isSaving ? "Saving..." : "Save & Activate"}
+                </button>
+              </div>
             </div>
 
             <div>
