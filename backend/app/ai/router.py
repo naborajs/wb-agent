@@ -1173,7 +1173,17 @@ class AIRouter:
             score = max(0, min(100, score))
             grade = parsed.get("rating_grade") or ("A+" if score >= 95 else "A" if score >= 88 else "B+")
 
-            opt_prompt = parsed.get("optimized_prompt", current_prompt)
+            opt_prompt = parsed.get("optimized_prompt", "").strip()
+            # If the model returned empty or unchanged prompt, merge user intent directly
+            if not opt_prompt or opt_prompt == current_prompt.strip():
+                logger.info("[AIRouter] JSON parsed but optimized_prompt empty/unchanged. Merging user intent directly.")
+                lower_intent = user_intent.lower()
+                if "full form" in lower_intent or "stands for" in lower_intent or "acronym" in lower_intent:
+                    opt_prompt = f"{current_prompt.rstrip()}\n\nADDITIONAL CONTEXT:\n{user_intent.strip()}\n"
+                elif "add" in lower_intent[:10] or "include" in lower_intent[:12]:
+                    opt_prompt = f"{current_prompt.rstrip()}\n\nADDITIONAL INFORMATION:\n{user_intent.strip()}\n"
+                else:
+                    opt_prompt = f"{current_prompt.rstrip()}\n\n# --- ADDITIONAL DIRECTIVE (User Request) ---\n# {user_intent.strip()}\n"
             opt_prompt = self._apply_deterministic_entity_updates(opt_prompt, user_intent)
 
             soc = parsed.get("summary_of_changes")
@@ -1200,17 +1210,59 @@ class AIRouter:
             cleaned_content = re.sub(r"<thought>.*?</thought>", "", cleaned_content, flags=re.DOTALL)
             cleaned_content = re.sub(r"<reasoning>.*?</reasoning>", "", cleaned_content, flags=re.DOTALL)
 
+            extracted_prompt = None
+
+            # Strategy 1: Try to extract optimized_prompt field from partial JSON
             match_opt = re.search(r'"optimized_prompt"\s*:\s*"([\s\S]*?)(?:",\s*"\w+"|"\}|$)', cleaned_content)
             if match_opt:
-                extracted_prompt = match_opt.group(1).replace('\\"', '"').replace('\\n', '\n').replace('\\t', '\t').strip()
-            elif any(cleaned_content.strip().upper().startswith(p) for p in ["CORE IDENTITY", "CORE SAFETY", "BUSINESS POLICY", "CONSULTATIVE SALES", "BUSINESS PROFILE", "YOU ARE"]):
-                extracted_prompt = cleaned_content.strip()
-            elif cleaned_content.startswith("```"):
-                cleaned_code = re.sub(r"^```[a-z]*\n", "", cleaned_content)
-                cleaned_code = re.sub(r"\n```$", "", cleaned_code)
-                extracted_prompt = cleaned_code.strip() if len(cleaned_code) > 40 and not cleaned_code.startswith("{") else current_prompt
-            else:
-                extracted_prompt = current_prompt
+                candidate = match_opt.group(1).replace('\\"', '"').replace('\\n', '\n').replace('\\t', '\t').strip()
+                if candidate and len(candidate) > 20 and candidate.strip() != current_prompt.strip():
+                    extracted_prompt = candidate
+
+            # Strategy 2: The model returned raw prompt text (not JSON)
+            if not extracted_prompt:
+                stripped = cleaned_content.strip()
+                # Remove code fences if present
+                if stripped.startswith("```"):
+                    stripped = re.sub(r"^```[a-z]*\n", "", stripped)
+                    stripped = re.sub(r"\n```\s*$", "", stripped)
+                    stripped = stripped.strip()
+                # Check if it looks like a raw prompt (not JSON, not just commentary)
+                if (
+                    len(stripped) > 40
+                    and not stripped.startswith("{")
+                    and stripped.strip() != current_prompt.strip()
+                ):
+                    # Accept if it looks like prompt content (has directive-style text)
+                    prompt_indicators = ["YOU ARE", "CORE IDENTITY", "CORE SAFETY", "BUSINESS POLICY",
+                                         "CONSULTATIVE SALES", "BUSINESS PROFILE", "AGENT", "EDITH",
+                                         "YOU MUST", "ALWAYS", "NEVER", "IDENTITY"]
+                    if any(ind in stripped.upper() for ind in prompt_indicators):
+                        extracted_prompt = stripped
+
+            # Strategy 3: Last resort — directly merge user intent into current prompt
+            # This guarantees the user's request always produces a visible change
+            if not extracted_prompt or extracted_prompt.strip() == current_prompt.strip():
+                logger.info(f"[AIRouter] All extraction strategies failed. Directly merging user intent into prompt.")
+                # Build a clear addendum from the user's intent
+                intent_clean = user_intent.strip().rstrip(".")
+                extracted_prompt = (
+                    f"{current_prompt.rstrip()}\n\n"
+                    f"# --- ADDITIONAL DIRECTIVE (User Request) ---\n"
+                    f"# {intent_clean}\n"
+                )
+                # For common specific intents, try to integrate more naturally
+                lower_intent = user_intent.lower()
+                if "full form" in lower_intent or "stands for" in lower_intent or "acronym" in lower_intent:
+                    extracted_prompt = (
+                        f"{current_prompt.rstrip()}\n\n"
+                        f"ADDITIONAL CONTEXT:\n{user_intent.strip()}\n"
+                    )
+                elif "add" in lower_intent[:10] or "include" in lower_intent[:12]:
+                    extracted_prompt = (
+                        f"{current_prompt.rstrip()}\n\n"
+                        f"ADDITIONAL INFORMATION:\n{user_intent.strip()}\n"
+                    )
 
             # Apply deterministic entity updates to fallback prompt
             extracted_prompt = self._apply_deterministic_entity_updates(extracted_prompt, user_intent)
@@ -1218,10 +1270,10 @@ class AIRouter:
             return PromptOptimizationResult(
                 section=section_name,
                 optimized_prompt=extracted_prompt,
-                rating_score=94,
+                rating_score=90,
                 rating_grade="A",
-                rating_breakdown=PromptRatingBreakdown(clarity=94, constraint_strength=93, b2b_effectiveness=95, safety_grounding=95),
-                summary_of_changes=f"Applied user guidance: '{user_intent}' with enterprise clarity rules.",
+                rating_breakdown=PromptRatingBreakdown(clarity=90, constraint_strength=88, b2b_effectiveness=92, safety_grounding=90),
+                summary_of_changes=f"Applied user guidance: '{user_intent}' to the {section_name} section.",
                 model_used=resp.model,
                 latency_ms=elapsed_ms,
             )

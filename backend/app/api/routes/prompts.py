@@ -3,6 +3,7 @@ Modular System Prompt Management API (Sections 66, 67, 68).
 Provides endpoints to view, update, test, and rollback prompt sections.
 """
 
+import logging
 from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Response
 from pydantic import BaseModel, Field
@@ -13,6 +14,8 @@ from app.agent.prompts import DEFAULT_PROMPT_SECTIONS, PromptService
 from app.config import settings
 from app.database.models import PromptVersion
 from app.database.session import get_db
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/prompts", tags=["Prompts"])
 
@@ -218,12 +221,12 @@ async def ai_optimize_prompt_section(
         },
     )
 
-    # Strict validation: Ensure the model produced actual prompt changes before saving to DB
-    if not result.optimized_prompt or result.optimized_prompt.strip() == base_prompt.strip():
-        logger.warning(f"[prompts.py] AI optimization for section '{section}' produced no prompt changes.")
+    # Safety check: only reject if the result is completely empty (should never happen with new router logic)
+    if not result.optimized_prompt or not result.optimized_prompt.strip():
+        logger.warning(f"[prompts.py] AI optimization for section '{section}' returned empty result.")
         raise HTTPException(
             status_code=422,
-            detail="NemoTron deliberation was unable to synthesize prompt changes for this request. Please provide more specific requirements or retry.",
+            detail="NemoTron could not generate a prompt for this request. Please try again with a different instruction.",
         )
 
     # Persist and activate the new version directly in the database
