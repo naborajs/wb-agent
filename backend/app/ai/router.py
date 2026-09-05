@@ -111,12 +111,12 @@ class AIRouter:
                     continue
 
                 try:
-                    # Adaptive timeout: 550b fails fast (1.0s) because NIM 550B is currently unresponsive; PROMPT_ARCHITECT gets snappy 10.0s per candidate; others get full headroom (25s)
+                    # Adaptive timeout: 550b fails fast (1.0s) because NIM 550B is currently unresponsive; PROMPT_ARCHITECT gets snappy 6.0s per candidate; others get full headroom (25s)
                     req_timeout = timeout
                     if "ultra-550b" in model:
                         req_timeout = 1.0
                     elif req_timeout is None:
-                        req_timeout = 10.0 if capability == Capability.PROMPT_ARCHITECT else 25.0
+                        req_timeout = 6.0 if capability == Capability.PROMPT_ARCHITECT else 25.0
 
                     logger.debug(
                         f"Executing capability '{capability.value}' on model '{model}' using {key_alias} key "
@@ -403,7 +403,7 @@ class AIRouter:
         """Invoked ONLY when every NVIDIA NIM model has failed on both keys."""
         start_t = time.time()
         api_key = settings.GEMINI_API_KEY
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
 
         prompt_parts = []
         for m in request.messages:
@@ -427,7 +427,7 @@ class AIRouter:
         latency_ms = int((time.time() - start_t) * 1000)
         return ModelResponse(
             content=reply,
-            model="gemini-1.5-flash",
+            model="gemini-2.5-flash",
             provider="gemini_emergency",
             key_alias="gemini",
             fallback_depth=fallback_depth,
