@@ -81,6 +81,7 @@ async def get_section_history(section: str, session: AsyncSession = Depends(get_
     }
 
 
+@router.put("/{section}")
 @router.post("/{section}")
 async def update_prompt_section(
     section: str,
