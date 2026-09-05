@@ -329,7 +329,8 @@ export default function OrdersPage() {
 
       {/* Orders Table */}
       <div className="ed-panel rounded-xl overflow-hidden">
-        <table className="w-full text-left border-collapse">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse min-w-[760px]">
           <thead>
             <tr className="border-b border-[var(--ed-border)] text-xs font-semibold text-[var(--ed-text-muted)] uppercase tracking-wider" style={{ background: "var(--ed-bg)" }}>
               <th className="py-3.5 px-4">Order #</th>
@@ -368,43 +369,47 @@ export default function OrdersPage() {
                   </td>
                   <td className="py-3.5 px-4">
                     <div className="text-[var(--ed-text-primary)] flex items-center gap-1 font-medium">
-                      <MapPin className="w-3 h-3 text-[var(--ed-text-muted)]" />
-                      {order.shipping_city || "Siliguri / Ex-Estate"}
+                      <MapPin className="w-3 h-3 text-[var(--ed-accent)]" /> {order.shipping_city || "Siliguri Hub"}
                     </div>
+                    {order.shipping_address && (
+                      <div className="text-[10px] text-[var(--ed-text-muted)] truncate max-w-xs">{order.shipping_address}</div>
+                    )}
                   </td>
                   <td className="py-3.5 px-4">
-                    <div className="space-y-1">
-                      {order.items && order.items.length > 0 ? (
-                        order.items.map((item, idx) => (
-                          <div key={idx} className="text-[11px]">
-                            <span className="font-semibold text-[var(--ed-text-primary)]">{item.product_name}</span>{" "}
-                            <span className="text-[var(--ed-text-muted)] font-data">({item.quantity_kg}kg @ ₹{item.unit_price_per_kg}/kg)</span>
-                          </div>
-                        ))
-                      ) : (
-                        <span className="text-[var(--ed-text-muted)]">{order.items_count} items</span>
-                      )}
+                    <div className="font-medium text-[var(--ed-text-primary)]">
+                      {order.items && order.items.length > 0
+                        ? order.items.map((i) => `${i.product_name} (${i.quantity_kg}kg)`).join(", ")
+                        : `${order.items_count || 1} line item(s)`}
                     </div>
                   </td>
-                  <td className="py-3.5 px-4 font-bold font-data text-[var(--ed-text-primary)]">
+                  <td className="py-3.5 px-4 font-data font-bold text-[var(--ed-text-primary)]">
                     ₹{order.total_amount.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
                   </td>
                   <td className="py-3.5 px-4">
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border border-[var(--ed-border)] text-[var(--ed-text-muted)]" style={{ background: "var(--ed-bg)" }}>
-                      {order.payment_terms}
+                    <span className="text-[11px] text-[var(--ed-text-muted)] block">{order.payment_terms}</span>
+                    <span className="text-[10px] font-semibold text-[var(--ed-warning)]">
+                      {order.payment_status.toUpperCase()}
                     </span>
                   </td>
                   <td className="py-3.5 px-4">
                     <span
                       className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                        order.status === "confirmed"
-                          ? "bg-[var(--ed-warning)]/10 text-[var(--ed-warning)] border border-[var(--ed-warning)]/20"
-                          : order.status === "dispatched" || order.status === "completed"
-                          ? "bg-[var(--ed-success)]/10 text-[var(--ed-success)] border border-[var(--ed-success)]/20"
-                          : "border border-[var(--ed-border)] text-[var(--ed-text-muted)]"
+                        order.status === "completed" || order.status === "dispatched"
+                          ? "text-[var(--ed-success)] border border-[var(--ed-success)]/20"
+                          : order.status === "cancelled"
+                          ? "text-[var(--ed-danger)] border border-[var(--ed-danger)]/20"
+                          : "text-[var(--ed-accent)] border border-[var(--ed-accent)]/20"
                       }`}
+                      style={{
+                        background:
+                          order.status === "completed" || order.status === "dispatched"
+                            ? "color-mix(in srgb, var(--ed-success) 10%, transparent)"
+                            : order.status === "cancelled"
+                            ? "color-mix(in srgb, var(--ed-danger) 10%, transparent)"
+                            : "color-mix(in srgb, var(--ed-accent) 10%, transparent)",
+                      }}
                     >
-                      {order.status}
+                      {order.status.toUpperCase()}
                     </span>
                   </td>
                   <td className="py-3.5 px-4 text-right">
@@ -425,6 +430,7 @@ export default function OrdersPage() {
             )}
           </tbody>
         </table>
+        </div>
       </div>
 
       {/* CREATE ORDER MODAL */}
@@ -465,7 +471,7 @@ export default function OrdersPage() {
               </div>
 
               {/* Shipping Details */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block font-semibold text-[var(--ed-text-primary)] mb-1">
                     Buyer / Contact Name *
@@ -492,7 +498,7 @@ export default function OrdersPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block font-semibold text-[var(--ed-text-primary)] mb-1">
                     Destination City
@@ -539,10 +545,10 @@ export default function OrdersPage() {
                   {orderItems.map((item, index) => (
                     <div
                       key={index}
-                      className="p-3 border border-[var(--ed-border)] rounded-xl grid grid-cols-12 gap-2 items-center"
+                      className="p-3 border border-[var(--ed-border)] rounded-xl grid grid-cols-2 sm:grid-cols-12 gap-2 items-center"
                       style={{ background: "var(--ed-bg)" }}
                     >
-                      <div className="col-span-4">
+                      <div className="col-span-2 sm:col-span-4">
                         <span className="text-[10px] font-semibold text-[var(--ed-text-muted)] block mb-1">Tea Blend</span>
                         <select
                           value={item.product_name}
@@ -557,7 +563,7 @@ export default function OrdersPage() {
                         </select>
                       </div>
 
-                      <div className="col-span-2">
+                      <div className="col-span-1 sm:col-span-2">
                         <span className="text-[10px] font-semibold text-[var(--ed-text-muted)] block mb-1">Qty (kg)</span>
                         <input
                           type="number"
@@ -572,7 +578,7 @@ export default function OrdersPage() {
                         />
                       </div>
 
-                      <div className="col-span-2">
+                      <div className="col-span-1 sm:col-span-2">
                         <span className="text-[10px] font-semibold text-[var(--ed-text-muted)] block mb-1">Rate (₹/kg)</span>
                         <input
                           type="number"
@@ -586,7 +592,7 @@ export default function OrdersPage() {
                         />
                       </div>
 
-                      <div className="col-span-2">
+                      <div className="col-span-1 sm:col-span-2">
                         <span className="text-[10px] font-semibold text-[var(--ed-text-muted)] block mb-1">Disc %</span>
                         <input
                           type="number"
@@ -602,7 +608,7 @@ export default function OrdersPage() {
                         />
                       </div>
 
-                      <div className="col-span-2 flex items-center justify-between pt-3">
+                      <div className="col-span-1 sm:col-span-2 flex items-center justify-between pt-1 sm:pt-3">
                         <span className="text-xs font-bold font-data text-[var(--ed-text-primary)] block">
                           ₹{(item.quantity_kg * item.unit_price_per_kg * (1 - item.discount_pct / 100)).toLocaleString("en-IN")}
                         </span>
@@ -610,7 +616,7 @@ export default function OrdersPage() {
                           <button
                             type="button"
                             onClick={() => handleRemoveItem(index)}
-                            className="ed-press text-[var(--ed-text-muted)] hover:text-[var(--ed-danger)] ml-1"
+                            className="p-1 rounded-lg text-[var(--ed-text-muted)] hover:text-[var(--ed-danger)]"
                           >
                             <X className="w-3.5 h-3.5" />
                           </button>
