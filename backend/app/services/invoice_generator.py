@@ -287,38 +287,78 @@ class InvoiceGenerator:
         seller_tagline = getattr(settings, "BUSINESS_TAGLINE", cls.SELLER_TAGLINE) or cls.SELLER_TAGLINE
 
         # 1. Header Grid: Brand on Left, Pro-Forma Details on Right
-        header_data = [
-            [
-                Paragraph(f"<b>{seller_name}</b>", title_style),
-                Paragraph("<b>PRO-FORMA INVOICE & COMMERCIAL QUOTE</b>", banner_title),
-            ],
-            [
-                Paragraph(
-                    f"{seller_tagline}<br/>"
-                    f"{cls.SELLER_ADDRESS}<br/>"
-                    f"GSTIN: <b>{cls.SELLER_GSTIN}</b> | FSSAI: <b>{cls.SELLER_FSSAI}</b><br/>"
-                    f"Phone: {cls.SELLER_PHONE} | Email: {cls.SELLER_EMAIL}",
-                    subtitle_style,
-                ),
-                Paragraph(
-                    f"<b>Invoice No:</b> {inv_num}<br/>"
-                    f"<b>Issue Date:</b> {issue_date_str}<br/>"
-                    f"<b>Valid Until:</b> {valid_until_str} (7-Day Rate Lock)<br/>"
-                    f"<b>Payment Terms:</b> 100% on Dispatch / RTGS",
-                    banner_sub,
-                ),
-            ],
-        ]
-        header_table = Table(header_data, colWidths=[310, 213])
-        header_table.setStyle(
-            TableStyle(
+        logo_path = Path(__file__).parent.parent / "assets" / "logo-icon.png"
+        if logo_path.exists():
+            from reportlab.platypus import Image as RLImage
+            logo_img = RLImage(str(logo_path), width=42, height=42)
+            header_data = [
                 [
-                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                    ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
-                    ("TOPPADDING", (0, 0), (-1, -1), 2),
-                ]
+                    logo_img,
+                    Paragraph(f"<b>{seller_name}</b>", title_style),
+                    Paragraph("<b>PRO-FORMA INVOICE & COMMERCIAL QUOTE</b>", banner_title),
+                ],
+                [
+                    "",
+                    Paragraph(
+                        f"{seller_tagline}<br/>"
+                        f"{cls.SELLER_ADDRESS}<br/>"
+                        f"GSTIN: <b>{cls.SELLER_GSTIN}</b> | FSSAI: <b>{cls.SELLER_FSSAI}</b><br/>"
+                        f"Phone: {cls.SELLER_PHONE} | Email: {cls.SELLER_EMAIL}",
+                        subtitle_style,
+                    ),
+                    Paragraph(
+                        f"<b>Invoice No:</b> {inv_num}<br/>"
+                        f"<b>Issue Date:</b> {issue_date_str}<br/>"
+                        f"<b>Valid Until:</b> {valid_until_str} (7-Day Rate Lock)<br/>"
+                        f"<b>Payment Terms:</b> 100% on Dispatch / RTGS",
+                        banner_sub,
+                    ),
+                ],
+            ]
+            header_table = Table(header_data, colWidths=[48, 262, 213])
+            header_table.setStyle(
+                TableStyle(
+                    [
+                        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                        ("SPAN", (0, 0), (0, 1)),
+                        ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
+                        ("TOPPADDING", (0, 0), (-1, -1), 2),
+                    ]
+                )
             )
-        )
+        else:
+            header_data = [
+                [
+                    Paragraph(f"<b>{seller_name}</b>", title_style),
+                    Paragraph("<b>PRO-FORMA INVOICE & COMMERCIAL QUOTE</b>", banner_title),
+                ],
+                [
+                    Paragraph(
+                        f"{seller_tagline}<br/>"
+                        f"{cls.SELLER_ADDRESS}<br/>"
+                        f"GSTIN: <b>{cls.SELLER_GSTIN}</b> | FSSAI: <b>{cls.SELLER_FSSAI}</b><br/>"
+                        f"Phone: {cls.SELLER_PHONE} | Email: {cls.SELLER_EMAIL}",
+                        subtitle_style,
+                    ),
+                    Paragraph(
+                        f"<b>Invoice No:</b> {inv_num}<br/>"
+                        f"<b>Issue Date:</b> {issue_date_str}<br/>"
+                        f"<b>Valid Until:</b> {valid_until_str} (7-Day Rate Lock)<br/>"
+                        f"<b>Payment Terms:</b> 100% on Dispatch / RTGS",
+                        banner_sub,
+                    ),
+                ],
+            ]
+            header_table = Table(header_data, colWidths=[310, 213])
+            header_table.setStyle(
+                TableStyle(
+                    [
+                        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                        ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
+                        ("TOPPADDING", (0, 0), (-1, -1), 2),
+                    ]
+                )
+            )
         elements.append(header_table)
         elements.append(Spacer(1, 8))
         elements.append(
