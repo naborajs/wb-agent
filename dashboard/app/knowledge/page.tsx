@@ -8,29 +8,33 @@ export default function KnowledgeBasePage() {
   const [results, setResults] = useState<any[]>([]);
   const [searching, setSearching] = useState(false);
 
-  const docs = [
+  const [docs, setDocs] = useState<any[]>([
     {
       title: "North Bengal Tea Co. Quality Standards & Certifications",
-      version: 2,
-      chunks: 8,
-      type: "Markdown",
-      updated: "2026-09-02",
-    },
-    {
-      title: "Wholesale Shipping, Door Delivery & Transit Times",
       version: 1,
-      chunks: 5,
-      type: "Markdown",
-      updated: "2026-09-01",
+      chunk_count: 1,
+      source_type: "Markdown",
+      updated_at: "2026-09-02",
     },
     {
       title: "Commercial Sampling Policy for Hospitality Buyers",
       version: 1,
-      chunks: 4,
-      type: "JSON FAQ",
-      updated: "2026-08-30",
+      chunk_count: 1,
+      source_type: "Markdown",
+      updated_at: "2026-09-02",
     },
-  ];
+  ]);
+
+  React.useEffect(() => {
+    fetch("/api/v1/knowledge/documents")
+      .then((r) => r.ok && r.json())
+      .then((data) => {
+        if (data && Array.isArray(data) && data.length > 0) {
+          setDocs(data);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const handleSearch = async () => {
     if (!query.trim()) return;
@@ -83,7 +87,7 @@ export default function KnowledgeBasePage() {
                   <div>
                     <h4 className="font-semibold text-xs text-[var(--ed-text-primary)]">{d.title}</h4>
                     <div className="text-[11px] text-[var(--ed-text-muted)] mt-0.5">
-                      Version <span className="font-data">{d.version}</span> • <span className="font-data">{d.chunks}</span> vector chunks • {d.type}
+                      Version <span className="font-data">{d.version}</span> • <span className="font-data">{d.chunk_count || d.chunks || 1}</span> vector chunks • {d.source_type || d.type || "Markdown"}
                     </div>
                   </div>
                 </div>
