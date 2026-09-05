@@ -395,7 +395,7 @@ export default function IntegrationsPage() {
                         <div className="font-semibold text-[var(--ed-text-primary)]">
                           {modelInfo?.name || fbId}
                         </div>
-                        <div className="text-[10px] text-[var(--ed-text-muted)] font-mono">{fbId}</div>
+                        <div className="text-[10px] text-[var(--ed-text-muted)] font-mono truncate max-w-[140px] sm:max-w-xs">{fbId}</div>
                       </div>
                     </div>
 
@@ -561,7 +561,7 @@ export default function IntegrationsPage() {
           </div>
 
           {/* Submit Action */}
-          <div className="pt-2 flex items-center justify-between border-t border-[var(--ed-border)]">
+          <div className="pt-2 flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between border-t border-[var(--ed-border)]">
             <span className="text-[11px] text-[var(--ed-text-muted)]">
               Saving updates your local <code>.env</code> file and active memory immediately.
             </span>
@@ -647,7 +647,7 @@ export default function IntegrationsPage() {
           /* SVG Doughnut / Pie Chart for Fallback Reliability Distribution */
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center pt-2">
             <div className="flex justify-center">
-              <svg width="200" height="200" viewBox="0 0 200 200" className="transform -rotate-90">
+              <svg width="200" height="200" viewBox="0 0 200 200" className="transform -rotate-90 max-w-[200px] w-full h-auto">
                 {/* Primary: 75% -> 471.2 * 0.75 = 353.4 */}
                 <circle
                   cx="100"
