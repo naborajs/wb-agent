@@ -4,7 +4,7 @@ Provides endpoints to view, update, test, and rollback prompt sections.
 """
 
 from typing import Any, Dict, List, Optional
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from pydantic import BaseModel, Field
 from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,6 +15,13 @@ from app.database.models import PromptVersion
 from app.database.session import get_db
 
 router = APIRouter(prefix="/prompts", tags=["Prompts"])
+
+
+def _set_no_cache_headers(response: Response) -> None:
+    """Sets strict HTTP no-cache headers to guarantee clients never receive stale prompt data."""
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
 
 
 class PromptUpdateRequest(BaseModel):
@@ -33,36 +40,43 @@ class PromptAIOptimizeRequest(BaseModel):
 
 
 @router.get("")
-async def get_all_prompt_sections(session: AsyncSession = Depends(get_db)):
-    """Returns all 5 modular prompt sections and their active content."""
+async def get_all_prompt_sections(response: Response, session: AsyncSession = Depends(get_db)):
+    """Returns all 5 modular prompt sections and their active content with no-cache guarantee."""
+    _set_no_cache_headers(response)
     prompt_svc = PromptService(session, org_id=settings.DEFAULT_ORG_ID)
     sections = {}
     for sec in ["core_safety", "core_identity", "business_policy", "sales_style", "business_profile"]:
         content = await prompt_svc.get_active_section(sec)
-        # get version number if stored in DB
+        # get latest active version and quality rating if stored in DB
         stmt = (
-            select(PromptVersion.version)
+            select(PromptVersion)
             .where(
                 PromptVersion.org_id == settings.DEFAULT_ORG_ID,
                 PromptVersion.section_name == sec,
                 PromptVersion.is_active == True,
             )
+            .order_by(desc(PromptVersion.version))
             .limit(1)
         )
-        v = (await session.execute(stmt)).scalar_one_or_none() or 1
+        v_obj = (await session.execute(stmt)).scalar_one_or_none()
         sections[sec] = {
             "name": sec,
-            "version": v,
+            "version": v_obj.version if v_obj else 1,
             "content": content,
             "is_default": content == DEFAULT_PROMPT_SECTIONS.get(sec),
+            "author": v_obj.author if v_obj else "system",
+            "rating_score": (v_obj.test_results or {}).get("rating_score") if v_obj else None,
+            "rating_grade": (v_obj.test_results or {}).get("rating_grade") if v_obj else None,
+            "change_summary": v_obj.change_summary if v_obj else None,
         }
 
     return {"sections": sections}
 
 
 @router.get("/{section}")
-async def get_prompt_section(section: str, session: AsyncSession = Depends(get_db)):
-    """Returns active content and version metadata for a single prompt section."""
+async def get_prompt_section(section: str, response: Response, session: AsyncSession = Depends(get_db)):
+    """Returns active content and version metadata for a single prompt section with no-cache guarantee."""
+    _set_no_cache_headers(response)
     if section not in DEFAULT_PROMPT_SECTIONS:
         raise HTTPException(status_code=400, detail=f"Invalid prompt section '{section}'")
 
@@ -94,6 +108,7 @@ async def get_prompt_section(section: str, session: AsyncSession = Depends(get_d
 @router.get("/{section}/verify")
 async def verify_prompt_section(
     section: str,
+    response: Response,
     query: Optional[str] = None,
     session: AsyncSession = Depends(get_db),
 ):
@@ -101,6 +116,7 @@ async def verify_prompt_section(
     Verifies that the backend database actively reflects the requested content or persona name.
     Used by the frontend to guarantee real-time backend-frontend parity.
     """
+    _set_no_cache_headers(response)
     if section not in DEFAULT_PROMPT_SECTIONS:
         raise HTTPException(status_code=400, detail=f"Invalid prompt section '{section}'")
 
@@ -136,8 +152,9 @@ async def verify_prompt_section(
 
 
 @router.get("/{section}/history")
-async def get_section_history(section: str, session: AsyncSession = Depends(get_db)):
-    """Returns version history for a prompt section including quality ratings."""
+async def get_section_history(section: str, response: Response, session: AsyncSession = Depends(get_db)):
+    """Returns version history for a prompt section including quality ratings with no-cache guarantee."""
+    _set_no_cache_headers(response)
     stmt = (
         select(PromptVersion)
         .where(
