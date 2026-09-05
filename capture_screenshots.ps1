@@ -1,5 +1,5 @@
 $chrome = "C:\Program Files\Google\Chrome\Application\chrome.exe"
-$outDir = "D:\Projects\Python\wb-agent\docs\screenshots"
+$outDir = Join-Path $PSScriptRoot "docs\screenshots"
 
 $pages = @(
     @{ name = "overview.png"; url = "http://localhost:3000/"; width = 1600; height = 1050 },

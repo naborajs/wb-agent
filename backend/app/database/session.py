@@ -19,6 +19,29 @@ _async_engine: AsyncEngine | None = None
 _async_session_factory: async_sessionmaker[AsyncSession] | None = None
 
 
+from pathlib import Path
+
+
+def _resolve_db_url(url: str) -> str:
+    """
+    Ensures relative SQLite database paths resolve portably and consistently,
+    regardless of whether python/uvicorn is started from repo root or ./backend.
+    PostgreSQL or absolute paths are returned unchanged.
+    """
+    if not url.startswith("sqlite"):
+        return url
+
+    if ":///" in url:
+        proto, path_part = url.split(":///", 1)
+        if path_part.startswith("./") or not Path(path_part).is_absolute():
+            clean_rel = path_part.lstrip("./")
+            # Anchor relative to repository root (3 levels up from this file)
+            repo_root = Path(__file__).resolve().parents[3]
+            db_path = (repo_root / clean_rel).resolve()
+            return f"{proto}:///{db_path.as_posix()}"
+    return url
+
+
 def get_engine() -> AsyncEngine:
     """
     Initializes and returns the global AsyncEngine singleton.
@@ -26,7 +49,7 @@ def get_engine() -> AsyncEngine:
     """
     global _async_engine
     if _async_engine is None:
-        db_url = settings.DATABASE_URL
+        db_url = _resolve_db_url(settings.DATABASE_URL)
         
         # SQLite dialect requires check_same_thread=False
         connect_args = {}
