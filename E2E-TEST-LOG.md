@@ -44,6 +44,8 @@ This document records the real, live interactive test results across all 14 dash
 | **Follow-ups: Automation Cadence Table** | Displays scheduled 3-day nudge sequence with automatic cancellation policy upon buyer response | Renders customer, channel, step ('Day 0 Nudge', 'Value Prop'), scheduled time, and status pills | PASS   | None                 |
 | **Handoffs: Operator Queue & Takeover** | Loads pending human escalations from `/api/v1/handoffs` or renders autonomous idle state        | Fixed frontend mock fallback; verified live queue loading, reason tag, and summary rendering    | FIXED  | Updated `handoffs/page.tsx` to handle empty queue and live API data properly |
 | **Handoffs: Resolve & Resume AI**       | Resolves open handoff, restores conversation mode to `AI`, and updates badge to 'Resolved'      | Real test handoff resolved via `POST /api/v1/handoffs/{id}/resolve`, restored conv.mode to `AI` in DB | PASS   | None                 |
+| **Knowledge: Ingested Docs Registry**  | Displays active indexed documents, version, chunk count, and index status                       | Connected to `/api/v1/knowledge/documents`; renders real documents and chunk counts with 'Indexed' badge | FIXED  | Wired `knowledge/page.tsx` to fetch documents from live API |
+| **Knowledge: Semantic Vector RAG**     | Evaluates semantic similarity vector retrieval on buyer questions against ingested chunks      | 'commercial sampling policy' retrieved Sampling Policy (score: 0.283); 'quality certificates' retrieved Quality Standards (score: 0.0976) | PASS   | None                 |
 
 
 
