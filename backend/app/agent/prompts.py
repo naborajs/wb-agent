@@ -165,3 +165,53 @@ class PromptService:
         await self.session.commit()
         await self.session.refresh(target)
         return target
+
+    async def delete_version(self, section_name: str, target_version: int) -> tuple[bool, str]:
+        """
+        Deletes a specific prompt version.
+        Guards against deleting the currently active version.
+        """
+        stmt = select(PromptVersion).where(
+            PromptVersion.org_id == self.org_id,
+            PromptVersion.section_name == section_name,
+            PromptVersion.version == target_version,
+        )
+        target = (await self.session.execute(stmt)).scalar_one_or_none()
+        if not target:
+            return False, f"Version v{target_version} not found for section '{section_name}'."
+
+        if target.is_active:
+            return False, f"Cannot delete active version v{target_version}. Please switch to or activate another version first."
+
+        await self.session.delete(target)
+        await self.session.commit()
+        return True, f"Version v{target_version} deleted successfully."
+
+    async def prune_inactive_history(self, section_name: str, keep_latest: int = 0) -> int:
+        """
+        Prunes inactive past versions for a section, optionally preserving the `keep_latest` inactive versions.
+        Active versions are strictly preserved.
+        """
+        stmt = (
+            select(PromptVersion)
+            .where(
+                PromptVersion.org_id == self.org_id,
+                PromptVersion.section_name == section_name,
+                PromptVersion.is_active == False,
+            )
+            .order_by(desc(PromptVersion.version))
+        )
+        res = await self.session.execute(stmt)
+        inactive_versions = list(res.scalars().all())
+
+        to_delete = inactive_versions[keep_latest:] if keep_latest > 0 else inactive_versions
+        deleted_count = len(to_delete)
+
+        for item in to_delete:
+            await self.session.delete(item)
+
+        if deleted_count > 0:
+            await self.session.commit()
+
+        return deleted_count
+

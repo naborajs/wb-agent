@@ -107,3 +107,39 @@ async def test_prompt_api_endpoints(prompt_test_client):
     assert rb_res.status_code == 200
     assert rb_res.json()["version"] == 1
     assert rb_res.json()["is_active"] is True
+
+    # 6. Attempt to delete active version 1 (should fail with 400)
+    del_active_res = await client.delete("/api/v1/prompts/business_policy/history/1")
+    assert del_active_res.status_code == 400
+
+    # 7. Delete inactive version 2 (should succeed)
+    del_res = await client.delete("/api/v1/prompts/business_policy/history/2")
+    assert del_res.status_code == 200
+    assert del_res.json()["deleted_version"] == 2
+
+    # Verify history now only contains version 1
+    hist_res2 = await client.get("/api/v1/prompts/business_policy/history")
+    assert len(hist_res2.json()["history"]) == 1
+
+    # 8. Create version 3 & 4 to test prune
+    await client.post(
+        "/api/v1/prompts/business_policy",
+        json={"content": "Version 3 policy text", "change_summary": "v3"},
+    )
+    await client.post(
+        "/api/v1/prompts/business_policy",
+        json={"content": "Version 4 policy text", "change_summary": "v4"},
+    )
+    # At this point: v4 is active, v1 and v3 are inactive
+
+    # Prune inactive history keeping 0
+    prune_res = await client.delete("/api/v1/prompts/business_policy/history?keep_latest=0")
+    assert prune_res.status_code == 200
+    assert prune_res.json()["deleted_count"] == 2
+
+    # Verify only active v3 remains
+    hist_res3 = await client.get("/api/v1/prompts/business_policy/history")
+    assert len(hist_res3.json()["history"]) == 1
+    assert hist_res3.json()["history"][0]["version"] == 3
+    assert hist_res3.json()["history"][0]["is_active"] is True
+

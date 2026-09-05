@@ -378,3 +378,54 @@ async def rollback_prompt_section(
         "version": rolled_back.version,
         "is_active": rolled_back.is_active,
     }
+
+
+@router.delete("/{section}/history/{version}")
+async def delete_prompt_version(
+    section: str,
+    version: int,
+    session: AsyncSession = Depends(get_db),
+):
+    """Deletes a specific inactive prompt version."""
+    if section not in DEFAULT_PROMPT_SECTIONS:
+        raise HTTPException(status_code=400, detail=f"Invalid prompt section '{section}'")
+
+    prompt_svc = PromptService(session, org_id=settings.DEFAULT_ORG_ID)
+    success, message = await prompt_svc.delete_version(section_name=section, target_version=version)
+    if not success:
+        if "not found" in message.lower():
+            raise HTTPException(status_code=404, detail=message)
+        raise HTTPException(status_code=400, detail=message)
+
+    return {
+        "success": True,
+        "section": section,
+        "deleted_version": version,
+        "message": message,
+    }
+
+
+@router.delete("/{section}/history")
+async def prune_prompt_history(
+    section: str,
+    keep_latest: int = 0,
+    session: AsyncSession = Depends(get_db),
+):
+    """
+    Prunes inactive past prompt versions for a section.
+    Active versions are never deleted.
+    keep_latest: number of recent inactive versions to retain (default 0 = delete all inactive).
+    """
+    if section not in DEFAULT_PROMPT_SECTIONS:
+        raise HTTPException(status_code=400, detail=f"Invalid prompt section '{section}'")
+
+    prompt_svc = PromptService(session, org_id=settings.DEFAULT_ORG_ID)
+    deleted_count = await prompt_svc.prune_inactive_history(section_name=section, keep_latest=keep_latest)
+
+    return {
+        "success": True,
+        "section": section,
+        "deleted_count": deleted_count,
+        "message": f"Pruned {deleted_count} inactive versions.",
+    }
+
