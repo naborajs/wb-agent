@@ -89,22 +89,22 @@ export default function KnowledgeBasePage() {
 
           <div className="divide-y divide-[var(--ed-border)]">
             {docs.map((d, idx) => (
-              <div key={idx} className="p-4 flex items-center justify-between hover:bg-[var(--ed-bg)] transition-colors">
-                <div className="flex items-start gap-3">
+              <div key={idx} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-[var(--ed-bg)] transition-colors">
+                <div className="flex items-start gap-3 min-w-0 flex-1">
                   <div
-                    className="p-2 rounded-lg text-[var(--ed-accent)] mt-0.5"
+                    className="p-2 rounded-lg text-[var(--ed-accent)] mt-0.5 shrink-0"
                     style={{ background: "color-mix(in srgb, var(--ed-accent) 8%, transparent)" }}
                   >
                     <FileText className="w-4 h-4" />
                   </div>
-                  <div>
-                    <h4 className="font-semibold text-xs text-[var(--ed-text-primary)]">{d.title}</h4>
+                  <div className="min-w-0 flex-1">
+                    <h4 className="font-semibold text-xs text-[var(--ed-text-primary)] break-words">{d.title}</h4>
                     <div className="text-[11px] text-[var(--ed-text-muted)] mt-0.5">
                       Version <span className="font-data">{d.version}</span> • <span className="font-data">{d.chunk_count || d.chunks || 1}</span> vector chunks • {d.source_type || d.type || "Markdown"}
                     </div>
                   </div>
                 </div>
-                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--ed-success)]">
+                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--ed-success)] shrink-0 self-start sm:self-auto">
                   <CheckCircle2 className="w-3.5 h-3.5" /> Indexed
                 </span>
               </div>
