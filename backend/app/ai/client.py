@@ -265,6 +265,44 @@ class NIMClient:
                 "issues_found": [],
             })
 
+        # Capability: Modular Prompt Architect simulation
+        elif "prompt_architect" in str(request.metadata) or cap_name == "prompt_architect" or "prompt" in str(request.metadata).lower():
+            raw_target = ""
+            user_inst = ""
+            if request.messages:
+                for m in request.messages:
+                    if "CURRENT PROMPT CONTENT:" in m.content:
+                        parts = m.content.split("CURRENT PROMPT CONTENT:")
+                        if len(parts) > 1:
+                            raw_target = parts[1].split("```")[1] if "```" in parts[1] else parts[1][:500]
+                    if "USER'S PLAIN ENGLISH REQUEST" in m.content:
+                        parts = m.content.split("USER'S PLAIN ENGLISH REQUEST")
+                        if len(parts) > 1:
+                            sub_parts = parts[1].split("\n")
+                            for sp in sub_parts:
+                                if sp.strip() and not sp.startswith("USER'S"):
+                                    user_inst = sp.strip('" ')
+                                    break
+
+            raw_target = raw_target.strip()
+            if not raw_target:
+                raw_target = "CORE IDENTITY - EDITH:\nYou are EDITH, a consultative B2B sales agent."
+
+            from app.ai.router import AIRouter
+            upgraded_text = AIRouter._apply_deterministic_entity_updates(raw_target, user_inst)
+            simulated_content = json.dumps({
+                "optimized_prompt": upgraded_text,
+                "rating_score": 95,
+                "rating_grade": "A+",
+                "rating_breakdown": {
+                    "clarity": 96,
+                    "constraint_strength": 95,
+                    "b2b_effectiveness": 95,
+                    "safety_grounding": 98,
+                },
+                "summary_of_changes": f"Applied user directive '{user_inst}' with enterprise consultative directives and deterministic entity updates.",
+            })
+
         # Standard sales dialogue
         elif any(w in last_user_msg for w in ["sample", "tasting", "kit"]):
             simulated_content = (
