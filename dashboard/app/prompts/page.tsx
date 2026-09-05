@@ -168,9 +168,9 @@ export default function PromptsPage() {
   const [optimizationStage, setOptimizationStage] = useState<number>(0);
   const [elapsedSeconds, setElapsedSeconds] = useState<number>(0);
   const [aiResult, setAiResult] = useState<OptimizationResult | null>(null);
-  const [autoSaveOnUpgrade, setAutoSaveOnUpgrade] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
-  const [lastRefreshedAt, setLastRefreshedAt] = useState<Date>(new Date());
+  const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(null);
+  const [mounted, setMounted] = useState<boolean>(false);
   const editorRef = useRef<HTMLTextAreaElement>(null);
 
   /**
@@ -243,6 +243,8 @@ export default function PromptsPage() {
 
   // Initial load
   useEffect(() => {
+    setMounted(true);
+    setLastRefreshedAt(new Date());
     refreshData(activeTab, false);
   }, []);
 
@@ -463,8 +465,8 @@ export default function PromptsPage() {
         <div>
           <h2 className="text-xl font-bold tracking-tight text-[var(--ed-text-primary)] flex items-center gap-2.5">
             Modular System Prompts
-            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full border border-purple-500/30 bg-purple-500/10 text-purple-400 flex items-center gap-1">
-              <Cpu className="w-3 h-3 text-purple-400" />
+            <span className="text-[10px] font-semibold px-2.5 py-0.5 rounded-full border border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-300 flex items-center gap-1.5">
+              <BrainCircuit className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
               NemoTron 3 Ultra 550B Architect
             </span>
           </h2>
@@ -477,7 +479,7 @@ export default function PromptsPage() {
         <div className="flex items-center gap-2.5 shrink-0">
           <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-[var(--ed-border)] bg-[var(--ed-surface)] text-[11px] font-mono text-[var(--ed-text-muted)]">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-            <span>Synced {lastRefreshedAt ? lastRefreshedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : "now"}</span>
+            <span>Synced {mounted && lastRefreshedAt ? lastRefreshedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : "Live"}</span>
           </div>
 
           <button
@@ -486,7 +488,7 @@ export default function PromptsPage() {
             title="Silently refresh prompt data without reloading page"
             className="ed-press ed-focus-ring inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold border border-[var(--ed-border)] bg-[var(--ed-surface)] hover:bg-[var(--ed-bg)] text-[var(--ed-text-primary)] shadow-sm transition-all disabled:opacity-50"
           >
-            <RefreshCw className={`w-3.5 h-3.5 text-purple-400 ${isRefreshing ? "animate-spin" : ""}`} />
+            <RefreshCw className={`w-3.5 h-3.5 text-sky-600 dark:text-sky-400 ${isRefreshing ? "animate-spin" : ""}`} />
             <span>{isRefreshing ? "Refreshing..." : "Refresh Data"}</span>
           </button>
         </div>
@@ -555,7 +557,7 @@ export default function PromptsPage() {
           <div className="ed-panel rounded-xl p-4 space-y-3">
             <div className="flex items-center justify-between text-xs font-bold text-[var(--ed-text-primary)]">
               <span className="flex items-center gap-1.5">
-                <PieIcon className="w-3.5 h-3.5 text-purple-400" />
+                <PieIcon className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
                 Prompt Token Budget
               </span>
               <span className="font-data text-[10px] text-[var(--ed-text-muted)]">
@@ -569,7 +571,7 @@ export default function PromptsPage() {
                 {(() => {
                   const palette: Record<string, string> = {
                     core_safety: "#EF4444",
-                    core_identity: "#8B5CF6",
+                    core_identity: "#0284C7",
                     business_policy: "#F59E0B",
                     sales_style: "#10B981",
                     business_profile: "#3B82F6",
@@ -664,7 +666,7 @@ export default function PromptsPage() {
                   title="In-page refresh: Re-sync latest active prompt and history from database"
                   className="ed-press ed-focus-ring inline-flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-semibold border border-[var(--ed-border)] bg-[var(--ed-bg)] hover:bg-[var(--ed-surface)] text-[var(--ed-text-primary)] transition-all disabled:opacity-50 shrink-0"
                 >
-                  <RefreshCw className={`w-3.5 h-3.5 text-purple-400 ${isRefreshing ? "animate-spin" : ""}`} />
+                  <RefreshCw className={`w-3.5 h-3.5 text-sky-600 dark:text-sky-400 ${isRefreshing ? "animate-spin" : ""}`} />
                   <span className="hidden sm:inline">{isRefreshing ? "Syncing..." : "Sync Live"}</span>
                 </button>
 
@@ -718,38 +720,50 @@ export default function PromptsPage() {
           </div>
 
           {/* 2. AI PROMPT ARCHITECT COPILOT BOX (Placed right below editor for natural prompt writing) */}
-          <div className="ed-panel rounded-xl p-5 border border-purple-500/30 bg-gradient-to-br from-[var(--ed-surface)] via-[var(--ed-surface)] to-purple-950/20 space-y-4 shadow-md">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-purple-600 to-indigo-500 flex items-center justify-center shadow-md shrink-0">
-                  <Wand2 className="w-4 h-4 text-white" />
+          <div className="ed-panel rounded-xl p-5 border border-[var(--ed-border)] bg-[var(--ed-surface)] space-y-4 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
+            {/* Elegant neural header accent line */}
+            <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-sky-500 via-indigo-500 to-emerald-500" />
+
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="flex items-center gap-3">
+                {/* Brain / Connected Dots Constellation Icon (replaces the pencil/wand icon) */}
+                <div className="w-9 h-9 rounded-xl bg-sky-50 dark:bg-sky-950/60 border border-sky-200/80 dark:border-sky-800/60 flex items-center justify-center shadow-sm shrink-0 text-sky-600 dark:text-sky-400">
+                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                    {/* Brain profile outline */}
+                    <path d="M12 2a5 5 0 0 0-4.9 4A4.5 4.5 0 0 0 4 10.5 4.5 4.5 0 0 0 6 14.8V17a3 3 0 0 0 3 3h6a3 3 0 0 0 3-3v-2.2a4.5 4.5 0 0 0 2-4.3 4.5 4.5 0 0 0-3.1-4.5A5 5 0 0 0 12 2Z" stroke="currentColor" strokeOpacity="0.35" strokeDasharray="2 2" />
+                    {/* Neural network connection lines */}
+                    <line x1="8" y1="9" x2="12" y2="7" stroke="currentColor" strokeWidth="1.5" />
+                    <line x1="16" y1="9" x2="12" y2="7" stroke="currentColor" strokeWidth="1.5" />
+                    <line x1="8" y1="9" x2="12" y2="12" stroke="currentColor" strokeWidth="1.5" />
+                    <line x1="16" y1="9" x2="12" y2="12" stroke="currentColor" strokeWidth="1.5" />
+                    <line x1="12" y1="12" x2="9" y2="16" stroke="currentColor" strokeWidth="1.5" />
+                    <line x1="12" y1="12" x2="15" y2="16" stroke="currentColor" strokeWidth="1.5" />
+                    {/* Interconnected nodes/dots */}
+                    <circle cx="12" cy="7" r="1.8" fill="currentColor" />
+                    <circle cx="8" cy="9" r="1.8" fill="currentColor" />
+                    <circle cx="16" cy="9" r="1.8" fill="currentColor" />
+                    <circle cx="12" cy="12" r="2.2" fill="currentColor" />
+                    <circle cx="9" cy="16" r="1.8" fill="currentColor" />
+                    <circle cx="15" cy="16" r="1.8" fill="currentColor" />
+                  </svg>
                 </div>
                 <div>
                   <h4 className="text-xs font-bold text-[var(--ed-text-primary)] flex items-center gap-2">
                     NemoTron 3 Ultra 550B Prompt Architect
-                    <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">
-                      550B + 120B Fallback
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-sky-50 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 border border-sky-200/80 dark:border-sky-800/60 font-medium">
+                      550B · Multi-Model Intelligence
                     </span>
                   </h4>
                   <p className="text-[11px] text-[var(--ed-text-muted)]">
-                    Describe what you want to write or change in plain English. NemoTron will generate enterprise prompt instructions and auto-apply them above.
+                    Describe what you want to write or change in plain English. NemoTron will deliberate and synthesize enterprise-grade system prompts.
                   </p>
                 </div>
               </div>
 
-              {/* Auto-Save Toggle */}
-              <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg border border-purple-500/30 bg-purple-950/30 text-[11px] text-purple-200">
-                <input
-                  type="checkbox"
-                  id="autoSaveToggle"
-                  checked={autoSaveOnUpgrade}
-                  onChange={(e) => setAutoSaveOnUpgrade(e.target.checked)}
-                  className="rounded border-purple-500/50 text-purple-600 focus:ring-purple-500/50 cursor-pointer"
-                />
-                <label htmlFor="autoSaveToggle" className="cursor-pointer font-medium flex items-center gap-1 select-none">
-                  <Zap className="w-3 h-3 text-amber-400" />
-                  Auto-Save Version
-                </label>
+              {/* Status Indicator (Auto-Save toggle removed cleanly) */}
+              <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg border border-[var(--ed-border)] bg-[var(--ed-bg)] text-[11px] text-[var(--ed-text-muted)] shrink-0">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="font-medium text-[var(--ed-text-primary)]">Auto-Version & Scored</span>
               </div>
             </div>
 
@@ -760,7 +774,7 @@ export default function PromptsPage() {
                 <button
                   key={idx}
                   onClick={() => setUserIntent(s)}
-                  className="text-[10px] px-2 py-1 rounded-md border border-[var(--ed-border)] bg-[var(--ed-bg)] text-[var(--ed-text-muted)] hover:text-purple-300 hover:border-purple-500/40 transition-all ed-press"
+                  className="text-[10px] px-2.5 py-1 rounded-md border border-[var(--ed-border)] bg-[var(--ed-bg)] text-[var(--ed-text-muted)] hover:text-sky-700 dark:hover:text-sky-300 hover:border-sky-300 dark:hover:border-sky-700 hover:bg-sky-50/80 dark:hover:bg-sky-950/30 transition-all ed-press font-medium"
                 >
                   + {s}
                 </button>
@@ -778,106 +792,147 @@ export default function PromptsPage() {
               />
 
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <span className="text-[10px] text-[var(--ed-text-muted)] flex items-center gap-1">
-                  <ShieldCheck className="w-3.5 h-3.5 text-purple-400" />
+                <span className="text-[10px] text-[var(--ed-text-muted)] flex items-center gap-1.5">
+                  <ShieldCheck className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400 shrink-0" />
                   Applies strict section boundaries, few-shot patterns, negative constraints, and zero-hallucination guardrails.
                 </span>
 
                 <button
                   onClick={handleAIOptimize}
                   disabled={isOptimizing || !userIntent.trim()}
-                  className="ed-press ed-focus-ring inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 hover:from-purple-500 hover:to-indigo-500 shadow-md transition-all disabled:opacity-50 shrink-0"
+                  className="ed-press ed-focus-ring inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 dark:bg-sky-600 dark:hover:bg-sky-500 shadow-md transition-all disabled:opacity-50 shrink-0 cursor-pointer"
                 >
-                  <Sparkles className="w-4 h-4 text-amber-300 animate-spin" />
+                  <BrainCircuit className="w-4 h-4 text-sky-400 dark:text-white" />
                   {isOptimizing ? `Deliberating (${elapsedSeconds}s)...` : "Upgrade with NemoTron 550B"}
                 </button>
               </div>
             </div>
 
-            {/* High-Tech Deliberation Animation */}
+            {/* Flowing Neural Constellation Deliberation Interface */}
             {isOptimizing && (
-              <div className="p-4 rounded-xl border border-purple-500/40 bg-purple-950/30 space-y-3 relative overflow-hidden">
-                {/* Glowing cybernetic backdrop */}
-                <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 via-indigo-500/10 to-purple-500/10 animate-pulse pointer-events-none" />
+              <div className="p-4 rounded-xl border border-sky-200/80 dark:border-sky-900/60 bg-gradient-to-b from-sky-50/70 via-[var(--ed-surface)] to-[var(--ed-surface)] dark:from-sky-950/30 dark:via-[var(--ed-surface)] dark:to-[var(--ed-surface)] space-y-3.5 relative overflow-hidden shadow-sm">
+                {/* Subtle ambient flowing light */}
+                <div className="absolute inset-0 bg-gradient-to-r from-sky-500/5 via-indigo-500/5 to-emerald-500/5 animate-pulse pointer-events-none" />
 
-                <div className="flex items-center gap-3 relative z-10">
-                  <div className="w-9 h-9 rounded-xl bg-purple-600/30 border border-purple-400/50 flex items-center justify-center shrink-0 shadow-lg">
-                    <ActiveStageIcon className="w-5 h-5 text-purple-200 animate-spin" />
+                <div className="flex flex-col sm:flex-row items-center gap-4 relative z-10">
+                  {/* Flowing Neural Constellation Graphic with interconnected dots & animated signals */}
+                  <div className="w-full sm:w-44 h-24 rounded-xl bg-[var(--ed-surface)] border border-[var(--ed-border)] flex items-center justify-center relative overflow-hidden shadow-sm shrink-0">
+                    <svg viewBox="0 0 180 84" className="w-full h-full p-2" fill="none">
+                      {/* Background synapse tracks */}
+                      <path d="M 22 42 Q 55 18 90 42" stroke="currentColor" className="text-slate-300 dark:text-slate-700" strokeWidth="1.5" />
+                      <path d="M 22 42 Q 55 66 90 42" stroke="currentColor" className="text-slate-300 dark:text-slate-700" strokeWidth="1.5" />
+                      <path d="M 90 42 Q 125 18 158 42" stroke="currentColor" className="text-slate-300 dark:text-slate-700" strokeWidth="1.5" />
+                      <path d="M 90 42 Q 125 66 158 42" stroke="currentColor" className="text-slate-300 dark:text-slate-700" strokeWidth="1.5" />
+                      <line x1="55" y1="18" x2="125" y2="18" stroke="currentColor" className="text-slate-200 dark:text-slate-800" strokeWidth="1" strokeDasharray="2 2" />
+                      <line x1="55" y1="66" x2="125" y2="66" stroke="currentColor" className="text-slate-200 dark:text-slate-800" strokeWidth="1" strokeDasharray="2 2" />
+                      <line x1="55" y1="18" x2="55" y2="66" stroke="currentColor" className="text-slate-200 dark:text-slate-800" strokeWidth="1" strokeDasharray="2 2" />
+                      <line x1="125" y1="18" x2="125" y2="66" stroke="currentColor" className="text-slate-200 dark:text-slate-800" strokeWidth="1" strokeDasharray="2 2" />
+
+                      {/* Flowing animated pulse beams (signals running through synapses) */}
+                      <path d="M 22 42 Q 55 18 90 42" stroke="#0284c7" strokeWidth="2.5" strokeDasharray="8 12" className="animate-neural-flow" />
+                      <path d="M 22 42 Q 55 66 90 42" stroke="#4f46e5" strokeWidth="2" strokeDasharray="8 12" className="animate-neural-flow-reverse" />
+                      <path d="M 90 42 Q 125 18 158 42" stroke="#0284c7" strokeWidth="2.5" strokeDasharray="8 12" className="animate-neural-flow" />
+                      <path d="M 90 42 Q 125 66 158 42" stroke="#059669" strokeWidth="2" strokeDasharray="8 12" className="animate-neural-flow-reverse" />
+
+                      {/* Interconnected Neural Dots */}
+                      {/* Node 1: Input / Intent */}
+                      <circle cx="22" cy="42" r="4.5" fill="#0284c7" className="animate-neural-pulse" />
+                      <circle cx="22" cy="42" r="8.5" stroke="#38bdf8" strokeWidth="1" className="animate-ping opacity-75" />
+
+                      {/* Top & Bottom Intermediate Nodes */}
+                      <circle cx="55" cy="18" r="3" fill="#6366f1" className="animate-pulse" />
+                      <circle cx="55" cy="66" r="3" fill="#6366f1" className="animate-pulse" />
+
+                      {/* Node 2: Central 550B Deliberation Hub */}
+                      <circle cx="90" cy="42" r="6" fill="#0284c7" className="animate-neural-pulse" />
+                      <circle cx="90" cy="42" r="11" stroke="#38bdf8" strokeWidth="1" className="animate-ping opacity-60" />
+                      <circle cx="90" cy="42" r="2.5" fill="#ffffff" />
+
+                      {/* Synthesis Intermediate Nodes */}
+                      <circle cx="125" cy="18" r="3" fill="#6366f1" className="animate-pulse" />
+                      <circle cx="125" cy="66" r="3" fill="#6366f1" className="animate-pulse" />
+
+                      {/* Node 3: Synthesized Output */}
+                      <circle cx="158" cy="42" r="4.5" fill="#059669" className="animate-neural-pulse" />
+                      <circle cx="158" cy="42" r="8.5" stroke="#34d399" strokeWidth="1" className="animate-ping opacity-75" />
+                    </svg>
                   </div>
-                  <div className="flex-1 min-w-0">
+
+                  {/* Deliberation Status Details */}
+                  <div className="flex-1 min-w-0 space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-purple-100 flex items-center gap-2">
+                      <span className="text-xs font-bold text-[var(--ed-text-primary)] flex items-center gap-2">
                         {OPTIMIZATION_STAGES[optimizationStage].title}
-                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                        <span className="w-2 h-2 rounded-full bg-sky-500 animate-ping" />
                       </span>
-                      <span className="text-[10px] font-mono text-purple-300">
+                      <span className="text-[10px] font-mono text-sky-700 dark:text-sky-300 font-semibold px-2 py-0.5 rounded-md bg-sky-100 dark:bg-sky-950/60 border border-sky-200 dark:border-sky-800">
                         {elapsedSeconds}s · Stage {optimizationStage + 1}/4
                       </span>
                     </div>
-                    <p className="text-[11px] text-purple-300/80 mt-0.5">
+                    <p className="text-[11px] text-[var(--ed-text-muted)] leading-relaxed">
                       {OPTIMIZATION_STAGES[optimizationStage].desc}
                     </p>
-                  </div>
-                </div>
 
-                {/* Progress bar */}
-                <div className="w-full bg-purple-950/80 rounded-full h-2 overflow-hidden border border-purple-500/30 relative z-10">
-                  <div
-                    className="bg-gradient-to-r from-purple-500 via-indigo-400 to-amber-300 h-2 transition-all duration-300 rounded-full"
-                    style={{ width: `${Math.min(100, ((optimizationStage + 1) / 4) * 100)}%` }}
-                  />
+                    {/* Flowing Gradient Progress Bar */}
+                    <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-1.5 overflow-hidden relative">
+                      <div
+                        className="bg-gradient-to-r from-sky-500 via-indigo-500 to-emerald-400 h-1.5 transition-all duration-300 rounded-full"
+                        style={{ width: `${Math.min(100, ((optimizationStage + 1) / 4) * 100)}%` }}
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
 
             {/* AI Result & Rating Banner */}
             {aiResult && !isOptimizing && (
-              <div className="p-4 rounded-xl border border-emerald-500/40 bg-emerald-950/20 space-y-4 animate-in fade-in">
+              <div className="p-4 rounded-xl border border-emerald-200 dark:border-emerald-500/40 bg-emerald-50/70 dark:bg-emerald-950/20 space-y-4 animate-in fade-in">
                 {/* Top Rating Header */}
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-emerald-500/20 pb-3">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-emerald-200 dark:border-emerald-500/20 pb-3">
                   <div className="flex items-center gap-2.5">
-                    <div className="px-2.5 py-1 rounded-lg bg-emerald-500/20 border border-emerald-500/40 flex items-center gap-1.5 text-emerald-300 font-bold font-data text-xs">
-                      <Star className="w-3.5 h-3.5 fill-emerald-400 text-emerald-400" />
+                    <div className="px-2.5 py-1 rounded-lg bg-emerald-500/20 border border-emerald-500/40 flex items-center gap-1.5 text-emerald-800 dark:text-emerald-300 font-bold font-data text-xs">
+                      <Star className="w-3.5 h-3.5 fill-emerald-500 text-emerald-500" />
                       Score: {aiResult.rating_score}/100 · Grade {aiResult.rating_grade}
                     </div>
-                    <span className="text-xs font-semibold text-emerald-200 flex items-center gap-1">
-                      <CheckCheck className="w-3.5 h-3.5 text-emerald-400" />
-                      {autoSaveOnUpgrade ? "Auto-Applied & Saved to History" : "Auto-Applied to Editor"}
+                    <span className="text-xs font-semibold text-emerald-800 dark:text-emerald-200 flex items-center gap-1">
+                      <CheckCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                      Auto-Applied & Saved as v{aiResult.version}
                     </span>
                   </div>
 
-                  <span className="text-[10px] font-mono text-emerald-300/70">
+                  <span className="text-[10px] font-mono text-emerald-700 dark:text-emerald-300/70 font-medium">
                     Model: {aiResult.model_used.split("/").pop()} ({aiResult.latency_ms}ms)
                   </span>
                 </div>
 
                 {/* Micro Metric Pills */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
-                  <div className="p-2 rounded-lg bg-[var(--ed-surface)] border border-[var(--ed-border)] text-center">
+                  <div className="p-2 rounded-lg bg-[var(--ed-surface)] border border-[var(--ed-border)] text-center shadow-xs">
                     <div className="text-[10px] text-[var(--ed-text-muted)] font-medium">Clarity</div>
-                    <div className="font-bold text-emerald-400 font-data">{aiResult.rating_breakdown.clarity}%</div>
+                    <div className="font-bold text-emerald-600 dark:text-emerald-400 font-data">{aiResult.rating_breakdown.clarity}%</div>
                   </div>
-                  <div className="p-2 rounded-lg bg-[var(--ed-surface)] border border-[var(--ed-border)] text-center">
+                  <div className="p-2 rounded-lg bg-[var(--ed-surface)] border border-[var(--ed-border)] text-center shadow-xs">
                     <div className="text-[10px] text-[var(--ed-text-muted)] font-medium">Constraints</div>
-                    <div className="font-bold text-emerald-400 font-data">{aiResult.rating_breakdown.constraint_strength}%</div>
+                    <div className="font-bold text-emerald-600 dark:text-emerald-400 font-data">{aiResult.rating_breakdown.constraint_strength}%</div>
                   </div>
-                  <div className="p-2 rounded-lg bg-[var(--ed-surface)] border border-[var(--ed-border)] text-center">
+                  <div className="p-2 rounded-lg bg-[var(--ed-surface)] border border-[var(--ed-border)] text-center shadow-xs">
                     <div className="text-[10px] text-[var(--ed-text-muted)] font-medium">B2B Efficacy</div>
-                    <div className="font-bold text-emerald-400 font-data">{aiResult.rating_breakdown.b2b_effectiveness}%</div>
+                    <div className="font-bold text-emerald-600 dark:text-emerald-400 font-data">{aiResult.rating_breakdown.b2b_effectiveness}%</div>
                   </div>
-                  <div className="p-2 rounded-lg bg-[var(--ed-surface)] border border-[var(--ed-border)] text-center">
+                  <div className="p-2 rounded-lg bg-[var(--ed-surface)] border border-[var(--ed-border)] text-center shadow-xs">
                     <div className="text-[10px] text-[var(--ed-text-muted)] font-medium">Safety Grounding</div>
-                    <div className="font-bold text-emerald-400 font-data">{aiResult.rating_breakdown.safety_grounding}%</div>
+                    <div className="font-bold text-emerald-600 dark:text-emerald-400 font-data">{aiResult.rating_breakdown.safety_grounding}%</div>
                   </div>
                 </div>
 
                 {/* Summary of changes */}
                 <div className="text-xs text-[var(--ed-text-muted)] space-y-1">
                   <div className="font-semibold text-[var(--ed-text-primary)] flex items-center gap-1.5 text-[11px]">
-                    <ThumbsUp className="w-3 h-3 text-emerald-400" />
+                    <ThumbsUp className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
                     Key Architectural Changes:
                   </div>
-                  <p className="text-[11px] leading-relaxed text-[var(--ed-text-muted)] bg-[var(--ed-surface)] p-2.5 rounded-lg border border-[var(--ed-border)]">
+                  <p className="text-[11px] leading-relaxed text-[var(--ed-text-primary)] bg-[var(--ed-surface)] p-2.5 rounded-lg border border-[var(--ed-border)]">
                     {aiResult.summary_of_changes}
                   </p>
                 </div>
@@ -896,9 +951,9 @@ export default function PromptsPage() {
                       setChangeSummary(`NemoTron: ${aiResult.summary_of_changes}`);
                       setStatusMsg({ text: "Applied AI optimized prompt to editor! Review above." });
                     }}
-                    className="ed-press inline-flex items-center gap-1 px-3.5 py-1.5 rounded-lg border border-purple-500/40 bg-purple-500/10 text-purple-300 hover:bg-purple-500/20 text-xs font-semibold"
+                    className="ed-press inline-flex items-center gap-1 px-3.5 py-1.5 rounded-lg border border-[var(--ed-border)] bg-[var(--ed-surface)] text-[var(--ed-text-primary)] hover:bg-[var(--ed-bg)] text-xs font-semibold"
                   >
-                    <ArrowRight className="w-3 h-3" /> Re-apply to Editor
+                    <ArrowRight className="w-3 h-3 text-sky-600 dark:text-sky-400" /> Re-apply to Editor
                   </button>
                   <button
                     onClick={() => handleSave(aiResult.optimized_prompt, aiResult)}
