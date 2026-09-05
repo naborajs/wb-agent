@@ -134,7 +134,7 @@ export default function DashboardOverview() {
         <div className="absolute top-0 right-1/4 w-72 h-72 rounded-full bg-sky-500/10 dark:bg-sky-500/15 blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 right-10 w-60 h-60 rounded-full bg-indigo-500/10 dark:bg-indigo-500/15 blur-3xl pointer-events-none" />
 
-        <div className="flex items-center gap-5 z-10">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-5 z-10">
           <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-3xl ed-brand-avatar flex items-center justify-center p-2.5 shrink-0 group">
             <img
               src="/logo-icon.png"
@@ -270,7 +270,7 @@ export default function DashboardOverview() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 items-center py-2">
               {/* Dynamic SVG Donut */}
               <div className="flex justify-center">
-                <svg width="210" height="210" viewBox="0 0 210 210" className="transform -rotate-90">
+                <svg width="210" height="210" viewBox="0 0 210 210" className="transform -rotate-90 max-w-[210px] w-full h-auto">
                   {(() => {
                     const total = funnel.reduce((acc, f) => acc + f.count, 0) || 1;
                     const circumference = 2 * Math.PI * 75;
