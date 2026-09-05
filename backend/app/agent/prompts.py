@@ -97,6 +97,7 @@ class PromptService:
         author: str = "operator",
         change_summary: Optional[str] = None,
         activate: bool = True,
+        test_results: Optional[Dict[str, Any]] = None,
     ) -> PromptVersion:
         """
         Creates a new immutable prompt version for a specific section and sets it active.
@@ -133,6 +134,7 @@ class PromptService:
             is_active=activate,
             author=author,
             change_summary=change_summary,
+            test_results=test_results or {},
         )
         self.session.add(new_version)
         await self.session.commit()
