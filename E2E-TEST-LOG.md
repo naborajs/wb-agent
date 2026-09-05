@@ -46,6 +46,9 @@ This document records the real, live interactive test results across all 14 dash
 | **Handoffs: Resolve & Resume AI**       | Resolves open handoff, restores conversation mode to `AI`, and updates badge to 'Resolved'      | Real test handoff resolved via `POST /api/v1/handoffs/{id}/resolve`, restored conv.mode to `AI` in DB | PASS   | None                 |
 | **Knowledge: Ingested Docs Registry**  | Displays active indexed documents, version, chunk count, and index status                       | Connected to `/api/v1/knowledge/documents`; renders real documents and chunk counts with 'Indexed' badge | FIXED  | Wired `knowledge/page.tsx` to fetch documents from live API |
 | **Knowledge: Semantic Vector RAG**     | Evaluates semantic similarity vector retrieval on buyer questions against ingested chunks      | 'commercial sampling policy' retrieved Sampling Policy (score: 0.283); 'quality certificates' retrieved Quality Standards (score: 0.0976) | PASS   | None                 |
+| **Prompts: Modular Tabs & Token Budget** | Displays 5 modular prompt sections and interactive SVG donut chart with ~486 token budget     | Tabs switch smoothly; donut chart updates dynamically with proportional color-coded weights      | PASS   | None                 |
+| **Prompts: Live Edit & Versioning**    | Edits instruction text, logs audit change summary, creates new active version via `PUT /prompts` | Fixed missing `PUT` route in FastAPI; saved new prompt version, received success toast, verified history | FIXED  | Added `@router.put("/{section}")` to `backend/app/api/routes/prompts.py` |
+| **Prompts: Version Rollback**          | Restores previous prompt version atomically via `POST /prompts/{section}/rollback/{version}`     | Successfully reverted from Version 2 to Version 1; confirmed database flag updated cleanly     | PASS   | None                 |
 
 
 
