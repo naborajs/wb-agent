@@ -73,6 +73,12 @@ CAPABILITY_CHAINS: Dict[Capability, List[str]] = {
         "nvidia/nemotron-3.5-lightning-30b-a3b",
         "google/diffusiongemma-26b-a4b-it",
     ],
+    # Capability: Modular Prompt Architect & Engineering Copilot
+    # Primary: NemoTron 3 Ultra 550B; Fallback: NemoTron 3 Super 120B
+    Capability.PROMPT_ARCHITECT: [
+        "nvidia/nemotron-3-ultra-550b-a55b",
+        "nvidia/nemotron-3-super-120b-a12b",
+    ],
 }
 
 
