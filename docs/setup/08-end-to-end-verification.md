@@ -146,7 +146,7 @@ Expected output:
  ✓ Compiled successfully
    Linting and checking validity of types ...
    Collecting page data ...
- ✓ Generating static pages (12/12)
+ ✓ Generating static pages (19/19)
    Finalizing page optimization ...
 ```
 
@@ -172,6 +172,7 @@ curl http://localhost:8000/api/v1/readiness
 - [x] Catalog, volume discount rules, and sample leads seeded.
 - [x] All 57 automated pytest tests passing in < 6 seconds.
 - [x] All 5 simulated buyer personas execute cleanly without runtime error.
-- [x] Next.js dashboard compiles to static pages with 0 linting or type errors.
+- [x] Next.js dashboard compiles 19 static pages with 0 linting or type errors.
+- [x] Unified single root runner (`python run.py`) orchestrates backend, worker, bridge, and dashboard.
 - [x] Owner escalation to `+91 89006 53250` verified.
 - [x] Emergency kill-switch verified.
