@@ -1147,7 +1147,13 @@ class AIRouter:
         # Parse JSON output
         try:
             raw_text = resp.content.strip()
-            if raw_text.startswith("```json"):
+            raw_text = re.sub(r"<thought>.*?</thought>", "", raw_text, flags=re.DOTALL)
+            raw_text = re.sub(r"<reasoning>.*?</reasoning>", "", raw_text, flags=re.DOTALL)
+            first_brace = raw_text.find("{")
+            last_brace = raw_text.rfind("}")
+            if first_brace != -1 and last_brace != -1 and last_brace > first_brace:
+                raw_text = raw_text[first_brace:last_brace + 1]
+            elif raw_text.startswith("```json"):
                 raw_text = raw_text.split("```json")[1].split("```")[0].strip()
             elif raw_text.startswith("```"):
                 raw_text = raw_text.split("```")[1].split("```")[0].strip()
@@ -1188,18 +1194,22 @@ class AIRouter:
         except Exception as e:
             logger.warning(f"[AIRouter] Failed to parse JSON from Prompt Architect model: {e}. Falling back to content extract.")
             cleaned_content = resp.content.strip()
-            # If emergency fallback occurred, base on current_prompt so offline message doesn't overwrite instructions
-            if resp.model == "local_emergency_fallback" or "safe offline response" in cleaned_content.lower():
-                extracted_prompt = current_prompt
+            cleaned_content = re.sub(r"<thought>.*?</thought>", "", cleaned_content, flags=re.DOTALL)
+            cleaned_content = re.sub(r"<reasoning>.*?</reasoning>", "", cleaned_content, flags=re.DOTALL)
+
+            match_opt = re.search(r'"optimized_prompt":\s*"([^"\\]*(?:\\.[^"\\]*)*)"', cleaned_content, re.DOTALL)
+            if match_opt:
+                extracted_prompt = match_opt.group(1).replace('\\"', '"').replace('\\n', '\n')
             else:
-                match_opt = re.search(r'"optimized_prompt":\s*"([^"\\]*(?:\\.[^"\\]*)*)"', cleaned_content, re.DOTALL)
-                if match_opt:
-                    extracted_prompt = match_opt.group(1).replace('\\"', '"').replace('\\n', '\n')
-                else:
-                    if cleaned_content.startswith("```"):
-                        cleaned_content = re.sub(r"^```[a-z]*\n", "", cleaned_content)
-                        cleaned_content = re.sub(r"\n```$", "", cleaned_content)
+                # If commentary or thinking is present, do not leak it into prompt
+                if any(w in cleaned_content.lower()[:80] for w in ["we need to", "thinking", "i will", "the user wants", "here is"]):
+                    extracted_prompt = current_prompt
+                elif cleaned_content.startswith("```"):
+                    cleaned_content = re.sub(r"^```[a-z]*\n", "", cleaned_content)
+                    cleaned_content = re.sub(r"\n```$", "", cleaned_content)
                     extracted_prompt = cleaned_content if len(cleaned_content) > 50 and not cleaned_content.startswith("{") else current_prompt
+                else:
+                    extracted_prompt = current_prompt
 
             # Apply deterministic entity updates to fallback prompt
             extracted_prompt = self._apply_deterministic_entity_updates(extracted_prompt, user_intent)
