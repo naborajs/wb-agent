@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   ShieldAlert,
   Bot,
@@ -25,6 +25,9 @@ import {
   X,
   Wand2,
   ThumbsUp,
+  RefreshCw,
+  Sliders,
+  CheckCheck,
 } from "lucide-react";
 
 interface PromptSection {
@@ -104,9 +107,9 @@ const SECTION_SUGGESTIONS: Record<string, string[]> = {
     "Always require human verification for payment claims",
   ],
   core_identity: [
-    "More consultative and warm tone, active listener persona",
-    "Commercial sharpness without sounding aggressive or pushy",
+    "Change the name from EDITH to Rakesh with consultative tone",
     "Polite Indian B2B merchant etiquette with respectful clarity",
+    "Commercial sharpness without sounding aggressive or pushy",
   ],
   business_policy: [
     "Enforce 25kg MOQ for Darjeeling and 50kg for CTC",
@@ -161,7 +164,10 @@ export default function PromptsPage() {
   const [userIntent, setUserIntent] = useState<string>("");
   const [isOptimizing, setIsOptimizing] = useState<boolean>(false);
   const [optimizationStage, setOptimizationStage] = useState<number>(0);
+  const [elapsedSeconds, setElapsedSeconds] = useState<number>(0);
   const [aiResult, setAiResult] = useState<OptimizationResult | null>(null);
+  const [autoSaveOnUpgrade, setAutoSaveOnUpgrade] = useState<boolean>(true);
+  const editorRef = useRef<HTMLTextAreaElement>(null);
 
   // Load active sections
   const loadSections = async () => {
@@ -205,19 +211,72 @@ export default function PromptsPage() {
     loadHistory(activeTab);
   }, [activeTab]);
 
-  // Stage cycling animation during optimization
+  // Stage cycling animation and timer during optimization
   useEffect(() => {
-    let interval: any;
+    let stageInterval: any;
+    let timerInterval: any;
     if (isOptimizing) {
       setOptimizationStage(0);
-      interval = setInterval(() => {
+      setElapsedSeconds(0);
+      stageInterval = setInterval(() => {
         setOptimizationStage((prev) => (prev < 3 ? prev + 1 : prev));
-      }, 1600);
+      }, 1800);
+      timerInterval = setInterval(() => {
+        setElapsedSeconds((prev) => +(prev + 0.1).toFixed(1));
+      }, 100);
     } else {
       setOptimizationStage(0);
+      setElapsedSeconds(0);
     }
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(stageInterval);
+      clearInterval(timerInterval);
+    };
   }, [isOptimizing]);
+
+  // Handle Save New Version to backend
+  const handleSave = async (overrideContent?: string, extraMeta?: Partial<OptimizationResult>) => {
+    const textToSave = overrideContent !== undefined ? overrideContent : draftContent;
+    if (!textToSave.trim()) return false;
+    setIsSaving(true);
+    setStatusMsg(null);
+
+    try {
+      const res = await fetch(`/api/v1/prompts/${activeTab}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          content: textToSave,
+          change_summary:
+            changeSummary ||
+            (extraMeta?.summary_of_changes ? `NemoTron: ${extraMeta.summary_of_changes}` : undefined) ||
+            "Updated prompt instruction",
+          author: extraMeta ? "NemoTron-550B-Copilot" : "operator",
+          rating_score: extraMeta?.rating_score,
+          rating_grade: extraMeta?.rating_grade,
+          rating_breakdown: extraMeta?.rating_breakdown,
+          model_used: extraMeta?.model_used,
+        }),
+      });
+
+      if (res.ok) {
+        setChangeSummary("");
+        setUserIntent("");
+        await loadSections();
+        await loadHistory(activeTab);
+        return true;
+      } else {
+        const err = await res.json();
+        setStatusMsg({ text: err.detail || "Failed to update prompt section", error: true });
+        return false;
+      }
+    } catch (err: any) {
+      setStatusMsg({ text: err.message || "Network error", error: true });
+      return false;
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   // AI Optimize Request
   const handleAIOptimize = async () => {
@@ -239,59 +298,38 @@ export default function PromptsPage() {
       if (res.ok) {
         const data: OptimizationResult = await res.json();
         setAiResult(data);
-        setStatusMsg({
-          text: `Prompt upgraded via NemoTron 3 Ultra 550B with Score ${data.rating_score}/100 (${data.rating_grade})!`,
-        });
+
+        // 1. Instantly update the Instruction Text Editor with the upgraded prompt!
+        setDraftContent(data.optimized_prompt);
+        const autoSummary = `NemoTron: ${data.summary_of_changes}`;
+        setChangeSummary(autoSummary);
+
+        // Highlight editor smoothly
+        if (editorRef.current) {
+          editorRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+
+        // 2. Auto-save if enabled
+        if (autoSaveOnUpgrade) {
+          const saveSuccess = await handleSave(data.optimized_prompt, data);
+          if (saveSuccess) {
+            setStatusMsg({
+              text: `✨ Prompt upgraded & activated! New version saved to history with Score ${data.rating_score}/100 (${data.rating_grade}).`,
+            });
+          }
+        } else {
+          setStatusMsg({
+            text: `✨ Prompt upgraded and applied to editor! Score ${data.rating_score}/100 (${data.rating_grade}). Click 'Save & Activate' when ready.`,
+          });
+        }
       } else {
         const err = await res.json();
-        setStatusMsg({ text: err.detail || "Optimization failed", error: true });
+        setStatusMsg({ text: err.detail || "Optimization failed. Please try again.", error: true });
       }
     } catch (err: any) {
       setStatusMsg({ text: err.message || "Network error during AI optimization", error: true });
     } finally {
       setIsOptimizing(false);
-    }
-  };
-
-  // Handle Save New Version
-  const handleSave = async (overrideContent?: string, extraMeta?: Partial<OptimizationResult>) => {
-    const textToSave = overrideContent || draftContent;
-    if (!textToSave.trim()) return;
-    setIsSaving(true);
-    setStatusMsg(null);
-
-    try {
-      const res = await fetch(`/api/v1/prompts/${activeTab}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          content: textToSave,
-          change_summary:
-            changeSummary ||
-            (extraMeta?.summary_of_changes ? `NemoTron 550B: ${extraMeta.summary_of_changes}` : undefined),
-          author: extraMeta ? "NemoTron-550B-Copilot" : "operator",
-          rating_score: extraMeta?.rating_score,
-          rating_grade: extraMeta?.rating_grade,
-          rating_breakdown: extraMeta?.rating_breakdown,
-          model_used: extraMeta?.model_used,
-        }),
-      });
-
-      if (res.ok) {
-        setStatusMsg({ text: `Successfully updated ${SECTION_METADATA[activeTab]?.label || activeTab}!` });
-        setChangeSummary("");
-        setAiResult(null);
-        setUserIntent("");
-        await loadSections();
-        await loadHistory(activeTab);
-      } else {
-        const err = await res.json();
-        setStatusMsg({ text: err.detail || "Failed to update prompt section", error: true });
-      }
-    } catch (err: any) {
-      setStatusMsg({ text: err.message || "Network error", error: true });
-    } finally {
-      setIsSaving(false);
     }
   };
 
@@ -340,14 +378,14 @@ export default function PromptsPage() {
             </span>
           </h2>
           <p className="text-xs text-[var(--ed-text-muted)] mt-1">
-            Independent, version-controlled system instruction sections with live AI prompt engineering and rollback (Sections 66, 67, 68).
+            Independent, version-controlled system instruction sections with live AI prompt engineering and instant rollback.
           </p>
         </div>
       </div>
 
       {statusMsg && (
         <div
-          className={`p-3.5 rounded-xl border flex items-center gap-2.5 text-xs font-semibold ${
+          className={`p-3.5 rounded-xl border flex items-center gap-2.5 text-xs font-semibold animate-in fade-in ${
             statusMsg.error
               ? "bg-[var(--ed-danger)]/10 text-[var(--ed-danger)] border-[var(--ed-danger)]/30"
               : "bg-[var(--ed-success)]/10 text-[var(--ed-success)] border-[var(--ed-success)]/30"
@@ -485,14 +523,85 @@ export default function PromptsPage() {
           </div>
         </div>
 
-        {/* Center/Right: Active Editor, Copilot & Version History */}
+        {/* Center/Right Column: 1. Main Editor -> 2. AI Prompt Architect -> 3. Version History */}
         <div className="lg:col-span-3 space-y-6">
-          {/* AI PROMPT ARCHITECT COPILOT BOX */}
-          <div className="ed-panel rounded-xl p-5 border border-purple-500/30 bg-gradient-to-br from-[var(--ed-surface)] via-[var(--ed-surface)] to-purple-950/20 space-y-4 shadow-sm">
+          {/* 1. MAIN SYSTEM PROMPT EDITOR PANEL (Keep at top for immediate view & live reflection) */}
+          <div className="ed-panel rounded-xl p-6 space-y-4 border border-[var(--ed-border)] bg-[var(--ed-surface)]">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div>
+                <h3 className="font-bold text-sm text-[var(--ed-text-primary)] flex items-center gap-2 flex-wrap">
+                  <Icon className="w-4 h-4 text-[var(--ed-accent)]" />
+                  {currentMeta.label}
+                  <span
+                    className="text-xs px-2 py-0.5 rounded border border-[var(--ed-border)] text-[var(--ed-text-muted)] font-data"
+                    style={{ background: "var(--ed-bg)" }}
+                  >
+                    Version {currentSection?.version || 1}
+                  </span>
+                  {history[0]?.rating_score && (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/30 flex items-center gap-1">
+                      <Star className="w-2.5 h-2.5 fill-amber-400" />
+                      Rating: {history[0].rating_score}/100 ({history[0].rating_grade || "A+"})
+                    </span>
+                  )}
+                </h3>
+                <p className="text-xs text-[var(--ed-text-muted)] mt-1">{currentMeta.description}</p>
+              </div>
+
+              <button
+                onClick={() => handleSave()}
+                disabled={isSaving || !draftContent.trim()}
+                className="ed-btn-primary ed-press ed-focus-ring inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-xs font-semibold shadow-md transition-all disabled:opacity-50 shrink-0"
+              >
+                <Save className="w-3.5 h-3.5" />
+                {isSaving ? "Saving..." : "Save & Activate"}
+              </button>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-semibold text-[var(--ed-text-primary)] flex items-center gap-2">
+                  Instruction Text (Production System Prompt)
+                  {currentSection?.content !== draftContent && (
+                    <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-normal">
+                      Unsaved Draft Changes
+                    </span>
+                  )}
+                </label>
+                <span className="text-[10px] font-mono text-[var(--ed-text-muted)]">
+                  {draftContent.length} chars · ~{Math.round(draftContent.length / 4)} tokens
+                </span>
+              </div>
+              <textarea
+                ref={editorRef}
+                rows={11}
+                value={draftContent}
+                onChange={(e) => setDraftContent(e.target.value)}
+                placeholder="Enter system prompt instruction..."
+                className="w-full p-3.5 rounded-lg border border-[var(--ed-border)] bg-[var(--ed-bg)] font-mono text-xs text-[var(--ed-text-primary)] leading-relaxed ed-focus-ring shadow-inner"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-[var(--ed-text-primary)] mb-1.5">
+                Change Summary (Audit Log)
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. Renamed agent to Rakesh and customized consultative inquiries"
+                value={changeSummary}
+                onChange={(e) => setChangeSummary(e.target.value)}
+                className="w-full px-3.5 py-2 rounded-lg border border-[var(--ed-border)] bg-[var(--ed-bg)] text-xs text-[var(--ed-text-primary)] ed-focus-ring"
+              />
+            </div>
+          </div>
+
+          {/* 2. AI PROMPT ARCHITECT COPILOT BOX (Placed right below editor for natural prompt writing) */}
+          <div className="ed-panel rounded-xl p-5 border border-purple-500/30 bg-gradient-to-br from-[var(--ed-surface)] via-[var(--ed-surface)] to-purple-950/20 space-y-4 shadow-md">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-purple-600 to-indigo-500 flex items-center justify-center shadow-md">
-                  <Wand2 className="w-3.5 h-3.5 text-white" />
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-purple-600 to-indigo-500 flex items-center justify-center shadow-md shrink-0">
+                  <Wand2 className="w-4 h-4 text-white" />
                 </div>
                 <div>
                   <h4 className="text-xs font-bold text-[var(--ed-text-primary)] flex items-center gap-2">
@@ -502,9 +611,24 @@ export default function PromptsPage() {
                     </span>
                   </h4>
                   <p className="text-[11px] text-[var(--ed-text-muted)]">
-                    Describe what you want to achieve in plain English. NemoTron will apply enterprise prompt engineering rules and generate the upgraded system instruction.
+                    Describe what you want to write or change in plain English. NemoTron will generate enterprise prompt instructions and auto-apply them above.
                   </p>
                 </div>
+              </div>
+
+              {/* Auto-Save Toggle */}
+              <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg border border-purple-500/30 bg-purple-950/30 text-[11px] text-purple-200">
+                <input
+                  type="checkbox"
+                  id="autoSaveToggle"
+                  checked={autoSaveOnUpgrade}
+                  onChange={(e) => setAutoSaveOnUpgrade(e.target.checked)}
+                  className="rounded border-purple-500/50 text-purple-600 focus:ring-purple-500/50 cursor-pointer"
+                />
+                <label htmlFor="autoSaveToggle" className="cursor-pointer font-medium flex items-center gap-1 select-none">
+                  <Zap className="w-3 h-3 text-amber-400" />
+                  Auto-Save Version
+                </label>
               </div>
             </div>
 
@@ -522,59 +646,64 @@ export default function PromptsPage() {
               ))}
             </div>
 
-            {/* Textarea + Action */}
+            {/* Prompt description input */}
             <div className="space-y-3">
               <textarea
                 rows={3}
                 value={userIntent}
                 onChange={(e) => setUserIntent(e.target.value)}
-                placeholder={`Describe your requirements for ${currentMeta.label} in plain English (e.g. "Ensure the agent never offers more than 10% discount and enforces a 50kg minimum order for restaurants")...`}
+                placeholder={`Describe your requirements for ${currentMeta.label} in plain English (e.g. "Simply change the name from EDITH to Rakesh and make the tone consultative with single-question SPIN inquiries")...`}
                 className="w-full p-3 rounded-lg border border-[var(--ed-border)] bg-[var(--ed-bg)] text-xs text-[var(--ed-text-primary)] leading-relaxed ed-focus-ring placeholder:text-[var(--ed-text-muted)]/50"
               />
 
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] text-[var(--ed-text-muted)]">
-                  Applies strict section boundaries, few-shot patterns, and negative constraints.
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <span className="text-[10px] text-[var(--ed-text-muted)] flex items-center gap-1">
+                  <ShieldCheck className="w-3.5 h-3.5 text-purple-400" />
+                  Applies strict section boundaries, few-shot patterns, negative constraints, and zero-hallucination guardrails.
                 </span>
 
                 <button
                   onClick={handleAIOptimize}
                   disabled={isOptimizing || !userIntent.trim()}
-                  className="ed-press ed-focus-ring inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 shadow-md transition-all disabled:opacity-50"
+                  className="ed-press ed-focus-ring inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 hover:from-purple-500 hover:to-indigo-500 shadow-md transition-all disabled:opacity-50 shrink-0"
                 >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  {isOptimizing ? "Deliberating via 550B..." : "Upgrade with NemoTron 550B"}
+                  <Sparkles className="w-4 h-4 text-amber-300 animate-spin" />
+                  {isOptimizing ? `Deliberating (${elapsedSeconds}s)...` : "Upgrade with NemoTron 550B"}
                 </button>
               </div>
             </div>
 
-            {/* Dynamic Active Progress Animation */}
+            {/* High-Tech Deliberation Animation */}
             {isOptimizing && (
-              <div className="p-4 rounded-xl border border-purple-500/40 bg-purple-950/25 space-y-3 animate-pulse">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-purple-500/20 border border-purple-500/40 flex items-center justify-center shrink-0">
-                    <ActiveStageIcon className="w-4 h-4 text-purple-300 animate-spin" />
+              <div className="p-4 rounded-xl border border-purple-500/40 bg-purple-950/30 space-y-3 relative overflow-hidden">
+                {/* Glowing cybernetic backdrop */}
+                <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 via-indigo-500/10 to-purple-500/10 animate-pulse pointer-events-none" />
+
+                <div className="flex items-center gap-3 relative z-10">
+                  <div className="w-9 h-9 rounded-xl bg-purple-600/30 border border-purple-400/50 flex items-center justify-center shrink-0 shadow-lg">
+                    <ActiveStageIcon className="w-5 h-5 text-purple-200 animate-spin" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-purple-200">
+                      <span className="text-xs font-bold text-purple-100 flex items-center gap-2">
                         {OPTIMIZATION_STAGES[optimizationStage].title}
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
                       </span>
-                      <span className="text-[10px] font-mono text-purple-300/80">
-                        Step {optimizationStage + 1} of 4
+                      <span className="text-[10px] font-mono text-purple-300">
+                        {elapsedSeconds}s · Stage {optimizationStage + 1}/4
                       </span>
                     </div>
-                    <p className="text-[11px] text-purple-300/70 mt-0.5">
+                    <p className="text-[11px] text-purple-300/80 mt-0.5">
                       {OPTIMIZATION_STAGES[optimizationStage].desc}
                     </p>
                   </div>
                 </div>
 
                 {/* Progress bar */}
-                <div className="w-full bg-purple-950 rounded-full h-1.5 overflow-hidden border border-purple-500/20">
+                <div className="w-full bg-purple-950/80 rounded-full h-2 overflow-hidden border border-purple-500/30 relative z-10">
                   <div
-                    className="bg-gradient-to-r from-purple-500 to-indigo-400 h-1.5 transition-all duration-500"
-                    style={{ width: `${((optimizationStage + 1) / 4) * 100}%` }}
+                    className="bg-gradient-to-r from-purple-500 via-indigo-400 to-amber-300 h-2 transition-all duration-300 rounded-full"
+                    style={{ width: `${Math.min(100, ((optimizationStage + 1) / 4) * 100)}%` }}
                   />
                 </div>
               </div>
@@ -590,8 +719,9 @@ export default function PromptsPage() {
                       <Star className="w-3.5 h-3.5 fill-emerald-400 text-emerald-400" />
                       Score: {aiResult.rating_score}/100 · Grade {aiResult.rating_grade}
                     </div>
-                    <span className="text-xs font-semibold text-emerald-200">
-                      Enterprise Production Robustness
+                    <span className="text-xs font-semibold text-emerald-200 flex items-center gap-1">
+                      <CheckCheck className="w-3.5 h-3.5 text-emerald-400" />
+                      {autoSaveOnUpgrade ? "Auto-Applied & Saved to History" : "Auto-Applied to Editor"}
                     </span>
                   </div>
 
@@ -637,98 +767,39 @@ export default function PromptsPage() {
                     onClick={() => setAiResult(null)}
                     className="ed-press px-3 py-1.5 rounded-lg border border-[var(--ed-border)] bg-[var(--ed-surface)] text-[var(--ed-text-muted)] hover:text-[var(--ed-text-primary)] text-xs font-medium"
                   >
-                    Discard
+                    Dismiss
                   </button>
                   <button
                     onClick={() => {
                       setDraftContent(aiResult.optimized_prompt);
-                      setChangeSummary(aiResult.summary_of_changes);
-                      setStatusMsg({ text: "Applied AI optimized prompt to editor! Review below and Save." });
+                      setChangeSummary(`NemoTron: ${aiResult.summary_of_changes}`);
+                      setStatusMsg({ text: "Applied AI optimized prompt to editor! Review above." });
                     }}
                     className="ed-press inline-flex items-center gap-1 px-3.5 py-1.5 rounded-lg border border-purple-500/40 bg-purple-500/10 text-purple-300 hover:bg-purple-500/20 text-xs font-semibold"
                   >
-                    <ArrowRight className="w-3 h-3" /> Apply to Editor
+                    <ArrowRight className="w-3 h-3" /> Re-apply to Editor
                   </button>
                   <button
                     onClick={() => handleSave(aiResult.optimized_prompt, aiResult)}
                     disabled={isSaving}
                     className="ed-press inline-flex items-center gap-1 px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-sm"
                   >
-                    <Check className="w-3 h-3" /> Save & Activate Now (v{(currentSection?.version || 1) + 1})
+                    <Check className="w-3 h-3" /> Save & Activate (v{(currentSection?.version || 1) + 1})
                   </button>
                 </div>
               </div>
             )}
           </div>
 
-          {/* MAIN PROMPT EDITOR PANEL */}
-          <div className="ed-panel rounded-xl p-6 space-y-4">
-            <div className="flex items-start justify-between">
-              <div>
-                <h3 className="font-bold text-sm text-[var(--ed-text-primary)] flex items-center gap-2">
-                  <Icon className="w-4 h-4 text-[var(--ed-accent)]" />
-                  {currentMeta.label}
-                  <span
-                    className="text-xs px-2 py-0.5 rounded border border-[var(--ed-border)] text-[var(--ed-text-muted)] font-data"
-                    style={{ background: "var(--ed-bg)" }}
-                  >
-                    v{currentSection?.version || 1}
-                  </span>
-                  {history[0]?.rating_score && (
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/30 flex items-center gap-1">
-                      <Star className="w-2.5 h-2.5 fill-amber-400" />
-                      Rating: {history[0].rating_score}/100 ({history[0].rating_grade || "A+"})
-                    </span>
-                  )}
-                </h3>
-                <p className="text-xs text-[var(--ed-text-muted)] mt-1">{currentMeta.description}</p>
-              </div>
-
-              <button
-                onClick={() => handleSave()}
-                disabled={isSaving || !draftContent.trim()}
-                className="ed-btn-primary ed-press ed-focus-ring inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-xs font-semibold shadow-md transition-all disabled:opacity-50"
-              >
-                <Save className="w-3.5 h-3.5" />
-                {isSaving ? "Saving..." : "Save & Activate"}
-              </button>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-[var(--ed-text-primary)] mb-1.5">
-                Instruction Text (Production System Prompt)
-              </label>
-              <textarea
-                rows={12}
-                value={draftContent}
-                onChange={(e) => setDraftContent(e.target.value)}
-                className="w-full p-3.5 rounded-lg border border-[var(--ed-border)] bg-[var(--ed-bg)] font-mono text-xs text-[var(--ed-text-primary)] leading-relaxed ed-focus-ring"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-[var(--ed-text-primary)] mb-1.5">
-                Change Summary (Audit Log)
-              </label>
-              <input
-                type="text"
-                placeholder="e.g. Updated discovery questions for restaurant chains via NemoTron 550B"
-                value={changeSummary}
-                onChange={(e) => setChangeSummary(e.target.value)}
-                className="w-full px-3.5 py-2 rounded-lg border border-[var(--ed-border)] bg-[var(--ed-bg)] text-xs text-[var(--ed-text-primary)] ed-focus-ring"
-              />
-            </div>
-          </div>
-
-          {/* Version History Table */}
-          <div className="ed-panel rounded-xl p-6">
+          {/* 3. VERSION HISTORY & ROLLBACK TABLE */}
+          <div className="ed-panel rounded-xl p-6 border border-[var(--ed-border)] bg-[var(--ed-surface)]">
             <h4 className="font-bold text-xs text-[var(--ed-text-primary)] flex items-center gap-1.5 mb-3">
               <History className="w-3.5 h-3.5 text-[var(--ed-text-muted)]" />
               Version History & Rollback
             </h4>
 
             {history.length === 0 ? (
-              <p className="text-xs text-[var(--ed-text-muted)]">No previous versions recorded for this section.</p>
+              <p className="text-xs text-[var(--ed-text-muted)]">No previous versions recorded for this section. Upgrades will be recorded here automatically.</p>
             ) : (
               <div className="divide-y divide-[var(--ed-border)] text-xs">
                 {history.map((h) => (
