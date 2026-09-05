@@ -153,7 +153,7 @@ export default function LeadsPage() {
           Upload commercial lead lists (columns: phone, name, company_name, company_type, city, product_interest).
         </p>
 
-        <div className="flex items-center gap-4 pt-1">
+        <div className="flex flex-wrap items-center gap-3 pt-1">
           <label
             className="ed-press ed-focus-ring cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-white text-xs font-semibold shadow-sm transition-colors hover:opacity-90"
             style={{ background: "var(--ed-accent)" }}
@@ -192,12 +192,12 @@ export default function LeadsPage() {
           />
         </div>
 
-        <div className="flex gap-2 overflow-x-auto">
+        <div className="flex gap-1.5 sm:gap-2 overflow-x-auto pb-1 sm:pb-0">
           {["all", "new", "contacted", "qualified", "converted"].map((st) => (
             <button
               key={st}
               onClick={() => setStatusFilter(st)}
-              className={`ed-press ed-focus-ring px-3 py-1.5 text-xs font-semibold rounded-lg uppercase tracking-wider transition-colors ${
+              className={`ed-press ed-focus-ring px-3 py-1.5 text-xs font-semibold rounded-lg uppercase tracking-wider transition-colors shrink-0 ${
                 statusFilter === st
                   ? "text-white shadow-sm"
                   : "text-[var(--ed-text-muted)] hover:text-[var(--ed-text-primary)] border border-[var(--ed-border)]"
@@ -216,20 +216,21 @@ export default function LeadsPage() {
 
       {/* Table */}
       <div className="ed-panel rounded-xl overflow-hidden">
-        <table className="w-full text-left text-xs text-[var(--ed-text-primary)]">
-          <thead
-            className="text-[var(--ed-text-muted)] font-semibold border-b border-[var(--ed-border)] uppercase tracking-wider"
-            style={{ background: "var(--ed-bg)" }}
-          >
-            <tr>
-              <th className="px-5 py-3">Lead Contact</th>
-              <th className="px-5 py-3">Company</th>
-              <th className="px-5 py-3">Product Interest</th>
-              <th className="px-5 py-3">Score</th>
-              <th className="px-5 py-3">Status</th>
-              <th className="px-5 py-3 text-right">Actions</th>
-            </tr>
-          </thead>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs text-[var(--ed-text-primary)] min-w-[640px]">
+            <thead
+              className="text-[var(--ed-text-muted)] font-semibold border-b border-[var(--ed-border)] uppercase tracking-wider"
+              style={{ background: "var(--ed-bg)" }}
+            >
+              <tr>
+                <th className="px-5 py-3">Lead Contact</th>
+                <th className="px-5 py-3">Company</th>
+                <th className="px-5 py-3">Product Interest</th>
+                <th className="px-5 py-3">Score</th>
+                <th className="px-5 py-3">Status</th>
+                <th className="px-5 py-3 text-right">Actions</th>
+              </tr>
+            </thead>
           <tbody className="divide-y divide-[var(--ed-border)]">
             {filtered.map((lead) => (
               <tr key={lead.id} className="hover:bg-[var(--ed-bg)] transition-colors">
@@ -294,6 +295,7 @@ export default function LeadsPage() {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );
