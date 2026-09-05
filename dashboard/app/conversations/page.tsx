@@ -899,7 +899,11 @@ export default function LiveInboxPage() {
                             </>
                           ) : (
                             <>
-                              <Sparkles className="w-3 h-3 text-[var(--ed-success)]" />
+                              <img
+                                src="/logo-icon.png"
+                                alt="EDITH"
+                                className="w-3.5 h-3.5 rounded-full object-cover shrink-0 border border-emerald-500/40"
+                              />
                               <span className="text-[var(--ed-success)] font-semibold">
                                 EDITH (Nemotron AI)
                               </span>

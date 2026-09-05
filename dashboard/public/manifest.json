@@ -1,0 +1,21 @@
+{
+  "name": "EDITH - Autonomous B2B AI Sales Operating System",
+  "short_name": "EDITH",
+  "description": "More Conversations. Real Opportunities. Your AI Sales Assistant That Works For You.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#090d16",
+  "theme_color": "#0284c7",
+  "icons": [
+    {
+      "src": "/logo-icon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

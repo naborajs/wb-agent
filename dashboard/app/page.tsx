@@ -130,13 +130,18 @@ export default function DashboardOverview() {
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Top Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight text-[var(--ed-text-primary)]">
-            Wholesale Operations Center
-          </h2>
-          <p className="text-sm text-[var(--ed-text-muted)] mt-1">
-            Autonomous acquisition, qualification, and B2B conversion for North Bengal Tea Co.
-          </p>
+        <div className="flex items-center gap-3.5">
+          <div className="relative w-12 h-12 rounded-xl overflow-hidden border border-sky-500/30 bg-slate-950 shadow-md shrink-0">
+            <img src="/logo-icon.png" alt="EDITH" className="w-full h-full object-cover" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight text-[var(--ed-text-primary)]">
+              Wholesale Operations Center
+            </h2>
+            <p className="text-sm text-[var(--ed-text-muted)] mt-0.5">
+              Autonomous acquisition, qualification, and B2B conversion powered by EDITH.
+            </p>
+          </div>
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold text-[var(--ed-success)] border border-[var(--ed-success)]/20" style={{ background: "color-mix(in srgb, var(--ed-success) 8%, transparent)" }}>

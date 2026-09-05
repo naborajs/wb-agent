@@ -19,7 +19,19 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata = {
   title: "EDITH | North Bengal Tea Operations",
-  description: "AI Sales Operating System for North Bengal Tea Co.",
+  description: "More Conversations. Real Opportunities. Autonomous B2B AI Sales Operating System.",
+  icons: {
+    icon: [
+      { url: "/favicon.ico" },
+      { url: "/logo-icon.png", sizes: "32x32", type: "image/png" },
+      { url: "/logo.png", sizes: "512x512", type: "image/png" },
+    ],
+    shortcut: "/favicon.ico",
+    apple: [
+      { url: "/logo-icon.png", sizes: "180x180", type: "image/png" },
+    ],
+  },
+  manifest: "/manifest.json",
 };
 
 export default function RootLayout({

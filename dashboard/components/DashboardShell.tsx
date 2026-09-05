@@ -234,17 +234,30 @@ export default function DashboardShell({ children }: { children: React.ReactNode
     <>
       <div>
         {/* Brand Header */}
-        <div className="p-5 border-b border-[var(--ed-border)] flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--ed-accent)] to-[var(--ed-accent-hover)] flex items-center justify-center text-white font-bold shadow-lg">
-            ☕
+        <div className="p-4 border-b border-[var(--ed-border)] flex items-center gap-3">
+          <div className="relative w-11 h-11 rounded-xl overflow-hidden border border-sky-500/30 bg-slate-950 shadow-md flex items-center justify-center shrink-0 group">
+            <img
+              src="/logo-icon.png"
+              alt="EDITH Logo"
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            />
+            <div className="absolute inset-0 ring-1 ring-inset ring-white/10 rounded-xl pointer-events-none" />
           </div>
-          <div>
-            <h1 className="font-bold text-base leading-tight tracking-tight text-[var(--ed-text-primary)]">
-              North Bengal Tea
-            </h1>
-            <span className="text-xs font-medium text-[var(--ed-success)] flex items-center gap-1 mt-0.5">
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5">
+              <h1 className="font-bold text-base leading-tight tracking-tight text-[var(--ed-text-primary)] truncate">
+                EDITH
+              </h1>
+              <span className="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-sky-500/15 text-sky-600 dark:text-sky-400 border border-sky-500/30">
+                AI OS
+              </span>
+            </div>
+            <div className="text-[11px] text-[var(--ed-text-muted)] truncate font-medium mt-0.5">
+              North Bengal Tea Co.
+            </div>
+            <span className="text-[10px] font-medium text-[var(--ed-success)] flex items-center gap-1 mt-0.5">
               <span className="w-1.5 h-1.5 rounded-full bg-[var(--ed-success)] animate-pulse"></span>
-              EDITH AI Active
+              Autonomous Active
             </span>
           </div>
         </div>
@@ -323,6 +336,16 @@ export default function DashboardShell({ children }: { children: React.ReactNode
             >
               <Menu className="w-5 h-5" />
             </button>
+
+            {/* Mobile Brand Logo */}
+            <div className="md:hidden flex items-center gap-2">
+              <img
+                src="/logo-icon.png"
+                alt="EDITH"
+                className="w-7 h-7 rounded-lg object-cover border border-sky-500/30 shadow-xs"
+              />
+              <span className="font-bold text-sm tracking-tight text-[var(--ed-text-primary)]">EDITH</span>
+            </div>
 
             <div className="hidden sm:flex items-center gap-2 text-xs font-medium text-[var(--ed-text-muted)]">
               <ShieldCheck className="w-4 h-4 text-[var(--ed-success)]" />
@@ -466,11 +489,14 @@ export default function DashboardShell({ children }: { children: React.ReactNode
             <div className="relative" ref={profileRef}>
               <button
                 onClick={() => setProfileOpen(!profileOpen)}
-                className="ed-press ed-focus-ring w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold border border-[var(--ed-border)] text-[var(--ed-text-primary)] transition-all"
-                style={{ background: profileOpen ? "var(--ed-accent)" : "var(--ed-surface)" , color: profileOpen ? "#fff" : "var(--ed-text-primary)" }}
+                className="ed-press ed-focus-ring w-9 h-9 rounded-full overflow-hidden border border-[var(--ed-border)] hover:border-sky-500/50 transition-all shadow-xs flex items-center justify-center p-0.5 bg-slate-950"
                 aria-label="Open profile"
               >
-                OP
+                <img
+                  src="/logo-icon.png"
+                  alt="EDITH"
+                  className="w-full h-full object-cover rounded-full"
+                />
               </button>
 
               {/* Profile Dropdown Panel */}
@@ -479,12 +505,16 @@ export default function DashboardShell({ children }: { children: React.ReactNode
                   {/* Profile header */}
                   <div className="p-4 border-b border-[var(--ed-border)]" style={{ background: "var(--ed-bg)" }}>
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white" style={{ background: "var(--ed-accent)" }}>
-                        OP
+                      <div className="w-11 h-11 rounded-xl overflow-hidden border border-sky-500/30 bg-slate-950 shadow-sm shrink-0">
+                        <img
+                          src="/logo-icon.png"
+                          alt="EDITH"
+                          className="w-full h-full object-cover"
+                        />
                       </div>
                       <div>
-                        <div className="text-sm font-bold text-[var(--ed-text-primary)]">Operations Manager</div>
-                        <div className="text-[11px] text-[var(--ed-text-muted)]">Admin — Full Access</div>
+                        <div className="text-sm font-bold text-[var(--ed-text-primary)]">EDITH Operations</div>
+                        <div className="text-[11px] text-[var(--ed-text-muted)]">Autonomous AI Sales System</div>
                       </div>
                     </div>
                   </div>

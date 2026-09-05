@@ -330,6 +330,31 @@ export default function SystemSettingsPage() {
           Business Identity & Sales Persona Details
         </div>
 
+        {/* Brand Logo & Visual Assets Card */}
+        <div className="p-4 rounded-xl border border-[var(--ed-border)] bg-[var(--ed-bg)] flex flex-col sm:flex-row items-center gap-4">
+          <div className="relative w-20 h-20 rounded-2xl overflow-hidden border border-sky-500/30 bg-slate-950 shadow-md shrink-0">
+            <img src="/logo.png" alt="EDITH Master Logo" className="w-full h-full object-cover" />
+          </div>
+          <div className="space-y-1 text-center sm:text-left">
+            <div className="font-bold text-xs text-[var(--ed-text-primary)] flex items-center justify-center sm:justify-start gap-2">
+              Official EDITH Brand Logo & Favicon
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/30 font-semibold">
+                Active Systemwide
+              </span>
+            </div>
+            <p className="text-[11px] text-[var(--ed-text-muted)]">
+              Applied as favicon, web app manifest, sidebar brand, operator avatar, and WhatsApp conversation badges.
+            </p>
+            <div className="flex items-center justify-center sm:justify-start gap-2 pt-1 text-[10px] font-mono text-[var(--ed-text-muted)]">
+              <span>Favicon: /favicon.ico</span>
+              <span>•</span>
+              <span>Icon: /logo-icon.png</span>
+              <span>•</span>
+              <span>Master: /logo.png</span>
+            </div>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 text-xs">
           <div>
             <label className="block text-[var(--ed-text-muted)] font-medium mb-1.5">
