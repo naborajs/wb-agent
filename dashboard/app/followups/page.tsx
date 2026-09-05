@@ -44,7 +44,8 @@ export default function FollowupsPage() {
       </div>
 
       <div className="ed-panel rounded-xl overflow-hidden">
-        <table className="w-full text-left text-xs text-[var(--ed-text-muted)]">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs text-[var(--ed-text-muted)] min-w-[620px]">
           <thead
             className="font-semibold border-b border-[var(--ed-border)] uppercase tracking-wider text-[var(--ed-text-muted)]"
             style={{ background: "var(--ed-bg)" }}
@@ -95,6 +96,7 @@ export default function FollowupsPage() {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );
