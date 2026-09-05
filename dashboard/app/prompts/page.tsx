@@ -130,26 +130,26 @@ const SECTION_SUGGESTIONS: Record<string, string[]> = {
   ],
 };
 
-const OPTIMIZATION_STAGES = [
+const DELIBERATION_STAGES = [
   {
-    title: "NemoTron 3 Ultra 550B Deliberating",
-    desc: "Ingesting current section instructions and user intent...",
+    title: "NemoTron Ingesting & Analyzing Intent",
+    desc: "Ingesting current section instructions and analyzing user prompt requirements...",
     icon: Cpu,
   },
   {
-    title: "Applying Enterprise Prompt Rules",
-    desc: "Formulating negative boundaries, few-shot patterns & anti-hallucination constraints...",
+    title: "Deep Policy & Persona Deliberation",
+    desc: "Formulating negative boundaries, consultative SPIN patterns, and commercial tone...",
     icon: BrainCircuit,
   },
   {
-    title: "Multi-Dimensional Quality Benchmarking",
-    desc: "Evaluating clarity, constraint robustness, and safety grounding...",
-    icon: Activity,
+    title: "Synthesizing Upgraded System Directives",
+    desc: "Structuring crisp, production-grade instructions and pruning redundant text...",
+    icon: Zap,
   },
   {
-    title: "Synthesizing Upgraded System Prompt",
-    desc: "Finalizing production-grade prompt directives and calculating rating score...",
-    icon: Zap,
+    title: "Benchmarking Multi-Dimensional Quality",
+    desc: "Evaluating clarity, anti-hallucination grounding, and synthesizing final prompt...",
+    icon: Activity,
   },
 ];
 
@@ -165,7 +165,6 @@ export default function PromptsPage() {
   // AI Copilot state
   const [userIntent, setUserIntent] = useState<string>("");
   const [isOptimizing, setIsOptimizing] = useState<boolean>(false);
-  const [optimizationStage, setOptimizationStage] = useState<number>(0);
   const [elapsedSeconds, setElapsedSeconds] = useState<number>(0);
   const [aiResult, setAiResult] = useState<OptimizationResult | null>(null);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
@@ -308,26 +307,19 @@ export default function PromptsPage() {
     };
   }, [activeTab]);
 
-  // Stage cycling animation and timer during optimization
+  // Real elapsed timer during AI deliberation (tracks genuine thinking time)
   useEffect(() => {
-    let stageInterval: any;
     let timerInterval: any;
     if (isOptimizing) {
-      setOptimizationStage(0);
       setElapsedSeconds(0);
-      stageInterval = setInterval(() => {
-        setOptimizationStage((prev) => (prev < 3 ? prev + 1 : prev));
-      }, 1800);
       timerInterval = setInterval(() => {
         setElapsedSeconds((prev) => +(prev + 0.1).toFixed(1));
       }, 100);
     } else {
-      setOptimizationStage(0);
       setElapsedSeconds(0);
     }
     return () => {
-      clearInterval(stageInterval);
-      clearInterval(timerInterval);
+      if (timerInterval) clearInterval(timerInterval);
     };
   }, [isOptimizing]);
 
@@ -395,9 +387,11 @@ export default function PromptsPage() {
 
       if (res.ok) {
         const data: OptimizationResult = await res.json();
-        setAiResult(data);
 
-        // 1. Instantly update the Instruction Text Editor with the upgraded prompt!
+        // Strict verification: only celebrate success if the prompt actually updated
+        const isModified = Boolean(data.optimized_prompt && data.optimized_prompt.trim() !== draftContent.trim());
+
+        setAiResult(data);
         setDraftContent(data.optimized_prompt);
         const autoSummary = `NemoTron: ${data.summary_of_changes}`;
         setChangeSummary(autoSummary);
@@ -408,16 +402,25 @@ export default function PromptsPage() {
           editorRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
         }
 
-        // 2. Seamless in-page reactive refresh: immediately synchronize fresh sections, versions & history
+        // Seamless in-page reactive refresh: immediately synchronize fresh sections, versions & history
         await refreshData(activeTab, false);
 
-        // 3. Status confirmation
-        setStatusMsg({
-          text: `✨ Prompt upgraded & activated as v${data.version}! In-page data refreshed live (Score ${data.rating_score}/100 · ${data.rating_grade}).`,
-        });
+        // Status confirmation - only say updated after verified
+        if (isModified) {
+          setStatusMsg({
+            text: `✨ Prompt upgraded & activated as v${data.version || "new"}! Live system prompt updated (Score ${data.rating_score}/100 · ${data.rating_grade}).`,
+          });
+        } else {
+          setStatusMsg({
+            text: `ℹ️ NemoTron reviewed the section but determined no prompt changes were required.`,
+          });
+        }
       } else {
-        const err = await res.json();
-        setStatusMsg({ text: err.detail || "Optimization failed. Please try again.", error: true });
+        const err = await res.json().catch(() => ({}));
+        setStatusMsg({
+          text: err.detail || "Optimization could not be completed. Please provide specific instructions and retry.",
+          error: true,
+        });
       }
     } catch (err: any) {
       setStatusMsg({ text: err.message || "Network error during AI optimization", error: true });
@@ -456,7 +459,14 @@ export default function PromptsPage() {
   const Icon = currentMeta.icon;
   const currentSection = sections[activeTab];
   const suggestions = SECTION_SUGGESTIONS[activeTab] || [];
-  const ActiveStageIcon = OPTIMIZATION_STAGES[optimizationStage].icon;
+
+  // Dynamic deliberation phase derived honestly from elapsed seconds
+  const currentStageIndex =
+    elapsedSeconds < 4 ? 0 : elapsedSeconds < 12 ? 1 : elapsedSeconds < 24 ? 2 : 3;
+  const currentStage = DELIBERATION_STAGES[currentStageIndex];
+  const ActiveStageIcon = currentStage.icon;
+  // Asymptotic progress indicator: smoothly scales with deliberation, never claiming 100% until response resolves
+  const progressPercent = Math.min(92, Math.round(15 + Math.atan(elapsedSeconds / 10) * (77 / (Math.PI / 2))));
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12">
@@ -862,22 +872,22 @@ export default function PromptsPage() {
                   <div className="flex-1 min-w-0 space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-[var(--ed-text-primary)] flex items-center gap-2">
-                        {OPTIMIZATION_STAGES[optimizationStage].title}
+                        {currentStage.title}
                         <span className="w-2 h-2 rounded-full bg-sky-500 animate-ping" />
                       </span>
                       <span className="text-[10px] font-mono text-sky-700 dark:text-sky-300 font-semibold px-2 py-0.5 rounded-md bg-sky-100 dark:bg-sky-950/60 border border-sky-200 dark:border-sky-800">
-                        {elapsedSeconds}s · Stage {optimizationStage + 1}/4
+                        {elapsedSeconds}s · Stage {currentStageIndex + 1}/4
                       </span>
                     </div>
                     <p className="text-[11px] text-[var(--ed-text-muted)] leading-relaxed">
-                      {OPTIMIZATION_STAGES[optimizationStage].desc}
+                      {currentStage.desc}
                     </p>
 
-                    {/* Flowing Gradient Progress Bar */}
+                    {/* Flowing Gradient Progress Bar with Continuous Neural Beam */}
                     <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-1.5 overflow-hidden relative">
                       <div
-                        className="bg-gradient-to-r from-sky-500 via-indigo-500 to-emerald-400 h-1.5 transition-all duration-300 rounded-full"
-                        style={{ width: `${Math.min(100, ((optimizationStage + 1) / 4) * 100)}%` }}
+                        className="bg-gradient-to-r from-sky-500 via-indigo-500 to-emerald-400 h-1.5 transition-all duration-300 rounded-full animate-neural-beam"
+                        style={{ width: `${progressPercent}%` }}
                       />
                     </div>
                   </div>
