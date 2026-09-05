@@ -248,12 +248,12 @@ export default function SystemSettingsPage() {
 
       {/* Emergency Stop Banner */}
       <div
-        className="p-5 rounded-2xl border border-[var(--ed-danger)]/25 flex items-center justify-between shadow-sm"
+        className="p-4 sm:p-5 rounded-2xl border border-[var(--ed-danger)]/25 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 shadow-sm"
         style={{ background: "color-mix(in srgb, var(--ed-danger) 8%, transparent)" }}
       >
         <div className="flex items-center gap-3.5">
           <div
-            className="p-2.5 rounded-xl text-white shadow-sm"
+            className="p-2.5 rounded-xl text-white shadow-sm shrink-0"
             style={{ background: "var(--ed-danger)" }}
           >
             <Power className="w-5 h-5" />
@@ -270,7 +270,7 @@ export default function SystemSettingsPage() {
 
         <button
           onClick={() => setAutonomous(!autonomous)}
-          className="ed-press ed-focus-ring px-5 py-2.5 rounded-xl text-xs font-bold text-white transition-all hover:opacity-90 shadow-sm"
+          className="ed-press ed-focus-ring px-5 py-2.5 rounded-xl text-xs font-bold text-white transition-all hover:opacity-90 shadow-sm shrink-0 text-center"
           style={{
             background: autonomous ? "var(--ed-danger)" : "var(--ed-success)",
           }}
@@ -280,7 +280,7 @@ export default function SystemSettingsPage() {
       </div>
 
       {/* 1. Multi-Business Domain Presets */}
-      <div className="p-6 ed-panel rounded-2xl space-y-4 border border-[var(--ed-border)]">
+      <div className="p-4 sm:p-6 ed-panel rounded-2xl space-y-4 border border-[var(--ed-border)]">
         <div className="flex items-center justify-between border-b border-[var(--ed-border)] pb-4">
           <div className="flex items-center gap-2.5 font-bold text-sm text-[var(--ed-text-primary)]">
             <Sparkles className="w-4 h-4 text-[var(--ed-accent)]" />
@@ -324,7 +324,7 @@ export default function SystemSettingsPage() {
       </div>
 
       {/* 2. Business Profile & Persona Customization */}
-      <div className="p-6 ed-panel rounded-2xl space-y-5 border border-[var(--ed-border)]">
+      <div className="p-4 sm:p-6 ed-panel rounded-2xl space-y-5 border border-[var(--ed-border)]">
         <div className="flex items-center gap-2.5 font-bold text-sm text-[var(--ed-text-primary)] border-b border-[var(--ed-border)] pb-4">
           <Briefcase className="w-4 h-4 text-[var(--ed-accent)]" />
           Business Identity & Sales Persona Details
@@ -670,11 +670,11 @@ export default function SystemSettingsPage() {
       </div>
 
       {/* Save Button */}
-      <div className="flex justify-end pt-2">
+      <div className="flex justify-end pt-2 w-full">
         <button
           onClick={handleSave}
           disabled={isSaving}
-          className="ed-interactive ed-press ed-focus-ring inline-flex items-center gap-2.5 px-8 py-3.5 rounded-xl text-white font-bold text-sm shadow-xl transition-all disabled:opacity-50 hover:opacity-90"
+          className="ed-interactive ed-press ed-focus-ring w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-8 py-3.5 rounded-xl text-white font-bold text-sm shadow-xl transition-all disabled:opacity-50 hover:opacity-90"
           style={{ background: "var(--ed-accent)", minHeight: "48px" }}
         >
           <Save className="w-4 h-4" />
