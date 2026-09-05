@@ -308,7 +308,7 @@ export default function IntegrationsPage() {
       </div>
 
       {/* 3. Model Architecture & Fallback Sequence Customizer */}
-      <div className="ed-panel rounded-2xl p-6 space-y-6">
+      <div className="ed-panel rounded-2xl p-4 sm:p-6 space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[var(--ed-border)] pb-4">
           <div>
             <h3 className="text-sm font-bold text-[var(--ed-text-primary)] flex items-center gap-2">
@@ -730,7 +730,7 @@ export default function IntegrationsPage() {
       </div>
 
       {/* 5. Model Diagnostic Tool */}
-      <div className="ed-panel rounded-2xl p-6 space-y-5">
+      <div className="ed-panel rounded-2xl p-4 sm:p-6 space-y-5">
         <div>
           <h3 className="font-bold text-sm text-[var(--ed-text-primary)] flex items-center gap-2">
             <Zap className="w-4 h-4 text-[var(--ed-accent)]" />
