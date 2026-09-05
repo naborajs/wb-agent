@@ -96,7 +96,7 @@ export default function HandoffsPage() {
                 <p className="text-xs text-[var(--ed-text-muted)] leading-relaxed max-w-2xl">{h.summary}</p>
               </div>
 
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex flex-wrap items-center gap-2 shrink-0">
                 {h.status === "pending" ? (
                   <>
                     <a
