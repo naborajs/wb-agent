@@ -35,6 +35,7 @@ class NIMClient:
         request: ModelRequest,
         key_alias: str = "primary",
         fallback_depth: int = 0,
+        timeout: Optional[float] = None,
     ) -> ModelResponse:
         """
         Executes a single chat completion request against NVIDIA NIM OpenAI-compatible API.
@@ -75,7 +76,8 @@ class NIMClient:
         if request.response_format:
             payload["response_format"] = request.response_format
 
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
+        req_timeout = float(timeout if timeout is not None else self.timeout)
+        async with httpx.AsyncClient(timeout=req_timeout) as client:
             resp = await client.post(url, json=payload, headers=headers)
             resp.raise_for_status()
             data = resp.json()
