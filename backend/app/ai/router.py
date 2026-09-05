@@ -111,9 +111,16 @@ class AIRouter:
                     continue
 
                 try:
+                    # Adaptive timeout: 550b fails fast (4.5s) if NIM 503s; 120b & others get full headroom (25s)
+                    req_timeout = timeout
+                    if "ultra-550b" in model:
+                        req_timeout = 4.5
+                    elif req_timeout is None:
+                        req_timeout = 25.0
+
                     logger.debug(
                         f"Executing capability '{capability.value}' on model '{model}' using {key_alias} key "
-                        f"(depth={fallback_depth})."
+                        f"(depth={fallback_depth}, timeout={req_timeout}s)."
                     )
                     res = await self.client.execute_request(
                         model=model,
@@ -121,7 +128,7 @@ class AIRouter:
                         request=request,
                         key_alias=key_alias,
                         fallback_depth=fallback_depth,
-                        timeout=timeout,
+                        timeout=req_timeout,
                     )
 
                     # Success! Reset circuit breaker and record metrics
@@ -1131,7 +1138,7 @@ class AIRouter:
                 latency_ms=int((time.time() - start_t) * 1000),
             )
 
-        resp = await self.execute(Capability.PROMPT_ARCHITECT, req, timeout=8.0)
+        resp = await self.execute(Capability.PROMPT_ARCHITECT, req)
         elapsed_ms = int((time.time() - start_t) * 1000)
 
         # Parse JSON output
@@ -1189,15 +1196,18 @@ class AIRouter:
         except Exception as e:
             logger.warning(f"[AIRouter] Failed to parse JSON from Prompt Architect model: {e}. Falling back to content extract.")
             cleaned_content = resp.content.strip()
-            # Try regex extraction of optimized_prompt
-            match_opt = re.search(r'"optimized_prompt":\s*"([^"\\]*(?:\\.[^"\\]*)*)"', cleaned_content, re.DOTALL)
-            if match_opt:
-                extracted_prompt = match_opt.group(1).replace('\\"', '"').replace('\\n', '\n')
+            # If emergency fallback occurred, base on current_prompt so offline message doesn't overwrite instructions
+            if resp.model == "local_emergency_fallback" or "safe offline response" in cleaned_content.lower():
+                extracted_prompt = current_prompt
             else:
-                if cleaned_content.startswith("```"):
-                    cleaned_content = re.sub(r"^```[a-z]*\n", "", cleaned_content)
-                    cleaned_content = re.sub(r"\n```$", "", cleaned_content)
-                extracted_prompt = cleaned_content if len(cleaned_content) > 50 and not cleaned_content.startswith("{") else current_prompt
+                match_opt = re.search(r'"optimized_prompt":\s*"([^"\\]*(?:\\.[^"\\]*)*)"', cleaned_content, re.DOTALL)
+                if match_opt:
+                    extracted_prompt = match_opt.group(1).replace('\\"', '"').replace('\\n', '\n')
+                else:
+                    if cleaned_content.startswith("```"):
+                        cleaned_content = re.sub(r"^```[a-z]*\n", "", cleaned_content)
+                        cleaned_content = re.sub(r"\n```$", "", cleaned_content)
+                    extracted_prompt = cleaned_content if len(cleaned_content) > 50 and not cleaned_content.startswith("{") else current_prompt
 
             # Also apply name replacement to fallback prompt
             lower_intent = user_intent.lower()
