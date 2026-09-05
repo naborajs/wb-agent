@@ -9,7 +9,7 @@ status: complete
 # 🖥️ EDITH Operations Dashboard — Visual Reference & UI Tour
 
 > **Reference Tenant:** North Bengal Tea Co. (Wholesale Tea Producer, Siliguri, West Bengal)  
-> **Visual System:** Pitch Black (`#07070B`) + Crimson Gradient (`#F02341` → `#B8142C`) with royal oxblood undertone, static 24px dot-grid texture (`.ed-bg-texture`), and frosted-glass depth (`.ed-glass`).
+> **Visual System:** Dual-Theme Architecture — **Royal Pitch Black** (`#030712` / `#0b0f19`) and **Estate White** (`#ffffff` / `#f8fafc`) with vibrant sky-blue/cyan and emerald accents (`#0284c7`, `#10b981`), frosted-glass surfaces (`.ed-glass`), and transparent brand emblem assets. Tagline: *"More Conversations • Real Opportunities"*.
 
 ---
 
@@ -255,11 +255,17 @@ Global system configuration and kill-switch:
 
 ---
 
-## 16. Mobile Responsive Layouts
+## 16. Mobile Responsive & Dual-Theme Architecture
 
-Optimized for mobile operators monitoring sales on the go:
+EDITH is engineered mobile-first with adaptive touch UI optimized for operators on iOS Safari, Android Chrome, and desktop:
+- **Responsive Navigation Drawer**: One-tap slide-out drawer on phones with quick theme toggle, system status pills, and direct access to all 14 routes.
+- **Dedicated Mobile Chat View**: Full-screen conversation thread view with seamless 1-tap `← Back` navigation between the active customer timeline and inbox list.
+- **Slide-Over Customer Intelligence**: Buyer profile, commercial stage, order intent, and takeover controls accessible via a slide-over modal drawer on mobile viewports.
+- **Horizontal Scrolling Tables**: Orders, leads, campaigns, schedules, and analytics tables wrapped with `overflow-x-auto` containers and strict `min-w` to prevent column squishing on narrow screens.
+- **Touch Targets**: All interactive buttons, action pills, and inputs adhere to mobile touch guidelines (>=44px height).
+- **Dual Theme Switcher**: 1-tap toggling between **Estate White** and **Royal Pitch Black** with persistent `localStorage` theme state and zero FOUC (flash of unstyled content).
 
-| Mobile Operations Center | Mobile Live Inbox |
+| Mobile Operations Center | Mobile Live Chat Stream |
 | :---: | :---: |
 | ![Mobile Overview](screenshots/mobile_overview.png) | ![Mobile Inbox](screenshots/mobile_inbox.png) |
 
