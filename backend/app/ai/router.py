@@ -80,6 +80,7 @@ class AIRouter:
         self,
         capability: Capability,
         request: ModelRequest,
+        timeout: Optional[float] = None,
     ) -> ModelResponse:
         """
         Executes a capability request across its ordered fallback chain:
@@ -120,6 +121,7 @@ class AIRouter:
                         request=request,
                         key_alias=key_alias,
                         fallback_depth=fallback_depth,
+                        timeout=timeout,
                     )
 
                     # Success! Reset circuit breaker and record metrics
@@ -1129,7 +1131,7 @@ class AIRouter:
                 latency_ms=int((time.time() - start_t) * 1000),
             )
 
-        resp = await self.execute(Capability.PROMPT_ARCHITECT, req)
+        resp = await self.execute(Capability.PROMPT_ARCHITECT, req, timeout=8.0)
         elapsed_ms = int((time.time() - start_t) * 1000)
 
         # Parse JSON output
@@ -1152,26 +1154,66 @@ class AIRouter:
             score = max(0, min(100, score))
             grade = parsed.get("rating_grade") or ("A+" if score >= 95 else "A" if score >= 88 else "B+")
 
+            opt_prompt = parsed.get("optimized_prompt", current_prompt)
+
+            # Ensure plain English name updates are deterministically reflected
+            lower_intent = user_intent.lower()
+            name_match = re.search(r"(?:change|rename|set)\s+(?:the\s+)?name\s+(?:from\s+[a-z0-9_]+\s+)?to\s+([a-z0-9_]+)", lower_intent)
+            if not name_match:
+                name_match = re.search(r"(?:call\s+(?:the\s+)?agent|name\s+is)\s+([a-z0-9_]+)", lower_intent)
+            if name_match:
+                new_name = name_match.group(1).capitalize()
+                if "edith" in opt_prompt.lower():
+                    opt_prompt = re.sub(r"\bEDITH\b", new_name.upper(), opt_prompt)
+                    opt_prompt = re.sub(r"\bEdith\b", new_name, opt_prompt)
+                    opt_prompt = re.sub(r"\bedith\b", new_name.lower(), opt_prompt)
+
+            soc = parsed.get("summary_of_changes")
+            if isinstance(soc, list):
+                soc_str = "\n".join(str(s) for s in soc)
+            elif isinstance(soc, dict):
+                soc_str = "\n".join(f"{k}: {v}" for k, v in soc.items())
+            else:
+                soc_str = str(soc or f"Optimized based on: {user_intent}")
+
             return PromptOptimizationResult(
                 section=section_name,
-                optimized_prompt=parsed.get("optimized_prompt", current_prompt),
+                optimized_prompt=opt_prompt,
                 rating_score=score,
                 rating_grade=grade,
                 rating_breakdown=breakdown,
-                summary_of_changes=parsed.get("summary_of_changes", f"Optimized based on: {user_intent}"),
+                summary_of_changes=soc_str,
                 model_used=resp.model,
                 latency_ms=elapsed_ms,
             )
         except Exception as e:
             logger.warning(f"[AIRouter] Failed to parse JSON from Prompt Architect model: {e}. Falling back to content extract.")
             cleaned_content = resp.content.strip()
-            if cleaned_content.startswith("```"):
-                cleaned_content = re.sub(r"^```[a-z]*\n", "", cleaned_content)
-                cleaned_content = re.sub(r"\n```$", "", cleaned_content)
+            # Try regex extraction of optimized_prompt
+            match_opt = re.search(r'"optimized_prompt":\s*"([^"\\]*(?:\\.[^"\\]*)*)"', cleaned_content, re.DOTALL)
+            if match_opt:
+                extracted_prompt = match_opt.group(1).replace('\\"', '"').replace('\\n', '\n')
+            else:
+                if cleaned_content.startswith("```"):
+                    cleaned_content = re.sub(r"^```[a-z]*\n", "", cleaned_content)
+                    cleaned_content = re.sub(r"\n```$", "", cleaned_content)
+                extracted_prompt = cleaned_content if len(cleaned_content) > 50 and not cleaned_content.startswith("{") else current_prompt
+
+            # Also apply name replacement to fallback prompt
+            lower_intent = user_intent.lower()
+            name_match = re.search(r"(?:change|rename|set)\s+(?:the\s+)?name\s+(?:from\s+[a-z0-9_]+\s+)?to\s+([a-z0-9_]+)", lower_intent)
+            if not name_match:
+                name_match = re.search(r"(?:call\s+(?:the\s+)?agent|name\s+is)\s+([a-z0-9_]+)", lower_intent)
+            if name_match:
+                new_name = name_match.group(1).capitalize()
+                if "edith" in extracted_prompt.lower():
+                    extracted_prompt = re.sub(r"\bEDITH\b", new_name.upper(), extracted_prompt)
+                    extracted_prompt = re.sub(r"\bEdith\b", new_name, extracted_prompt)
+                    extracted_prompt = re.sub(r"\bedith\b", new_name.lower(), extracted_prompt)
 
             return PromptOptimizationResult(
                 section=section_name,
-                optimized_prompt=cleaned_content if len(cleaned_content) > 50 else current_prompt,
+                optimized_prompt=extracted_prompt,
                 rating_score=94,
                 rating_grade="A",
                 rating_breakdown=PromptRatingBreakdown(clarity=94, constraint_strength=93, b2b_effectiveness=95, safety_grounding=95),
