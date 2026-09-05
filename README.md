@@ -12,15 +12,20 @@
 
 ---
 
-## 📸 Visual Operations Tour & Dashboard Screenshots
+## 📸 Visual Operations Tour & Brand Design
 
-EDITH provides a state-of-the-art **pitch-black-and-crimson** visual control center with an oxblood canvas gradient, static 24px dot-grid texture, and frosted-glass surfaces.
+EDITH features a refined **Dual-Theme Design System** crafted for high-efficiency 24/7 wholesale operations:
+- **Royal Pitch Black (Midnight Celestial)**: Deep onyx canvas, subtle cyan/sky-blue glows, frosted glass cards, and emerald accent telemetry.
+- **Estate White (Daylight Operations)**: Crisp pearl-white surfaces, high-contrast typography, refined borders, and sunlight-legible data badges.
+- **Official Brand Assets**: High-resolution transparent EDITH brand emblem (`logo-transparent.png`), light-mode emblem (`logo-light.png`), and compact favicon icon (`logo-icon.png`).
+- **Brand Tagline**: *"More Conversations • Real Opportunities"*.
+- **Mobile First & Responsive**: Seamless experience on iPhones, Android devices, tablets, and 4K ultra-wide monitors.
 
 ### 1. Live 3-Panel Inbox & Conversational Sales Console
 The operational command center for real-time buyer conversations, AI consultative reasoning, customer memory, and atomic human takeover:
 - **Left Thread List**: Real-time conversation stream with search, "+ New Chat" phone initiator, lead score indicators (0–100), unread badges, and status pills.
 - **Center Timeline**: Live WhatsApp dialogue showing customer queries, EDITH AI responses, timestamp audit, and single-click **Report / Correct Response** operator feedback.
-- **Right Profile Drawer**: Live customer intelligence (business type, monthly volume, packaging preference, destination city), sales stage progression, and **Take Over / Resume AI** control.
+- **Right Profile Drawer**: Live customer intelligence (business type, monthly volume, packaging preference, destination city), sales stage progression, and **Take Over / Resume AI** control. On mobile devices, this is accessible via a high-visibility slide-over drawer.
 
 ![EDITH Live Inbox Console](docs/screenshots/live_inbox.png)
 
@@ -117,8 +122,14 @@ Autonomous control panel featuring the master AI messaging kill-switch, humanize
 
 ---
 
-### 15. Mobile Responsive Design
-Fully responsive touch experience optimized for mobile operators on iOS Safari and Android Chrome:
+### 15. Mobile Responsive & Dual-Theme Architecture
+EDITH is engineered mobile-first with adaptive touch UI optimized for operators on iOS Safari, Android Chrome, and desktop:
+- **Responsive Navigation Drawer**: One-tap slide-out drawer on phones with quick theme toggle, system status pills, and direct access to all 14 routes.
+- **Dedicated Mobile Chat View**: Full-screen conversation thread view with seamless 1-tap `← Back` navigation between the active customer timeline and inbox list.
+- **Slide-Over Customer Intelligence**: Buyer profile, commercial stage, order intent, and takeover controls accessible via a slide-over modal drawer on mobile viewports.
+- **Horizontal Scrolling Tables**: Orders, leads, campaigns, schedules, and analytics tables wrapped with `overflow-x-auto` containers and strict `min-w` to prevent column squishing on narrow screens.
+- **Touch Targets**: All interactive buttons, action pills, and inputs adhere to mobile touch guidelines (>=44px height).
+- **Dual Theme Switcher**: 1-tap toggling between **Estate White** and **Royal Pitch Black** with persistent `localStorage` theme state and zero FOUC (flash of unstyled content).
 
 | Mobile Operations Center | Mobile Live Chat Stream |
 | :---: | :---: |
@@ -126,14 +137,15 @@ Fully responsive touch experience optimized for mobile operators on iOS Safari a
 
 ---
 
-## ⚡ Super Fast Quickstart (Up & Running in 2 Minutes)
+## ⚡ Super Fast Quickstart (Unified 1-Command Startup)
+
+We provide a zero-configuration single root orchestrator (`run.py`) that checks preflight dependencies, verifies and frees ports, auto-installs missing packages, seeds the database, and boots all 4 microservices simultaneously into a unified terminal with live color-coded logging.
 
 ```mermaid
 flowchart LR
     A[1. Clone Repo] --> B[2. Configure .env]
-    B --> C[3. Scan WhatsApp QR]
-    C --> D[4. Start Backend & Worker]
-    D --> E[5. Open Dashboard & Chat]
+    B --> C[3. Run `python run.py`]
+    C --> D[4. Auto-opens Dashboard & QR]
 ```
 
 ### Step 1: Clone the Repository
@@ -147,7 +159,7 @@ Copy the template configuration file:
 ```bash
 cp .env.example .env
 ```
-Ensure your `.env` contains:
+Ensure your `.env` contains your NVIDIA API key and WhatsApp configuration:
 ```env
 # AI Model (NVIDIA Nemotron 3.5 / Ultra via NVIDIA NIM)
 NVIDIA_API_KEY=your-nvapi-key-here
@@ -163,45 +175,62 @@ WHATSAPP_BRIDGE_URL=http://localhost:3001
 OWNER_WHATSAPP_NUMBER=+918900653250
 ```
 
-### Step 3: Connect WhatsApp (Super Easy QR Scan)
-Start the lightweight Baileys WhatsApp Bridge:
+### Step 3: Start Everything With One Single Command! 🚀
+Run the master orchestrator from the project root:
 ```bash
-cd whatsapp-bridge
-npm install
-node index.js
+python run.py
 ```
-👉 Open your browser at **[http://localhost:3001/qr](http://localhost:3001/qr)**:
+
+What `run.py` does automatically:
+1. **Preflight Diagnostics**: Checks Python 3.11+, Node.js 18+, and npm versions.
+2. **Dependency Resolution**: Automatically installs any missing Python packages, WhatsApp bridge modules, and Next.js dependencies.
+3. **Port Conflict Protection**: Verifies ports `8000` (FastAPI), `3001` (WhatsApp Bridge), and `3000` (Next.js Dashboard), clearing stale locks.
+4. **Database & Catalog Seeding**: Auto-initializes SQLite / PostgreSQL and seeds North Bengal Tea Co. products, volume rules, and leads if empty.
+5. **Simultaneous Multi-Service Boot**: Launches:
+   - ⚡ **FastAPI Backend Service** (`http://localhost:8000`)
+   - 🧠 **Durable Background Job Worker** (cadence follow-ups & async reasoning)
+   - 📱 **Baileys WhatsApp Bridge** (`http://localhost:3001`)
+   - 💻 **Next.js 14 Operator Control Center** (`http://localhost:3000`)
+6. **Live Unified Logging**: Color-coded prefix logs (`[BACKEND]`, `[WORKER]`, `[WHATSAPP]`, `[DASHBOARD]`) streamed directly to your terminal.
+7. **Clean Graceful Shutdown**: Pressing `Ctrl+C` cleanly shuts down all subprocesses without orphaned background tasks or port locking.
+
+*(Optional flags: `python run.py --no-open` to disable auto-opening browser tabs, `python run.py --skip-install` for instant warm reboots).*
+
+---
+
+### Step 4: Connect WhatsApp (Simple QR Scan)
+When the browser opens [http://localhost:3001/qr](http://localhost:3001/qr):
 1. Open **WhatsApp** on your bot phone (`+91 89187 53100` or your test number).
 2. Tap **Settings > Linked Devices > Link a Device**.
 3. Scan the QR code shown on screen.
-4. 🎉 **Connected!** The bridge is now linked and forwards incoming messages automatically.
+4. 🎉 **Connected!** The bridge is linked and forwards incoming messages automatically.
 
-### Step 4: Start the Backend & Worker
-Open a terminal at the project root (`wb-agent/`):
-```bash
-# 1. Install Python dependencies
-pip install -r backend/requirements.txt
+---
 
-# 2. Seed catalog, demo leads, and pricing rules
-python scripts/seed_demo.py
+<details>
+<summary>🛠️ Advanced / Developer: Manual Multi-Terminal Startup</summary>
 
-# 3. Start the FastAPI backend
-python -m uvicorn app.main:app --app-dir backend --host 0.0.0.0 --port 8000
-```
+If you prefer to run each service in a separate terminal window:
 
-In another terminal, start the background job worker (cadence processing and background thinking):
-```bash
-$env:PYTHONPATH="backend"; python -m app.jobs.worker
-```
-
-### Step 5: Start the Web Dashboard
-Open another terminal:
-```bash
-cd dashboard
-npm install
-npm run dev
-```
-Open **[http://localhost:3000](http://localhost:3000)** to view the live sales operator console.
+1. **WhatsApp Bridge (Terminal 1)**:
+   ```bash
+   cd whatsapp-bridge && npm install && node index.js
+   ```
+2. **FastAPI Backend (Terminal 2)**:
+   ```bash
+   pip install -r backend/requirements.txt
+   python scripts/seed_demo.py
+   python -m uvicorn app.main:app --app-dir backend --host 0.0.0.0 --port 8000
+   ```
+3. **Durable Worker (Terminal 3)**:
+   ```bash
+   $env:PYTHONPATH="backend"; python -m app.jobs.worker
+   ```
+4. **Next.js Dashboard (Terminal 4)**:
+   ```bash
+   cd dashboard && npm install && npm run dev
+   ```
+</details>
 
 ---
 
