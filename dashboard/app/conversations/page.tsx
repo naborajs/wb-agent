@@ -30,6 +30,7 @@ import {
   Copy,
   Check,
   RotateCcw,
+  ArrowLeft,
 } from "lucide-react";
 
 interface ConversationItem {
@@ -100,6 +101,7 @@ export default function LiveInboxPage() {
 
   // Active conversation object
   const activeConv = conversations.find((c) => c.id === activeConvId);
+  const [mobileShowIntel, setMobileShowIntel] = useState(false);
 
   // Real-Time WebSocket & Audio Notification State (R3)
   const [wsConnected, setWsConnected] = useState(false);
@@ -593,7 +595,7 @@ export default function LiveInboxPage() {
   return (
     <div className="h-[calc(100vh-6.5rem)] flex rounded-xl border border-[var(--ed-border)] bg-[var(--ed-surface)] overflow-hidden shadow-sm">
       {/* 1. Left Panel: Conversation Threads */}
-      <div className="w-80 border-r border-[var(--ed-border)] flex flex-col shrink-0 bg-[var(--ed-surface)]">
+      <div className={`w-full md:w-80 border-r border-[var(--ed-border)] flex flex-col shrink-0 bg-[var(--ed-surface)] ${activeConvId ? "hidden md:flex" : "flex"}`}>
         {/* Search & Actions */}
         <div className="p-3 border-b border-[var(--ed-border)] space-y-2">
           <div className="flex items-center gap-2">
@@ -707,7 +709,7 @@ export default function LiveInboxPage() {
       </div>
 
       {/* 2. Center Panel: Active Chat Timeline */}
-      <div className="flex-1 flex flex-col min-w-0 border-r border-[var(--ed-border)] bg-[var(--ed-bg)]">
+      <div className={`flex-1 flex flex-col min-w-0 border-r border-[var(--ed-border)] bg-[var(--ed-bg)] ${activeConvId ? "flex" : "hidden md:flex"}`}>
         {!activeConv ? (
           <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-[var(--ed-surface)] relative overflow-hidden">
             {/* Ambient celestial glow orbs */}
@@ -743,34 +745,47 @@ export default function LiveInboxPage() {
         ) : (
           <>
             {/* Chat Header */}
-            <div className="h-14 px-6 border-b border-[var(--ed-border)] bg-[var(--ed-surface)] flex items-center justify-between shrink-0">
-              <div>
-                <h3 className="font-bold text-sm text-[var(--ed-text-primary)] flex items-center gap-2">
-                  {activeConvDetail?.customer?.name ||
-                    activeConvDetail?.customer?.company_name ||
-                    activeConv.channel_id}
-                  {activeConv.is_hot && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-[var(--ed-danger)]/8 text-[var(--ed-danger)] border border-[var(--ed-danger)]/20">
-                      <Flame className="w-3 h-3" /> Hot Lead
+            <div className="min-h-14 px-3 sm:px-6 py-2.5 sm:py-0 border-b border-[var(--ed-border)] bg-[var(--ed-surface)] flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 shrink-0">
+              <div className="flex items-center gap-2 min-w-0">
+                <button
+                  type="button"
+                  onClick={() => setActiveConvId("")}
+                  className="md:hidden p-1.5 rounded-lg border border-[var(--ed-border)] text-[var(--ed-text-muted)] hover:text-[var(--ed-text-primary)] hover:bg-[var(--ed-bg)] shrink-0 transition-colors"
+                  title="Back to inbox list"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                </button>
+                <div className="min-w-0">
+                  <h3 className="font-bold text-xs sm:text-sm text-[var(--ed-text-primary)] flex items-center gap-1.5 sm:gap-2 truncate">
+                    <span className="truncate">
+                      {activeConvDetail?.customer?.name ||
+                        activeConvDetail?.customer?.company_name ||
+                        activeConv.channel_id}
                     </span>
-                  )}
-                </h3>
-                <div className="text-xs text-[var(--ed-text-muted)] mt-0.5">
-                  WhatsApp: {activeConv.channel_id}
+                    {activeConv.is_hot && (
+                      <span className="shrink-0 inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold bg-[var(--ed-danger)]/8 text-[var(--ed-danger)] border border-[var(--ed-danger)]/20">
+                        <Flame className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> Hot
+                      </span>
+                    )}
+                  </h3>
+                  <div className="text-[10px] sm:text-xs text-[var(--ed-text-muted)] truncate">
+                    WhatsApp: {activeConv.channel_id}
+                  </div>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap sm:flex-nowrap shrink-0">
                 {/* Real-Time WhatsApp Bot Connection Badge */}
                 {waStatus?.connected ? (
                   <button
                     type="button"
                     onClick={() => setIsWaModalOpen(true)}
                     title="WhatsApp Bot is Active! Click for connection details"
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-500 text-[10px] font-semibold hover:bg-emerald-500/20 transition-all cursor-pointer"
+                    className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-500 text-[10px] font-semibold hover:bg-emerald-500/20 transition-all cursor-pointer"
                   >
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    <span>WhatsApp Live</span>
+                    <span className="hidden sm:inline">WhatsApp Live</span>
+                    <span className="sm:hidden">WA Live</span>
                   </button>
                 ) : (
                   <button
@@ -780,10 +795,11 @@ export default function LiveInboxPage() {
                       setIsWaModalOpen(true);
                     }}
                     title="WhatsApp is disconnected. Click to connect bot"
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-amber-500/40 bg-amber-500/10 text-amber-500 text-[10px] font-semibold hover:bg-amber-500/20 transition-all cursor-pointer animate-pulse"
+                    className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 rounded-lg border border-amber-500/40 bg-amber-500/10 text-amber-500 text-[10px] font-semibold hover:bg-amber-500/20 transition-all cursor-pointer animate-pulse"
                   >
                     <AlertTriangle className="w-3 h-3" />
-                    <span>Connect WhatsApp</span>
+                    <span className="hidden sm:inline">Connect WhatsApp</span>
+                    <span className="sm:hidden">Connect</span>
                   </button>
                 )}
 
@@ -793,14 +809,14 @@ export default function LiveInboxPage() {
                   onClick={handleSendPing}
                   disabled={isSendingPing}
                   title="Send instant WhatsApp ping to verify live message delivery"
-                  className="px-2.5 py-1 rounded-lg border border-[var(--ed-border)] hover:border-emerald-500/40 hover:bg-emerald-500/10 text-[10px] font-semibold text-[var(--ed-text-muted)] hover:text-emerald-500 transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                  className="px-2 sm:px-2.5 py-1 rounded-lg border border-[var(--ed-border)] hover:border-emerald-500/40 hover:bg-emerald-500/10 text-[10px] font-semibold text-[var(--ed-text-muted)] hover:text-emerald-500 transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
                 >
                   <Send className="w-2.5 h-2.5" />
-                  {isSendingPing ? "Pinging..." : "Test Ping"}
+                  <span className="hidden sm:inline">{isSendingPing ? "Pinging..." : "Test Ping"}</span>
                 </button>
 
                 {/* WebSocket Live Sync & Sound Chime (R3) */}
-                <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg border border-[var(--ed-border)] text-[10px] font-semibold">
+                <div className="hidden sm:flex items-center gap-1.5 px-2 py-1 rounded-lg border border-[var(--ed-border)] text-[10px] font-semibold">
                   <Radio className={`w-3 h-3 ${wsConnected ? "text-emerald-500 animate-pulse" : "text-amber-500"}`} />
                   <span className={wsConnected ? "text-emerald-500" : "text-amber-500"}>
                     {wsConnected ? "WS Live" : "Polling"}
@@ -818,19 +834,30 @@ export default function LiveInboxPage() {
                 >
                   {soundEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
                 </button>
+
+                {/* Customer Details Sheet Toggle Button for Mobile / Tablet */}
+                <button
+                  type="button"
+                  onClick={() => setMobileShowIntel(true)}
+                  title="View Customer Profile Intelligence"
+                  className="xl:hidden p-1.5 rounded-lg border border-[var(--ed-border)] text-[var(--ed-text-muted)] hover:text-[var(--ed-text-primary)] hover:bg-[var(--ed-bg)] transition-colors"
+                >
+                  <User className="w-3.5 h-3.5" />
+                </button>
+
                 {activeConv.mode === "HUMAN" ? (
                   <button
                     onClick={() => handleTakeover("AI")}
-                    className="ed-press ed-focus-ring inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-[var(--ed-success)] hover:opacity-90 text-white rounded-xl text-xs font-semibold shadow-sm transition-all"
+                    className="ed-press ed-focus-ring inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1.5 bg-[var(--ed-success)] hover:opacity-90 text-white rounded-xl text-xs font-semibold shadow-sm transition-all"
                   >
-                    <Play className="w-3.5 h-3.5" /> Resume AI
+                    <Play className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Resume</span> AI
                   </button>
                 ) : (
                   <button
                     onClick={() => handleTakeover("HUMAN")}
-                    className="ed-btn-primary ed-press ed-focus-ring inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all"
+                    className="ed-btn-primary ed-press ed-focus-ring inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all"
                   >
-                    <Pause className="w-3.5 h-3.5" /> Take Over
+                    <Pause className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Take</span> Over
                   </button>
                 )}
 
@@ -840,10 +867,10 @@ export default function LiveInboxPage() {
                   onClick={handleResetChat}
                   disabled={isResetting}
                   title="Clear messages and reset conversation to initial state"
-                  className="px-2.5 py-1.5 rounded-xl border border-rose-500/30 hover:border-rose-500/60 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-xs font-semibold transition-all inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl border border-rose-500/30 hover:border-rose-500/60 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-xs font-semibold transition-all inline-flex items-center gap-1 cursor-pointer disabled:opacity-50"
                 >
                   <RotateCcw className={`w-3.5 h-3.5 ${isResetting ? "animate-spin" : ""}`} />
-                  <span>{isResetting ? "Resetting..." : "Reset"}</span>
+                  <span className="hidden sm:inline">{isResetting ? "..." : "Reset"}</span>
                 </button>
               </div>
             </div>
@@ -883,7 +910,7 @@ export default function LiveInboxPage() {
             )}
 
             {/* Message Thread */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+            <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-3 sm:space-y-4">
               {(activeConvDetail?.messages || []).map((msg: Message) => {
                 const isInbound = msg.direction === "inbound";
                 const isAI = !isInbound && msg.sender_type !== "human";
@@ -895,7 +922,7 @@ export default function LiveInboxPage() {
                     }`}
                   >
                     <div
-                      className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-xs shadow-sm leading-relaxed ${
+                      className={`max-w-[88%] sm:max-w-[80%] rounded-2xl px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs shadow-sm leading-relaxed ${
                         isInbound
                           ? "bg-[var(--ed-surface)] text-slate-900 dark:text-slate-100 border border-[var(--ed-border)] rounded-tl-sm"
                           : msg.sender_type === "human"
@@ -1006,14 +1033,14 @@ export default function LiveInboxPage() {
             </div>
 
             {/* Chat Input Bar */}
-            <div className="p-3 border-t border-[var(--ed-border)] bg-[var(--ed-surface)] space-y-2">
-              <div className="flex items-center justify-between text-[11px]">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[var(--ed-text-muted)] font-medium">Chat Mode:</span>
+            <div className="p-2.5 sm:p-3 border-t border-[var(--ed-border)] bg-[var(--ed-surface)] space-y-2">
+              <div className="flex flex-wrap items-center justify-between gap-1.5 text-[11px]">
+                <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
+                  <span className="text-[var(--ed-text-muted)] font-medium text-[10px] sm:text-xs">Chat Mode:</span>
                   <button
                     type="button"
                     onClick={() => setIsSimulatingCustomer(false)}
-                    className={`px-2.5 py-1 rounded-md font-semibold transition-colors ${
+                    className={`px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md text-[10px] sm:text-xs font-semibold transition-colors ${
                       !isSimulatingCustomer
                         ? "bg-[var(--ed-accent)]/12 text-[var(--ed-accent)] border border-[var(--ed-accent)]/30 shadow-sm"
                         : "text-slate-500 hover:text-[var(--ed-text-primary)]"
@@ -1024,29 +1051,31 @@ export default function LiveInboxPage() {
                   <button
                     type="button"
                     onClick={() => setIsSimulatingCustomer(true)}
-                    className={`px-2.5 py-1 rounded-md font-semibold transition-colors inline-flex items-center gap-1 ${
+                    className={`px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md text-[10px] sm:text-xs font-semibold transition-colors inline-flex items-center gap-1 ${
                       isSimulatingCustomer
                         ? "bg-purple-500/12 text-purple-500 border border-purple-500/30 shadow-sm"
                         : "text-slate-500 hover:text-[var(--ed-text-primary)]"
                     }`}
                   >
-                    <Sparkles className="w-3 h-3" /> 🧪 Simulate Customer (AI Replies)
+                    <Sparkles className="w-3 h-3" /> 🧪 <span className="hidden sm:inline">Simulate Customer</span><span className="sm:hidden">Simulate</span>
                   </button>
                 </div>
                 {isSimulatingCustomer ? (
-                  <span className="text-[10px] text-purple-500 font-semibold flex items-center gap-1">
+                  <span className="text-[9px] sm:text-[10px] text-purple-500 font-semibold flex items-center gap-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse" />
-                    🧪 Safe Simulation (Internal Only — No WhatsApp messages sent to {activeConv.channel_id})
+                    <span className="hidden sm:inline">Safe Simulation (No WhatsApp sent to {activeConv.channel_id})</span>
+                    <span className="sm:hidden">Safe Simulation (Internal)</span>
                   </span>
                 ) : (
-                  <span className="text-[10px] text-emerald-500 font-medium flex items-center gap-1">
+                  <span className="text-[9px] sm:text-[10px] text-emerald-500 font-medium flex items-center gap-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                    Live WhatsApp to: <strong className="font-semibold text-emerald-400">{activeConv.channel_id}</strong>
+                    <span className="hidden sm:inline">Live WhatsApp to: <strong className="font-semibold text-emerald-400">{activeConv.channel_id}</strong></span>
+                    <span className="sm:hidden">Live to: <strong className="font-semibold text-emerald-400">{activeConv.channel_id}</strong></span>
                   </span>
                 )}
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2">
                 <input
                   type="text"
                   value={inputText}
@@ -1054,12 +1083,12 @@ export default function LiveInboxPage() {
                   onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
                   placeholder={
                     isSimulatingCustomer
-                      ? "Type customer inquiry (e.g. 'What is the price for 50kg Assam CTC for my cafe?')..."
+                      ? "Type customer inquiry (e.g. 'What is the price for 50kg Assam CTC?')..."
                       : activeConv.mode === "HUMAN"
                       ? "Type manual message as Operator..."
                       : "Take over to message manually..."
                   }
-                  className={`flex-1 px-4 py-2.5 rounded-lg border text-xs text-[var(--ed-text-primary)] focus:outline-none focus:ring-2 ${
+                  className={`flex-1 min-w-0 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg border text-xs text-[var(--ed-text-primary)] focus:outline-none focus:ring-2 ${
                     isSimulatingCustomer
                       ? "border-purple-500/30 bg-purple-500/8 ed-focus-ring"
                       : "border-[var(--ed-border)] bg-slate-50 dark:bg-slate-800 ed-focus-ring"
@@ -1077,7 +1106,7 @@ export default function LiveInboxPage() {
                   onClick={() => audioInputRef.current?.click()}
                   disabled={isTranscribingAudio || isSending}
                   title="Upload WhatsApp Voice Note (.ogg, .opus, .mp3)"
-                  className={`p-2.5 rounded-xl border border-[var(--ed-border)] hover:border-purple-500/50 hover:bg-purple-500/10 text-[var(--ed-text-muted)] hover:text-purple-400 transition-all shrink-0 ${
+                  className={`p-2 sm:p-2.5 rounded-xl border border-[var(--ed-border)] hover:border-purple-500/50 hover:bg-purple-500/10 text-[var(--ed-text-muted)] hover:text-purple-400 transition-all shrink-0 ${
                     isTranscribingAudio ? "animate-pulse border-purple-500 text-purple-400" : ""
                   }`}
                 >
@@ -1086,14 +1115,15 @@ export default function LiveInboxPage() {
                 <button
                   onClick={() => handleSendMessage()}
                   disabled={isSending || !inputText.trim()}
-                  className={`px-5 py-2.5 rounded-xl text-white font-semibold text-xs disabled:opacity-40 transition-all inline-flex items-center gap-1.5 shrink-0 ed-press ed-focus-ring ${
+                  className={`px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-xl text-white font-semibold text-xs disabled:opacity-40 transition-all inline-flex items-center gap-1.5 shrink-0 ed-press ed-focus-ring ${
                     isSimulatingCustomer
                       ? "bg-purple-600 hover:bg-purple-700 shadow-md"
                       : "ed-btn-primary"
                   }`}
                 >
                   <Send className="w-3.5 h-3.5" />
-                  {isSending ? "Processing..." : isSimulatingCustomer ? "Simulate & Reply" : "Send"}
+                  <span className="hidden sm:inline">{isSending ? "Processing..." : isSimulatingCustomer ? "Simulate & Reply" : "Send"}</span>
+                  <span className="sm:hidden">{isSending ? "..." : "Send"}</span>
                 </button>
               </div>
             </div>
@@ -1101,9 +1131,9 @@ export default function LiveInboxPage() {
         )}
       </div>
 
-      {/* 3. Right Panel: Customer Intelligence & Memory Profile */}
+      {/* 3. Right Panel: Customer Intelligence & Memory Profile (Desktop) */}
       {activeConvDetail && (
-        <div className="w-72 flex flex-col shrink-0 bg-[var(--ed-surface)] p-5 space-y-5 overflow-y-auto text-xs">
+        <div className="hidden xl:flex w-72 flex-col shrink-0 bg-[var(--ed-surface)] p-5 space-y-5 overflow-y-auto text-xs border-l border-[var(--ed-border)]">
           <div>
             <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--ed-text-muted)] mb-2">
               Customer Profile
@@ -1138,19 +1168,19 @@ export default function LiveInboxPage() {
             </div>
             <div className="space-y-2">
               <div className="flex justify-between items-center">
-                <span className="text-slate-500">Lead Score:</span>
+                <span className="text-[var(--ed-text-muted)]">Lead Score:</span>
                 <span className="font-bold text-[var(--ed-accent)]">
                   {activeConvDetail.conversation.lead_score}/100
                 </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-slate-500">Sales Stage:</span>
+                <span className="text-[var(--ed-text-muted)]">Sales Stage:</span>
                 <span className="font-semibold text-[var(--ed-text-primary)] px-1.5 py-0.5 bg-[var(--ed-bg)] rounded">
                   {activeConvDetail.conversation.sales_stage}
                 </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-slate-500">Control Mode:</span>
+                <span className="text-[var(--ed-text-muted)]">Control Mode:</span>
                 <span className="font-bold text-emerald-600">
                   {activeConvDetail.conversation.mode}
                 </span>
@@ -1163,10 +1193,91 @@ export default function LiveInboxPage() {
             <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--ed-text-muted)] mb-2">
               Structured Memory Summary
             </div>
-            <p className="text-[var(--ed-text-primary)] text-xs leading-relaxed bg-slate-50 dark:bg-[var(--ed-bg)] p-2.5 rounded-lg border border-[var(--ed-border)]">
+            <p className="text-[var(--ed-text-primary)] text-xs leading-relaxed bg-[var(--ed-bg)] p-2.5 rounded-lg border border-[var(--ed-border)]">
               {activeConvDetail.summary ||
                 "Discovery stage active. Gathering beverage menu details, estimated volume, and delivery destination."}
             </p>
+          </div>
+        </div>
+      )}
+
+      {/* Customer Intelligence Slide-over Modal for Mobile / Tablet */}
+      {mobileShowIntel && activeConvDetail && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:justify-end bg-black/60 backdrop-blur-sm p-0 sm:p-4 animate-in fade-in duration-150">
+          <div className="bg-[var(--ed-surface)] rounded-t-2xl sm:rounded-2xl border border-[var(--ed-border)] w-full sm:max-w-md max-h-[85vh] overflow-y-auto p-5 shadow-2xl space-y-5">
+            <div className="flex items-center justify-between pb-3 border-b border-[var(--ed-border)]">
+              <span className="font-bold text-sm text-[var(--ed-text-primary)]">Customer Intelligence</span>
+              <button
+                type="button"
+                onClick={() => setMobileShowIntel(false)}
+                className="p-1.5 rounded-lg text-[var(--ed-text-muted)] hover:text-[var(--ed-text-primary)] hover:bg-[var(--ed-bg)]"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div>
+              <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--ed-text-muted)] mb-1">
+                Customer Profile
+              </div>
+              <div className="font-bold text-base text-[var(--ed-text-primary)]">
+                {activeConvDetail.customer.name || "Unknown Lead"}
+              </div>
+              <div className="text-[var(--ed-text-muted)] text-xs mt-0.5">
+                {activeConvDetail.customer.company_name || "Company Not Provided"}
+              </div>
+            </div>
+
+            <div className="space-y-2 text-[var(--ed-text-primary)]">
+              <div className="flex items-center gap-2">
+                <Phone className="w-3.5 h-3.5 text-[var(--ed-text-muted)]" />
+                <span>{activeConvDetail.customer.phone || "—"}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Building className="w-3.5 h-3.5 text-[var(--ed-text-muted)]" />
+                <span>Type: {activeConvDetail.customer.company_type || "Wholesale"}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Tag className="w-3.5 h-3.5 text-[var(--ed-text-muted)]" />
+                <span>Language: {activeConvDetail.customer.preferred_language || "English"}</span>
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-[var(--ed-border)]">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--ed-text-muted)] mb-2">
+                Sales Intelligence
+              </div>
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-[var(--ed-text-muted)]">Lead Score:</span>
+                  <span className="font-bold text-[var(--ed-accent)]">
+                    {activeConvDetail.conversation.lead_score}/100
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-[var(--ed-text-muted)]">Sales Stage:</span>
+                  <span className="font-semibold text-[var(--ed-text-primary)] px-1.5 py-0.5 bg-[var(--ed-bg)] rounded">
+                    {activeConvDetail.conversation.sales_stage}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-[var(--ed-text-muted)]">Control Mode:</span>
+                  <span className="font-bold text-emerald-600">
+                    {activeConvDetail.conversation.mode}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-[var(--ed-border)]">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--ed-text-muted)] mb-2">
+                Structured Memory Summary
+              </div>
+              <p className="text-[var(--ed-text-primary)] text-xs leading-relaxed bg-[var(--ed-bg)] p-2.5 rounded-lg border border-[var(--ed-border)]">
+                {activeConvDetail.summary ||
+                  "Discovery stage active. Gathering beverage menu details, estimated volume, and delivery destination."}
+              </p>
+            </div>
           </div>
         </div>
       )}
