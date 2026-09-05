@@ -111,10 +111,10 @@ class AIRouter:
                     continue
 
                 try:
-                    # Adaptive timeout: 550b fails fast (4.5s) if NIM 503s; 120b & others get full headroom (25s)
+                    # Adaptive timeout: 550b fails fast (1.0s) because NIM 550B is currently unresponsive; 120b & others get full headroom (25s)
                     req_timeout = timeout
                     if "ultra-550b" in model:
-                        req_timeout = 4.5
+                        req_timeout = 1.0
                     elif req_timeout is None:
                         req_timeout = 25.0
 
@@ -1162,18 +1162,7 @@ class AIRouter:
             grade = parsed.get("rating_grade") or ("A+" if score >= 95 else "A" if score >= 88 else "B+")
 
             opt_prompt = parsed.get("optimized_prompt", current_prompt)
-
-            # Ensure plain English name updates are deterministically reflected
-            lower_intent = user_intent.lower()
-            name_match = re.search(r"(?:change|rename|set)\s+(?:the\s+)?name\s+(?:from\s+[a-z0-9_]+\s+)?to\s+([a-z0-9_]+)", lower_intent)
-            if not name_match:
-                name_match = re.search(r"(?:call\s+(?:the\s+)?agent|name\s+is)\s+([a-z0-9_]+)", lower_intent)
-            if name_match:
-                new_name = name_match.group(1).capitalize()
-                if "edith" in opt_prompt.lower():
-                    opt_prompt = re.sub(r"\bEDITH\b", new_name.upper(), opt_prompt)
-                    opt_prompt = re.sub(r"\bEdith\b", new_name, opt_prompt)
-                    opt_prompt = re.sub(r"\bedith\b", new_name.lower(), opt_prompt)
+            opt_prompt = self._apply_deterministic_entity_updates(opt_prompt, user_intent)
 
             soc = parsed.get("summary_of_changes")
             if isinstance(soc, list):
@@ -1209,17 +1198,8 @@ class AIRouter:
                         cleaned_content = re.sub(r"\n```$", "", cleaned_content)
                     extracted_prompt = cleaned_content if len(cleaned_content) > 50 and not cleaned_content.startswith("{") else current_prompt
 
-            # Also apply name replacement to fallback prompt
-            lower_intent = user_intent.lower()
-            name_match = re.search(r"(?:change|rename|set)\s+(?:the\s+)?name\s+(?:from\s+[a-z0-9_]+\s+)?to\s+([a-z0-9_]+)", lower_intent)
-            if not name_match:
-                name_match = re.search(r"(?:call\s+(?:the\s+)?agent|name\s+is)\s+([a-z0-9_]+)", lower_intent)
-            if name_match:
-                new_name = name_match.group(1).capitalize()
-                if "edith" in extracted_prompt.lower():
-                    extracted_prompt = re.sub(r"\bEDITH\b", new_name.upper(), extracted_prompt)
-                    extracted_prompt = re.sub(r"\bEdith\b", new_name, extracted_prompt)
-                    extracted_prompt = re.sub(r"\bedith\b", new_name.lower(), extracted_prompt)
+            # Apply deterministic entity updates to fallback prompt
+            extracted_prompt = self._apply_deterministic_entity_updates(extracted_prompt, user_intent)
 
             return PromptOptimizationResult(
                 section=section_name,
@@ -1231,6 +1211,43 @@ class AIRouter:
                 model_used=resp.model,
                 latency_ms=elapsed_ms,
             )
+
+    @staticmethod
+    def _apply_deterministic_entity_updates(prompt: str, user_intent: str) -> str:
+        """
+        Deterministically detects persona rename requests (e.g. 'change the name to edit',
+        'rename to rakesh', 'set agent name to vikram') and updates the prompt accordingly.
+        """
+        lower_intent = user_intent.lower()
+        name_match = re.search(r"(?:change|rename|set)\s+(?:the\s+)?name\s+(?:from\s+[a-z0-9_]+\s+)?to\s+([a-z0-9_]+)", lower_intent)
+        if not name_match:
+            name_match = re.search(r"(?:call\s+(?:the\s+)?agent|name\s+is)\s+([a-z0-9_]+)", lower_intent)
+
+        if not name_match:
+            return prompt
+
+        raw_new_name = name_match.group(1).strip()
+        target_name = "EDITH" if raw_new_name.lower() in ("edit", "edith") else raw_new_name.capitalize()
+
+        cur_match = re.search(r"CORE IDENTITY\s*-\s*([A-Za-z0-9_]+)", prompt, re.IGNORECASE)
+        current_names = set()
+        if cur_match:
+            current_names.add(cur_match.group(1))
+
+        cur_match2 = re.search(r"You are\s+([A-Za-z0-9_]+),", prompt, re.IGNORECASE)
+        if cur_match2 and cur_match2.group(1).lower() not in ("professional", "warm", "consultative", "a", "an", "not"):
+            current_names.add(cur_match2.group(1))
+
+        current_names.add("EDITH")
+        current_names.add("Edith")
+
+        updated = prompt
+        for old in current_names:
+            if old.lower() != target_name.lower():
+                updated = re.sub(rf"\b{re.escape(old)}\b", target_name.upper() if old.isupper() else target_name, updated, flags=re.IGNORECASE)
+
+        updated = re.sub(r"CORE IDENTITY\s*-\s*[A-Za-z0-9_]+:", f"CORE IDENTITY - {target_name.upper()}:", updated, flags=re.IGNORECASE)
+        return updated
 
     async def health_check(self) -> Dict[str, Any]:
         """Provides status and metrics summary for dashboard operations."""
