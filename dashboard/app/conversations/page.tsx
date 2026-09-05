@@ -709,16 +709,36 @@ export default function LiveInboxPage() {
       {/* 2. Center Panel: Active Chat Timeline */}
       <div className="flex-1 flex flex-col min-w-0 border-r border-[var(--ed-border)] bg-[var(--ed-bg)]">
         {!activeConv ? (
-          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-slate-50 dark:bg-slate-950">
-            <div className="w-12 h-12 rounded-full bg-[var(--ed-bg)] flex items-center justify-center mb-3">
-              <Bot className="w-6 h-6 text-[var(--ed-text-muted)]" />
+          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-[var(--ed-surface)] relative overflow-hidden">
+            {/* Ambient celestial glow orbs */}
+            <div className="absolute w-80 h-80 rounded-full bg-sky-500/10 blur-3xl pointer-events-none" />
+            <div className="relative z-10 flex flex-col items-center max-w-md">
+              <div className="w-20 h-20 rounded-3xl ed-brand-avatar flex items-center justify-center p-3 mb-4 shadow-xl">
+                <img
+                  src="/logo-icon.png"
+                  alt="EDITH"
+                  className="w-full h-full object-contain drop-shadow-[0_4px_16px_rgba(56,189,248,0.4)]"
+                />
+              </div>
+              <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/25 mb-2">
+                <span>✨</span>
+                <span>More Conversations • Real Opportunities</span>
+              </div>
+              <h4 className="text-base font-bold text-[var(--ed-text-primary)]">
+                EDITH Live Conversations Inbox
+              </h4>
+              <p className="text-xs text-[var(--ed-text-muted)] mt-1.5 leading-relaxed">
+                Select an active customer thread from the left list to review real-time messages, inspect AI tier recommendations, or take over conversation manually.
+              </p>
+              <div className="mt-5 flex items-center gap-3">
+                <button
+                  onClick={() => setIsNewChatOpen(true)}
+                  className="ed-btn-primary px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-md"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Start New Conversation
+                </button>
+              </div>
             </div>
-            <h4 className="text-sm font-semibold text-[var(--ed-text-primary)]">
-              No Conversation Selected
-            </h4>
-            <p className="text-xs text-[var(--ed-text-muted)] mt-1 max-w-sm">
-              Select a conversation from the left inbox or start a new chat!
-            </p>
           </div>
         ) : (
           <>
@@ -899,13 +919,15 @@ export default function LiveInboxPage() {
                             </>
                           ) : (
                             <>
-                              <img
-                                src="/logo-icon.png"
-                                alt="EDITH"
-                                className="w-3.5 h-3.5 rounded-full object-cover shrink-0 border border-emerald-500/40"
-                              />
-                              <span className="text-[var(--ed-success)] font-semibold">
-                                EDITH (Nemotron AI)
+                              <div className="w-4 h-4 rounded-full ed-brand-avatar flex items-center justify-center p-0.5 shrink-0">
+                                <img
+                                  src="/logo-icon.png"
+                                  alt="EDITH"
+                                  className="w-full h-full object-contain"
+                                />
+                              </div>
+                              <span className="text-sky-600 dark:text-sky-400 font-semibold flex items-center gap-1">
+                                EDITH AI
                               </span>
                             </>
                           )}

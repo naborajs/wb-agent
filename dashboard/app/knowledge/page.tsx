@@ -58,11 +58,24 @@ export default function KnowledgeBasePage() {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight text-[var(--ed-text-primary)]">Knowledge Base & Vector RAG</h2>
-        <p className="text-sm text-[var(--ed-text-muted)] mt-1">
-          Grounding truth architecture: parsed company documentation, FAQs, and semantic vector embeddings.
-        </p>
+      <div className="flex items-center gap-4">
+        <div className="w-14 h-14 rounded-2xl ed-brand-avatar flex items-center justify-center p-2 shrink-0">
+          <img
+            src="/logo-icon.png"
+            alt="EDITH RAG"
+            className="w-full h-full object-contain drop-shadow-[0_2px_8px_rgba(56,189,248,0.35)]"
+          />
+        </div>
+        <div>
+          <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/25 mb-1">
+            <span>✨</span>
+            <span>Neural RAG Grounding Engine</span>
+          </div>
+          <h2 className="text-2xl font-bold tracking-tight text-[var(--ed-text-primary)]">Knowledge Base & Vector RAG</h2>
+          <p className="text-xs text-[var(--ed-text-muted)] mt-0.5">
+            Deterministic tea domain truth: parsed company documentation, certifications, and high-dimensional semantic embeddings.
+          </p>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

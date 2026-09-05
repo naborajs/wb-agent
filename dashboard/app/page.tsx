@@ -128,25 +128,46 @@ export default function DashboardOverview() {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      {/* Top Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3.5">
-          <div className="relative w-12 h-12 rounded-xl overflow-hidden border border-sky-500/30 bg-slate-950 shadow-md shrink-0">
-            <img src="/logo-icon.png" alt="EDITH" className="w-full h-full object-cover" />
+      {/* Luxury Brand Hero Banner */}
+      <div className="ed-brand-hero p-6 sm:p-7 rounded-3xl flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden">
+        {/* Subtle decorative celestial glow orbs */}
+        <div className="absolute top-0 right-1/4 w-72 h-72 rounded-full bg-sky-500/10 dark:bg-sky-500/15 blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 right-10 w-60 h-60 rounded-full bg-indigo-500/10 dark:bg-indigo-500/15 blur-3xl pointer-events-none" />
+
+        <div className="flex items-center gap-5 z-10">
+          <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-3xl ed-brand-avatar flex items-center justify-center p-2.5 shrink-0 group">
+            <img
+              src="/logo-icon.png"
+              alt="EDITH Brand Emblem"
+              className="w-full h-full object-contain drop-shadow-[0_4px_16px_rgba(56,189,248,0.45)] group-hover:scale-105 transition-transform duration-300"
+            />
+            {/* Pulsing online badge */}
+            <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-[var(--ed-surface)] border-2 border-[var(--ed-border)] flex items-center justify-center">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+            </span>
           </div>
-          <div>
-            <h2 className="text-2xl font-bold tracking-tight text-[var(--ed-text-primary)]">
-              Wholesale Operations Center
+
+          <div className="space-y-1">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/25">
+              <span>✨</span>
+              <span>More Conversations • Real Opportunities</span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--ed-text-primary)]">
+              EDITH Operations Center
             </h2>
-            <p className="text-sm text-[var(--ed-text-muted)] mt-0.5">
-              Autonomous acquisition, qualification, and B2B conversion powered by EDITH.
+            <p className="text-xs sm:text-sm text-[var(--ed-text-muted)] max-w-xl">
+              Autonomous conversational acquisition, instant tier pricing, and wholesale order generation for North Bengal Tea Co.
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold text-[var(--ed-success)] border border-[var(--ed-success)]/20" style={{ background: "color-mix(in srgb, var(--ed-success) 8%, transparent)" }}>
-            <span className="w-2 h-2 rounded-full bg-[var(--ed-success)] animate-pulse"></span>
-            System Operational (Queue: {metrics.queue_depth})
+
+        <div className="flex flex-wrap items-center gap-3 z-10 shrink-0">
+          <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold text-emerald-600 dark:text-emerald-400 border border-emerald-500/25 bg-emerald-500/8">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            EDITH AI Active
+          </div>
+          <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold text-[var(--ed-text-muted)] border border-[var(--ed-border)] bg-[var(--ed-surface)]">
+            <span className="font-mono text-sky-600 dark:text-sky-400">Queue: {metrics.queue_depth}</span>
           </div>
         </div>
       </div>

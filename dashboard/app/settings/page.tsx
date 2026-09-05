@@ -330,27 +330,87 @@ export default function SystemSettingsPage() {
           Business Identity & Sales Persona Details
         </div>
 
-        {/* Brand Logo & Visual Assets Card */}
-        <div className="p-4 rounded-xl border border-[var(--ed-border)] bg-[var(--ed-bg)] flex flex-col sm:flex-row items-center gap-4">
-          <div className="relative w-20 h-20 rounded-2xl overflow-hidden border border-sky-500/30 bg-slate-950 shadow-md shrink-0">
-            <img src="/logo.png" alt="EDITH Master Logo" className="w-full h-full object-cover" />
-          </div>
-          <div className="space-y-1 text-center sm:text-left">
-            <div className="font-bold text-xs text-[var(--ed-text-primary)] flex items-center justify-center sm:justify-start gap-2">
-              Official EDITH Brand Logo & Favicon
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/30 font-semibold">
-                Active Systemwide
-              </span>
+        {/* Brand Logo & Visual Assets Showcase */}
+        <div className="p-5 rounded-2xl border border-[var(--ed-border)] bg-[var(--ed-bg)] space-y-4">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-b border-[var(--ed-border)] pb-3">
+            <div className="space-y-0.5 text-center sm:text-left">
+              <div className="font-bold text-xs text-[var(--ed-text-primary)] flex items-center justify-center sm:justify-start gap-2">
+                <span>Official EDITH Brand Assets & Typography</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 font-semibold">
+                  Active Systemwide
+                </span>
+              </div>
+              <p className="text-[11px] text-[var(--ed-text-muted)]">
+                More Conversations. Real Opportunities. Optimized for White and Black themes.
+              </p>
             </div>
-            <p className="text-[11px] text-[var(--ed-text-muted)]">
-              Applied as favicon, web app manifest, sidebar brand, operator avatar, and WhatsApp conversation badges.
-            </p>
-            <div className="flex items-center justify-center sm:justify-start gap-2 pt-1 text-[10px] font-mono text-[var(--ed-text-muted)]">
-              <span>Favicon: /favicon.ico</span>
-              <span>•</span>
-              <span>Icon: /logo-icon.png</span>
-              <span>•</span>
-              <span>Master: /logo.png</span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+            {/* 1. Transparent Emblem */}
+            <div className="p-3.5 rounded-xl border border-[var(--ed-border)] bg-[var(--ed-surface)] flex items-center gap-3">
+              <div className="w-14 h-14 rounded-2xl ed-brand-avatar flex items-center justify-center p-1.5 shrink-0">
+                <img
+                  src="/logo-icon.png"
+                  alt="Transparent Emblem"
+                  className="w-full h-full object-contain drop-shadow-[0_2px_8px_rgba(56,189,248,0.4)]"
+                />
+              </div>
+              <div className="min-w-0">
+                <div className="font-bold text-xs text-[var(--ed-text-primary)] truncate">
+                  Transparent Emblem
+                </div>
+                <div className="text-[10px] text-[var(--ed-text-muted)] mt-0.5">
+                  512×512 RGBA PNG
+                </div>
+                <div className="font-mono text-[9px] text-sky-600 dark:text-sky-400 mt-1 truncate">
+                  /logo-icon.png
+                </div>
+              </div>
+            </div>
+
+            {/* 2. Master Artwork */}
+            <div className="p-3.5 rounded-xl border border-[var(--ed-border)] bg-[var(--ed-surface)] flex items-center gap-3">
+              <div className="w-14 h-14 rounded-2xl overflow-hidden border border-sky-500/30 bg-slate-950 flex items-center justify-center p-0.5 shrink-0 shadow-sm">
+                <img
+                  src="/logo.png"
+                  alt="Master Artwork"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div className="min-w-0">
+                <div className="font-bold text-xs text-[var(--ed-text-primary)] truncate">
+                  Master Brand Art
+                </div>
+                <div className="text-[10px] text-[var(--ed-text-muted)] mt-0.5">
+                  1254×1254 High-Res
+                </div>
+                <div className="font-mono text-[9px] text-sky-600 dark:text-sky-400 mt-1 truncate">
+                  /edith-master.png
+                </div>
+              </div>
+            </div>
+
+            {/* 3. Multi-Res Favicon & PWA */}
+            <div className="p-3.5 rounded-xl border border-[var(--ed-border)] bg-[var(--ed-surface)] flex items-center gap-3">
+              <div className="w-14 h-14 rounded-2xl ed-brand-avatar flex items-center justify-center p-2 shrink-0">
+                <img
+                  src="/favicon.ico"
+                  alt="Favicon"
+                  className="w-8 h-8 object-contain"
+                />
+              </div>
+              <div className="min-w-0">
+                <div className="font-bold text-xs text-[var(--ed-text-primary)] truncate">
+                  Favicon & App Icon
+                </div>
+                <div className="text-[10px] text-[var(--ed-text-muted)] mt-0.5">
+                  16-256px Multi-Layer ICO
+                </div>
+                <div className="font-mono text-[9px] text-sky-600 dark:text-sky-400 mt-1 truncate">
+                  /favicon.ico
+                </div>
+              </div>
             </div>
           </div>
         </div>

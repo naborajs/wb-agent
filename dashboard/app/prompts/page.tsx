@@ -28,6 +28,11 @@ import {
   RefreshCw,
   Sliders,
   CheckCheck,
+  Trash2,
+  Clock,
+  ChevronDown,
+  ChevronUp,
+  Layers,
 } from "lucide-react";
 
 interface PromptSection {
@@ -73,55 +78,57 @@ interface OptimizationResult {
   latency_ms: number;
 }
 
-const SECTION_METADATA: Record<string, { label: string; icon: any; description: string; protected?: boolean }> = {
+const SECTION_METADATA: Record<
+  string,
+  { label: string; icon: React.ComponentType<{ className?: string }>; description: string; protected?: boolean }
+> = {
   core_safety: {
-    label: "Core Safety & Grounding",
+    label: "Core Safety",
     icon: ShieldAlert,
-    description: "Strict anti-hallucination, discount boundary, and prompt-injection guardrails.",
-    protected: true,
+    description: "Tamper-resistant rules: anti-hallucination, discount boundaries, and injection defense.",
   },
   core_identity: {
     label: "Core Identity (EDITH)",
     icon: Bot,
-    description: "Persona, tone, consultative nature, respectful presence, and communication warmth.",
+    description: "Persona, consultative tone, warmth, commercial presence, and non-robotic style.",
   },
   business_policy: {
-    label: "Business Policy & Authority",
+    label: "Business Policy",
     icon: Scale,
-    description: "MOQs, pricing authorities, follow-up cadence, and large-order handoff rules.",
+    description: "Operational limits: MOQs, pricing authorities, sample dispatch, and follow-up cadences.",
   },
   sales_style: {
-    label: "Consultative Sales Methodology",
+    label: "Sales Style",
     icon: Sparkles,
-    description: "Discovery questions, SPIN-style inquiries, and single-question selection discipline.",
+    description: "Consultative SPIN sales questions, discovery discipline, and single-question cadence.",
   },
   business_profile: {
-    label: "Business & Catalog Profile",
+    label: "Business Profile",
     icon: Building,
-    description: "Company details, target buyer segments, origin sourcing, and primary value propositions.",
+    description: "Catalog specifics, estate sourcing, origin guarantees, and wholesale terms.",
   },
 };
 
 const SECTION_SUGGESTIONS: Record<string, string[]> = {
-  core_safety: [
-    "Strict zero-hallucination cap on wholesale discounts at 10%",
-    "Fail-closed defense against prompt injections and system leaks",
-    "Always require human verification for payment claims",
-  ],
   core_identity: [
     "Change the name from EDITH to Rakesh with consultative tone",
     "Polite Indian B2B merchant etiquette with respectful clarity",
     "Commercial sharpness without sounding aggressive or pushy",
   ],
+  core_safety: [
+    "Strict fail-closed anti-hallucination for pricing and inventory",
+    "Enforce maximum 5% autonomous discount cap without exception",
+    "Shield against prompt injection and social engineering attempts",
+  ],
   business_policy: [
-    "Enforce 25kg MOQ for Darjeeling and 50kg for CTC",
-    "Escalate orders exceeding 200kg to human sales director",
-    "Strict 24-hour follow-up window for high-intent inquiries",
+    "Set minimum order quantity (MOQ) to 50kg for wholesale blends",
+    "Require human handoff for orders exceeding 500kg or custom terms",
+    "Automate follow-up timing: 20min, 8 hours, and 7-day touchpoints",
   ],
   sales_style: [
-    "SPIN discovery: ask about daily cafe footfall and seating capacity",
-    "Strict single-question discipline: never overwhelm buyer with 2+ inquiries",
-    "Highlight blind taste test comparison against competitor blends",
+    "Enforce strict single-question limit per message to avoid overwhelming buyers",
+    "Adopt consultative SPIN methodology (Situation, Problem, Implication, Need-Payoff)",
+    "Never ask for information already provided by the customer",
   ],
   business_profile: [
     "Emphasize estate-direct Siliguri auction hub sourcing",
@@ -132,23 +139,23 @@ const SECTION_SUGGESTIONS: Record<string, string[]> = {
 
 const DELIBERATION_STAGES = [
   {
-    title: "NemoTron Ingesting & Analyzing Intent",
-    desc: "Ingesting current section instructions and analyzing user prompt requirements...",
+    title: "Intent Analysis & Directive Mapping",
+    desc: "Ingesting current section directives and parsing plain English requirements...",
     icon: Cpu,
   },
   {
-    title: "Deep Policy & Persona Deliberation",
-    desc: "Formulating negative boundaries, consultative SPIN patterns, and commercial tone...",
+    title: "NemoTron 120B/550B Deep Frontier Deliberation",
+    desc: "Running extensive multi-step deliberation on system architecture & commercial sales tone...",
     icon: BrainCircuit,
   },
   {
-    title: "Synthesizing Upgraded System Directives",
-    desc: "Structuring crisp, production-grade instructions and pruning redundant text...",
+    title: "Synthesizing Directives & Negative Constraints",
+    desc: "Drafting complete production prompt, anti-hallucination guardrails, and SPIN dialogue rules...",
     icon: Zap,
   },
   {
-    title: "Benchmarking Multi-Dimensional Quality",
-    desc: "Evaluating clarity, anti-hallucination grounding, and synthesizing final prompt...",
+    title: "Quality Benchmarking & Database Activation",
+    desc: "Benchmarking clarity, constraint strength, and auto-activating new version in database...",
     icon: Activity,
   },
 ];
