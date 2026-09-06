@@ -1,9 +1,43 @@
 /**
  * Web Audio Streaming Pipeline for Gemini Live API.
- * - Captures 16kHz 16-bit linear PCM from user microphone.
- * - Plays 24kHz 16-bit linear PCM received from Gemini Live API.
+ * - Captures audio from user microphone, cleanly downsamples to 16kHz 16-bit linear PCM.
+ * - Plays 24kHz 16-bit linear PCM received from Gemini Live API with streaming queue.
  * - Supports instant barge-in interruption.
  */
+
+function downsampleTo16kHz(inputData: Float32Array, inputSampleRate: number): Int16Array {
+  if (inputSampleRate === 16000) {
+    const pcm16 = new Int16Array(inputData.length);
+    for (let i = 0; i < inputData.length; i++) {
+      const s = Math.max(-1, Math.min(1, inputData[i]));
+      pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
+    }
+    return pcm16;
+  }
+
+  const ratio = inputSampleRate / 16000;
+  const newLength = Math.round(inputData.length / ratio);
+  const result = new Int16Array(newLength);
+  let offsetResult = 0;
+  let offsetInput = 0;
+
+  while (offsetResult < result.length) {
+    const nextOffsetInput = Math.round((offsetResult + 1) * ratio);
+    let accum = 0;
+    let count = 0;
+    for (let i = offsetInput; i < nextOffsetInput && i < inputData.length; i++) {
+      accum += inputData[i];
+      count++;
+    }
+    const sample = count > 0 ? accum / count : 0;
+    const clamped = Math.max(-1, Math.min(1, sample));
+    result[offsetResult] = clamped < 0 ? clamped * 0x8000 : clamped * 0x7fff;
+    offsetResult++;
+    offsetInput = nextOffsetInput;
+  }
+
+  return result;
+}
 
 export class AudioStreamer {
   private inputAudioContext: AudioContext | null = null;
@@ -27,7 +61,6 @@ export class AudioStreamer {
     this.mediaStream = await navigator.mediaDevices.getUserMedia({
       audio: {
         channelCount: 1,
-        sampleRate: 16000,
         echoCancellation: true,
         noiseSuppression: true,
         autoGainControl: true,
@@ -35,14 +68,16 @@ export class AudioStreamer {
     });
 
     const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-    this.inputAudioContext = new AudioContextClass({ sampleRate: 16000 });
+    this.inputAudioContext = new AudioContextClass();
     if (this.inputAudioContext.state === "suspended") {
       await this.inputAudioContext.resume();
     }
 
+    const actualSampleRate = this.inputAudioContext.sampleRate;
     this.sourceNode = this.inputAudioContext.createMediaStreamSource(this.mediaStream);
-    // Buffer size 2048 gives ~128ms chunks at 16kHz
-    this.processorNode = this.inputAudioContext.createScriptProcessor(2048, 1, 1);
+
+    // 4096 buffer size gives ~85ms chunks at 48kHz, ~92ms at 44.1kHz, ~256ms at 16kHz
+    this.processorNode = this.inputAudioContext.createScriptProcessor(4096, 1, 1);
 
     this.processorNode.onaudioprocess = (e) => {
       if (!this.isRecording) return;
@@ -54,18 +89,14 @@ export class AudioStreamer {
         sum += inputData[i] * inputData[i];
       }
       const rms = Math.sqrt(sum / inputData.length);
-      this.onVolumeChange?.(Math.min(1, rms * 4));
+      this.onVolumeChange?.(Math.min(1, rms * 5));
 
-      // Convert Float32Array to 16-bit PCM (Little Endian)
-      const pcm16 = new Int16Array(inputData.length);
-      for (let i = 0; i < inputData.length; i++) {
-        const s = Math.max(-1, Math.min(1, inputData[i]));
-        pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
-      }
+      // Downsample to clean 16kHz 16-bit linear PCM
+      const pcm16 = downsampleTo16kHz(inputData, actualSampleRate);
 
       // Convert buffer to base64
       let binary = "";
-      const bytes = new Uint8Array(pcm16.buffer);
+      const bytes = new Uint8Array(pcm16.buffer, pcm16.byteOffset, pcm16.byteLength);
       const len = bytes.byteLength;
       for (let i = 0; i < len; i++) {
         binary += String.fromCharCode(bytes[i]);
@@ -75,7 +106,12 @@ export class AudioStreamer {
     };
 
     this.sourceNode.connect(this.processorNode);
-    this.processorNode.connect(this.inputAudioContext.destination);
+    // Silent gain node to prevent audio feedback loop
+    const silentGain = this.inputAudioContext.createGain();
+    silentGain.gain.value = 0;
+    this.processorNode.connect(silentGain);
+    silentGain.connect(this.inputAudioContext.destination);
+
     this.isRecording = true;
   }
 
@@ -101,18 +137,22 @@ export class AudioStreamer {
       const ctx = this.getOutputContext();
       const binaryString = atob(base64Pcm);
       const len = binaryString.length;
-      const bytes = new Uint8Array(len);
-      for (let i = 0; i < len; i++) {
+      const sampleCount = Math.floor(len / 2);
+      if (sampleCount === 0) return;
+
+      const bytes = new Uint8Array(sampleCount * 2);
+      for (let i = 0; i < sampleCount * 2; i++) {
         bytes[i] = binaryString.charCodeAt(i);
       }
 
-      const int16Array = new Int16Array(bytes.buffer);
-      const float32Array = new Float32Array(int16Array.length);
-      for (let i = 0; i < int16Array.length; i++) {
-        float32Array[i] = int16Array[i] / 32768.0;
+      const dataView = new DataView(bytes.buffer);
+      const float32Array = new Float32Array(sampleCount);
+      for (let i = 0; i < sampleCount; i++) {
+        const int16 = dataView.getInt16(i * 2, true); // true = little-endian
+        float32Array[i] = int16 / 32768.0;
       }
 
-      const audioBuffer = ctx.createBuffer(1, float32Array.length, 24000);
+      const audioBuffer = ctx.createBuffer(1, sampleCount, 24000);
       audioBuffer.getChannelData(0).set(float32Array);
 
       const source = ctx.createBufferSource();
