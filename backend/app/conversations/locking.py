@@ -48,7 +48,12 @@ class ConversationLock:
         # Check if currently locked and not expired
         if conv.locked_at and conv.locked_by and conv.locked_by != self.worker_id:
             expiry_threshold = now - timedelta(seconds=self.timeout_seconds)
-            if conv.locked_at > expiry_threshold:
+            locked_at = conv.locked_at
+            if locked_at.tzinfo is None:
+                expiry_threshold = expiry_threshold.replace(tzinfo=None)
+            elif expiry_threshold.tzinfo is None:
+                locked_at = locked_at.replace(tzinfo=None)
+            if locked_at > expiry_threshold:
                 # Still locked and valid
                 return False
 

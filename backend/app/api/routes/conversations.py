@@ -12,6 +12,7 @@ from app.config import settings
 from app.conversations.service import ConversationService
 from app.database.models import Conversation, Message, Customer, KnowledgeCandidate, SalesLearning
 from app.database.session import get_db
+from app.memory.customer import CustomerMemoryService
 from app.schemas.common import PaginatedResponse
 from app.schemas.conversations import (
     ConversationResponse,
@@ -70,6 +71,41 @@ async def get_conversation_detail(conversation_id: str, session: AsyncSession = 
     if not conv:
         raise HTTPException(status_code=404, detail="Conversation not found.")
 
+    mem_svc = CustomerMemoryService(session, settings.DEFAULT_ORG_ID)
+    memories = await mem_svc.get_memories(conv.customer_id) if conv.customer_id else []
+    facts = {m.key: m.value for m in memories}
+    if conv.customer:
+        if conv.customer.city and "location" not in facts:
+            facts["location"] = conv.customer.city
+        if conv.customer.company_type and "business_type" not in facts:
+            facts["business_type"] = conv.customer.company_type
+
+    summary_text = conv.summary.summary if conv.summary else None
+    key_points = list(conv.summary.key_points) if (conv.summary and conv.summary.key_points) else []
+    active_objections = list(conv.summary.active_objections) if (conv.summary and conv.summary.active_objections) else []
+    customer_goals = conv.summary.customer_goals if conv.summary else None
+
+    if not key_points:
+        if facts.get("quantity"):
+            key_points.append(f"Volume: {facts['quantity']}")
+        if facts.get("packaging"):
+            key_points.append(f"Packaging: {facts['packaging']}")
+        if facts.get("business_type"):
+            key_points.append(f"Business: {facts['business_type']}")
+        if facts.get("location"):
+            key_points.append(f"Location: {facts['location']}")
+        if facts.get("use_case"):
+            key_points.append(f"Use Case: {facts['use_case']}")
+
+    if not summary_text:
+        if key_points:
+            summary_text = f"Qualified commercial prospect ({facts.get('business_type', 'Wholesale Buyer')}) inquiring for {facts.get('quantity', 'bulk supply')}. Active stage: {conv.sales_stage}."
+        else:
+            summary_text = "Discovery stage active. Gathering beverage menu details, estimated volume, and delivery destination."
+
+    if not customer_goals and facts:
+        customer_goals = f"Procure {facts.get('quantity', 'bulk volume')} for {facts.get('business_type', 'commercial operations')}."
+
     return {
         "conversation": {
             "id": conv.id,
@@ -91,7 +127,14 @@ async def get_conversation_detail(conversation_id: str, session: AsyncSession = 
             "company_type": conv.customer.company_type if conv.customer else None,
             "preferred_language": conv.customer.preferred_language if conv.customer else "English",
         },
-        "summary": conv.summary.summary if conv.summary else None,
+        "summary": summary_text,
+        "structured_memory": {
+            "summary": summary_text,
+            "key_points": key_points,
+            "active_objections": active_objections,
+            "customer_goals": customer_goals,
+            "facts": facts,
+        },
         "messages": [
             {
                 "id": m.id,

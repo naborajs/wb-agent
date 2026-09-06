@@ -31,6 +31,9 @@ import {
   Check,
   RotateCcw,
   ArrowLeft,
+  Package,
+  Layers,
+  Target,
 } from "lucide-react";
 
 interface ConversationItem {
@@ -224,11 +227,31 @@ export default function LiveInboxPage() {
                     messages: [...currentMsgs, newMsgObj],
                     sales_stage: msg.sales_stage || prev.sales_stage,
                     lead_score: msg.lead_score !== undefined ? msg.lead_score : prev.lead_score,
+                    summary: msg.summary || prev.summary,
+                    structured_memory: msg.structured_memory || prev.structured_memory,
                   };
                 });
               }
               loadConversations();
               playChime(msg?.lead_score >= 80 ? "hot" : "normal");
+            } else if (data?.event === "memory_updated") {
+              const mem = data.data;
+              if (mem?.conversation_id === activeConvId) {
+                setActiveConvDetail((prev: any) =>
+                  prev
+                    ? {
+                        ...prev,
+                        summary: mem.summary || prev.summary,
+                        structured_memory: {
+                          summary: mem.summary,
+                          key_points: mem.key_points,
+                          customer_goals: mem.customer_goals,
+                          facts: mem.facts,
+                        },
+                      }
+                    : prev
+                );
+              }
             } else if (data?.event === "stage_changed") {
               const st = data.data;
               if (st?.conversation_id === activeConvId) {
@@ -1188,15 +1211,82 @@ export default function LiveInboxPage() {
             </div>
           </div>
 
-          {/* Conversation Summary */}
-          <div className="pt-4 border-t border-[var(--ed-border)]">
-            <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--ed-text-muted)] mb-2">
-              Structured Memory Summary
+          {/* Conversation Summary & Structured Memory */}
+          <div className="pt-4 border-t border-[var(--ed-border)] space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--ed-text-muted)] flex items-center gap-1.5">
+                <Sparkles className="w-3 h-3 text-[var(--ed-accent)]" />
+                Structured Memory Summary
+              </div>
+              {activeConvDetail.conversation?.sales_stage && (
+                <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-[var(--ed-accent)]/10 text-[var(--ed-accent)]">
+                  {activeConvDetail.conversation.sales_stage}
+                </span>
+              )}
             </div>
-            <p className="text-[var(--ed-text-primary)] text-xs leading-relaxed bg-[var(--ed-bg)] p-2.5 rounded-lg border border-[var(--ed-border)]">
-              {activeConvDetail.summary ||
-                "Discovery stage active. Gathering beverage menu details, estimated volume, and delivery destination."}
-            </p>
+
+            <div className="p-3 rounded-lg bg-[var(--ed-bg)] border border-[var(--ed-border)] space-y-2.5">
+              <p className="text-[var(--ed-text-primary)] text-xs leading-relaxed">
+                {activeConvDetail.summary ||
+                  activeConvDetail.structured_memory?.summary ||
+                  "Discovery stage active. Gathering beverage menu details, estimated volume, and delivery destination."}
+              </p>
+
+              {/* Detected Spec Chips */}
+              {activeConvDetail.structured_memory?.facts &&
+                Object.keys(activeConvDetail.structured_memory.facts).length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 pt-2 border-t border-[var(--ed-border)]/60">
+                    {activeConvDetail.structured_memory.facts.quantity && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                        <Package className="w-2.5 h-2.5" />
+                        Vol: {activeConvDetail.structured_memory.facts.quantity}
+                      </span>
+                    )}
+                    {activeConvDetail.structured_memory.facts.packaging && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
+                        <Layers className="w-2.5 h-2.5" />
+                        Pack: {activeConvDetail.structured_memory.facts.packaging}
+                      </span>
+                    )}
+                    {activeConvDetail.structured_memory.facts.business_type && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                        <Building className="w-2.5 h-2.5" />
+                        {activeConvDetail.structured_memory.facts.business_type}
+                      </span>
+                    )}
+                    {activeConvDetail.structured_memory.facts.location && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                        <MapPin className="w-2.5 h-2.5" />
+                        {activeConvDetail.structured_memory.facts.location}
+                      </span>
+                    )}
+                    {activeConvDetail.structured_memory.facts.use_case && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
+                        <Target className="w-2.5 h-2.5" />
+                        {activeConvDetail.structured_memory.facts.use_case}
+                      </span>
+                    )}
+                  </div>
+                )}
+
+              {/* Verified Key Points */}
+              {Array.isArray(activeConvDetail.structured_memory?.key_points) &&
+                activeConvDetail.structured_memory.key_points.length > 0 && (
+                  <div className="pt-2 border-t border-[var(--ed-border)]/60 space-y-1">
+                    <div className="text-[9px] font-bold uppercase tracking-wider text-[var(--ed-text-muted)]">
+                      Verified Commercial Facts
+                    </div>
+                    <ul className="space-y-1">
+                      {activeConvDetail.structured_memory.key_points.map((pt: string, idx: number) => (
+                        <li key={idx} className="text-[11px] text-[var(--ed-text-primary)] flex items-start gap-1.5">
+                          <CheckCircle className="w-3 h-3 text-emerald-500 mt-0.5 flex-shrink-0" />
+                          <span>{pt}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+            </div>
           </div>
         </div>
       )}
@@ -1269,14 +1359,82 @@ export default function LiveInboxPage() {
               </div>
             </div>
 
-            <div className="pt-4 border-t border-[var(--ed-border)]">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--ed-text-muted)] mb-2">
-                Structured Memory Summary
+            {/* Structured Memory Summary */}
+            <div className="pt-4 border-t border-[var(--ed-border)] space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--ed-text-muted)] flex items-center gap-1.5">
+                  <Sparkles className="w-3 h-3 text-[var(--ed-accent)]" />
+                  Structured Memory Summary
+                </div>
+                {activeConvDetail.conversation?.sales_stage && (
+                  <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-[var(--ed-accent)]/10 text-[var(--ed-accent)]">
+                    {activeConvDetail.conversation.sales_stage}
+                  </span>
+                )}
               </div>
-              <p className="text-[var(--ed-text-primary)] text-xs leading-relaxed bg-[var(--ed-bg)] p-2.5 rounded-lg border border-[var(--ed-border)]">
-                {activeConvDetail.summary ||
-                  "Discovery stage active. Gathering beverage menu details, estimated volume, and delivery destination."}
-              </p>
+
+              <div className="p-3 rounded-lg bg-[var(--ed-bg)] border border-[var(--ed-border)] space-y-2.5">
+                <p className="text-[var(--ed-text-primary)] text-xs leading-relaxed">
+                  {activeConvDetail.summary ||
+                    activeConvDetail.structured_memory?.summary ||
+                    "Discovery stage active. Gathering beverage menu details, estimated volume, and delivery destination."}
+                </p>
+
+                {/* Detected Spec Chips */}
+                {activeConvDetail.structured_memory?.facts &&
+                  Object.keys(activeConvDetail.structured_memory.facts).length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 pt-2 border-t border-[var(--ed-border)]/60">
+                      {activeConvDetail.structured_memory.facts.quantity && (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                          <Package className="w-2.5 h-2.5" />
+                          Vol: {activeConvDetail.structured_memory.facts.quantity}
+                        </span>
+                      )}
+                      {activeConvDetail.structured_memory.facts.packaging && (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
+                          <Layers className="w-2.5 h-2.5" />
+                          Pack: {activeConvDetail.structured_memory.facts.packaging}
+                        </span>
+                      )}
+                      {activeConvDetail.structured_memory.facts.business_type && (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                          <Building className="w-2.5 h-2.5" />
+                          {activeConvDetail.structured_memory.facts.business_type}
+                        </span>
+                      )}
+                      {activeConvDetail.structured_memory.facts.location && (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                          <MapPin className="w-2.5 h-2.5" />
+                          {activeConvDetail.structured_memory.facts.location}
+                        </span>
+                      )}
+                      {activeConvDetail.structured_memory.facts.use_case && (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
+                          <Target className="w-2.5 h-2.5" />
+                          {activeConvDetail.structured_memory.facts.use_case}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                {/* Verified Key Points */}
+                {Array.isArray(activeConvDetail.structured_memory?.key_points) &&
+                  activeConvDetail.structured_memory.key_points.length > 0 && (
+                    <div className="pt-2 border-t border-[var(--ed-border)]/60 space-y-1">
+                      <div className="text-[9px] font-bold uppercase tracking-wider text-[var(--ed-text-muted)]">
+                        Verified Commercial Facts
+                      </div>
+                      <ul className="space-y-1">
+                        {activeConvDetail.structured_memory.key_points.map((pt: string, idx: number) => (
+                          <li key={idx} className="text-[11px] text-[var(--ed-text-primary)] flex items-start gap-1.5">
+                            <CheckCircle className="w-3 h-3 text-emerald-500 mt-0.5 flex-shrink-0" />
+                            <span>{pt}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+              </div>
             </div>
           </div>
         </div>

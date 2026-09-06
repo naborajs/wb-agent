@@ -48,6 +48,7 @@ from app.database.models import (
     Product,
 )
 from app.knowledge.unknown_manager import UnknownKnowledgeManager
+from app.memory.conversation import ConversationMemoryService
 from app.memory.customer import CustomerMemoryService
 from app.schemas.agent import AgentTurnResponse, StructuredDecision
 from app.utils.logging import logger
@@ -64,6 +65,7 @@ class AgentOrchestrator:
         self.context_builder = ContextBuilder(session, org_id)
         self.conv_service = ConversationService(session, org_id)
         self.memory_service = CustomerMemoryService(session, org_id)
+        self.conv_memory = ConversationMemoryService(session, org_id)
         self.unknown_mgr = UnknownKnowledgeManager(session, org_id)
         self.ai_router = ai_router
         self.llm_router = ai_router
@@ -86,7 +88,7 @@ class AgentOrchestrator:
         if not conv:
             raise ValueError(f"Conversation '{conversation_id}' not found.")
 
-        await self.conv_service.add_message(
+        inbound_msg = await self.conv_service.add_message(
             conversation_id=conversation_id,
             direction="inbound",
             sender_type="customer",
@@ -95,6 +97,39 @@ class AgentOrchestrator:
             provider_message_id=provider_message_id,
             delivery_status="delivered",
         )
+
+        # Idempotency Guard: Prevent duplicate turn processing if agent already replied
+        if provider_message_id and inbound_msg:
+            dup_reply_stmt = (
+                select(Message)
+                .where(
+                    Message.org_id == self.org_id,
+                    Message.conversation_id == conversation_id,
+                    Message.direction == "outbound",
+                    Message.sender_type == "agent",
+                    Message.created_at >= inbound_msg.created_at,
+                )
+                .order_by(Message.created_at.desc())
+                .limit(1)
+            )
+            existing_reply = (await self.session.execute(dup_reply_stmt)).scalar_one_or_none()
+            if existing_reply:
+                logger.info(f"Duplicate turn prevented: agent already replied to message '{provider_message_id}'.")
+                return AgentTurnResponse(
+                    conversation_id=conversation_id,
+                    reply_text=existing_reply.content,
+                    decision=StructuredDecision(
+                        intent="duplicate_turn",
+                        sales_stage=conv.sales_stage,
+                        confidence=1.0,
+                        recommended_action="none",
+                    ),
+                    sales_stage_before=conv.sales_stage,
+                    sales_stage_after=conv.sales_stage,
+                    lead_score_before=conv.lead_score,
+                    lead_score_after=conv.lead_score,
+                    is_suppressed=True,
+                )
 
         # Early Guard: If conversation is in HUMAN, PAUSED, or CLOSED mode, do not invoke AI
         if conv.mode != "AI":
@@ -568,27 +603,30 @@ class AgentOrchestrator:
             and bool(conv.channel_id)
         )
         provider_msg_id = None
+        dispatch_success = False
         if can_dispatch_whatsapp and sanitized_reply:
             clean_recipient = conv.channel_id.replace("+", "").replace(" ", "").strip() if conv.channel_id else ""
             bot_num = "918918753100"
-            owner_num = (settings.OWNER_WHATSAPP_NUMBER or "+918900653250").replace("+", "").replace(" ", "").strip()
 
-            # Guard 1: Never send AI sales replies to the bot's own number
+            # Guard 1: Never send AI replies to the bot's own number (prevent self-reply echo loop)
             if clean_recipient == bot_num or clean_recipient.endswith(bot_num):
                 logger.info(f"Suppressed outbound dispatch to bot's own number {conv.channel_id}")
-            # Guard 2: Never send automated AI replies to the owner (owner gets alerts only, not sales replies)
-            elif clean_recipient == owner_num or clean_recipient.endswith(owner_num):
-                logger.info(f"Suppressed outbound AI reply to owner number {conv.channel_id} (owner receives alerts only)")
-            # Guard 3: Validate recipient looks like a real phone number (10-15 digits)
+            # Guard 2: Validate recipient looks like a real phone number (10-15 digits)
             elif len(clean_recipient) < 10 or len(clean_recipient) > 15 or not clean_recipient.isdigit():
                 logger.warning(f"Suppressed outbound to invalid phone number: '{conv.channel_id}' (cleaned: '{clean_recipient}')")
             else:
                 try:
                     from app.whatsapp.service import WhatsAppService
                     wa = WhatsAppService.get_provider()
+                    logger.info(f"[WHATSAPP DISPATCH] Sending AI reply via '{settings.WHATSAPP_PROVIDER}' to {conv.channel_id}: \"{sanitized_reply[:60]}...\"")
                     send_res = await wa.send_message(to_phone=conv.channel_id, text=sanitized_reply)
-                    if send_res and send_res.provider_message_id:
+                    if send_res:
+                        dispatch_success = send_res.success
                         provider_msg_id = send_res.provider_message_id
+                        if send_res.success:
+                            logger.info(f"[WHATSAPP DISPATCH SUCCESS] Delivered to {conv.channel_id} (msg_id: {provider_msg_id})")
+                        else:
+                            logger.error(f"[WHATSAPP DISPATCH FAILED] Provider error: {send_res.error_message}")
                 except Exception as e:
                     logger.error(f"Failed to dispatch outbound WhatsApp message: {e}")
 
@@ -601,7 +639,7 @@ class AgentOrchestrator:
                 direction="outbound",
                 sender_type="agent",
                 content=sanitized_reply,
-                delivery_status="sent",
+                delivery_status="sent" if (dispatch_success or is_simulation) else "failed",
                 provider_message_id=provider_msg_id,
                 raw_payload=msg_payload,
             )
@@ -751,7 +789,52 @@ class AgentOrchestrator:
             agent_run.knowledge_sources = [{"reasoning_content": reasoning_trace}]
         await self.session.commit()
 
-        # 16. Enqueue Bounded Background Analysis Job (Section 8 & 9)
+        # 16. Synthesize & Persist Multi-Attribute Conversation Summary & Structured Memory (Directive & User Request)
+        summary_text = ""
+        key_points: List[str] = []
+        customer_goals: Optional[str] = None
+        try:
+            if known_profile.get("quantity"):
+                key_points.append(f"Volume: {known_profile['quantity']}")
+            if known_profile.get("packaging"):
+                key_points.append(f"Packaging: {known_profile['packaging']}")
+            if known_profile.get("business_type"):
+                key_points.append(f"Business: {known_profile['business_type']}")
+            if known_profile.get("location"):
+                key_points.append(f"Location: {known_profile['location']}")
+            if known_profile.get("use_case"):
+                key_points.append(f"Use Case: {known_profile['use_case']}")
+            if sales_decision.recommended_product:
+                key_points.append(f"Product: {sales_decision.recommended_product}")
+
+            c_display = (customer.name if customer and customer.name else ctx.customer_name) or conv.channel_id
+            b_type = known_profile.get("business_type") or (customer.company_type if customer else "Commercial Buyer")
+            loc = known_profile.get("location") or (customer.city if customer else None)
+            qty = known_profile.get("quantity")
+            prod = sales_decision.recommended_product or "Assam CTC Wholesale"
+
+            desc_parts = [f"Buyer '{c_display}' ({b_type})"]
+            if loc:
+                desc_parts.append(f"in {loc}")
+            if qty:
+                desc_parts.append(f"inquiring for {qty} of {prod}")
+            else:
+                desc_parts.append(f"exploring catalog offerings ({prod})")
+
+            summary_text = f"{' '.join(desc_parts)}. Stage: {target_stage}. Latest intent: {intent}. Lead score: {conv.lead_score + score_delta}/100."
+            customer_goals = f"Procure {qty or 'commercial volume'} for {b_type} operations."
+
+            await self.conv_memory.update_summary(
+                conversation_id=conversation_id,
+                summary_text=summary_text,
+                key_points=key_points,
+                active_objections=[objection_cat] if objection_cat else [],
+                customer_goals=customer_goals,
+            )
+        except Exception as sum_err:
+            logger.error(f"Failed to update conversation summary: {sum_err}")
+
+        # 17. Enqueue Bounded Background Analysis Job (Section 8 & 9)
         try:
             from app.jobs.queue import JobQueue
             queue = JobQueue(self.session)
@@ -781,6 +864,13 @@ class AgentOrchestrator:
                         "sales_stage": target_stage,
                         "lead_score": conv.lead_score + score_delta,
                         "reasoning_content": reasoning_trace,
+                        "summary": summary_text,
+                        "structured_memory": {
+                            "summary": summary_text,
+                            "key_points": key_points,
+                            "customer_goals": customer_goals,
+                            "facts": known_profile,
+                        },
                         "timestamp": utc_now().isoformat(),
                     },
                 )
@@ -808,6 +898,20 @@ class AgentOrchestrator:
                         "lead_score": conv.lead_score + score_delta,
                         "score_delta": score_delta,
                         "channel_id": conv.channel_id,
+                    },
+                )
+
+            # 4. Structured Memory Updated broadcast
+            if summary_text:
+                await ws_manager.broadcast_to_org(
+                    self.org_id,
+                    "memory_updated",
+                    {
+                        "conversation_id": conversation_id,
+                        "summary": summary_text,
+                        "key_points": key_points,
+                        "customer_goals": customer_goals,
+                        "facts": known_profile,
                     },
                 )
         except Exception as ws_err:

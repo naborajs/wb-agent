@@ -162,3 +162,52 @@ async def test_context_builder(setup_db):
     assert len(ctx.recent_messages) == 2
     assert "budget" in ctx.verified_memories
     assert ctx.latest_inbound_message == "What is the price for 50kg?"
+
+
+@pytest.mark.asyncio
+async def test_structured_memory_and_summary_endpoint(setup_db, monkeypatch):
+    session, org_id, customer_id = setup_db
+    from app.config import settings
+    monkeypatch.setattr(settings, "DEFAULT_ORG_ID", org_id)
+
+    conv_svc = ConversationService(session, org_id)
+    mem_svc = CustomerMemoryService(session, org_id)
+    conv_mem = ConversationMemoryService(session, org_id)
+
+    # 1. Setup conversation
+    conv = await conv_svc.get_or_create_conversation(customer_id)
+
+    # 2. Save structured customer memory facts
+    await mem_svc.save_fact(customer_id, "requirements", "quantity", "500 kg")
+    await mem_svc.save_fact(customer_id, "requirements", "packaging", "50kg Jute Bags")
+    await mem_svc.save_fact(customer_id, "requirements", "business_type", "Wholesaler")
+    await mem_svc.save_fact(customer_id, "location", "location", "Siliguri")
+
+    # 3. Update conversation summary with key points and customer goals
+    await conv_mem.update_summary(
+        conv.id,
+        summary_text="Buyer 'Vikram Seth' (Wholesaler) in Siliguri inquiring for 500 kg of Assam CTC Wholesale. Stage: QUALIFIED.",
+        key_points=[
+            "Volume: 500 kg",
+            "Packaging: 50kg Jute Bags",
+            "Business: Wholesaler",
+            "Location: Siliguri",
+        ],
+        active_objections=[],
+        customer_goals="Procure 500 kg for Wholesaler operations.",
+    )
+
+    # 4. Call get_conversation_detail API logic
+    from app.api.routes.conversations import get_conversation_detail
+
+    detail = await get_conversation_detail(conv.id, session=session)
+    assert detail is not None
+    assert "structured_memory" in detail
+    sm = detail["structured_memory"]
+    assert "500 kg" in sm["summary"]
+    assert len(sm["key_points"]) == 4
+    assert sm["facts"]["quantity"] == "500 kg"
+    assert sm["facts"]["packaging"] == "50kg Jute Bags"
+    assert sm["facts"]["location"] == "Siliguri"
+    assert sm["customer_goals"] == "Procure 500 kg for Wholesaler operations."
+
