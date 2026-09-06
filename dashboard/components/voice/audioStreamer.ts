@@ -115,7 +115,7 @@ export class AudioStreamer {
       const audioBuffer = ctx.createBuffer(1, float32Array.length, 24000);
       audioBuffer.getChannelData(0).set(float32Array);
 
-      const source = ctx.createBufferNode ? (ctx as any).createBufferNode() : ctx.createBufferSource();
+      const source = ctx.createBufferSource();
       source.buffer = audioBuffer;
       source.connect(ctx.destination);
 
