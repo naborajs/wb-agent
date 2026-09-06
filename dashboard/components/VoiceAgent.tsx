@@ -16,6 +16,11 @@ import {
   RefreshCw,
   Send,
   Zap,
+  Phone,
+  PhoneOff,
+  Maximize2,
+  Minimize2,
+  MessageSquare,
 } from "lucide-react";
 import { AudioStreamer } from "./voice/audioStreamer";
 import {
@@ -56,9 +61,12 @@ export default function VoiceAgent() {
   const [agentState, setAgentState] = useState<AgentState>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(false);
-  const [panelOpen, setPanelOpen] = useState(false);
+  const [cardOpen, setCardOpen] = useState(false);
+  const [showTranscript, setShowTranscript] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
   const [muted, setMuted] = useState(false);
   const [micVolume, setMicVolume] = useState(0);
+  const [chatInput, setChatInput] = useState("");
 
   // Transcripts & confirmation
   const [transcripts, setTranscripts] = useState<TranscriptMessage[]>([]);
@@ -81,7 +89,7 @@ export default function VoiceAgent() {
   // Auto-scroll transcripts
   useEffect(() => {
     transcriptsEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [transcripts]);
+  }, [transcripts, showTranscript, isExpanded]);
 
   // Clean disconnect
   const disconnectSession = useCallback(() => {
@@ -101,7 +109,7 @@ export default function VoiceAgent() {
     setMicVolume(0);
   }, []);
 
-  // Send screen grounding context snapshot
+  // Send screen grounding context snapshot (turnComplete: false prevents unprompted speech)
   const sendScreenContext = useCallback((currentPath: string) => {
     if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
     const snapshot = getScreenSnapshot(currentPath);
@@ -116,12 +124,12 @@ export default function VoiceAgent() {
                   ", "
                 )}. Key visible fields/buttons: ${snapshot.actionable_elements
                   .map((e) => `${e.label} (${e.tag}${e.type ? `:${e.type}` : ""})`)
-                  .join("; ")}. Ground all explanations and actions in this visible context.`,
+                  .join("; ")}. Ground all explanations and actions in this visible context without reciting this message aloud.`,
               },
             ],
           },
         ],
-        turnComplete: true,
+        turnComplete: false,
       },
     };
     try {
@@ -547,9 +555,8 @@ export default function VoiceAgent() {
       ws.onopen = async () => {
         setConnectionState("connected");
         setAgentState("listening");
-        if (!isMobile) setPanelOpen(true);
 
-        // Send Setup Frame with tools and system prompt
+        // Send Setup Frame with tools, transcription configs and system prompt
         const setupMessage = {
           setup: {
             model: "models/gemini-3.1-flash-live-preview",
@@ -563,6 +570,8 @@ export default function VoiceAgent() {
                 },
               },
             },
+            inputAudioTranscription: {},
+            outputAudioTranscription: {},
             systemInstruction: {
               parts: [{ text: buildVoiceSystemInstruction() }],
             },
@@ -743,24 +752,22 @@ export default function VoiceAgent() {
 
         ws.send(JSON.stringify(setupMessage));
 
-        // Start microphone recording
+        // Start microphone recording with Gemini 3.1 Live API compliant schema
         await streamer.startRecording((base64Chunk) => {
-          if (ws.readyState === WebSocket.OPEN && !muted) {
+          if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN && !muted) {
             const audioFrame = {
               realtimeInput: {
-                mediaChunks: [
-                  {
-                    mimeType: "audio/pcm;rate=16000",
-                    data: base64Chunk,
-                  },
-                ],
+                audio: {
+                  mimeType: "audio/pcm;rate=16000",
+                  data: base64Chunk,
+                },
               },
             };
-            ws.send(JSON.stringify(audioFrame));
+            wsRef.current.send(JSON.stringify(audioFrame));
           }
         });
 
-        // Send initial screen grounding
+        // Send initial screen grounding silently
         sendScreenContext(pathname);
       };
 
@@ -771,6 +778,9 @@ export default function VoiceAgent() {
             data = JSON.parse(event.data);
           } else if (event.data instanceof Blob) {
             const text = await event.data.text();
+            data = JSON.parse(text);
+          } else if (event.data instanceof ArrayBuffer) {
+            const text = new TextDecoder().decode(event.data);
             data = JSON.parse(text);
           }
 
@@ -786,37 +796,60 @@ export default function VoiceAgent() {
               setAgentState("listening");
             }
 
-            // Model Turn Parts
+            // Live Audio Chunk Playback
             if (sc.modelTurn && Array.isArray(sc.modelTurn.parts)) {
               for (const part of sc.modelTurn.parts) {
-                // Audio chunk playback
                 if (part.inlineData && part.inlineData.data) {
                   setAgentState("speaking");
                   streamer.playAudioChunk(part.inlineData.data);
                 }
-
-                // Text transcript from model
-                if (part.text && part.text.trim()) {
-                  setTranscripts((prev) => {
-                    const last = prev[prev.length - 1];
-                    if (last && last.speaker === "agent") {
-                      return [
-                        ...prev.slice(0, -1),
-                        { ...last, text: last.text + part.text },
-                      ];
-                    }
-                    return [
-                      ...prev,
-                      {
-                        id: Math.random().toString(),
-                        speaker: "agent",
-                        text: part.text,
-                        timestamp: new Date().toLocaleTimeString(),
-                      },
-                    ];
-                  });
-                }
               }
+            }
+
+            // Live Agent Speech Output Transcription
+            if (sc.outputTranscription && sc.outputTranscription.text) {
+              const textChunk = sc.outputTranscription.text;
+              setTranscripts((prev) => {
+                const last = prev[prev.length - 1];
+                if (last && last.speaker === "agent") {
+                  return [
+                    ...prev.slice(0, -1),
+                    { ...last, text: last.text + textChunk },
+                  ];
+                }
+                return [
+                  ...prev,
+                  {
+                    id: Math.random().toString(),
+                    speaker: "agent",
+                    text: textChunk,
+                    timestamp: new Date().toLocaleTimeString(),
+                  },
+                ];
+              });
+            }
+
+            // Live User Speech Input Transcription
+            if (sc.inputTranscription && sc.inputTranscription.text) {
+              const textChunk = sc.inputTranscription.text;
+              setTranscripts((prev) => {
+                const last = prev[prev.length - 1];
+                if (last && last.speaker === "user") {
+                  return [
+                    ...prev.slice(0, -1),
+                    { ...last, text: last.text + textChunk },
+                  ];
+                }
+                return [
+                  ...prev,
+                  {
+                    id: Math.random().toString(),
+                    speaker: "user",
+                    text: textChunk,
+                    timestamp: new Date().toLocaleTimeString(),
+                  },
+                ];
+              });
             }
 
             // Turn complete
@@ -853,6 +886,46 @@ export default function VoiceAgent() {
     }
   };
 
+  // Send a typed text chat message through Gemini Live WebSocket
+  const sendChatMessage = async (text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+
+    setChatInput("");
+
+    // Add user message to transcript immediately
+    setTranscripts((prev) => [
+      ...prev,
+      {
+        id: Math.random().toString(),
+        speaker: "user",
+        text: trimmed,
+        timestamp: new Date().toLocaleTimeString(),
+      },
+    ]);
+
+    // If disconnected, connect first
+    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+      await startVoiceSession();
+    }
+
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      const chatTurn = {
+        clientContent: {
+          turns: [
+            {
+              role: "user",
+              parts: [{ text: trimmed }],
+            },
+          ],
+          turnComplete: true,
+        },
+      };
+      wsRef.current.send(JSON.stringify(chatTurn));
+      setAgentState("thinking");
+    }
+  };
+
   // Toggle voice session
   const toggleVoiceSession = () => {
     if (connectionState === "connected" || connectionState === "connecting") {
@@ -868,20 +941,20 @@ export default function VoiceAgent() {
       {pendingConfirmation && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
           <div
-            className="w-full max-w-md p-5 rounded-2xl border border-amber-500/40 shadow-2xl space-y-4 animate-in zoom-in-95 duration-150"
+            className="w-full max-w-md p-5 rounded-3xl border border-amber-500/40 shadow-2xl space-y-4 animate-in zoom-in-95 duration-150"
             style={{ background: "var(--ed-surface)" }}
           >
             <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-500 border border-amber-500/30 shrink-0">
+              <div className="p-2.5 rounded-2xl bg-amber-500/10 text-amber-500 border border-amber-500/30 shrink-0">
                 <AlertTriangle className="w-5 h-5" />
               </div>
               <div>
                 <h3 className="font-bold text-sm text-[var(--ed-text-primary)]">Confirmation Required</h3>
-                <p className="text-xs text-[var(--ed-text-muted)]">Say "Yes" or click Confirm to execute.</p>
+                <p className="text-xs text-[var(--ed-text-muted)]">Say "Yes", "Confirm", or click below.</p>
               </div>
             </div>
 
-            <div className="p-3 rounded-xl border border-[var(--ed-border)] bg-[var(--ed-bg)] space-y-1">
+            <div className="p-3.5 rounded-2xl border border-[var(--ed-border)] bg-[var(--ed-bg)] space-y-1">
               <div className="text-xs font-bold text-[var(--ed-accent)]">{pendingConfirmation.actionName}</div>
               <div className="text-xs text-[var(--ed-text-muted)] leading-relaxed">
                 {pendingConfirmation.description}
@@ -907,164 +980,304 @@ export default function VoiceAgent() {
         </div>
       )}
 
-      {/* Desktop Live Transcripts Drawer (Suppressed on Mobile per §3) */}
-      {!isMobile && panelOpen && connectionState === "connected" && (
-        <div
-          className="fixed bottom-20 right-6 w-96 max-h-[480px] rounded-2xl border border-[var(--ed-border)] shadow-2xl flex flex-col z-40 overflow-hidden animate-in slide-in-from-bottom-5 duration-200"
-          style={{ background: "var(--ed-surface)" }}
-        >
-          {/* Header */}
-          <div
-            className="p-3.5 border-b border-[var(--ed-border)] flex items-center justify-between"
-            style={{ background: "var(--ed-bg)" }}
-          >
-            <div className="flex items-center gap-2">
-              <div className="relative">
-                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-              </div>
-              <span className="font-bold text-xs text-[var(--ed-text-primary)]">EDITH Voice Co-Pilot</span>
-              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-500 border border-sky-500/30">
-                Gemini 3.1 Flash
-              </span>
-            </div>
-
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => setMuted(!muted)}
-                className="p-1.5 rounded-lg text-[var(--ed-text-muted)] hover:text-[var(--ed-text-primary)]"
-                title={muted ? "Unmute Mic" : "Mute Mic"}
-              >
-                {muted ? <MicOff className="w-3.5 h-3.5 text-red-500" /> : <Mic className="w-3.5 h-3.5" />}
-              </button>
-              <button
-                onClick={() => setPanelOpen(false)}
-                className="p-1.5 rounded-lg text-[var(--ed-text-muted)] hover:text-[var(--ed-text-primary)]"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
+      {/* ElevenLabs-style Conversational Agent Card (Chat + Voice) */}
+      <div
+        className={`fixed bottom-6 right-6 z-50 flex flex-col rounded-[32px] border border-[var(--ed-border)] shadow-2xl transition-all duration-300 ease-out origin-bottom-right overflow-hidden ${
+          cardOpen
+            ? isExpanded
+              ? "w-[92vw] sm:w-[680px] max-h-[620px] scale-100 opacity-100 translate-y-0"
+              : "w-[92vw] sm:w-[380px] max-h-[560px] scale-100 opacity-100 translate-y-0"
+            : "scale-90 opacity-0 translate-y-8 pointer-events-none w-[360px] h-0 overflow-hidden"
+        }`}
+        style={{
+          background: "var(--ed-surface)",
+          boxShadow:
+            "0 25px 60px -15px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.08)",
+        }}
+      >
+        {/* Card Header */}
+        <div className="px-5 pt-5 pb-3 flex items-center justify-between">
+          {/* Language Selector Pill */}
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-[var(--ed-border)] bg-[var(--ed-bg)] text-xs font-semibold text-[var(--ed-text-primary)] shadow-sm">
+            <span className="text-sm">🇺🇸</span>
+            <span>English</span>
+            <ChevronDown className="w-3 h-3 text-[var(--ed-text-muted)] opacity-70" />
           </div>
 
-          {/* Transcript Message Stream */}
-          <div className="flex-1 overflow-y-auto p-3 space-y-2.5 min-h-[220px] max-h-[340px] text-xs">
-            {transcripts.length === 0 ? (
-              <div className="py-12 text-center text-[var(--ed-text-muted)] space-y-2">
-                <Sparkles className="w-6 h-6 mx-auto text-[var(--ed-accent)] opacity-60 animate-pulse" />
-                <p className="font-medium">Listening to your voice...</p>
-                <p className="text-[10px] text-[var(--ed-text-muted)]">
-                  Try saying "Show me the pricing rules" or "What are our won deals?"
-                </p>
-              </div>
-            ) : (
-              transcripts.map((t) => (
-                <div
-                  key={t.id}
-                  className={`p-2.5 rounded-xl text-xs leading-relaxed ${
-                    t.speaker === "agent"
-                      ? "bg-sky-500/10 text-[var(--ed-text-primary)] border border-sky-500/20 mr-4"
-                      : t.speaker === "user"
-                      ? "bg-[var(--ed-bg)] text-[var(--ed-text-primary)] border border-[var(--ed-border)] ml-4"
-                      : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-[11px]"
-                  }`}
-                >
-                  <div className="flex items-center justify-between text-[9px] text-[var(--ed-text-muted)] font-mono mb-1">
-                    <span className="font-bold uppercase tracking-wider">
-                      {t.speaker === "agent" ? "EDITH" : t.speaker === "user" ? "You" : "Action"}
-                    </span>
-                    <span>{t.timestamp}</span>
-                  </div>
-                  <div>{t.text}</div>
-                </div>
-              ))
+          {/* Action Icons (Expand, Transcript Toggle, Close) */}
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setShowTranscript(!showTranscript)}
+              className={`p-2 rounded-full transition-colors ${
+                showTranscript
+                  ? "bg-sky-500/15 text-sky-500 border border-sky-500/30"
+                  : "text-[var(--ed-text-muted)] hover:text-[var(--ed-text-primary)] hover:bg-[var(--ed-bg)]"
+              }`}
+              title={showTranscript ? "Show Voice Orb" : "Show Transcripts"}
+            >
+              <MessageSquare className="w-4 h-4" />
+            </button>
+
+            {!isMobile && (
+              <button
+                onClick={() => setIsExpanded(!isExpanded)}
+                className="p-2 rounded-full text-[var(--ed-text-muted)] hover:text-[var(--ed-text-primary)] hover:bg-[var(--ed-bg)] transition-colors"
+                title={isExpanded ? "Collapse width" : "Expand width"}
+              >
+                {isExpanded ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+              </button>
             )}
-            <div ref={transcriptsEndRef} />
-          </div>
 
-          {/* Footer Status Bar */}
-          <div
-            className="px-3.5 py-2 border-t border-[var(--ed-border)] flex items-center justify-between text-[10px] text-[var(--ed-text-muted)]"
-            style={{ background: "var(--ed-bg)" }}
-          >
-            <div className="flex items-center gap-1.5">
-              <span
-                className={`w-2 h-2 rounded-full ${
-                  agentState === "speaking"
-                    ? "bg-emerald-500 animate-ping"
-                    : agentState === "listening"
-                    ? "bg-sky-500 animate-pulse"
-                    : agentState === "thinking"
-                    ? "bg-amber-500 animate-spin"
-                    : "bg-gray-400"
-                }`}
-              />
-              <span className="capitalize font-semibold">{agentState}</span>
-            </div>
-            <span className="font-mono text-[9px]">Live WebSocket</span>
+            <button
+              onClick={() => {
+                setCardOpen(false);
+              }}
+              className="p-2 rounded-full text-[var(--ed-text-muted)] hover:text-[var(--ed-text-primary)] hover:bg-[var(--ed-bg)] transition-colors"
+              title="Close Voice Agent"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
         </div>
-      )}
 
-      {/* Persistent Docked Talk Button (Available on Every Page) */}
-      <div className="fixed bottom-6 right-6 z-40 flex items-center gap-3">
-        {/* Connection/Error Tooltip */}
-        {errorMessage && (
-          <div className="px-3 py-1.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-500 text-xs shadow-lg animate-in fade-in">
-            {errorMessage}
-          </div>
-        )}
-
-        {/* Talk Button */}
-        <button
-          onClick={toggleVoiceSession}
-          disabled={connectionState === "connecting"}
-          aria-label={connectionState === "connected" ? "Stop Voice Co-Pilot" : "Start Voice Co-Pilot"}
-          className={`relative ed-press group flex items-center justify-center rounded-2xl shadow-2xl transition-all duration-300 ${
-            connectionState === "connected"
-              ? "w-14 h-14 bg-gradient-to-tr from-sky-500 to-cyan-400 text-white shadow-sky-500/35 ring-4 ring-sky-500/25"
-              : connectionState === "connecting"
-              ? "w-12 h-12 bg-[var(--ed-surface)] border border-[var(--ed-border)] text-sky-500 animate-pulse"
-              : "w-12 h-12 bg-[var(--ed-surface)] border border-[var(--ed-border)] hover:border-sky-500/50 text-[var(--ed-text-muted)] hover:text-sky-500"
+        {/* Card Body: Interactive Animated Orb & Live Conversation View */}
+        <div
+          className={`flex-1 overflow-y-auto px-5 py-2 flex flex-col justify-center ${
+            isExpanded ? "grid grid-cols-2 gap-4 items-center" : ""
           }`}
         >
-          {/* Dynamic Audio Level Glow Pulse */}
-          {connectionState === "connected" && (
-            <span
-              className="absolute inset-0 rounded-2xl bg-sky-400/30 pointer-events-none transition-transform duration-75"
-              style={{
-                transform: `scale(${1 + micVolume * 0.4})`,
-                opacity: 0.5 + micVolume * 0.5,
-              }}
-            />
+          {/* Animated Central Orb View */}
+          {(!showTranscript || isExpanded) && (
+            <div className="flex flex-col items-center justify-center py-4 space-y-4">
+              <div className="relative flex items-center justify-center">
+                {/* Dynamic Audio Ripple Aura */}
+                <div
+                  className="absolute rounded-full filter blur-2xl transition-transform duration-100 pointer-events-none"
+                  style={{
+                    width: "140px",
+                    height: "140px",
+                    background:
+                      agentState === "speaking"
+                        ? "radial-gradient(circle, #38bdf8 0%, #10b981 50%, #f59e0b 100%)"
+                        : agentState === "listening"
+                        ? "radial-gradient(circle, #34d399 0%, #38bdf8 60%, #818cf8 100%)"
+                        : "radial-gradient(circle, #0284c7 0%, #10b981 70%, transparent 100%)",
+                    transform: `scale(${1 + micVolume * 0.5 + (agentState === "speaking" ? 0.2 : 0)})`,
+                    opacity: 0.55 + micVolume * 0.45,
+                  }}
+                />
+
+                {/* Animated Sphere Button */}
+                <button
+                  onClick={() => {
+                    if (connectionState === "disconnected") {
+                      startVoiceSession();
+                    } else {
+                      setMuted(!muted);
+                    }
+                  }}
+                  title={
+                    connectionState === "disconnected"
+                      ? "Click to start session"
+                      : muted
+                      ? "Click to unmute microphone"
+                      : "Click to mute microphone"
+                  }
+                  className="relative w-36 h-36 rounded-full flex items-center justify-center shadow-2xl transition-transform duration-150 active:scale-95 group overflow-hidden cursor-pointer"
+                  style={{
+                    background:
+                      "radial-gradient(circle at 35% 35%, #86efac 0%, #38bdf8 38%, #0284c7 70%, #10b981 100%)",
+                    boxShadow:
+                      "inset -8px -8px 24px rgba(0,0,0,0.35), inset 8px 8px 24px rgba(255,255,255,0.4), 0 16px 36px rgba(14, 165, 233, 0.35)",
+                    transform: `scale(${1 + micVolume * 0.18 + (agentState === "speaking" ? 0.08 : 0)})`,
+                  }}
+                >
+                  {/* Subtle spinning shimmer mesh */}
+                  <div
+                    className={`absolute inset-0 opacity-40 mix-blend-overlay ${
+                      agentState === "thinking"
+                        ? "animate-spin"
+                        : agentState === "speaking"
+                        ? "animate-pulse"
+                        : ""
+                    }`}
+                    style={{
+                      background:
+                        "conic-gradient(from 0deg, transparent 0deg, #facc15 120deg, #38bdf8 240deg, transparent 360deg)",
+                    }}
+                  />
+
+                  {/* Center White Circle with Phone/Mic Icon */}
+                  <div className="relative z-10 w-12 h-12 rounded-full bg-white text-gray-900 flex items-center justify-center shadow-lg transition-transform group-hover:scale-105">
+                    {connectionState === "connecting" ? (
+                      <RefreshCw className="w-5 h-5 text-sky-600 animate-spin" />
+                    ) : muted ? (
+                      <MicOff className="w-5 h-5 text-red-500" />
+                    ) : (
+                      <Phone className="w-5 h-5 text-gray-900 fill-gray-900" />
+                    )}
+                  </div>
+                </button>
+              </div>
+
+              {/* Subtitle & State Badge */}
+              <div className="text-center px-4 space-y-2">
+                <p className="text-xs text-[var(--ed-text-muted)] font-medium leading-relaxed max-w-xs mx-auto">
+                  Discover the capabilities of Conversational Agents powered by EDITH
+                </p>
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-sky-500/10 text-sky-500 border border-sky-500/20">
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full ${
+                      agentState === "speaking"
+                        ? "bg-emerald-500 animate-ping"
+                        : agentState === "listening"
+                        ? "bg-sky-500 animate-pulse"
+                        : agentState === "thinking"
+                        ? "bg-amber-500 animate-spin"
+                        : "bg-gray-400"
+                    }`}
+                  />
+                  <span className="capitalize">
+                    {muted ? "Microphone Muted" : agentState === "confirming" ? "Awaiting Confirmation" : agentState}
+                  </span>
+                </div>
+              </div>
+            </div>
           )}
 
-          {connectionState === "connecting" ? (
-            <RefreshCw className="w-5 h-5 animate-spin" />
-          ) : connectionState === "connected" ? (
-            <Mic className="w-6 h-6 animate-pulse" />
-          ) : (
-            <Mic className="w-5 h-5 group-hover:scale-110 transition-transform" />
-          )}
+          {/* Live Transcript / Message Stream */}
+          {(showTranscript || isExpanded) && (
+            <div className="flex flex-col h-[320px] rounded-2xl border border-[var(--ed-border)] bg-[var(--ed-bg)]/60 overflow-hidden">
+              <div className="px-3.5 py-2 border-b border-[var(--ed-border)] flex items-center justify-between text-[11px] font-semibold text-[var(--ed-text-muted)]">
+                <span>Live Conversation & Actions</span>
+                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-500">
+                  Gemini 3.1 Live
+                </span>
+              </div>
 
-          {/* Live indicator dot */}
-          {connectionState === "connected" && (
-            <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500 border-2 border-[var(--ed-surface)]" />
-            </span>
+              <div className="flex-1 overflow-y-auto p-3 space-y-2.5 text-xs">
+                {transcripts.length === 0 ? (
+                  <div className="h-full flex flex-col items-center justify-center text-center text-[var(--ed-text-muted)] p-4 space-y-2">
+                    <Sparkles className="w-5 h-5 text-sky-500 opacity-60 animate-pulse" />
+                    <p className="font-medium text-xs">Voice & chat ready.</p>
+                    <p className="text-[10px] leading-relaxed">
+                      Say "Show me the pricing rules", "Update agent name to Rakesh", or type below.
+                    </p>
+                  </div>
+                ) : (
+                  transcripts.map((t) => (
+                    <div
+                      key={t.id}
+                      className={`p-2.5 rounded-2xl text-xs leading-relaxed ${
+                        t.speaker === "agent"
+                          ? "bg-sky-500/10 text-[var(--ed-text-primary)] border border-sky-500/20 mr-4"
+                          : t.speaker === "user"
+                          ? "bg-[var(--ed-surface)] text-[var(--ed-text-primary)] border border-[var(--ed-border)] ml-4"
+                          : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-[11px]"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between text-[9px] text-[var(--ed-text-muted)] font-mono mb-1">
+                        <span className="font-bold uppercase tracking-wider">
+                          {t.speaker === "agent" ? "EDITH" : t.speaker === "user" ? "You" : "Action"}
+                        </span>
+                        <span>{t.timestamp}</span>
+                      </div>
+                      <div>{t.text}</div>
+                    </div>
+                  ))
+                )}
+                <div ref={transcriptsEndRef} />
+              </div>
+            </div>
           )}
-        </button>
+        </div>
 
-        {/* Desktop transcript expander toggle button */}
-        {!isMobile && connectionState === "connected" && !panelOpen && (
-          <button
-            onClick={() => setPanelOpen(true)}
-            className="ed-press p-2.5 rounded-xl border border-[var(--ed-border)] bg-[var(--ed-surface)] text-[var(--ed-text-muted)] hover:text-[var(--ed-text-primary)] shadow-lg"
-            title="Open Transcripts"
+        {/* Card Footer: "Or send a message..." Input Bar */}
+        <div className="p-4 pt-2">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              sendChatMessage(chatInput);
+            }}
+            className="relative flex items-center rounded-full border border-[var(--ed-border)] bg-[var(--ed-bg)] px-3.5 py-2 shadow-inner focus-within:border-sky-500/60 focus-within:ring-2 focus-within:ring-sky-500/20 transition-all"
           >
-            <Sparkles className="w-4 h-4 text-sky-500" />
-          </button>
-        )}
+            <button
+              type="button"
+              onClick={() => setMuted(!muted)}
+              className="p-1.5 mr-1.5 rounded-full text-[var(--ed-text-muted)] hover:text-[var(--ed-text-primary)] transition-colors"
+              title={muted ? "Unmute microphone" : "Mute microphone"}
+            >
+              {muted ? <MicOff className="w-4 h-4 text-red-500" /> : <Mic className="w-4 h-4 text-sky-500" />}
+            </button>
+
+            <input
+              type="text"
+              value={chatInput}
+              onChange={(e) => setChatInput(e.target.value)}
+              placeholder="Or send a message..."
+              className="w-full bg-transparent text-xs text-[var(--ed-text-primary)] placeholder-[var(--ed-text-muted)] focus:outline-none pr-8"
+            />
+
+            <button
+              type="submit"
+              disabled={!chatInput.trim()}
+              className="absolute right-2 p-1.5 rounded-full text-[var(--ed-text-muted)] hover:text-sky-500 disabled:opacity-30 transition-colors cursor-pointer"
+              title="Send Message"
+            >
+              <Send className="w-4 h-4" />
+            </button>
+          </form>
+        </div>
       </div>
+
+      {/* Floating Docked Launcher Button (Shown when Card is Closed) */}
+      {!cardOpen && (
+        <div className="fixed bottom-6 right-6 z-40 flex items-center gap-3">
+          {errorMessage && (
+            <div className="px-3 py-1.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-500 text-xs shadow-lg animate-in fade-in">
+              {errorMessage}
+            </div>
+          )}
+
+          <button
+            onClick={() => {
+              setCardOpen(true);
+              if (connectionState === "disconnected") {
+                startVoiceSession();
+              }
+            }}
+            aria-label="Open Voice & Chat Assistant"
+            className="relative ed-press group flex items-center justify-center rounded-full shadow-2xl w-14 h-14 bg-gradient-to-tr from-sky-500 to-cyan-400 text-white shadow-sky-500/35 ring-4 ring-sky-500/25 transition-transform duration-200 hover:scale-105 cursor-pointer"
+          >
+            {/* Dynamic Mic Audio Glow Ring */}
+            {connectionState === "connected" && (
+              <span
+                className="absolute inset-0 rounded-full bg-sky-400/30 pointer-events-none transition-transform duration-75"
+                style={{
+                  transform: `scale(${1 + micVolume * 0.4})`,
+                  opacity: 0.5 + micVolume * 0.5,
+                }}
+              />
+            )}
+
+            {connectionState === "connecting" ? (
+              <RefreshCw className="w-6 h-6 animate-spin" />
+            ) : connectionState === "connected" ? (
+              <Phone className="w-6 h-6 animate-pulse" />
+            ) : (
+              <Phone className="w-6 h-6 group-hover:scale-110 transition-transform" />
+            )}
+
+            {/* Online Live Badge */}
+            {connectionState === "connected" && (
+              <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500 border-2 border-[var(--ed-surface)]" />
+              </span>
+            )}
+          </button>
+        </div>
+      )}
     </>
   );
 }
