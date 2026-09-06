@@ -10,8 +10,6 @@ import {
   X,
   ChevronDown,
   Sparkles,
-  AlertTriangle,
-  CheckCircle2,
   Radio,
   RefreshCw,
   Send,
@@ -41,7 +39,7 @@ import {
 } from "./voice/domActions";
 
 type ConnectionState = "disconnected" | "connecting" | "connected" | "error";
-type AgentState = "idle" | "listening" | "thinking" | "speaking" | "confirming";
+type AgentState = "idle" | "listening" | "thinking" | "speaking";
 
 const SUPPORTED_LANGUAGES = [
   { code: "all", name: "Multilingual", flag: "🌐" },
@@ -56,13 +54,6 @@ interface TranscriptMessage {
   speaker: "user" | "agent" | "system";
   text: string;
   timestamp: string;
-}
-
-interface PendingConfirmation {
-  actionName: string;
-  description: string;
-  onConfirm: () => void;
-  onCancel: () => void;
 }
 
 export default function VoiceAgent() {
@@ -83,9 +74,8 @@ export default function VoiceAgent() {
   const [selectedLanguage, setSelectedLanguage] = useState(SUPPORTED_LANGUAGES[0]);
   const [langMenuOpen, setLangMenuOpen] = useState(false);
 
-  // Transcripts & confirmation
+  // Transcripts
   const [transcripts, setTranscripts] = useState<TranscriptMessage[]>([]);
-  const [pendingConfirmation, setPendingConfirmation] = useState<PendingConfirmation | null>(null);
 
   // References
   const wsRef = useRef<WebSocket | null>(null);
@@ -155,7 +145,6 @@ export default function VoiceAgent() {
     setMuted(false);
     setConnectionState("disconnected");
     setAgentState("idle");
-    setPendingConfirmation(null);
     setMicVolume(0);
   }, []);
 
@@ -251,56 +240,22 @@ export default function VoiceAgent() {
             error: `Element "${query}" was not found on the current screen (${pathname}).`,
           };
         } else {
-          // Check for destructive actions
-          const textLower = (el.textContent || el.getAttribute("aria-label") || "").toLowerCase();
-          const isDestructive =
-            textLower.includes("delete") ||
-            textLower.includes("kill") ||
-            textLower.includes("remove") ||
-            textLower.includes("send") ||
-            textLower.includes("save settings");
-
-          if (isDestructive && !args.confirmed) {
-            // Require confirmation
-            setAgentState("confirming");
-            setPendingConfirmation({
-              actionName: `Click "${el.innerText?.trim() || query}"`,
-              description: `Are you sure you want to trigger this action?`,
-              onConfirm: () => {
-                highlightElement(el, "#eab308", 1200);
-                el.click();
-                setPendingConfirmation(null);
-                setAgentState("listening");
-              },
-              onCancel: () => {
-                setPendingConfirmation(null);
-                setAgentState("listening");
-              },
-            });
-
-            result = {
-              success: false,
-              requires_confirmation: true,
-              message: `Requested confirmation from operator before clicking "${query}".`,
-            };
-          } else {
-            highlightElement(el, "#0ea5e9", 1200);
-            el.click();
-            result = {
-              success: true,
-              clicked: el.innerText?.trim() || query,
-              message: `Successfully clicked "${query}".`,
-            };
-            setTranscripts((prev) => [
-              ...prev,
-              {
-                id: Math.random().toString(),
-                speaker: "system",
-                text: `Clicked: ${el.innerText?.trim() || query}`,
-                timestamp: new Date().toLocaleTimeString(),
-              },
-            ]);
-          }
+          highlightElement(el, "#0ea5e9", 1200);
+          el.click();
+          result = {
+            success: true,
+            clicked: el.innerText?.trim() || query,
+            message: `Successfully clicked "${query}".`,
+          };
+          setTranscripts((prev) => [
+            ...prev,
+            {
+              id: Math.random().toString(),
+              speaker: "system",
+              text: `Clicked: ${el.innerText?.trim() || query}`,
+              timestamp: new Date().toLocaleTimeString(),
+            },
+          ]);
         }
       } else if (name === "fill_field") {
         const fieldName = args.field_name || "";
@@ -343,65 +298,54 @@ export default function VoiceAgent() {
             error: "Action debounced to prevent duplicate sending.",
           };
         } else {
-          // ALWAYS requires confirmation
-          setAgentState("confirming");
-          setPendingConfirmation({
-            actionName: `Send WhatsApp to ${target}`,
-            description: `Message: "${message}"`,
-            onConfirm: async () => {
-              lastDestructiveActionTime.current = Date.now();
-              try {
-                // If operator is on /conversations with an active composer
-                const composer = document.querySelector(
-                  "textarea[placeholder*='message'], textarea"
-                ) as HTMLTextAreaElement;
-                const sendBtn = document.querySelector(
-                  "button:has(svg.lucide-send), button[aria-label*='Send']"
-                ) as HTMLButtonElement;
+          lastDestructiveActionTime.current = Date.now();
+          try {
+            // If operator is on /conversations with an active composer
+            const composer = document.querySelector(
+              "textarea[placeholder*='message'], textarea"
+            ) as HTMLTextAreaElement;
+            const sendBtn = document.querySelector(
+              "button:has(svg.lucide-send), button[aria-label*='Send']"
+            ) as HTMLButtonElement;
 
-                if (composer && sendBtn) {
-                  setNativeValue(composer, message);
-                  sendBtn.click();
-                } else {
-                  // Direct backend fallback dispatch
-                  await fetch("/api/v1/whatsapp/send", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                      to_phone: target,
-                      message: message,
-                      source: "voice_agent",
-                    }),
-                  });
-                }
+            if (composer && sendBtn) {
+              setNativeValue(composer, message);
+              sendBtn.click();
+            } else {
+              // Direct backend fallback dispatch
+              await fetch("/api/v1/whatsapp/send", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  to_phone: target,
+                  message: message,
+                  source: "voice_agent",
+                }),
+              });
+            }
 
-                setTranscripts((prev) => [
-                  ...prev,
-                  {
-                    id: Math.random().toString(),
-                    speaker: "system",
-                    text: `WhatsApp message sent to ${target}`,
-                    timestamp: new Date().toLocaleTimeString(),
-                  },
-                ]);
-              } catch (e) {
-                console.error("WhatsApp voice send failed:", e);
-              } finally {
-                setPendingConfirmation(null);
-                setAgentState("listening");
-              }
-            },
-            onCancel: () => {
-              setPendingConfirmation(null);
-              setAgentState("listening");
-            },
-          });
+            setTranscripts((prev) => [
+              ...prev,
+              {
+                id: Math.random().toString(),
+                speaker: "system",
+                text: `WhatsApp message sent to ${target}: "${message}"`,
+                timestamp: new Date().toLocaleTimeString(),
+              },
+            ]);
 
-          result = {
-            success: true,
-            requires_verbal_confirmation: true,
-            message: `Awaiting operator spoken or visual confirmation before dispatching message to ${target}.`,
-          };
+            result = {
+              success: true,
+              recipient: target,
+              message: `Successfully dispatched WhatsApp message to ${target}.`,
+            };
+          } catch (e: any) {
+            console.error("WhatsApp voice send failed:", e);
+            result = {
+              success: false,
+              error: e?.message || "Failed to send WhatsApp message.",
+            };
+          }
         }
       } else if (name === "explain_feature") {
         const query = args.feature_name || "";
@@ -469,53 +413,47 @@ export default function VoiceAgent() {
         const recipientName = args.recipient_name || "Wholesale Buyer";
         const instruction = args.instruction || "Special wholesale discounts on fresh harvest estate tea";
 
-        setAgentState("confirming");
-        setPendingConfirmation({
-          actionName: `Send AI Promo to ${recipientName} (${targetPhone})`,
-          description: `Nemotron will draft and dispatch WhatsApp message: "${instruction}"`,
-          onConfirm: async () => {
-            setPendingConfirmation(null);
-            setAgentState("thinking");
-            try {
-              const res = await fetch("/api/v1/voice/generate-promo-message", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  target_phone: targetPhone,
-                  recipient_name: recipientName,
-                  instruction: instruction,
-                  dispatch_whatsapp: true,
-                }),
-              });
-              const data = await res.json();
-              if (res.ok) {
-                setTranscripts((prev) => [
-                  ...prev,
-                  {
-                    id: Math.random().toString(),
-                    speaker: "system",
-                    text: `Nemotron sent promo to ${targetPhone}: "${data.generated_message}"`,
-                    timestamp: new Date().toLocaleTimeString(),
-                  },
-                ]);
-              }
-            } catch (err) {
-              console.error("Promo dispatch failed:", err);
-            } finally {
-              setAgentState("listening");
-            }
-          },
-          onCancel: () => {
-            setPendingConfirmation(null);
-            setAgentState("listening");
-          },
-        });
-
-        result = {
-          success: true,
-          requires_verbal_confirmation: true,
-          message: `Awaiting operator confirmation before asking Nemotron to send promotional message to ${targetPhone}.`,
-        };
+        try {
+          const res = await fetch("/api/v1/voice/generate-promo-message", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              target_phone: targetPhone,
+              recipient_name: recipientName,
+              instruction: instruction,
+              dispatch_whatsapp: true,
+            }),
+          });
+          const data = await res.json();
+          if (res.ok) {
+            setTranscripts((prev) => [
+              ...prev,
+              {
+                id: Math.random().toString(),
+                speaker: "system",
+                text: `Nemotron sent promo to ${targetPhone}: "${data.generated_message}"`,
+                timestamp: new Date().toLocaleTimeString(),
+              },
+            ]);
+            result = {
+              success: true,
+              target_phone: targetPhone,
+              generated_message: data.generated_message,
+              message: `Nemotron generated and dispatched promotional WhatsApp message to ${targetPhone}.`,
+            };
+          } else {
+            result = {
+              success: false,
+              error: data.detail || "Failed to generate promotional message",
+            };
+          }
+        } catch (err: any) {
+          console.error("Promo dispatch failed:", err);
+          result = {
+            success: false,
+            error: err?.message || "Promo dispatch failed",
+          };
+        }
       } else if (name === "update_backend_setting") {
         const category = args.category || "settings";
         const key = args.key || "";
@@ -541,25 +479,21 @@ export default function VoiceAgent() {
         const question = args.question || "";
         const options = Array.isArray(args.options) ? args.options : [];
 
-        setAgentState("confirming");
-        setPendingConfirmation({
-          actionName: "Clarification Needed",
-          description: question + (options.length > 0 ? ` (Options: ${options.join(", ")})` : ""),
-          onConfirm: () => {
-            setPendingConfirmation(null);
-            setAgentState("listening");
+        setTranscripts((prev) => [
+          ...prev,
+          {
+            id: Math.random().toString(),
+            speaker: "system",
+            text: `Question: ${question}${options.length > 0 ? ` [${options.join(", ")}]` : ""}`,
+            timestamp: new Date().toLocaleTimeString(),
           },
-          onCancel: () => {
-            setPendingConfirmation(null);
-            setAgentState("listening");
-          },
-        });
+        ]);
 
         result = {
           success: true,
           question: question,
           options: options,
-          message: `Presented clarification question to operator: "${question}".`,
+          message: `Asked operator for clarification: "${question}". The operator will respond via voice or chat.`,
         };
       } else if (name === "select_conversation") {
         const query = args.phone_or_name || "";
@@ -768,7 +702,7 @@ export default function VoiceAgent() {
                   {
                     name: "send_whatsapp_message",
                     description:
-                      "Sends a real customer-facing WhatsApp message. ALWAYS requires verbal or visual operator confirmation before executing.",
+                      "Sends a real customer-facing WhatsApp message immediately as instructed by the operator.",
                     parameters: {
                       type: "OBJECT",
                       properties: {
@@ -1157,48 +1091,6 @@ export default function VoiceAgent() {
 
   return (
     <>
-      {/* Visual Confirmation Dialog for Destructive Actions */}
-      {pendingConfirmation && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-          <div
-            className="w-full max-w-md p-5 rounded-3xl border border-amber-500/40 shadow-2xl space-y-4 animate-in zoom-in-95 duration-150"
-            style={{ background: "var(--ed-surface)" }}
-          >
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-2xl bg-amber-500/10 text-amber-500 border border-amber-500/30 shrink-0">
-                <AlertTriangle className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="font-bold text-sm text-[var(--ed-text-primary)]">Confirmation Required</h3>
-                <p className="text-xs text-[var(--ed-text-muted)]">Say "Yes", "Confirm", or click below.</p>
-              </div>
-            </div>
-
-            <div className="p-3.5 rounded-2xl border border-[var(--ed-border)] bg-[var(--ed-bg)] space-y-1">
-              <div className="text-xs font-bold text-[var(--ed-accent)]">{pendingConfirmation.actionName}</div>
-              <div className="text-xs text-[var(--ed-text-muted)] leading-relaxed">
-                {pendingConfirmation.description}
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end gap-2.5 pt-2">
-              <button
-                onClick={pendingConfirmation.onCancel}
-                className="ed-press px-4 py-2 rounded-xl text-xs font-medium border border-[var(--ed-border)] hover:bg-[var(--ed-bg)] text-[var(--ed-text-muted)]"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={pendingConfirmation.onConfirm}
-                className="ed-press px-4 py-2 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-600 text-black flex items-center gap-1.5 shadow-md"
-              >
-                <CheckCircle2 className="w-4 h-4" />
-                Confirm Action
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Conversational Agent Card (Matching User Screenshots) */}
       <div
@@ -1364,8 +1256,6 @@ export default function VoiceAgent() {
                     ? "Listening..."
                     : agentState === "thinking"
                     ? "Thinking..."
-                    : agentState === "confirming"
-                    ? "Confirmation Required"
                     : "Listening..."}
                 </span>
               </div>
