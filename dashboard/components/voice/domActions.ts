@@ -118,11 +118,12 @@ export function getScreenSnapshot(currentPath: string): ScreenSnapshot {
 }
 
 /**
- * Searches the DOM for an element matching a voice label, query, or ID.
+ * Searches the DOM for an element matching a voice label, query, ID, phone number, or text.
  */
 export function findMatchingElement(query: string): HTMLElement | null {
   if (typeof document === "undefined") return null;
   const q = query.trim().toLowerCase();
+  const digitsOnly = q.replace(/\D/g, "");
 
   // 1. Direct ID match
   const byId = document.getElementById(query.trim()) || document.getElementById(q);
@@ -132,8 +133,8 @@ export function findMatchingElement(query: string): HTMLElement | null {
   const byVoiceAction = document.querySelector(`[data-voice-action="${q}"]`) as HTMLElement;
   if (byVoiceAction) return byVoiceAction;
 
-  // 3. Search visible buttons
-  const buttons = Array.from(document.querySelectorAll("button, [role='button'], a"));
+  // 3. Search visible buttons & links
+  const buttons = Array.from(document.querySelectorAll("button, [role='button'], a, [role='tab']"));
   const exactBtn = buttons.find((el) => {
     const text = el.textContent?.trim().toLowerCase();
     const aria = el.getAttribute("aria-label")?.toLowerCase();
@@ -148,7 +149,7 @@ export function findMatchingElement(query: string): HTMLElement | null {
   }) as HTMLElement;
   if (partialBtn) return partialBtn;
 
-  // 4. Search inputs by label, placeholder, name
+  // 4. Search inputs & textareas by label, placeholder, name
   const inputs = Array.from(document.querySelectorAll("input, textarea, select"));
   const matchInput = inputs.find((el) => {
     const inp = el as HTMLInputElement;
@@ -166,6 +167,26 @@ export function findMatchingElement(query: string): HTMLElement | null {
     );
   }) as HTMLElement;
   if (matchInput) return matchInput;
+
+  // 5. Search clickable rows, cards, or elements by phone number
+  if (digitsOnly.length >= 6) {
+    const allClickable = Array.from(
+      document.querySelectorAll<HTMLElement>("div[class*='cursor-pointer'], tr, [role='row'], li")
+    );
+    const phoneMatch = allClickable.find((el) => {
+      const textDigits = (el.textContent || "").replace(/\D/g, "");
+      return textDigits.includes(digitsOnly);
+    });
+    if (phoneMatch) return phoneMatch;
+  }
+
+  // 6. Generic clickable div or text match
+  const allDivs = Array.from(document.querySelectorAll<HTMLElement>("div[class*='cursor-pointer'], span, td"));
+  const textMatch = allDivs.find((el) => {
+    const t = el.innerText?.trim().toLowerCase() || "";
+    return t === q || (q.length >= 4 && t.includes(q));
+  });
+  if (textMatch) return textMatch;
 
   return null;
 }
@@ -189,3 +210,135 @@ export function setNativeValue(element: HTMLInputElement | HTMLTextAreaElement, 
   element.dispatchEvent(new Event("input", { bubbles: true }));
   element.dispatchEvent(new Event("change", { bubbles: true }));
 }
+
+/**
+ * Selects a conversation thread on /conversations by customer phone number or name.
+ */
+export function selectConversationItem(phoneOrName: string): { success: boolean; message: string; target?: string } {
+  if (typeof document === "undefined") return { success: false, message: "Document not available" };
+  const q = phoneOrName.trim().toLowerCase();
+  const digitsOnly = q.replace(/\D/g, "");
+
+  // Search candidate cards on /conversations
+  const cards = Array.from(
+    document.querySelectorAll<HTMLElement>(
+      "div[class*='cursor-pointer'], div[class*='p-3.5'], [role='row'], div:has(> span.truncate)"
+    )
+  );
+
+  for (const card of cards) {
+    const text = card.textContent?.toLowerCase() || "";
+    const textDigits = text.replace(/\D/g, "");
+
+    const matchesDigits = digitsOnly.length >= 6 && textDigits.includes(digitsOnly);
+    const matchesName = q.length >= 3 && text.includes(q);
+
+    if (matchesDigits || matchesName) {
+      highlightElement(card, "#10b981", 1600);
+      card.click();
+      return {
+        success: true,
+        message: `Selected conversation for "${phoneOrName}". Active chat timeline opened.`,
+        target: card.innerText?.split("\n")[0] || phoneOrName,
+      };
+    }
+  }
+
+  return {
+    success: false,
+    message: `Could not find a conversation matching "${phoneOrName}" on the screen. Try searching for it first.`,
+  };
+}
+
+/**
+ * Changes the dashboard theme live (dark, light, or toggle).
+ */
+export function setColorTheme(theme: string): { success: boolean; theme: string; message: string } {
+  if (typeof document === "undefined") return { success: false, theme: "light", message: "Window not available" };
+  const t = theme.trim().toLowerCase();
+  const shouldBeDark =
+    t === "dark" ||
+    (t.includes("dark") && !t.includes("light")) ||
+    (t.includes("toggle") && !document.documentElement.classList.contains("dark"));
+
+  if (shouldBeDark) {
+    document.documentElement.classList.add("dark");
+    localStorage.setItem("wb_theme", "dark");
+  } else {
+    document.documentElement.classList.remove("dark");
+    localStorage.setItem("wb_theme", "light");
+  }
+
+  window.dispatchEvent(
+    new CustomEvent("theme_change", {
+      detail: { theme: shouldBeDark ? "dark" : "light" },
+    })
+  );
+
+  return {
+    success: true,
+    theme: shouldBeDark ? "dark" : "light",
+    message: `Switched dashboard color theme to ${shouldBeDark ? "Dark ('Royal Pitch Black')" : "Light ('Estate White')"} mode.`,
+  };
+}
+
+/**
+ * Types text into any specified input, textarea, search bar, or composer.
+ */
+export function typeText(targetQuery: string, text: string, submit = false): { success: boolean; message: string } {
+  if (typeof document === "undefined") return { success: false, message: "Document not available" };
+  const q = targetQuery.trim().toLowerCase();
+
+  let targetInput: HTMLInputElement | HTMLTextAreaElement | null = null;
+
+  // 1. Chat composer / message textarea
+  if (q.includes("composer") || q.includes("chat") || q.includes("message") || q.includes("reply") || q.includes("whatsapp")) {
+    targetInput = document.querySelector<HTMLTextAreaElement | HTMLInputElement>(
+      "textarea[placeholder*='message'], textarea, input[placeholder*='message']"
+    );
+  }
+
+  // 2. Search / filter inputs
+  if (!targetInput && (q.includes("search") || q.includes("find") || q.includes("filter"))) {
+    targetInput = document.querySelector<HTMLInputElement>(
+      "input[type='search'], input[placeholder*='Search'], input[placeholder*='search'], input[placeholder*='filter']"
+    );
+  }
+
+  // 3. Fallback to generic findMatchingElement
+  if (!targetInput) {
+    const el = findMatchingElement(targetQuery);
+    if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA")) {
+      targetInput = el as HTMLInputElement | HTMLTextAreaElement;
+    }
+  }
+
+  // 4. Fallback to active element
+  if (!targetInput && document.activeElement && (document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "TEXTAREA")) {
+    targetInput = document.activeElement as HTMLInputElement | HTMLTextAreaElement;
+  }
+
+  if (!targetInput) {
+    return {
+      success: false,
+      message: `Could not find an input or textarea matching "${targetQuery}" on current screen.`,
+    };
+  }
+
+  highlightElement(targetInput, "#0ea5e9", 1200);
+  setNativeValue(targetInput, text);
+
+  if (submit) {
+    const container = targetInput.closest("form") || targetInput.parentElement;
+    const sendBtn = container?.querySelector<HTMLButtonElement>("button[type='submit'], button:has(svg.lucide-send)");
+    if (sendBtn) {
+      setTimeout(() => sendBtn.click(), 100);
+    }
+  }
+
+  return {
+    success: true,
+    message: `Successfully typed "${text}" into ${targetQuery}.`,
+  };
+}
+
