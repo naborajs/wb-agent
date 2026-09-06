@@ -18,8 +18,8 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata = {
-  title: "EDITH | North Bengal Tea Operations",
-  description: "More Conversations. Real Opportunities. Autonomous B2B AI Sales Operating System.",
+  title: "WhatsApp AI Agent by NS",
+  description: "Autonomous Conversational Sales, Dynamic Pricing, and WhatsApp AI Agent Operating System.",
   icons: {
     icon: [
       { url: "/favicon.ico" },
