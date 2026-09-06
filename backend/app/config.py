@@ -33,16 +33,16 @@ class Settings(BaseSettings):
     DB_POOL_TIMEOUT: int = 30
 
     # Business / Multi-Tenant Context & Domain Adaptation
-    DEFAULT_ORG_ID: str = "org_default_tea"
-    DEFAULT_ORG_NAME: str = "North Bengal Tea Co."
-    BUSINESS_NAME: str = "North Bengal Tea Co."
-    BUSINESS_INDUSTRY: str = "Wholesale Tea & Agro Produce"
-    BUSINESS_TAGLINE: str = "Direct Commercial Estate Wholesale"
-    BUSINESS_DESCRIPTION: str = "Commercial B2B supplier supplying fresh wholesale products directly to cafes, restaurants, hotels, and businesses."
+    DEFAULT_ORG_ID: str = "org_default"
+    DEFAULT_ORG_NAME: str = "My Business"
+    BUSINESS_NAME: str = "My Business"
+    BUSINESS_INDUSTRY: str = "General Business"
+    BUSINESS_TAGLINE: str = "AI-Powered Business Operations"
+    BUSINESS_DESCRIPTION: str = "AI-powered business operations platform for managing sales, customer interactions, and order processing."
     AGENT_NAME: str = "EDITH"
-    AGENT_ROLE: str = "Principal Commercial Sales Consultant"
+    AGENT_ROLE: str = "AI Sales & Support Agent"
     CURRENCY_SYMBOL: str = "₹"
-    CATALOG_UNIT: str = "kg"
+    CATALOG_UNIT: str = "unit"
 
     # Owner Escalation & Notifications (Normalized to E.164)
     OWNER_WHATSAPP_NUMBER: str = "+918900653250"
