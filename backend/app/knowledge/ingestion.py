@@ -39,13 +39,17 @@ class KnowledgeIngestionService:
         """
         file_hash = hashlib.sha256(text_content.encode("utf-8")).hexdigest()
 
-        # Check existing document by title within org
-        stmt = select(KnowledgeDocument).where(
-            KnowledgeDocument.org_id == self.org_id,
-            KnowledgeDocument.title == title,
+        # Check existing document by title within org (fetch latest version to avoid MultipleResultsFound)
+        stmt = (
+            select(KnowledgeDocument)
+            .where(
+                KnowledgeDocument.org_id == self.org_id,
+                KnowledgeDocument.title == title,
+            )
+            .order_by(KnowledgeDocument.version.desc())
         )
         res = await self.session.execute(stmt)
-        existing_doc = res.scalar_one_or_none()
+        existing_doc = res.scalars().first()
 
         if existing_doc:
             if existing_doc.file_hash == file_hash and existing_doc.is_active:
