@@ -20,6 +20,7 @@ from app.api.routes import (
     proposals,
     quotes,
     settings as settings_router,
+    voice,
     watchdog,
     webhooks,
     whatsapp,
@@ -115,8 +116,16 @@ app.include_router(analytics.router, prefix=api_v1)
 app.include_router(webhooks.router, prefix=api_v1)
 app.include_router(whatsapp.router, prefix=api_v1)
 app.include_router(settings_router.router, prefix=api_v1)
+app.include_router(voice.router, prefix=api_v1)
 app.include_router(watchdog.router, prefix=api_v1)
 app.include_router(ws.router, prefix=api_v1)
+
+
+@app.post("/api/voice-session-token")
+async def voice_session_token_alias():
+    """Alias for /api/v1/voice/session-token"""
+    from app.api.routes.voice import mint_voice_session_token
+    return await mint_voice_session_token()
 
 
 @app.get("/")
