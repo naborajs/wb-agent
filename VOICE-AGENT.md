@@ -29,15 +29,19 @@ To prevent this:
 
 ## 2. Action Tools Specification
 
-The Live API session config declares 5 actionable functions callable by the model:
+The Live API session config declares 9 actionable functions callable by the model:
 
-| Tool Function | Parameters | Client-Side App Logic | Safety & Confirmation |
+| Tool Function | Parameters | Client-Side / Backend App Logic | Safety & Confirmation |
 |---|---|---|---|
 | `navigate_to` | `section: string` | Maps section names to Next.js routes and calls `router.push()`. Highlights navigation item. | Pure navigation (immediate). |
 | `click_element` | `element_id_or_label: string` | Matches DOM ID, `data-voice-action`, `aria-label`, or button text. Displays a pulsing visual ring before triggering `.click()`. | Non-destructive: immediate.<br>Destructive: requires spoken "yes/confirm". |
 | `fill_field` | `field_name: string, value: string` | Locates input/textarea, scrolls into view, updates value, and dispatches synthetic `input` and `change` events. | Non-destructive: immediate.<br>Destructive: requires spoken confirmation. |
 | `send_whatsapp_message` | `target: string, message: string` | Wraps WhatsApp dispatch or active chat composer send button. Includes anti-duplicate debounce. | **Always requires spoken confirmation ("yes/confirm") or UI button approval.** |
 | `explain_feature` | `feature_name: string` | Answers the operator using the structured site map and grounding knowledge. | Informational (immediate). |
+| `update_system_prompt_via_nemotron` | `section: string, instruction: string` | Transfers voice instruction to NVIDIA Nemotron-3 Ultra (`POST /api/v1/voice/update-prompt-via-nemotron`) to rewrite and activate a system prompt section in DB and broadcast live. | Spoken confirmation + visual notice. |
+| `send_ai_promotional_message` | `target_phone: string, recipient_name: string, instruction: string` | Delegates B2B copy synthesis to NVIDIA Nemotron (`POST /api/v1/voice/generate-promo-message`) and dispatches via WhatsApp. | **Always requires spoken confirmation or UI confirmation.** |
+| `update_backend_setting` | `category: string, key: string, value: string` | Directly updates backend settings (`POST /api/v1/voice/update-backend-setting`) such as kill-switch, catalog stock, or pricing rules. | Destructive settings require confirmation. |
+| `ask_operator_clarification` | `question: string, options: string[]` | Asks the operator a clarifying question when voice instruction is ambiguous or has multiple choices. | Informational / interactive. |
 
 ---
 
