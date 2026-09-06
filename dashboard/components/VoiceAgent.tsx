@@ -21,6 +21,8 @@ import {
   Maximize2,
   Minimize2,
   MessageSquare,
+  ChevronLeft,
+  Globe,
 } from "lucide-react";
 import { AudioStreamer } from "./voice/audioStreamer";
 import {
@@ -37,6 +39,14 @@ import {
 
 type ConnectionState = "disconnected" | "connecting" | "connected" | "error";
 type AgentState = "idle" | "listening" | "thinking" | "speaking" | "confirming";
+
+const SUPPORTED_LANGUAGES = [
+  { code: "all", name: "Multilingual", flag: "🌐" },
+  { code: "en", name: "English", flag: "🇺🇸" },
+  { code: "hi", name: "Hindi (हिंदी)", flag: "🇮🇳" },
+  { code: "bn", name: "Bengali (বাংলা)", flag: "🇮🇳" },
+  { code: "hinglish", name: "Hinglish", flag: "🇮🇳" },
+];
 
 interface TranscriptMessage {
   id: string;
@@ -67,6 +77,8 @@ export default function VoiceAgent() {
   const [muted, setMuted] = useState(false);
   const [micVolume, setMicVolume] = useState(0);
   const [chatInput, setChatInput] = useState("");
+  const [selectedLanguage, setSelectedLanguage] = useState(SUPPORTED_LANGUAGES[0]);
+  const [langMenuOpen, setLangMenuOpen] = useState(false);
 
   // Transcripts & confirmation
   const [transcripts, setTranscripts] = useState<TranscriptMessage[]>([]);
@@ -77,6 +89,7 @@ export default function VoiceAgent() {
   const streamerRef = useRef<AudioStreamer | null>(null);
   const transcriptsEndRef = useRef<HTMLDivElement>(null);
   const lastDestructiveActionTime = useRef(0);
+  const mutedRef = useRef(false);
 
   // Mobile detection
   useEffect(() => {
@@ -103,10 +116,24 @@ export default function VoiceAgent() {
       streamerRef.current.stop();
       streamerRef.current = null;
     }
+    mutedRef.current = false;
+    setMuted(false);
     setConnectionState("disconnected");
     setAgentState("idle");
     setPendingConfirmation(null);
     setMicVolume(0);
+  }, []);
+
+  // Hardware and software synchronized mute toggle
+  const toggleMute = useCallback(() => {
+    setMuted((prev) => {
+      const next = !prev;
+      mutedRef.current = next;
+      if (streamerRef.current) {
+        streamerRef.current.setMuted(next);
+      }
+      return next;
+    });
   }, []);
 
   // Send screen grounding context snapshot (turnComplete: false prevents unprompted speech)
@@ -754,7 +781,7 @@ export default function VoiceAgent() {
 
         // Start microphone recording with Gemini 3.1 Live API compliant schema
         await streamer.startRecording((base64Chunk) => {
-          if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN && !muted) {
+          if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN && !mutedRef.current) {
             const audioFrame = {
               realtimeInput: {
                 audio: {
@@ -892,6 +919,7 @@ export default function VoiceAgent() {
     if (!trimmed) return;
 
     setChatInput("");
+    setShowTranscript(true);
 
     // Add user message to transcript immediately
     setTranscripts((prev) => [
@@ -980,13 +1008,13 @@ export default function VoiceAgent() {
         </div>
       )}
 
-      {/* Conversational Agent Card (Matching User Screenshot media_1788720288244.png) */}
+      {/* Conversational Agent Card (Matching User Screenshots) */}
       <div
-        className={`fixed bottom-6 right-6 z-50 flex flex-col rounded-[36px] border border-gray-200/80 dark:border-zinc-800 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-2xl shadow-2xl transition-all duration-300 ease-out origin-bottom-right overflow-hidden ${
+        className={`fixed bottom-6 right-6 z-50 flex flex-col rounded-[36px] border border-gray-200/80 dark:border-zinc-800 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-2xl shadow-2xl transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] origin-bottom-right overflow-hidden ${
           cardOpen
             ? isExpanded
-              ? "w-[92vw] sm:w-[680px] max-h-[620px] scale-100 opacity-100 translate-y-0"
-              : "w-[92vw] sm:w-[370px] max-h-[560px] scale-100 opacity-100 translate-y-0"
+              ? "w-[92vw] sm:w-[680px] max-h-[620px] scale-100 opacity-100 translate-y-0 pointer-events-auto"
+              : "w-[92vw] sm:w-[370px] max-h-[560px] scale-100 opacity-100 translate-y-0 pointer-events-auto"
             : "scale-90 opacity-0 translate-y-8 pointer-events-none w-[360px] h-0 overflow-hidden"
         }`}
         style={{
@@ -995,26 +1023,67 @@ export default function VoiceAgent() {
         }}
       >
         {/* Top Controls Bar */}
-        <div className="px-6 pt-6 pb-2 flex items-center justify-between">
-          {/* Top Left: Chat Transcript Toggle Button */}
-          <button
-            onClick={() => setShowTranscript(!showTranscript)}
-            className={`w-10 h-10 rounded-full flex items-center justify-center transition-all cursor-pointer ${
-              showTranscript
-                ? "bg-sky-500/15 text-sky-600 dark:text-sky-400 border border-sky-500/30 shadow-sm"
-                : "bg-gray-100 dark:bg-zinc-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-zinc-700"
-            }`}
-            title={showTranscript ? "Show Voice Orb" : "Show Transcript"}
-          >
-            <MessageSquare className="w-4 h-4" />
-          </button>
+        <div className="px-6 pt-6 pb-2 flex items-center justify-between gap-2">
+          {/* Top Left: Chat Toggle or Back to Orb Button */}
+          {showTranscript ? (
+            <button
+              onClick={() => setShowTranscript(false)}
+              className="w-10 h-10 rounded-full flex items-center justify-center shadow-md hover:scale-105 active:scale-95 transition-all overflow-hidden cursor-pointer shrink-0"
+              style={{
+                background:
+                  "radial-gradient(circle at 35% 30%, #e2e873 0%, #a3e635 25%, #2dd4bf 55%, #38bdf8 80%, #2563eb 100%)",
+              }}
+              title="Back to voice orb"
+            >
+              <div className="w-5 h-5 rounded-full bg-white shadow-sm flex items-center justify-center">
+                <ChevronLeft className="w-3.5 h-3.5 text-gray-800" />
+              </div>
+            </button>
+          ) : (
+            <button
+              onClick={() => setShowTranscript(true)}
+              className="w-10 h-10 rounded-full bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700 flex items-center justify-center text-gray-600 dark:text-gray-300 transition-colors cursor-pointer shrink-0"
+              title="Show chat transcript"
+            >
+              <MessageSquare className="w-4 h-4" />
+            </button>
+          )}
 
-          {/* Top Right: Minimize / Close Button */}
+          {/* Top Center: Language Selection Pill (media_1788720003363.png) */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setLangMenuOpen((prev) => !prev)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-gray-200 dark:border-zinc-700 bg-gray-50/90 dark:bg-zinc-800/90 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors cursor-pointer shadow-sm"
+            >
+              <span>{selectedLanguage.flag}</span>
+              <span className="text-[11px] font-medium">{selectedLanguage.name}</span>
+              <ChevronDown className="w-3 h-3 text-gray-400" />
+            </button>
+            {langMenuOpen && (
+              <div className="absolute top-full mt-1.5 left-1/2 -translate-x-1/2 z-30 w-44 rounded-2xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-xl py-1 text-xs animate-in fade-in zoom-in-95">
+                {SUPPORTED_LANGUAGES.map((lang) => (
+                  <button
+                    key={lang.code}
+                    type="button"
+                    onClick={() => {
+                      setSelectedLanguage(lang);
+                      setLangMenuOpen(false);
+                    }}
+                    className="w-full px-3.5 py-2 text-left flex items-center gap-2 hover:bg-sky-50 dark:hover:bg-sky-950/40 text-gray-800 dark:text-gray-200 transition-colors"
+                  >
+                    <span>{lang.flag}</span>
+                    <span className="font-medium text-xs">{lang.name}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Top Right: Minimize Button */}
           <button
-            onClick={() => {
-              setCardOpen(false);
-            }}
-            className="w-10 h-10 rounded-full bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700 flex items-center justify-center text-gray-600 dark:text-gray-300 transition-colors cursor-pointer"
+            onClick={() => setCardOpen(false)}
+            className="w-10 h-10 rounded-full bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700 flex items-center justify-center text-gray-600 dark:text-gray-300 transition-colors cursor-pointer shrink-0"
             title="Minimize Voice Agent"
           >
             <Minimize2 className="w-4 h-4" />
@@ -1027,41 +1096,48 @@ export default function VoiceAgent() {
             isExpanded ? "grid grid-cols-2 gap-6 items-center" : ""
           }`}
         >
-          {/* Animated Central Gradient Orb (media_1788720288244.png) */}
+          {/* Animated Central Gradient Orb (media_1788720435889.png & media_1788720003363.png) */}
           {(!showTranscript || isExpanded) && (
             <div className="flex flex-col items-center justify-center py-6 space-y-6">
               <div className="relative flex items-center justify-center">
                 {/* Dynamic Audio Ripple Glow */}
                 <div
-                  className="absolute rounded-full filter blur-2xl transition-transform duration-100 pointer-events-none"
+                  className="absolute rounded-full filter blur-2xl transition-transform duration-150 pointer-events-none"
                   style={{
                     width: "160px",
                     height: "160px",
                     background:
                       agentState === "speaking"
-                        ? "radial-gradient(circle, #38bdf8 0%, #10b981 45%, #facc15 100%)"
+                        ? "radial-gradient(circle, #38bdf8 0%, #2dd4bf 45%, #a3e635 100%)"
                         : agentState === "listening"
                         ? "radial-gradient(circle, #34d399 0%, #38bdf8 60%, #818cf8 100%)"
-                        : "radial-gradient(circle, #0284c7 0%, #10b981 70%, transparent 100%)",
+                        : "radial-gradient(circle, #38bdf8 0%, #2dd4bf 70%, transparent 100%)",
                     transform: `scale(${1 + micVolume * 0.45 + (agentState === "speaking" ? 0.18 : 0)})`,
-                    opacity: 0.55 + micVolume * 0.45,
+                    opacity: 0.6 + micVolume * 0.4,
                   }}
                 />
 
-                {/* The Clean Ethereal Gradient Sphere */}
+                {/* Clean Ethereal Gradient Sphere */}
                 <div
-                  className="relative w-44 h-44 rounded-full flex items-center justify-center shadow-2xl transition-transform duration-150 overflow-hidden"
+                  onClick={() => {
+                    if (connectionState === "disconnected") {
+                      startVoiceSession();
+                    }
+                  }}
+                  className={`relative w-48 h-48 rounded-full flex items-center justify-center shadow-2xl transition-transform duration-150 overflow-hidden ${
+                    connectionState === "disconnected" ? "cursor-pointer hover:scale-[1.03]" : ""
+                  }`}
                   style={{
                     background:
-                      "radial-gradient(circle at 35% 35%, #86efac 0%, #38bdf8 38%, #0284c7 70%, #10b981 100%)",
+                      "radial-gradient(circle at 35% 30%, #e2e873 0%, #a3e635 25%, #2dd4bf 55%, #38bdf8 80%, #2563eb 100%)",
                     boxShadow:
-                      "inset -10px -10px 28px rgba(0,0,0,0.3), inset 10px 10px 28px rgba(255,255,255,0.4), 0 20px 40px rgba(14, 165, 233, 0.3)",
-                    transform: `scale(${1 + micVolume * 0.16 + (agentState === "speaking" ? 0.07 : 0)})`,
+                      "inset -8px -8px 24px rgba(0,0,0,0.22), inset 8px 8px 20px rgba(255,255,255,0.45), 0 20px 45px rgba(45, 212, 191, 0.25)",
+                    transform: `scale(${1 + micVolume * 0.16 + (agentState === "speaking" ? 0.08 : 0)})`,
                   }}
                 >
                   {/* Subtle rotating shimmer */}
                   <div
-                    className={`absolute inset-0 opacity-35 mix-blend-overlay ${
+                    className={`absolute inset-0 opacity-30 mix-blend-overlay ${
                       agentState === "thinking"
                         ? "animate-spin"
                         : agentState === "speaking"
@@ -1073,13 +1149,22 @@ export default function VoiceAgent() {
                         "conic-gradient(from 0deg, transparent 0deg, #facc15 120deg, #38bdf8 240deg, transparent 360deg)",
                     }}
                   />
+
+                  {/* Disconnected state: White circular button with black phone icon (media_1788720003363.png) */}
+                  {connectionState === "disconnected" && (
+                    <div className="relative z-10 w-14 h-14 rounded-full bg-white shadow-xl flex items-center justify-center hover:scale-105 active:scale-95 transition-transform">
+                      <Phone className="w-6 h-6 text-black" />
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {/* Status Text (e.g. "Listening...") */}
-              <div className="text-center">
+              {/* Status Text (e.g. "Speaking...", "Listening...") */}
+              <div className="text-center px-4">
                 <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
-                  {muted
+                  {connectionState === "disconnected"
+                    ? "Discover the capabilities of EDITH Voice Co-Pilot"
+                    : muted
                     ? "Microphone Muted"
                     : agentState === "speaking"
                     ? "Speaking..."
@@ -1089,50 +1174,51 @@ export default function VoiceAgent() {
                     ? "Thinking..."
                     : agentState === "confirming"
                     ? "Confirmation Required"
-                    : "Ready"}
+                    : "Listening..."}
                 </span>
               </div>
             </div>
           )}
 
-          {/* Live Conversation Stream (When Chat Toggle is Active) */}
+          {/* Live Conversation Stream (When Chat View is Active - Matching media_1788720446042.png) */}
           {(showTranscript || isExpanded) && (
-            <div className="flex flex-col h-[320px] rounded-2xl border border-gray-200/80 dark:border-zinc-800 bg-gray-50/60 dark:bg-zinc-800/40 overflow-hidden">
-              <div className="px-4 py-2.5 border-b border-gray-200 dark:border-zinc-800 flex items-center justify-between text-[11px] font-semibold text-gray-500 dark:text-gray-400">
-                <span>Live Conversation</span>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-500 border border-sky-500/20">
-                  Gemini 3.1 Live
-                </span>
-              </div>
-
-              <div className="flex-1 overflow-y-auto p-3.5 space-y-2.5 text-xs">
+            <div className="flex flex-col h-[340px] rounded-3xl border border-gray-100 dark:border-zinc-800 bg-gray-50/40 dark:bg-zinc-800/30 overflow-hidden">
+              <div className="flex-1 overflow-y-auto p-4 space-y-3.5 text-xs">
                 {transcripts.length === 0 ? (
-                  <div className="h-full flex flex-col items-center justify-center text-center text-gray-400 dark:text-gray-500 p-4 space-y-2">
-                    <Sparkles className="w-5 h-5 text-sky-500 opacity-60 animate-pulse" />
-                    <p className="font-medium text-xs">Listening & chat ready.</p>
-                    <p className="text-[10px] leading-relaxed">
-                      Say "Show me the pricing rules", "Update agent name to Rakesh", or type below.
+                  <div className="h-full flex flex-col items-center justify-center text-center text-gray-400 dark:text-gray-500 p-6 space-y-2">
+                    <Sparkles className="w-6 h-6 text-sky-500 opacity-60 animate-pulse" />
+                    <p className="font-medium text-sm text-gray-600 dark:text-gray-300">
+                      Conversation transcript ready
+                    </p>
+                    <p className="text-xs leading-relaxed max-w-[220px]">
+                      Say "Show pricing", "Change agent name to Rakesh", or type a message below.
                     </p>
                   </div>
                 ) : (
                   transcripts.map((t) => (
                     <div
                       key={t.id}
-                      className={`p-3 rounded-2xl text-xs leading-relaxed ${
+                      className={`flex flex-col ${
                         t.speaker === "agent"
-                          ? "bg-sky-500/10 text-gray-900 dark:text-white border border-sky-500/20 mr-4"
+                          ? "items-start"
                           : t.speaker === "user"
-                          ? "bg-white dark:bg-zinc-900 text-gray-900 dark:text-white border border-gray-200 dark:border-zinc-700 ml-4 shadow-sm"
-                          : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-[11px]"
+                          ? "items-end"
+                          : "items-center"
                       }`}
                     >
-                      <div className="flex items-center justify-between text-[9px] text-gray-400 dark:text-gray-500 font-mono mb-1">
-                        <span className="font-bold uppercase tracking-wider">
-                          {t.speaker === "agent" ? "EDITH" : t.speaker === "user" ? "You" : "Action"}
-                        </span>
-                        <span>{t.timestamp}</span>
-                      </div>
-                      <div>{t.text}</div>
+                      {t.speaker === "agent" ? (
+                        <div className="max-w-[88%] bg-[#f4f4f5] dark:bg-zinc-800 text-gray-900 dark:text-white rounded-[24px] p-4 text-[13px] leading-relaxed shadow-sm">
+                          {t.text}
+                        </div>
+                      ) : t.speaker === "user" ? (
+                        <div className="max-w-[82%] bg-white dark:bg-zinc-900 text-gray-900 dark:text-white border border-gray-200 dark:border-zinc-700 rounded-[22px] px-4 py-2.5 text-[13px] shadow-sm">
+                          {t.text}
+                        </div>
+                      ) : (
+                        <div className="max-w-[90%] bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20 rounded-2xl px-3.5 py-1.5 text-[11px] font-medium text-center">
+                          {t.text}
+                        </div>
+                      )}
                     </div>
                   ))
                 )}
@@ -1142,14 +1228,14 @@ export default function VoiceAgent() {
           )}
         </div>
 
-        {/* Card Footer: "Or send a message..." Input Bar + Black Mic Button */}
+        {/* Card Footer: "Or send a message..." Input Bar + Black Mic Button + Cut Call Button */}
         <div className="px-6 pb-6 pt-2">
           <form
             onSubmit={(e) => {
               e.preventDefault();
               sendChatMessage(chatInput);
             }}
-            className="flex items-center gap-3"
+            className="flex items-center gap-2.5"
           >
             {/* Rounded Input Capsule */}
             <div className="relative flex items-center rounded-full border border-gray-200 dark:border-zinc-700 bg-gray-50/80 dark:bg-zinc-800/80 px-5 py-3.5 flex-1 shadow-sm focus-within:border-sky-500 focus-within:ring-2 focus-within:ring-sky-500/20 transition-all">
@@ -1158,7 +1244,7 @@ export default function VoiceAgent() {
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
                 placeholder="Or send a message..."
-                className="w-full bg-transparent text-sm text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none pr-6 font-normal"
+                className="w-full bg-transparent text-sm text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none pr-7 font-normal"
               />
 
               <button
@@ -1171,84 +1257,114 @@ export default function VoiceAgent() {
               </button>
             </div>
 
-            {/* Circular Black Mic Button (media_1788720288244.png) */}
+            {/* Circular Black Mic / Talk Button */}
             <button
               type="button"
               onClick={() => {
                 if (connectionState === "disconnected") {
                   startVoiceSession();
                 } else {
-                  setMuted(!muted);
+                  toggleMute();
                 }
               }}
-              className="w-12 h-12 rounded-full bg-black dark:bg-zinc-800 hover:bg-gray-900 text-white flex items-center justify-center shrink-0 shadow-lg active:scale-95 transition-transform cursor-pointer"
-              title={muted ? "Unmute microphone" : "Mute microphone"}
+              className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 shadow-lg active:scale-95 transition-all cursor-pointer ${
+                muted
+                  ? "bg-red-500/15 border-2 border-red-500 text-red-500"
+                  : "bg-black dark:bg-zinc-800 hover:bg-gray-900 text-white"
+              }`}
+              title={
+                connectionState === "disconnected"
+                  ? "Start voice call"
+                  : muted
+                  ? "Unmute microphone"
+                  : "Mute microphone"
+              }
             >
-              {muted ? (
-                <MicOff className="w-5 h-5 text-red-400" />
+              {connectionState === "disconnected" ? (
+                <Phone className="w-5 h-5 text-white" />
+              ) : muted ? (
+                <MicOff className="w-5 h-5 text-red-500" />
               ) : (
                 <Mic className="w-5 h-5 text-white" />
               )}
             </button>
+
+            {/* Dedicated Cut Call / Hang Up Button */}
+            {connectionState !== "disconnected" && (
+              <button
+                type="button"
+                onClick={disconnectSession}
+                className="w-12 h-12 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center shrink-0 shadow-lg active:scale-95 transition-all cursor-pointer"
+                title="Cut call / End session"
+              >
+                <PhoneOff className="w-5 h-5 text-white" />
+              </button>
+            )}
           </form>
         </div>
       </div>
 
       {/* Minimized Floating Pill (Matching User Screenshot media_1788720243249.png) */}
-      {!cardOpen && (
-        <div className="fixed bottom-6 right-6 z-40 flex items-center gap-3">
-          {errorMessage && (
-            <div className="px-3.5 py-2 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-500 text-xs shadow-lg animate-in fade-in">
-              {errorMessage}
-            </div>
-          )}
+      <div
+        className={`fixed bottom-6 right-6 z-40 flex items-center gap-3 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+          cardOpen
+            ? "scale-90 opacity-0 pointer-events-none"
+            : "scale-100 opacity-100 pointer-events-auto"
+        }`}
+      >
+        {errorMessage && (
+          <div className="px-3.5 py-2 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-500 text-xs shadow-lg animate-in fade-in">
+            {errorMessage}
+          </div>
+        )}
 
+        <div
+          onClick={() => {
+            setCardOpen(true);
+            if (connectionState === "disconnected") {
+              startVoiceSession();
+            }
+          }}
+          className="rounded-full border border-gray-200/90 dark:border-zinc-800 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl px-4 py-2.5 flex items-center gap-3.5 shadow-xl hover:shadow-2xl cursor-pointer hover:scale-[1.03] active:scale-95 transition-all duration-200"
+          style={{
+            boxShadow: "0 10px 30px -5px rgba(0, 0, 0, 0.15)",
+          }}
+        >
+          {/* Small Animated Gradient Sphere */}
           <div
-            onClick={() => {
-              setCardOpen(true);
-              if (connectionState === "disconnected") {
-                startVoiceSession();
-              }
-            }}
-            className="rounded-full border border-gray-200/90 dark:border-zinc-800 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl px-4 py-2.5 flex items-center gap-3.5 shadow-xl hover:shadow-2xl cursor-pointer hover:scale-[1.03] active:scale-95 transition-all duration-200"
+            className="w-9 h-9 rounded-full shrink-0 flex items-center justify-center shadow-md transition-transform duration-150 overflow-hidden"
             style={{
-              boxShadow: "0 10px 30px -5px rgba(0, 0, 0, 0.15)",
+              background:
+                "radial-gradient(circle at 35% 30%, #e2e873 0%, #a3e635 25%, #2dd4bf 55%, #38bdf8 80%, #2563eb 100%)",
+              transform: `scale(${1 + micVolume * 0.25 + (agentState === "speaking" ? 0.1 : 0)})`,
             }}
           >
-            {/* Small Animated Gradient Sphere */}
-            <div
-              className="w-9 h-9 rounded-full shrink-0 flex items-center justify-center shadow-md transition-transform duration-150 overflow-hidden"
-              style={{
-                background:
-                  "radial-gradient(circle at 35% 35%, #86efac 0%, #38bdf8 38%, #0284c7 70%, #10b981 100%)",
-                transform: `scale(${1 + micVolume * 0.25 + (agentState === "speaking" ? 0.1 : 0)})`,
-              }}
-            >
-              {connectionState === "connecting" && (
-                <RefreshCw className="w-4 h-4 text-white animate-spin" />
-              )}
-            </div>
+            {connectionState === "connecting" ? (
+              <RefreshCw className="w-4 h-4 text-white animate-spin" />
+            ) : connectionState === "disconnected" ? (
+              <Phone className="w-4 h-4 text-black/80" />
+            ) : null}
+          </div>
 
-            {/* Text labels: Voice chat / Speaking... */}
-            <div className="flex flex-col pr-1">
-              <span className="text-sm font-semibold text-gray-900 dark:text-white leading-tight">
-                Voice chat
-              </span>
-              <span className="text-xs font-medium text-sky-500 leading-tight">
-                {muted
-                  ? "Muted"
-                  : agentState === "speaking"
-                  ? "Speaking..."
-                  : agentState === "listening"
-                  ? "Listening..."
-                  : connectionState === "connecting"
-                  ? "Connecting..."
-                  : "Click to talk"}
-              </span>
-            </div>
+          {/* Text labels: Voice chat / Speaking... (media_1788720243249.png) */}
+          <div className="flex flex-col pr-1">
+            <span className="text-sm font-semibold text-gray-900 dark:text-white leading-tight">
+              Voice chat
+            </span>
+            <span className="text-xs font-medium text-sky-500 leading-tight">
+              {muted
+                ? "Muted"
+                : agentState === "speaking"
+                ? "Speaking..."
+                : agentState === "listening"
+                ? "Listening..."
+                : connectionState === "connecting"
+                ? "Connecting..."
+                : "Click to talk"}
+            </span>
           </div>
         </div>
-      )}
+      </div>
     </>
   );
 }
