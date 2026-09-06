@@ -49,7 +49,7 @@ async def lifespan(app: FastAPI):
                 from app.database.session import get_db_context
                 from app.watchdog.service import WatchdogService
                 async with get_db_context() as session:
-                    service = WatchdogService(session, org_id="org_default_tea")
+                    service = WatchdogService(session, org_id=settings.DEFAULT_ORG_ID)
                     await service.run_full_diagnostic_audit()
             except asyncio.CancelledError:
                 break
