@@ -56,8 +56,24 @@ export default function DashboardOverview() {
   ]);
 
   const [chartView, setChartView] = useState<"bars" | "pie">("bars");
+  const [businessName, setBusinessName] = useState("WhatsApp AI Agent by NS");
+  const [agentName, setAgentName] = useState("EDITH");
+  const [currencySymbol, setCurrencySymbol] = useState("₹");
 
   useEffect(() => {
+    const loadSettings = () => {
+      fetch("/api/v1/settings")
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data) => {
+          if (data?.business_name && data.business_name !== "North Bengal Tea Co.") {
+            setBusinessName(data.business_name);
+          }
+          if (data?.agent_name) setAgentName(data.agent_name);
+          if (data?.currency_symbol) setCurrencySymbol(data.currency_symbol);
+        })
+        .catch(() => {});
+    };
+
     const loadOverview = () => {
       fetch("/api/v1/analytics/overview")
         .then((r) => r.ok && r.json())
@@ -76,6 +92,7 @@ export default function DashboardOverview() {
         .catch(() => {});
     };
 
+    loadSettings();
     loadOverview();
     loadFunnel();
     const interval = setInterval(() => {
@@ -109,7 +126,7 @@ export default function DashboardOverview() {
     },
     {
       label: "Pipeline Value",
-      value: `₹${metrics.pipeline_value_inr.toLocaleString("en-IN")}`,
+      value: `${currencySymbol}${metrics.pipeline_value_inr.toLocaleString("en-IN")}`,
       sub: "Active commercial quotes",
       icon: TrendingUp,
       color: "var(--ed-accent)",
@@ -138,7 +155,7 @@ export default function DashboardOverview() {
           <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-3xl ed-brand-avatar flex items-center justify-center p-2.5 shrink-0 group">
             <img
               src="/logo-icon.png"
-              alt="EDITH Brand Emblem"
+              alt="Brand Emblem"
               className="w-full h-full object-contain drop-shadow-[0_4px_16px_rgba(56,189,248,0.45)] group-hover:scale-105 transition-transform duration-300"
             />
             {/* Pulsing online badge */}
@@ -153,10 +170,10 @@ export default function DashboardOverview() {
               <span>More Conversations • Real Opportunities</span>
             </div>
             <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--ed-text-primary)]">
-              EDITH Operations Center
+              {agentName} Operations Center
             </h2>
             <p className="text-xs sm:text-sm text-[var(--ed-text-muted)] max-w-xl">
-              Autonomous conversational acquisition, instant tier pricing, and wholesale order generation for North Bengal Tea Co.
+              Autonomous conversational acquisition, dynamic pricing rules, and multi-channel sales execution for {businessName}.
             </p>
           </div>
         </div>
@@ -164,7 +181,7 @@ export default function DashboardOverview() {
         <div className="flex flex-wrap items-center gap-3 z-10 shrink-0">
           <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold text-emerald-600 dark:text-emerald-400 border border-emerald-500/25 bg-emerald-500/8">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            EDITH AI Active
+            {agentName} AI Active
           </div>
           <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold text-[var(--ed-text-muted)] border border-[var(--ed-border)] bg-[var(--ed-surface)]">
             <span className="font-mono text-sky-600 dark:text-sky-400">Queue: {metrics.queue_depth}</span>
