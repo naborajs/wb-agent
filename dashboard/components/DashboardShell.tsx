@@ -7,7 +7,7 @@ import VoiceAgent from "./VoiceAgent";
 import {
   Inbox,
   Users,
-  Coffee,
+  Package,
   DollarSign,
   BookOpen,
   Calendar,
@@ -40,7 +40,7 @@ const navigation = [
   { name: "Campaigns", href: "/campaigns", icon: Send },
   { name: "Analytics", href: "/analytics", icon: TrendingUp },
   { name: "Orders", href: "/orders", icon: ShoppingBag },
-  { name: "Catalog", href: "/products", icon: Coffee },
+  { name: "Catalog", href: "/products", icon: Package },
   { name: "Pricing Rules", href: "/pricing", icon: DollarSign },
   { name: "Modular Prompts", href: "/prompts", icon: BookOpen },
   { name: "Integrations", href: "/integrations", icon: Radio },
@@ -76,6 +76,20 @@ export default function DashboardShell({ children }: { children: React.ReactNode
   const [watchdogOpen, setWatchdogOpen] = useState(false);
   const [auditing, setAuditing] = useState(false);
   const watchdogRef = useRef<HTMLDivElement>(null);
+  const [businessName, setBusinessName] = useState("WhatsApp AI Agent by NS");
+  const [agentName, setAgentName] = useState("EDITH");
+
+  useEffect(() => {
+    fetch("/api/v1/settings")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.business_name && data.business_name !== "North Bengal Tea Co.") {
+          setBusinessName(data.business_name);
+        }
+        if (data?.agent_name) setAgentName(data.agent_name);
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     setMounted(true);
@@ -250,14 +264,14 @@ export default function DashboardShell({ children }: { children: React.ReactNode
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
               <h1 className="font-bold text-base leading-tight tracking-tight text-[var(--ed-text-primary)] truncate">
-                EDITH
+                {agentName}
               </h1>
               <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/30">
                 AI OS
               </span>
             </div>
-            <div className="text-[11px] text-[var(--ed-text-muted)] truncate font-medium mt-0.5">
-              North Bengal Tea Co.
+            <div className="text-[11px] text-[var(--ed-text-muted)] truncate font-medium mt-0.5" title={businessName}>
+              {businessName}
             </div>
             <span className="text-[10px] font-medium text-[var(--ed-success)] flex items-center gap-1 mt-0.5">
               <span className="w-1.5 h-1.5 rounded-full bg-[var(--ed-success)]"></span>
