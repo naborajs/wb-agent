@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import VoiceAgent from "./VoiceAgent";
 import {
   Inbox,
   Users,
@@ -577,6 +578,9 @@ export default function DashboardShell({ children }: { children: React.ReactNode
           {children}
         </main>
       </div>
+
+      {/* Real-Time Voice-Driven Agentic Control Layer */}
+      <VoiceAgent />
     </div>
   );
 }
