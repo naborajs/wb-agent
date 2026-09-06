@@ -349,6 +349,148 @@ export default function VoiceAgent() {
             info: `The feature "${query}" is part of EDITH autonomous B2B sales system. Refer to the site map overview.`,
           };
         }
+      } else if (name === "update_system_prompt_via_nemotron") {
+        const section = args.section || "core_identity";
+        const instruction = args.instruction || "";
+
+        setTranscripts((prev) => [
+          ...prev,
+          {
+            id: Math.random().toString(),
+            speaker: "system",
+            text: `Transferring prompt revision to NVIDIA Nemotron for "${section}"...`,
+            timestamp: new Date().toLocaleTimeString(),
+          },
+        ]);
+
+        const res = await fetch("/api/v1/voice/update-prompt-via-nemotron", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ section, instruction }),
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          result = {
+            success: true,
+            section: data.section,
+            version: data.version,
+            summary: data.summary_of_changes,
+            model_used: data.model_used,
+            message: `NVIDIA Nemotron successfully updated the system prompt for ${data.section} to version ${data.version}.`,
+          };
+          setTranscripts((prev) => [
+            ...prev,
+            {
+              id: Math.random().toString(),
+              speaker: "system",
+              text: `Nemotron updated ${data.section} (v${data.version}): ${data.summary_of_changes}`,
+              timestamp: new Date().toLocaleTimeString(),
+            },
+          ]);
+
+          window.dispatchEvent(new CustomEvent("prompt_updated", { detail: data }));
+        } else {
+          const errData = await res.json().catch(() => ({ detail: "Nemotron update failed" }));
+          result = { success: false, error: errData.detail || "Nemotron prompt update failed" };
+        }
+      } else if (name === "send_ai_promotional_message") {
+        const targetPhone = args.target_phone || "";
+        const recipientName = args.recipient_name || "Wholesale Buyer";
+        const instruction = args.instruction || "Special wholesale discounts on fresh harvest estate tea";
+
+        setAgentState("confirming");
+        setPendingConfirmation({
+          actionName: `Send AI Promo to ${recipientName} (${targetPhone})`,
+          description: `Nemotron will draft and dispatch WhatsApp message: "${instruction}"`,
+          onConfirm: async () => {
+            setPendingConfirmation(null);
+            setAgentState("thinking");
+            try {
+              const res = await fetch("/api/v1/voice/generate-promo-message", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  target_phone: targetPhone,
+                  recipient_name: recipientName,
+                  instruction: instruction,
+                  dispatch_whatsapp: true,
+                }),
+              });
+              const data = await res.json();
+              if (res.ok) {
+                setTranscripts((prev) => [
+                  ...prev,
+                  {
+                    id: Math.random().toString(),
+                    speaker: "system",
+                    text: `Nemotron sent promo to ${targetPhone}: "${data.generated_message}"`,
+                    timestamp: new Date().toLocaleTimeString(),
+                  },
+                ]);
+              }
+            } catch (err) {
+              console.error("Promo dispatch failed:", err);
+            } finally {
+              setAgentState("listening");
+            }
+          },
+          onCancel: () => {
+            setPendingConfirmation(null);
+            setAgentState("listening");
+          },
+        });
+
+        result = {
+          success: true,
+          requires_verbal_confirmation: true,
+          message: `Awaiting operator confirmation before asking Nemotron to send promotional message to ${targetPhone}.`,
+        };
+      } else if (name === "update_backend_setting") {
+        const category = args.category || "settings";
+        const key = args.key || "";
+        const value = args.value;
+
+        const res = await fetch("/api/v1/voice/update-backend-setting", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ category, key, value }),
+        });
+        const data = await res.json();
+        result = data;
+        setTranscripts((prev) => [
+          ...prev,
+          {
+            id: Math.random().toString(),
+            speaker: "system",
+            text: `Backend update: ${data.message || JSON.stringify(data)}`,
+            timestamp: new Date().toLocaleTimeString(),
+          },
+        ]);
+      } else if (name === "ask_operator_clarification") {
+        const question = args.question || "";
+        const options = Array.isArray(args.options) ? args.options : [];
+
+        setAgentState("confirming");
+        setPendingConfirmation({
+          actionName: "Clarification Needed",
+          description: question + (options.length > 0 ? ` (Options: ${options.join(", ")})` : ""),
+          onConfirm: () => {
+            setPendingConfirmation(null);
+            setAgentState("listening");
+          },
+          onCancel: () => {
+            setPendingConfirmation(null);
+            setAgentState("listening");
+          },
+        });
+
+        result = {
+          success: true,
+          question: question,
+          options: options,
+          message: `Presented clarification question to operator: "${question}".`,
+        };
       } else {
         result = { success: false, error: `Unknown tool function: ${name}` };
       }
@@ -505,6 +647,92 @@ export default function VoiceAgent() {
                         },
                       },
                       required: ["feature_name"],
+                    },
+                  },
+                  {
+                    name: "update_system_prompt_via_nemotron",
+                    description:
+                      "Transfers an operator's request to revise or optimize the system prompt (e.g. changing agent name from EDITH to Rakesh, altering discount rules, or updating tone) to NVIDIA Nemotron. Nemotron generates the production prompt and activates it live in the backend.",
+                    parameters: {
+                      type: "OBJECT",
+                      properties: {
+                        section: {
+                          type: "STRING",
+                          description:
+                            "The prompt section: 'core_identity' (for agent name/persona), 'core_safety', 'business_policy', 'sales_style', or 'business_profile'.",
+                        },
+                        instruction: {
+                          type: "STRING",
+                          description:
+                            "The plain English instruction for Nemotron (e.g. 'Change the persona name from EDITH to Rakesh', 'Set maximum discount to 12%').",
+                        },
+                      },
+                      required: ["section", "instruction"],
+                    },
+                  },
+                  {
+                    name: "send_ai_promotional_message",
+                    description:
+                      "Asks NVIDIA Nemotron to author a personalized, high-converting B2B WhatsApp promotional outreach message and dispatches it to the recipient.",
+                    parameters: {
+                      type: "OBJECT",
+                      properties: {
+                        target_phone: {
+                          type: "STRING",
+                          description: "The recipient phone number or contact identifier.",
+                        },
+                        recipient_name: {
+                          type: "STRING",
+                          description: "Name of the wholesale buyer or contact.",
+                        },
+                        instruction: {
+                          type: "STRING",
+                          description: "Offer details or promotional campaign instructions for Nemotron to draft.",
+                        },
+                      },
+                      required: ["target_phone", "instruction"],
+                    },
+                  },
+                  {
+                    name: "update_backend_setting",
+                    description: "Updates backend settings, master AI kill-switch, catalog stock, or pricing rules directly.",
+                    parameters: {
+                      type: "OBJECT",
+                      properties: {
+                        category: {
+                          type: "STRING",
+                          description: "The category: 'settings', 'pricing', 'catalog', or 'kill_switch'.",
+                        },
+                        key: {
+                          type: "STRING",
+                          description: "The setting name, rule name, or product name.",
+                        },
+                        value: {
+                          type: "STRING",
+                          description: "The updated value (e.g. true/false or string/number).",
+                        },
+                      },
+                      required: ["category", "key", "value"],
+                    },
+                  },
+                  {
+                    name: "ask_operator_clarification",
+                    description:
+                      "Asks the operator a clarifying question or notifies the user live when an instruction is ambiguous, refers to multiple choices, or lacks critical parameters.",
+                    parameters: {
+                      type: "OBJECT",
+                      properties: {
+                        question: {
+                          type: "STRING",
+                          description: "The specific question to ask the operator.",
+                        },
+                        options: {
+                          type: "ARRAY",
+                          items: { type: "STRING" },
+                          description: "Optional list of distinct choices for the user to select from.",
+                        },
+                      },
+                      required: ["question"],
                     },
                   },
                 ],
