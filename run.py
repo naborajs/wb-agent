@@ -393,7 +393,7 @@ def main():
     # Service 2: FastAPI Backend (Port 8000)
     log_step("4B", "Starting FastAPI Backend (Port 8000)...")
     start_service(
-        cmd=f'"{sys.executable}" -m uvicorn app.main:app --app-dir backend --host 0.0.0.0 --port 8000',
+        cmd=f'"{sys.executable}" -m uvicorn app.main:app --app-dir backend --host 0.0.0.0 --port 8000 --reload',
         cwd=ROOT_DIR,
         prefix="FASTAPI-BACKEND",
         color=C.CYAN,
