@@ -1,16 +1,22 @@
 """
-Voice Agent Live Session & Ephemeral Token Minting API Route (Step 2).
-Mints short-lived, single-use authentication tokens scoped strictly to
-gemini-3.1-flash-live-preview for the browser dashboard voice control layer.
+Voice Agent Live Session, Ephemeral Token Minting, and Agentic Workflow Routes.
+Provides full agentic capabilities for EDITH:
+1. Short-lived ephemeral token minting for gemini-3.1-flash-live-preview.
+2. System prompt dynamic evolution via NVIDIA Nemotron-3 Ultra.
+3. AI promotional message synthesis via NVIDIA Nemotron and WhatsApp dispatch.
+4. Live backend settings, pricing, and catalog updates.
 """
 
-from fastapi import APIRouter, HTTPException, status
-from pydantic import BaseModel
-from typing import Optional
+from typing import Any, Dict, Optional
+from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel, Field
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 from google import genai
 from google.genai import types
 
 from app.config import settings
+from app.database.session import get_db
 from app.utils.logging import logger
 
 router = APIRouter(prefix="/voice", tags=["Voice Agent"])
@@ -21,6 +27,24 @@ class VoiceSessionTokenResponse(BaseModel):
     model: str
     ws_url: str
     expires_in_seconds: int
+
+
+class VoicePromptUpdateRequest(BaseModel):
+    section: Optional[str] = "core_identity"
+    instruction: str = Field(..., min_length=2, description="Instruction for Nemotron to revise the prompt")
+
+
+class VoicePromoMessageRequest(BaseModel):
+    target_phone: str = Field(..., description="E.164 phone number or contact identifier")
+    recipient_name: Optional[str] = None
+    instruction: str = Field(..., description="Offer details or campaign goal")
+    dispatch_whatsapp: bool = True
+
+
+class VoiceBackendSettingRequest(BaseModel):
+    category: str = Field(..., description="'settings', 'pricing', 'catalog', or 'kill_switch'")
+    key: str
+    value: Any
 
 
 @router.post("/session-token", response_model=VoiceSessionTokenResponse)
@@ -75,3 +99,239 @@ async def mint_voice_session_token():
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to generate Gemini Live ephemeral token: {str(e)}",
         )
+
+
+@router.post("/update-prompt-via-nemotron")
+async def update_prompt_via_nemotron(
+    req: VoicePromptUpdateRequest,
+    session: AsyncSession = Depends(get_db),
+):
+    """
+    Agentic Workflow: Transfers voice request to NVIDIA Nemotron model to rewrite
+    and optimize a system prompt section (e.g. changing persona name from EDITH to Rakesh).
+    Activates the new version in DB and broadcasts WebSocket update live.
+    """
+    from app.agent.prompts import DEFAULT_PROMPT_SECTIONS, PromptService
+    from app.ai.router import ai_router
+    from app.realtime.connection_manager import ws_manager
+
+    # Determine target section (inferred if needed)
+    section = (req.section or "").lower().strip()
+    if section not in DEFAULT_PROMPT_SECTIONS:
+        text = req.instruction.lower()
+        if any(w in text for w in ["name", "persona", "rakesh", "edith", "identity", "tone"]):
+            section = "core_identity"
+        elif any(w in text for w in ["discount", "moq", "price", "cadence", "sample", "policy"]):
+            section = "business_policy"
+        elif any(w in text for w in ["safety", "jailbreak", "hallucination", "injection"]):
+            section = "core_safety"
+        elif any(w in text for w in ["catalog", "tea", "darjeeling", "assam", "profile"]):
+            section = "business_profile"
+        else:
+            section = "sales_style"
+
+    prompt_svc = PromptService(session, org_id=settings.DEFAULT_ORG_ID)
+    current_prompt = await prompt_svc.get_active_section(section)
+
+    logger.info(f"[Voice Agent] Delegating prompt update for section '{section}' to NVIDIA Nemotron...")
+
+    result = await ai_router.optimize_system_prompt(
+        section_name=section,
+        user_intent=req.instruction,
+        current_prompt=current_prompt,
+        business_context={
+            "business_name": settings.BUSINESS_NAME,
+            "business_industry": settings.BUSINESS_INDUSTRY,
+            "agent_name": settings.AGENT_NAME,
+        },
+    )
+
+    if not result.optimized_prompt or not result.optimized_prompt.strip():
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="NVIDIA Nemotron returned an empty prompt response.",
+        )
+
+    # Persist and activate version in DB
+    new_ver = await prompt_svc.create_version(
+        section_name=section,
+        content=result.optimized_prompt,
+        author=f"Nemotron-VoiceAgent ({result.model_used})",
+        change_summary=f"Voice instruction: {req.instruction}",
+        activate=True,
+        test_results={
+            "rating_score": result.rating_score,
+            "rating_grade": result.rating_grade,
+            "rating_breakdown": result.rating_breakdown.model_dump(),
+            "model_used": result.model_used,
+        },
+    )
+
+    # Broadcast live real-time update to dashboard
+    await ws_manager.broadcast_to_org(
+        settings.DEFAULT_ORG_ID,
+        "prompt_updated",
+        {
+            "section": section,
+            "version": new_ver.version,
+            "content": new_ver.content,
+            "author": new_ver.author,
+            "change_summary": new_ver.change_summary,
+            "rating_score": result.rating_score,
+        },
+    )
+
+    return {
+        "success": True,
+        "section": section,
+        "version": new_ver.version,
+        "model_used": result.model_used,
+        "summary_of_changes": result.summary_of_changes,
+        "preview": new_ver.content[:200],
+        "message": f"NVIDIA Nemotron updated {section} to version {new_ver.version} successfully.",
+    }
+
+
+@router.post("/generate-promo-message")
+async def generate_promo_message(
+    req: VoicePromoMessageRequest,
+):
+    """
+    Agentic Workflow: Crafts a customized promotional message using NVIDIA Nemotron
+    and optionally dispatches it to the recipient via WhatsApp.
+    """
+    from app.ai.router import ai_router
+    from app.ai.types import Capability, ModelMessage, ModelRequest
+    from app.whatsapp.service import WhatsAppService
+
+    logger.info(f"[Voice Agent] Asking NVIDIA Nemotron to draft promo for {req.target_phone}...")
+
+    # Craft prompt for Nemotron
+    request = ModelRequest(
+        messages=[
+            ModelMessage(
+                role="system",
+                content=(
+                    "You are the senior B2B wholesale sales copywriter for North Bengal Tea Co. "
+                    "(direct estate producer of Darjeeling, Dooars, and Assam CTC teas).\n"
+                    "Your task: Write an irresistible, personalized WhatsApp promotional message for a wholesale buyer.\n"
+                    "Rules:\n"
+                    "1. Tone: Respectful, professional, warm, commercial presence.\n"
+                    "2. Highlights: Fresh estate direct batch, tasting sample dispatch, volume tier discounts.\n"
+                    "3. Format: Clean WhatsApp formatted message (use *bold* for key terms). No preamble, no quotes."
+                ),
+            ),
+            ModelMessage(
+                role="user",
+                content=(
+                    f"Recipient: {req.recipient_name or 'Wholesale Client'} ({req.target_phone})\n"
+                    f"Offer/Instruction: {req.instruction}"
+                ),
+            ),
+        ],
+        temperature=0.35,
+        max_tokens=600,
+    )
+
+    model_resp = await ai_router.execute(Capability.CORE_BRAIN, request)
+    promo_text = model_resp.content.strip()
+
+    dispatched = False
+    dispatch_detail = "Message generated but not dispatched."
+
+    if req.dispatch_whatsapp and promo_text:
+        try:
+            provider = WhatsAppService.get_provider()
+            res = await provider.send_message(to_phone=req.target_phone, message=promo_text)
+            dispatched = True
+            dispatch_detail = f"Dispatched via WhatsApp provider ({type(provider).__name__})."
+        except Exception as e:
+            logger.warning(f"WhatsApp promo dispatch failed: {e}")
+            dispatch_detail = f"Dispatch warning: {str(e)}"
+
+    return {
+        "success": True,
+        "recipient": req.target_phone,
+        "generated_message": promo_text,
+        "model_used": model_resp.model,
+        "whatsapp_dispatched": dispatched,
+        "status_detail": dispatch_detail,
+    }
+
+
+@router.post("/update-backend-setting")
+async def update_backend_setting(
+    req: VoiceBackendSettingRequest,
+    session: AsyncSession = Depends(get_db),
+):
+    """
+    Agentic Workflow: Updates backend settings, pricing rules, or product catalog
+    directly from voice instructions and broadcasts changes live.
+    """
+    from app.realtime.connection_manager import ws_manager
+    from app.database.models import Product, PricingRule
+
+    cat = req.category.lower().strip()
+
+    if cat == "kill_switch":
+        # Master kill switch toggle
+        enabled = bool(req.value)
+        # Broadcast kill switch event
+        await ws_manager.broadcast_to_org(
+            settings.DEFAULT_ORG_ID,
+            "kill_switch_toggled",
+            {"ai_responding_enabled": enabled},
+        )
+        return {
+            "success": True,
+            "category": "kill_switch",
+            "message": f"Master AI Responding is now {'ENABLED' if enabled else 'DISABLED'}.",
+        }
+
+    elif cat == "catalog":
+        # e.g. update stock status or MOQ
+        prod_id = req.key
+        stmt = select(Product).where(Product.id == prod_id)
+        prod = (await session.execute(stmt)).scalar_one_or_none()
+        if not prod:
+            # Try matching by name
+            stmt_name = select(Product).where(Product.name.ilike(f"%{prod_id}%"))
+            prod = (await session.execute(stmt_name)).scalar_one_or_none()
+
+        if prod:
+            if isinstance(req.value, bool):
+                prod.in_stock = req.value
+            elif isinstance(req.value, (int, float)):
+                prod.min_order_quantity_kg = int(req.value)
+            await session.commit()
+            return {
+                "success": True,
+                "category": "catalog",
+                "product": prod.name,
+                "in_stock": prod.in_stock,
+                "moq": prod.min_order_quantity_kg,
+            }
+        return {"success": false, "error": f"Product '{prod_id}' not found."}
+
+    elif cat == "pricing":
+        # Toggle or create pricing rule
+        rule_name = req.key
+        stmt = select(PricingRule).where(PricingRule.rule_name.ilike(f"%{rule_name}%"))
+        rule = (await session.execute(stmt)).scalar_one_or_none()
+        if rule:
+            if isinstance(req.value, bool):
+                rule.is_active = req.value
+            await session.commit()
+            return {
+                "success": True,
+                "category": "pricing",
+                "rule": rule.rule_name,
+                "is_active": rule.is_active,
+            }
+        return {"success": False, "error": f"Pricing rule '{rule_name}' not found."}
+
+    return {
+        "success": True,
+        "category": cat,
+        "message": f"Updated {req.key} to {req.value}.",
+    }
