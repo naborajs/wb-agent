@@ -335,3 +335,96 @@ async def update_backend_setting(
         "category": cat,
         "message": f"Updated {req.key} to {req.value}.",
     }
+
+
+class VoiceAuditLogRequest(BaseModel):
+    user_instruction: str = Field(..., description="User's original voice or text query")
+    action_type: str = Field(..., description="Tool name or intent attempted, e.g. select_conversation, click_element, set_color_theme, unhandled")
+    status: str = Field(default="success", description="'success', 'failed', or 'unhandled'")
+    current_path: Optional[str] = None
+    details: Optional[Dict[str, Any]] = None
+    error_reason: Optional[str] = None
+    suggested_feature: Optional[str] = None
+
+
+@router.post("/audit-log")
+async def record_voice_audit_log(
+    req: VoiceAuditLogRequest,
+    session: AsyncSession = Depends(get_db),
+):
+    """
+    Continuous Learning: Records user instructions, UI actions, unhandled intents,
+    and runtime errors into the SQLite database for operator inspection and agent evolution.
+    """
+    from app.database.models import VoiceAuditLog
+    from app.database.base import Base
+
+    # Ensure table exists in database engine
+    try:
+        conn = await session.connection()
+        await conn.run_sync(Base.metadata.create_all)
+    except Exception as e:
+        logger.debug("Database sync warning: %s", e)
+
+    log_entry = VoiceAuditLog(
+        org_id=settings.DEFAULT_ORG_ID,
+        user_instruction=req.user_instruction,
+        action_type=req.action_type,
+        status=req.status,
+        current_path=req.current_path or "/",
+        details=req.details or {},
+        error_reason=req.error_reason,
+        suggested_feature=req.suggested_feature,
+    )
+    session.add(log_entry)
+    await session.commit()
+    await session.refresh(log_entry)
+
+    logger.info(
+        "Voice Agent Audit Log recorded: action=%s status=%s instruction='%s'",
+        log_entry.action_type,
+        log_entry.status,
+        log_entry.user_instruction[:60],
+    )
+
+    return {
+        "success": True,
+        "log_id": log_entry.id,
+        "action_type": log_entry.action_type,
+        "status": log_entry.status,
+    }
+
+
+@router.get("/audit-logs")
+async def get_voice_audit_logs(
+    status: Optional[str] = None,
+    limit: int = 50,
+    session: AsyncSession = Depends(get_db),
+):
+    """
+    Retrieves recorded voice interaction audit logs, filterable by status ('failed', 'unhandled', 'success').
+    """
+    from app.database.models import VoiceAuditLog
+    from sqlalchemy import desc
+
+    stmt = select(VoiceAuditLog).order_by(desc(VoiceAuditLog.created_at)).limit(limit)
+    if status:
+        stmt = select(VoiceAuditLog).where(VoiceAuditLog.status == status).order_by(desc(VoiceAuditLog.created_at)).limit(limit)
+
+    results = (await session.execute(stmt)).scalars().all()
+
+    return [
+        {
+            "id": r.id,
+            "user_instruction": r.user_instruction,
+            "action_type": r.action_type,
+            "status": r.status,
+            "current_path": r.current_path,
+            "details": r.details,
+            "error_reason": r.error_reason,
+            "suggested_feature": r.suggested_feature,
+            "created_at": r.created_at.isoformat() if r.created_at else None,
+        }
+        for r in results
+    ]
+
