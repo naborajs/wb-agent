@@ -49,8 +49,19 @@ export class AudioStreamer {
   private nextPlayTime = 0;
   private activeSources: AudioBufferSourceNode[] = [];
   private isRecording = false;
+  private isMuted = false;
 
   public onVolumeChange?: (volume: number) => void;
+
+  /**
+   * Sets mute state to immediately block microphone processing.
+   */
+  setMuted(muted: boolean): void {
+    this.isMuted = muted;
+    if (muted) {
+      this.onVolumeChange?.(0);
+    }
+  }
 
   /**
    * Starts microphone recording and streams 16kHz linear PCM base64 chunks.
@@ -80,7 +91,10 @@ export class AudioStreamer {
     this.processorNode = this.inputAudioContext.createScriptProcessor(4096, 1, 1);
 
     this.processorNode.onaudioprocess = (e) => {
-      if (!this.isRecording) return;
+      if (!this.isRecording || this.isMuted) {
+        this.onVolumeChange?.(0);
+        return;
+      }
       const inputData = e.inputBuffer.getChannelData(0);
 
       // Calculate volume for UI visualizer
