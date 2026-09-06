@@ -35,6 +35,9 @@ import {
   findMatchingElement,
   highlightElement,
   setNativeValue,
+  selectConversationItem,
+  setColorTheme,
+  typeText,
 } from "./voice/domActions";
 
 type ConnectionState = "disconnected" | "connecting" | "connected" | "error";
@@ -90,6 +93,38 @@ export default function VoiceAgent() {
   const transcriptsEndRef = useRef<HTMLDivElement>(null);
   const lastDestructiveActionTime = useRef(0);
   const mutedRef = useRef(false);
+  const lastUserUtterance = useRef("");
+
+  // Record audit log entry in backend for continuous improvement and error diagnostics
+  const recordVoiceAuditLog = useCallback(
+    async (
+      instruction: string,
+      actionType: string,
+      status: "success" | "failed" | "unhandled",
+      details: any = {},
+      errorReason?: string,
+      suggestedFeature?: string
+    ) => {
+      try {
+        await fetch("/api/v1/voice/audit-log", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            user_instruction: instruction || actionType,
+            action_type: actionType,
+            status,
+            current_path: pathname,
+            details,
+            error_reason: errorReason,
+            suggested_feature: suggestedFeature,
+          }),
+        });
+      } catch (e) {
+        console.debug("Voice audit log write warning:", e);
+      }
+    },
+    [pathname]
+  );
 
   // Mobile detection
   useEffect(() => {
@@ -526,12 +561,90 @@ export default function VoiceAgent() {
           options: options,
           message: `Presented clarification question to operator: "${question}".`,
         };
+      } else if (name === "select_conversation") {
+        const query = args.phone_or_name || "";
+        if (pathname !== "/conversations") {
+          router.push("/conversations");
+          await new Promise((r) => setTimeout(r, 450));
+        }
+        result = selectConversationItem(query);
+        setTranscripts((prev) => [
+          ...prev,
+          {
+            id: Math.random().toString(),
+            speaker: "system",
+            text: result.success
+              ? `Opened chat: ${result.target || query}`
+              : `Chat search: ${result.message}`,
+            timestamp: new Date().toLocaleTimeString(),
+          },
+        ]);
+      } else if (name === "set_color_theme") {
+        const theme = args.theme || "toggle";
+        result = setColorTheme(theme);
+        setTranscripts((prev) => [
+          ...prev,
+          {
+            id: Math.random().toString(),
+            speaker: "system",
+            text: `Theme switched to ${result.theme} mode`,
+            timestamp: new Date().toLocaleTimeString(),
+          },
+        ]);
+      } else if (name === "type_text") {
+        const target = args.target || "search";
+        const text = args.text || "";
+        const submit = !!args.submit;
+        result = typeText(target, text, submit);
+        setTranscripts((prev) => [
+          ...prev,
+          {
+            id: Math.random().toString(),
+            speaker: "system",
+            text: `Typed into ${target}: "${text}"`,
+            timestamp: new Date().toLocaleTimeString(),
+          },
+        ]);
+      } else if (name === "log_unhandled_request") {
+        const userQuery = args.user_query || lastUserUtterance.current || "";
+        const attemptedAction = args.attempted_action || "unhandled_intent";
+        const reason = args.reason || "Action not currently supported in dashboard";
+        await recordVoiceAuditLog(
+          userQuery,
+          attemptedAction,
+          "unhandled",
+          { args },
+          reason,
+          attemptedAction
+        );
+        result = {
+          success: true,
+          message: `Logged unhandled request "${userQuery}" to continuous learning database for system expansion.`,
+        };
+        setTranscripts((prev) => [
+          ...prev,
+          {
+            id: Math.random().toString(),
+            speaker: "system",
+            text: `Logged gap to DB: ${userQuery}`,
+            timestamp: new Date().toLocaleTimeString(),
+          },
+        ]);
       } else {
         result = { success: false, error: `Unknown tool function: ${name}` };
       }
     } catch (err: any) {
       result = { success: false, error: err?.message || String(err) };
     }
+
+    // Automatically record every tool execution into the database audit log
+    recordVoiceAuditLog(
+      lastUserUtterance.current || name,
+      name,
+      result.success ? "success" : "failed",
+      { args, result },
+      result.error
+    );
 
     // Send tool response back over WebSocket
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
@@ -771,6 +884,83 @@ export default function VoiceAgent() {
                       required: ["question"],
                     },
                   },
+                  {
+                    name: "select_conversation",
+                    description:
+                      "Opens a specific customer chat or phone number on /conversations (e.g. 'click on our number', 'open chat with +91 89006 53250', 'open chat with Rahul'). Automatically navigates to /conversations and selects the thread.",
+                    parameters: {
+                      type: "OBJECT",
+                      properties: {
+                        phone_or_name: {
+                          type: "STRING",
+                          description: "The phone number or contact name to open and chat with.",
+                        },
+                      },
+                      required: ["phone_or_name"],
+                    },
+                  },
+                  {
+                    name: "set_color_theme",
+                    description:
+                      "Switches the dashboard interface color theme live: 'dark' ('Royal Pitch Black'), 'light' ('Estate White'), or 'toggle'.",
+                    parameters: {
+                      type: "OBJECT",
+                      properties: {
+                        theme: {
+                          type: "STRING",
+                          description: "'dark', 'light', or 'toggle'",
+                        },
+                      },
+                      required: ["theme"],
+                    },
+                  },
+                  {
+                    name: "type_text",
+                    description:
+                      "Types text into any input, search bar, or chat message composer on the current screen.",
+                    parameters: {
+                      type: "OBJECT",
+                      properties: {
+                        target: {
+                          type: "STRING",
+                          description:
+                            "The input target: 'composer' (for chat message box), 'search' (for search bar), or a specific field name.",
+                        },
+                        text: {
+                          type: "STRING",
+                          description: "The text content to type.",
+                        },
+                        submit: {
+                          type: "BOOLEAN",
+                          description: "Whether to submit / click send immediately after typing.",
+                        },
+                      },
+                      required: ["target", "text"],
+                    },
+                  },
+                  {
+                    name: "log_unhandled_request",
+                    description:
+                      "Records an unhandled or currently unsupported operator request directly into the database for operator inspection and continuous system expansion.",
+                    parameters: {
+                      type: "OBJECT",
+                      properties: {
+                        user_query: {
+                          type: "STRING",
+                          description: "The user's original spoken request.",
+                        },
+                        attempted_action: {
+                          type: "STRING",
+                          description: "The action or feature that was missing or failed.",
+                        },
+                        reason: {
+                          type: "STRING",
+                          description: "Why the action could not be fulfilled.",
+                        },
+                      },
+                      required: ["user_query", "attempted_action"],
+                    },
+                  },
                 ],
               },
             ],
@@ -859,6 +1049,7 @@ export default function VoiceAgent() {
             // Live User Speech Input Transcription
             if (sc.inputTranscription && sc.inputTranscription.text) {
               const textChunk = sc.inputTranscription.text;
+              lastUserUtterance.current = (lastUserUtterance.current || "") + textChunk;
               setTranscripts((prev) => {
                 const last = prev[prev.length - 1];
                 if (last && last.speaker === "user") {
@@ -920,6 +1111,7 @@ export default function VoiceAgent() {
 
     setChatInput("");
     setShowTranscript(true);
+    lastUserUtterance.current = trimmed;
 
     // Add user message to transcript immediately
     setTranscripts((prev) => [
@@ -1180,10 +1372,10 @@ export default function VoiceAgent() {
             </div>
           )}
 
-          {/* Live Conversation Stream (When Chat View is Active - Matching media_1788720446042.png) */}
+          {/* Live Conversation Stream (Smoothly animated & scrollable) */}
           {(showTranscript || isExpanded) && (
             <div className="flex flex-col h-[340px] rounded-3xl border border-gray-100 dark:border-zinc-800 bg-gray-50/40 dark:bg-zinc-800/30 overflow-hidden">
-              <div className="flex-1 overflow-y-auto p-4 space-y-3.5 text-xs">
+              <div className="flex-1 overflow-y-auto p-4 space-y-3.5 text-xs scroll-smooth">
                 {transcripts.length === 0 ? (
                   <div className="h-full flex flex-col items-center justify-center text-center text-gray-400 dark:text-gray-500 p-6 space-y-2">
                     <Sparkles className="w-6 h-6 text-sky-500 opacity-60 animate-pulse" />
@@ -1198,7 +1390,7 @@ export default function VoiceAgent() {
                   transcripts.map((t) => (
                     <div
                       key={t.id}
-                      className={`flex flex-col ${
+                      className={`flex flex-col transition-all duration-200 animate-in fade-in slide-in-from-bottom-2 ${
                         t.speaker === "agent"
                           ? "items-start"
                           : t.speaker === "user"
