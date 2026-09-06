@@ -171,3 +171,26 @@ class AuditLog(Base, OrgScopedMixin, TimestampMixin):
     resource_id = Column(String(64), nullable=True)
     changes = Column(UniversalJSON, default=dict, nullable=False)
     ip_address = Column(String(64), nullable=True)
+
+
+class VoiceAuditLog(Base, OrgScopedMixin, TimestampMixin):
+    """
+    Continuous learning and audit log for the Voice Agent (EDITH).
+    Records every user instruction, UI action attempted, errors, and unhandled requests
+    so developers and operators can review gaps and expand agent capabilities.
+    """
+    __tablename__ = "voice_audit_logs"
+
+    id = Column(String(64), primary_key=True, default=generate_uuid)
+    user_instruction = Column(Text, nullable=False)
+    action_type = Column(String(64), nullable=False, index=True)
+    status = Column(String(32), default="success", nullable=False, index=True)  # success, failed, unhandled
+    current_path = Column(String(128), nullable=True)
+    details = Column(UniversalJSON, default=dict, nullable=False)
+    error_reason = Column(Text, nullable=True)
+    suggested_feature = Column(Text, nullable=True)
+
+    __table_args__ = (
+        Index("ix_voice_audit_status_created", "status", "created_at"),
+    )
+

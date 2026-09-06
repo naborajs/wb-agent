@@ -31,6 +31,7 @@ from app.database.models.agent_audit import (
     Integration,
     AgentSetting,
     AuditLog,
+    VoiceAuditLog,
 )
 from app.database.models.knowledge_request import (
     HumanKnowledgeRequest,
@@ -77,6 +78,7 @@ __all__ = [
     "Integration",
     "AgentSetting",
     "AuditLog",
+    "VoiceAuditLog",
     "HumanKnowledgeRequest",
     "KnowledgeCandidate",
     "CustomerProfileVersion",
