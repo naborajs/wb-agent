@@ -286,6 +286,53 @@ export default function VoiceAgent() {
             },
           ]);
         }
+      } else if (name === "consult_edith_for_task") {
+        const task = args.task || "";
+        const targetPhone = args.target_phone || "";
+        const requestedDiscount = args.requested_discount ? Number(args.requested_discount) : undefined;
+
+        setTranscripts((prev) => [
+          ...prev,
+          {
+            id: Math.random().toString(),
+            speaker: "system",
+            text: `Consulting partner brain EDITH: "${task}"...`,
+            timestamp: new Date().toLocaleTimeString(),
+          },
+        ]);
+
+        try {
+          const res = await fetch("/api/v1/brain/request-edith", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              task,
+              target_phone: targetPhone,
+              requested_discount: requestedDiscount,
+            }),
+          });
+          const data = await res.json();
+          result = {
+            success: data.decision === "ACCEPTED",
+            decision: data.decision,
+            reasoning: data.reasoning,
+            details: data.details,
+            message: data.decision === "ACCEPTED"
+              ? `EDITH accepted the task: ${data.reasoning}`
+              : `EDITH declined the task: ${data.reasoning}`,
+          };
+          setTranscripts((prev) => [
+            ...prev,
+            {
+              id: Math.random().toString(),
+              speaker: "system",
+              text: `EDITH Verdict [${data.decision}]: ${data.reasoning}`,
+              timestamp: new Date().toLocaleTimeString(),
+            },
+          ]);
+        } catch (e: any) {
+          result = { success: false, error: e?.message || "Failed to communicate with EDITH over Inter-Brain Bus." };
+        }
       } else if (name === "send_whatsapp_message") {
         const target = args.target || "customer";
         const message = args.message || "";
@@ -754,6 +801,29 @@ export default function VoiceAgent() {
                     },
                   },
                   {
+                    name: "consult_edith_for_task",
+                    description:
+                      "Consults partner brain EDITH to evaluate and execute a commercial sales or WhatsApp task (e.g. sending promotional messages, offering volume discounts, contacting leads). EDITH independently evaluates commercial policies and may ACCEPT or DENY with reasons.",
+                    parameters: {
+                      type: "OBJECT",
+                      properties: {
+                        task: {
+                          type: "STRING",
+                          description: "The task description or commercial offer for EDITH.",
+                        },
+                        target_phone: {
+                          type: "STRING",
+                          description: "Optional customer phone number.",
+                        },
+                        requested_discount: {
+                          type: "NUMBER",
+                          description: "Optional discount percentage requested.",
+                        },
+                      },
+                      required: ["task"],
+                    },
+                  },
+                  {
                     name: "send_ai_promotional_message",
                     description:
                       "Asks NVIDIA Nemotron to author a personalized, high-converting B2B WhatsApp promotional outreach message and dispatches it to the recipient.",
@@ -1058,11 +1128,7 @@ export default function VoiceAgent() {
       },
     ]);
 
-    // If disconnected, connect first
-    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
-      await startVoiceSession();
-    }
-
+    // If WebSocket is open, send via live stream
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       const chatTurn = {
         clientContent: {
@@ -1077,7 +1143,37 @@ export default function VoiceAgent() {
       };
       wsRef.current.send(JSON.stringify(chatTurn));
       setAgentState("thinking");
+      return;
     }
+
+    // Direct Brain Chat fallback (works without active mic session)
+    setAgentState("thinking");
+    try {
+      const res = await fetch("/api/v1/brain/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: trimmed }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setTranscripts((prev) => [
+          ...prev,
+          {
+            id: Math.random().toString(),
+            speaker: "agent",
+            text: data.reply,
+            timestamp: new Date().toLocaleTimeString(),
+          },
+        ]);
+        setAgentState("idle");
+        return;
+      }
+    } catch (err) {
+      console.debug("Brain chat fallback attempt:", err);
+    }
+
+    // Attempt starting voice session if HTTP chat failed
+    await startVoiceSession();
   };
 
   // Toggle voice session
@@ -1247,7 +1343,7 @@ export default function VoiceAgent() {
               <div className="text-center px-4">
                 <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
                   {connectionState === "disconnected"
-                    ? "Discover the capabilities of EDITH Voice Co-Pilot"
+                    ? "Discover the capabilities of Friday — Personal AI Assistant"
                     : muted
                     ? "Microphone Muted"
                     : agentState === "speaking"
