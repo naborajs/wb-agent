@@ -69,7 +69,7 @@ interface ChatMessage {
   text: string;
   image_preview?: string;
   proposal?: any;
-  verdict?: "ACCEPTED" | "DENIED";
+  verdict?: "ACCEPTED" | "DENIED" | "INFO";
   reasoning?: string;
   suggestion?: string;
   created_at: string;
@@ -1655,10 +1655,10 @@ function KnowledgeHubMain() {
                       </div>
                     )}
 
-                    <p>{msg.text}</p>
+                    <div className="whitespace-pre-wrap">{msg.text}</div>
 
-                    {/* EDITH Deliberation & Policy Badge */}
-                    {msg.verdict && (
+                    {/* EDITH Deliberation & Policy Badge (Shown only for actual file creation/modification verdicts) */}
+                    {msg.verdict && msg.verdict !== "INFO" && (
                       <div className="mt-3 pt-2.5 border-t border-slate-200 dark:border-slate-800/80 space-y-2">
                         <div className="flex items-center justify-between">
                           <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">

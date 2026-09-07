@@ -147,13 +147,24 @@ app.get("/qr", async (req, res) => {
   }
 });
 
-// 3. Pairing Code endpoint
+// 3. Pairing Code endpoint (Supports custom ?phone=... or defaults to BOT_PHONE)
 app.get("/code", async (req, res) => {
+  const queryPhone = req.query.phone || process.env.BOT_PHONE || BOT_PHONE;
+  const cleanPhone = String(queryPhone).replace(/[^0-9]/g, "");
+
+  if (!sock) {
+    return res.send(`
+      <!DOCTYPE html>
+      <html><body style="font-family:sans-serif; text-align:center; padding:40px; background:#0b1329; color:#f8fafc;">
+        <h2>WhatsApp Socket Initializing...</h2>
+        <p>Please wait 3 seconds and refresh.</p>
+        <meta http-equiv="refresh" content="3">
+      </body></html>
+    `);
+  }
+
   try {
-    if (!sock) {
-      return res.send("Socket initializing... refresh in 3 seconds.");
-    }
-    const code = await sock.requestPairingCode(BOT_PHONE);
+    const code = await sock.requestPairingCode(cleanPhone);
     latestPairingCode = code;
     return res.send(`
       <!DOCTYPE html>
@@ -162,36 +173,86 @@ app.get("/code", async (req, res) => {
           <title>Pairing Code - WB-Agent</title>
           <style>
             body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0b1329; color: #f8fafc; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
-            .card { background: #1e293b; padding: 36px; border-radius: 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.6); text-align: center; max-width: 440px; border: 1px solid #334155; }
-            .code { font-size: 32px; font-weight: 800; letter-spacing: 6px; color: #22c55e; background: #0f172a; padding: 16px; border-radius: 12px; margin: 24px 0; border: 1px solid #334155; }
-            ol { text-align: left; background: #0f172a; padding: 16px 20px 16px 36px; border-radius: 12px; font-size: 14px; line-height: 1.6; color: #cbd5e1; margin-bottom: 20px; }
-            .btn { display: inline-block; background: #38bdf8; color: #0f172a; font-weight: 600; text-decoration: none; padding: 10px 20px; border-radius: 10px; }
+            .card { background: #1e293b; padding: 36px; border-radius: 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.6); text-align: center; max-width: 460px; border: 1px solid #334155; }
+            .code { font-size: 32px; font-weight: 800; letter-spacing: 6px; color: #22c55e; background: #0f172a; padding: 16px; border-radius: 12px; margin: 20px 0; border: 1px solid #334155; }
+            ol { text-align: left; background: #0f172a; padding: 16px 20px 16px 36px; border-radius: 12px; font-size: 13px; line-height: 1.6; color: #cbd5e1; margin-bottom: 20px; }
+            .form-box { margin-bottom: 16px; display: flex; gap: 8px; }
+            .input { flex: 1; padding: 10px 14px; border-radius: 10px; border: 1px solid #475569; background: #0f172a; color: #f8fafc; font-size: 14px; }
+            .btn { display: inline-block; background: #38bdf8; color: #0f172a; font-weight: 600; text-decoration: none; padding: 10px 18px; border-radius: 10px; border: none; cursor: pointer; }
           </style>
         </head>
         <body>
           <div class="card">
-            <h2 style="margin: 0 0 8px;">Your WhatsApp Pairing Code</h2>
-            <p style="color: #94a3b8; font-size: 14px;">For phone: <strong>+${BOT_PHONE}</strong></p>
+            <h2 style="margin: 0 0 8px;">WhatsApp 8-Digit Pairing Code</h2>
+            <p style="color: #94a3b8; font-size: 13px; margin-bottom: 16px;">Target Phone: <strong>+${cleanPhone}</strong></p>
+            
+            <form class="form-box" method="GET" action="/code">
+              <input class="input" type="text" name="phone" placeholder="Enter phone with country code" value="${cleanPhone}" required />
+              <button class="btn" type="submit">Generate</button>
+            </form>
+
             <div class="code">${code}</div>
+            
             <ol>
-              <li>Open WhatsApp on +${BOT_PHONE}</li>
-              <li>Settings &gt; Linked Devices &gt; Link a Device</li>
-              <li>Tap <strong>Link with phone number instead</strong></li>
+              <li>Open WhatsApp on <strong>+${cleanPhone}</strong></li>
+              <li>Tap <strong>Settings / 3 dots &gt; Linked Devices</strong></li>
+              <li>Tap <strong>Link a Device</strong></li>
+              <li>Tap <strong>Link with phone number instead</strong> at the bottom</li>
               <li>Enter code: <strong>${code}</strong></li>
             </ol>
-            <a href="/qr" class="btn">Back to QR Code Scanner</a>
+            <div style="display: flex; gap: 10px; justify-content: center;">
+              <a href="/qr" class="btn" style="background: #475569; color: #fff;">Scan QR Instead</a>
+              <a href="http://localhost:3000" class="btn">Open Dashboard</a>
+            </div>
           </div>
         </body>
       </html>
     `);
   } catch (err) {
     return res.send(`
-      <html><body style="font-family:sans-serif; text-align:center; padding:40px; background:#0f172a; color:#f8fafc;">
-        <h3>Could not generate pairing code</h3>
-        <p style="color:#ef4444;">${err.message}</p>
-        <p><a href="/qr" style="color:#38bdf8;">Return to QR Code Scanner</a></p>
-      </body></html>
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Pairing Code Error - WB-Agent</title>
+          <style>
+            body { font-family: sans-serif; text-align: center; padding: 40px; background: #0b1329; color: #f8fafc; }
+            .card { background: #1e293b; padding: 30px; border-radius: 16px; display: inline-block; max-width: 440px; }
+            .input { padding: 10px; border-radius: 8px; border: 1px solid #475569; background: #0f172a; color: #f8fafc; width: 70%; margin-right: 8px; }
+            .btn { padding: 10px 16px; border-radius: 8px; background: #38bdf8; color: #0f172a; font-weight: bold; border: none; cursor: pointer; text-decoration: none; }
+          </style>
+        </head>
+        <body>
+          <div class="card">
+            <h3>Enter Phone Number for Pairing</h3>
+            <p style="color: #ef4444; font-size: 13px;">${err.message}</p>
+            <form method="GET" action="/code" style="margin: 20px 0;">
+              <input class="input" type="text" name="phone" placeholder="e.g. 918918753100" value="${cleanPhone}" required />
+              <button class="btn" type="submit">Submit</button>
+            </form>
+            <p><a href="/qr" class="btn" style="background:#475569; color:#fff;">Back to QR Code</a></p>
+          </div>
+        </body>
+      </html>
     `);
+  }
+});
+
+// JSON API endpoint for programmatic pairing
+app.post("/pair", async (req, res) => {
+  try {
+    if (!sock) {
+      return res.status(503).json({ success: false, error: "WhatsApp socket initializing... retry shortly." });
+    }
+    const rawPhone = req.body?.phone || req.query?.phone || process.env.BOT_PHONE || BOT_PHONE;
+    const targetPhone = String(rawPhone).replace(/[^0-9]/g, "");
+    if (!targetPhone || targetPhone.length < 8) {
+      return res.status(400).json({ success: false, error: "Valid phone number with country code required." });
+    }
+    const code = await sock.requestPairingCode(targetPhone);
+    latestPairingCode = code;
+    return res.json({ success: true, pairing_code: code, phone: targetPhone });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
   }
 });
 

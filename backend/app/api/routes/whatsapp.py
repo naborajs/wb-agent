@@ -33,6 +33,10 @@ class SimulateIncomingRequest(BaseModel):
     company: Optional[str] = Field(None, description="Customer business name")
 
 
+class RequestPairingCodeRequest(BaseModel):
+    phone: str = Field(..., description="Phone number with country code for pairing")
+
+
 @router.get("/status")
 async def get_whatsapp_status() -> Dict[str, Any]:
     """
@@ -83,6 +87,27 @@ async def get_whatsapp_qr() -> Dict[str, Any]:
         logger.warning(f"Failed to query QR data from bridge: {e}")
 
     return {"connected": False, "qrDataUrl": None, "error": "Bridge offline"}
+
+
+@router.post("/pair")
+async def request_pairing_code(req: RequestPairingCodeRequest) -> Dict[str, Any]:
+    """
+    Requests an 8-character pairing code from the Baileys bridge for linking WhatsApp via phone number.
+    """
+    bridge_url = getattr(settings, "WHATSAPP_BRIDGE_URL", "http://localhost:3001").rstrip("/")
+    clean_phone = "".join(c for c in req.phone if c.isdigit())
+    if len(clean_phone) < 8:
+        raise HTTPException(status_code=400, detail="A valid phone number with country code is required.")
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            resp = await client.post(f"{bridge_url}/pair", json={"phone": clean_phone})
+            if resp.status_code == 200:
+                return resp.json()
+            else:
+                return {"success": False, "error": resp.text}
+    except Exception as e:
+        logger.warning(f"Error requesting pairing code from bridge: {e}")
+        return {"success": False, "error": str(e)}
 
 
 @router.post("/send-ping")

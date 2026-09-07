@@ -941,11 +941,293 @@ class InterBrainBus:
     ) -> Dict[str, Any]:
         """
         Coordinates dual-brain update chat deliberation:
-        1. Friday formulates structured proposal.
-        2. EDITH independently checks commercial policy guardrails.
-        3. If ACCEPTED: commits atomically, re-chunks, re-embeds, dispatches WebSocket event and notification.
-        4. If DENIED: returns policy rationale and counter-suggestion.
+        1. Classifies intent:
+           - GREETING / CASUAL -> Conversational greeting & capability guide (NO file creation)
+           - LIST_FILES -> Complete breakdown of registered knowledge assets (NO file creation)
+           - EXPLAIN -> In-depth explanation of matching policies/products (NO file creation)
+           - VAGUE_COMMAND -> Asks for required parameters (NO file creation)
+           - PAUSE / ACTIVATE / DELETE -> Status updates or removal
+           - CREATE / UPDATE -> Formulates proposal, audits with EDITH, commits and re-embeds
         """
+        text = operator_instruction.strip()
+        text_lower = text.lower()
+        words = text_lower.split()
+
+        # -------------------------------------------------------------
+        # A. GREETING & CASUAL CONVERSATION (Never create/modify files)
+        # -------------------------------------------------------------
+        greeting_words = {"hi", "hello", "hey", "hola", "greetings", "howdy", "sup", "yo", "namaste", "test", "testing"}
+        is_greeting = False
+        action_words = ["create", "update", "discount", "tier", "moq", "delete", "pause", "activate", "rule", "policy", "price", "rate", "catalog", "sku"]
+        if len(words) <= 4 and any(w in greeting_words for w in words) and not any(w in text_lower for w in action_words):
+            is_greeting = True
+        elif any(phrase in text_lower for phrase in ["who are you", "what can you do", "introduce yourself", "how are you", "good morning", "good evening", "good afternoon"]):
+            is_greeting = True
+
+        if is_greeting:
+            reply_text = (
+                "Hello! I am EDITH, your autonomous commercial closer and knowledge policy engine. "
+                "I maintain all enterprise policies, pricing curves, catalog products, and fulfillment rules with strict margin protection.\n\n"
+                "Here is what you can ask me to do:\n"
+                "• **Inspect Files**: *'What files do we have?'* or *'Show active documents'*\n"
+                "• **Explain Policies**: *'Explain our logistics policy'* or *'What is Tier 1 volume discount?'*\n"
+                "• **Create or Update Rules**: *'Create a new pricing tier: 20% discount on 200+ units'* or *'Update MOQ to 25 units'*\n"
+                "• **Attach Documents**: Attach an image or PDF screenshot to extract policies directly.\n\n"
+                "How can I assist your operations today?"
+            )
+            return {
+                "success": True,
+                "decision": "INFO",
+                "friday_proposal": None,
+                "edith_evaluation": {
+                    "decision": "INFO",
+                    "reasoning": "Conversational greeting acknowledged. No knowledge assets modified.",
+                },
+                "resulting_item": None,
+                "reply_text": reply_text,
+                "speak_text": "Hello! I am EDITH, your commercial policy engine. How can I assist you?",
+                "deliberation_flow": {
+                    "operator_instruction": operator_instruction,
+                    "friday_proposal": None,
+                    "edith_verdict": "INFO",
+                    "edith_reasoning": "Conversational greeting handled without file mutation.",
+                    "edith_suggestion": None,
+                    "friday_reply": reply_text,
+                },
+            }
+
+        # -------------------------------------------------------------
+        # B. LIST FILES / DIRECTORY INVENTORY (Never create/modify files)
+        # -------------------------------------------------------------
+        list_keywords = [
+            "what files", "list files", "show files", "what documents", "show documents",
+            "show me files", "what do we have", "what items", "list documents", "show catalog",
+            "all files", "show policies", "what policies", "which files", "what is there",
+        ]
+        is_list_files = any(kw in text_lower for kw in list_keywords) and not any(w in text_lower for w in ["create", "add", "update", "delete", "pause", "set", "make"])
+
+        # -------------------------------------------------------------
+        # C. EXPLAIN POLICY / PRODUCT / QUERY (Never create/modify files)
+        # -------------------------------------------------------------
+        explain_keywords = ["explain", "what is", "tell me about", "describe", "details of", "how does", "summarize", "info on", "detail"]
+        is_explain = any(kw in text_lower for kw in explain_keywords) and not any(w in text_lower for w in ["create", "add new", "update to", "delete", "pause", "set discount"])
+
+        if is_list_files or is_explain:
+            from app.database.models import KnowledgeItem
+            from sqlalchemy import select, or_
+            stmt = select(KnowledgeItem).where(
+                or_(
+                    KnowledgeItem.org_id == org_id,
+                    KnowledgeItem.org_id == "org_default_tea",
+                    KnowledgeItem.org_id == "org_default",
+                ),
+                KnowledgeItem.is_active == True,
+            ).order_by(KnowledgeItem.category, KnowledgeItem.title)
+            res = await session.execute(stmt)
+            active_items = res.scalars().all()
+
+            if is_list_files:
+                pricing_items = [i for i in active_items if i.category == "pricing_rule"]
+                catalog_items = [i for i in active_items if i.category == "catalog_product"]
+                business_items = [i for i in active_items if i.category == "business_info"]
+                other_items = [i for i in active_items if i.category not in ["pricing_rule", "catalog_product", "business_info"]]
+
+                lines = ["Here are the active files and commercial policies currently registered in our Knowledge Hub:\n"]
+                if pricing_items:
+                    lines.append("💰 **Pricing Rules & Volume Tiers:**")
+                    for it in pricing_items:
+                        disc = f"{it.discount_percentage}% discount" if it.discount_percentage else ""
+                        min_q = f"min {it.min_quantity} units" if it.min_quantity else ""
+                        details = f" ({disc}, {min_q})" if (disc or min_q) else ""
+                        lines.append(f"  • **{it.title}**{details}")
+                if catalog_items:
+                    lines.append("\n📦 **Catalog Products & SKUs:**")
+                    for it in catalog_items:
+                        price = f"₹{it.base_price}/{it.unit or 'unit'}" if it.base_price else ""
+                        moq = f"MOQ: {it.min_order_quantity}" if it.min_order_quantity else ""
+                        details = f" ({price}, {moq})" if (price or moq) else ""
+                        lines.append(f"  • **{it.title}** [{it.sku or 'SKU'}]{details}")
+                if business_items:
+                    lines.append("\n📄 **Business Info & Policies:**")
+                    for it in business_items:
+                        lines.append(f"  • **{it.title}**")
+                if other_items:
+                    lines.append("\n⚙️ **Other Guidance & Settings:**")
+                    for it in other_items:
+                        lines.append(f"  • **{it.title}**")
+
+                lines.append("\n*You can ask me to explain any of these items (e.g. 'Explain our logistics policy'), or instruct me to modify them!*")
+                reply_text = "\n".join(lines)
+                return {
+                    "success": True,
+                    "decision": "INFO",
+                    "friday_proposal": None,
+                    "edith_evaluation": {"decision": "INFO", "reasoning": "Provided inventory of active knowledge assets. No file modifications required."},
+                    "resulting_item": None,
+                    "reply_text": reply_text,
+                    "speak_text": f"We currently have {len(active_items)} active knowledge files across pricing, catalog, and operational policies.",
+                    "deliberation_flow": {
+                        "operator_instruction": operator_instruction,
+                        "friday_proposal": None,
+                        "edith_verdict": "INFO",
+                        "edith_reasoning": "Provided listing of active knowledge items.",
+                        "edith_suggestion": None,
+                        "friday_reply": reply_text,
+                    },
+                }
+
+            if is_explain:
+                matched = None
+                for it in active_items:
+                    title_clean = it.title.lower()
+                    title_words = [w for w in title_clean.split() if len(w) > 2 and w not in ["the", "and", "for", "with", "tier", "first", "blend"]]
+                    if any(w in text_lower for w in title_words) or (it.sku and it.sku.lower() in text_lower):
+                        matched = it
+                        break
+
+                if matched:
+                    details_parts = []
+                    if matched.discount_percentage:
+                        details_parts.append(f"**Autonomous Discount:** {matched.discount_percentage}%")
+                    if matched.max_autonomous_discount:
+                        details_parts.append(f"**Ceiling:** {matched.max_autonomous_discount}%")
+                    if matched.min_quantity:
+                        details_parts.append(f"**Min Quantity:** {matched.min_quantity}")
+                    if matched.base_price:
+                        details_parts.append(f"**Base Tariff:** ₹{matched.base_price}/{matched.unit or 'unit'}")
+                    if matched.min_order_quantity:
+                        details_parts.append(f"**MOQ:** {matched.min_order_quantity}")
+                    if matched.customer_segment:
+                        details_parts.append(f"**Target Segment:** {matched.customer_segment}")
+
+                    meta_str = "\n".join([f"• {p}" for p in details_parts])
+                    reply_text = (
+                        f"### Explanation: {matched.title}\n"
+                        f"**Category:** `{matched.category}` | **Status:** Active | **Version:** v{matched.version}.0\n\n"
+                        f"**Policy Specification:**\n{matched.content_text}\n\n"
+                    )
+                    if details_parts:
+                        reply_text += f"**Key Commercial Parameters:**\n{meta_str}\n\n"
+                    reply_text += "*Would you like me to update any terms or pricing for this item?*"
+
+                    return {
+                        "success": True,
+                        "decision": "INFO",
+                        "friday_proposal": None,
+                        "edith_evaluation": {"decision": "INFO", "reasoning": f"Provided explanation for '{matched.title}'. No file modifications required."},
+                        "resulting_item": None,
+                        "reply_text": reply_text,
+                        "speak_text": f"Here is the breakdown of {matched.title}.",
+                        "deliberation_flow": {
+                            "operator_instruction": operator_instruction,
+                            "friday_proposal": None,
+                            "edith_verdict": "INFO",
+                            "edith_reasoning": f"Provided explanation for {matched.title}.",
+                            "edith_suggestion": None,
+                            "friday_reply": reply_text,
+                        },
+                    }
+                else:
+                    # Semantic search RAG fallback for explanation
+                    from app.knowledge.rag_service import KnowledgeRAGService
+                    rag_svc = KnowledgeRAGService(session, org_id)
+                    rag_res = await rag_svc.search_and_answer(query=text, top_k=3)
+                    if rag_res.get("confidence_score", 0) > 0.35 and rag_res.get("answer"):
+                        reply_text = f"**Commercial Intelligence Analysis:**\n{rag_res.get('answer', '')}\n\n*(Grounded in verified knowledge chunks)*"
+                    else:
+                        reply_text = (
+                            f"I searched our knowledge base for '{text}', but could not find a specific policy matching that phrase. "
+                            f"We currently have {len(active_items)} files available. You can ask me *'What files do we have?'* to inspect the directory, or give me an explicit command to create this policy!"
+                        )
+                    return {
+                        "success": True,
+                        "decision": "INFO",
+                        "friday_proposal": None,
+                        "edith_evaluation": {"decision": "INFO", "reasoning": "Answered query via grounded knowledge search. No file modifications required."},
+                        "resulting_item": None,
+                        "reply_text": reply_text,
+                        "speak_text": reply_text[:100],
+                        "deliberation_flow": {
+                            "operator_instruction": operator_instruction,
+                            "friday_proposal": None,
+                            "edith_verdict": "INFO",
+                            "edith_reasoning": "RAG search response.",
+                            "edith_suggestion": None,
+                            "friday_reply": reply_text,
+                        },
+                    }
+
+        # -------------------------------------------------------------
+        # D. VAGUE OR INCOMPLETE DIRECTIVE (Ask for clarification)
+        # -------------------------------------------------------------
+        is_create_or_update = any(w in text_lower for w in ["create", "add", "new", "update", "change", "set", "modify"])
+        has_numbers_or_details = bool(re.search(r"(\d+|%|₹|\$|tier|policy|rule|moq|sku|kg|price)", text_lower))
+        if is_create_or_update and len(words) <= 3 and not has_numbers_or_details:
+            reply_text = (
+                "I'm ready to create or update that knowledge asset for you! Could you please provide the details? For example:\n"
+                "• **For a Pricing Tier**: *'Create a new tier: 15% discount for 150+ units'*\n"
+                "• **For a Catalog Item**: *'Add product Premium Grade A, SKU: PRD-01, Base Price: 450, MOQ: 10'*\n"
+                "• **For a Business Policy**: *'Add a 7-day replacement policy for damaged shipments'*"
+            )
+            return {
+                "success": True,
+                "decision": "INFO",
+                "friday_proposal": None,
+                "edith_evaluation": {"decision": "INFO", "reasoning": "Clarification requested for incomplete command. No file modifications required."},
+                "resulting_item": None,
+                "reply_text": reply_text,
+                "speak_text": "Please provide the details for the file you would like to create or update.",
+                "deliberation_flow": {
+                    "operator_instruction": operator_instruction,
+                    "friday_proposal": None,
+                    "edith_verdict": "INFO",
+                    "edith_reasoning": "Awaiting directive details.",
+                    "edith_suggestion": None,
+                    "friday_reply": reply_text,
+                },
+            }
+
+        # -------------------------------------------------------------
+        # E. PAUSE / ACTIVATE / DELETE ACTION
+        # -------------------------------------------------------------
+        if any(w in text_lower for w in ["pause", "activate", "delete", "remove"]):
+            action = "pause" if "pause" in text_lower else "activate" if "activate" in text_lower else "delete"
+            from app.database.models import KnowledgeItem
+            from sqlalchemy import select, or_
+            res = await session.execute(select(KnowledgeItem).where(
+                or_(
+                    KnowledgeItem.org_id == org_id,
+                    KnowledgeItem.org_id == "org_default_tea",
+                    KnowledgeItem.org_id == "org_default",
+                )
+            ))
+            all_items = res.scalars().all()
+            target_item = None
+            for it in all_items:
+                if it.title.lower() in text_lower or (it.sku and it.sku.lower() in text_lower):
+                    target_item = it
+                    break
+            if not target_item and len(words) > 1:
+                for it in all_items:
+                    for w in it.title.lower().split():
+                        if len(w) > 3 and w in text_lower:
+                            target_item = it
+                            break
+                    if target_item:
+                        break
+
+            if target_item:
+                return await self.dispatch_voice_knowledge_action(
+                    session=session,
+                    org_id=org_id,
+                    action=action,
+                    item_id_or_title=target_item.id,
+                    instruction=operator_instruction,
+                )
+
+        # -------------------------------------------------------------
+        # F. EXPLICIT FILE CREATION / MODIFICATION DIRECTIVE
+        # -------------------------------------------------------------
         # 1. Friday formulates proposal
         proposal = await self.friday.formulate_knowledge_update(
             session=session,

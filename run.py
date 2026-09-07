@@ -658,9 +658,32 @@ def main():
   {C.BOLD}Platform Service Endpoints:{C.RESET}
     {C.BLUE}• Operator Dashboard:{C.RESET}        http://localhost:3000
     {C.CYAN}• Dual-Brain Console:{C.RESET}        http://localhost:3000/brain
+    {C.CYAN}• Knowledge & Policies:{C.RESET}      http://localhost:3000/knowledge
     {C.CYAN}• Notification Center:{C.RESET}       http://localhost:3000/notifications
     {C.WHITE}• Backend API & Docs:{C.RESET}        http://localhost:8000/api/v1/docs
-    {C.MAGENTA}• WhatsApp Bridge:{C.RESET}           http://localhost:3001/health
+    {C.MAGENTA}• WhatsApp Bridge:{C.RESET}           http://localhost:3001
+
+  {C.BOLD}{C.YELLOW}┌─────────────────────────────────────────────────────────────────────────────┐{C.RESET}
+  {C.BOLD}{C.YELLOW}│            WHATSAPP AGENT CONNECTION GUIDE — 3 SIMPLE WAYS TO CONNECT       │{C.RESET}
+  {C.BOLD}{C.YELLOW}└─────────────────────────────────────────────────────────────────────────────┘{C.RESET}
+  
+  {C.BOLD}{C.CYAN}1. METHOD 1: SCAN QR CODE (Instant Multi-Device Pairing){C.RESET}
+     • Scan the terminal ASCII QR code that appears in the logs below, OR
+     • Open {C.UNDERLINE}http://localhost:3001/qr{C.RESET} in your browser, OR
+     • Open Dashboard {C.UNDERLINE}http://localhost:3000/conversations{C.RESET} and click {C.BOLD}"Connect WhatsApp"{C.RESET}.
+     • On phone: WhatsApp > Settings (or 3 dots) > Linked Devices > Link a Device.
+
+  {C.BOLD}{C.CYAN}2. METHOD 2: 8-DIGIT PAIRING CODE (No Camera / Remote Server){C.RESET}
+     • Open {C.UNDERLINE}http://localhost:3001/code{C.RESET} in your browser and enter your phone number.
+     • On phone: WhatsApp > Linked Devices > Link a Device > {C.BOLD}"Link with phone number instead"{C.RESET}.
+     • Enter the 8-character pairing code displayed on screen.
+
+  {C.BOLD}{C.CYAN}3. METHOD 3: OFFICIAL META CLOUD API (Production Enterprise){C.RESET}
+     • Configure credentials in your {C.BOLD}.env{C.RESET} file:
+       {C.DIM}WHATSAPP_PROVIDER=meta_cloud{C.RESET}
+       {C.DIM}WHATSAPP_TOKEN=<your_access_token>{C.RESET}
+       {C.DIM}WHATSAPP_PHONE_NUMBER_ID=<your_phone_id>{C.RESET}
+       {C.DIM}WHATSAPP_VERIFY_TOKEN=<your_webhook_verify_token>{C.RESET}
 
   {C.DIM}Press {C.BOLD}Ctrl+C{C.RESET}{C.DIM} at any time to gracefully stop all services.{C.RESET}
   {C.DIM}Streaming real-time multiplexed logs below:{C.RESET}

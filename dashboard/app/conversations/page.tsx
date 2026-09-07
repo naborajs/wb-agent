@@ -85,6 +85,9 @@ export default function LiveInboxPage() {
   const [isSendingPing, setIsSendingPing] = useState(false);
   const [pingStatus, setPingStatus] = useState<string | null>(null);
   const [copiedCode, setCopiedCode] = useState(false);
+  const [pairingPhoneInput, setPairingPhoneInput] = useState("");
+  const [isPairingLoading, setIsPairingLoading] = useState(false);
+  const [pairingMsg, setPairingMsg] = useState<{ text: string; isError?: boolean } | null>(null);
 
   // New Chat Modal State
   const [isNewChatOpen, setIsNewChatOpen] = useState(false);
@@ -342,6 +345,40 @@ export default function LiveInboxPage() {
         if (data?.qrDataUrl) setQrDataUrl(data.qrDataUrl);
       })
       .catch(() => {});
+  };
+
+  // Request 8-character pairing code for a specific phone number
+  const handleRequestCustomPairing = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const phone = pairingPhoneInput.trim().replace(/[^0-9]/g, "");
+    if (!phone || phone.length < 8) {
+      setPairingMsg({ text: "Please enter a valid phone number with country code (e.g. 918918753100)", isError: true });
+      return;
+    }
+    setIsPairingLoading(true);
+    setPairingMsg(null);
+    try {
+      const res = await fetch("/api/v1/whatsapp/pair", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone }),
+      });
+      const data = await res.json();
+      if (res.ok && data.pairing_code) {
+        setWaStatus((prev: any) => ({
+          ...prev,
+          pairingCode: data.pairing_code,
+          botPhone: data.phone,
+        }));
+        setPairingMsg({ text: `Pairing code generated for +${data.phone}! Enter it in WhatsApp.` });
+      } else {
+        setPairingMsg({ text: data.error || data.detail || "Failed to generate pairing code. Please retry shortly.", isError: true });
+      }
+    } catch (err: any) {
+      setPairingMsg({ text: `Network error: ${err.message}`, isError: true });
+    } finally {
+      setIsPairingLoading(false);
+    }
   };
 
   // Dispatch WhatsApp Diagnostic Ping
@@ -1743,38 +1780,65 @@ export default function LiveInboxPage() {
                 </div>
 
                 {/* 8-Digit Pairing Code Alternative */}
-                {waStatus?.pairingCode && (
-                  <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-[var(--ed-border)] flex items-center justify-between">
-                    <div>
-                      <div className="text-[10px] font-semibold text-[var(--ed-text-muted)] uppercase">
-                        Or Link With Code:
-                      </div>
-                      <div className="font-mono text-lg font-extrabold tracking-widest text-emerald-500">
-                        {waStatus.pairingCode}
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (waStatus.pairingCode) {
-                          navigator.clipboard.writeText(waStatus.pairingCode);
-                          setCopiedCode(true);
-                          setTimeout(() => setCopiedCode(false), 2000);
-                        }
-                      }}
-                      className="px-3 py-1.5 rounded-lg border border-[var(--ed-border)] hover:bg-[var(--ed-bg)] font-semibold flex items-center gap-1 transition-all"
-                    >
-                      {copiedCode ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
-                      {copiedCode ? "Copied!" : "Copy"}
-                    </button>
+                <div className="p-3 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-[var(--ed-border)] space-y-2">
+                  <div className="text-[10px] font-semibold text-[var(--ed-text-muted)] uppercase tracking-wider">
+                    Or Link with 8-Digit Pairing Code (No Camera):
                   </div>
-                )}
+                  <form onSubmit={handleRequestCustomPairing} className="flex gap-2">
+                    <input
+                      type="text"
+                      value={pairingPhoneInput}
+                      onChange={(e) => setPairingPhoneInput(e.target.value)}
+                      placeholder="Enter phone with country code (e.g. 918918753100)"
+                      className="flex-1 px-3 py-1.5 text-xs rounded-lg border border-[var(--ed-border)] bg-[var(--ed-surface)] text-[var(--ed-text-primary)] focus:outline-none focus:ring-1 focus:ring-sky-500 font-mono"
+                    />
+                    <button
+                      type="submit"
+                      disabled={isPairingLoading}
+                      className="px-3 py-1.5 rounded-lg bg-sky-500 hover:bg-sky-600 text-white font-semibold text-xs transition-all disabled:opacity-50 flex items-center gap-1 shrink-0"
+                    >
+                      {isPairingLoading ? <RefreshCw className="w-3 h-3 animate-spin" /> : "Get Code"}
+                    </button>
+                  </form>
+                  {pairingMsg && (
+                    <div className={`text-[11px] font-medium ${pairingMsg.isError ? "text-rose-500" : "text-emerald-500"}`}>
+                      {pairingMsg.text}
+                    </div>
+                  )}
+                  {waStatus?.pairingCode && (
+                    <div className="p-2.5 bg-[var(--ed-surface)] rounded-lg border border-[var(--ed-border)] flex items-center justify-between mt-2">
+                      <div>
+                        <div className="text-[9px] text-[var(--ed-text-muted)] uppercase">Active Pairing Code:</div>
+                        <div className="font-mono text-lg font-extrabold tracking-widest text-emerald-500">
+                          {waStatus.pairingCode}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (waStatus.pairingCode) {
+                            navigator.clipboard.writeText(waStatus.pairingCode);
+                            setCopiedCode(true);
+                            setTimeout(() => setCopiedCode(false), 2000);
+                          }
+                        }}
+                        className="px-2.5 py-1 rounded-md border border-[var(--ed-border)] hover:bg-[var(--ed-bg)] font-semibold flex items-center gap-1 transition-all text-xs"
+                      >
+                        {copiedCode ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
+                        {copiedCode ? "Copied!" : "Copy"}
+                      </button>
+                    </div>
+                  )}
+                  <p className="text-[10px] text-[var(--ed-text-muted)]">
+                    On your phone: WhatsApp &gt; Linked Devices &gt; Link a Device &gt; <em>Link with phone number instead</em>.
+                  </p>
+                </div>
 
                 {/* Step-by-Step Instructions */}
                 <ol className="list-decimal pl-5 space-y-1 text-[11px] text-[var(--ed-text-muted)]">
-                  <li>Open WhatsApp on the bot phone (<strong>+{waStatus?.botPhone || "918918753100"}</strong>)</li>
+                  <li>Open WhatsApp on your phone</li>
                   <li>Tap <strong>Settings / 3 dots &gt; Linked Devices</strong></li>
-                  <li>Tap <strong>Link a Device</strong> and point phone at the QR above</li>
+                  <li>Scan the QR code above or choose pairing code</li>
                 </ol>
 
                 <div className="flex justify-end gap-2 pt-2">
