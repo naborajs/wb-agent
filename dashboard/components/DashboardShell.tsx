@@ -106,8 +106,8 @@ export default function DashboardShell({ children }: { children: React.ReactNode
 
   // Fetch initial active watchdog alerts and setup real-time WebSocket connection
   useEffect(() => {
-    fetch("http://localhost:8000/api/v1/watchdog/alerts")
-      .then((res) => res.json())
+    fetch("/api/v1/watchdog/alerts")
+      .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (data && Array.isArray(data.alerts)) {
           setAlerts(data.alerts);
@@ -117,13 +117,20 @@ export default function DashboardShell({ children }: { children: React.ReactNode
 
     let ws: WebSocket | null = null;
     let pingInterval: NodeJS.Timeout | null = null;
+    let retryTimeout: NodeJS.Timeout | null = null;
     let pingStart = 0;
+    let isMounted = true;
 
     const connectWs = () => {
+      if (!isMounted) return;
       try {
-        ws = new WebSocket("ws://localhost:8000/api/v1/ws");
+        const host = typeof window !== "undefined" ? (window.location.hostname || "127.0.0.1") : "127.0.0.1";
+        const proto = typeof window !== "undefined" && window.location.protocol === "https:" ? "wss:" : "ws:";
+        const wsUrl = `${proto}//${host}:8000/api/v1/ws`;
+        ws = new WebSocket(wsUrl);
 
         ws.onopen = () => {
+          if (!isMounted) return;
           setWsConnected(true);
           pingInterval = setInterval(() => {
             if (ws && ws.readyState === WebSocket.OPEN) {
@@ -136,7 +143,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
         ws.onmessage = (event) => {
           try {
             const msg = JSON.parse(event.data);
-            if (msg.event === "pong" || msg.type === "pong") {
+            if (msg.event === "pong" || msg.type === "pong" || event.data === "pong") {
               if (pingStart > 0) {
                 const roundtrip = Math.round(performance.now() - pingStart);
                 setWsLatency(roundtrip);
@@ -159,26 +166,38 @@ export default function DashboardShell({ children }: { children: React.ReactNode
         };
 
         ws.onclose = () => {
+          if (!isMounted) return;
           setWsConnected(false);
           setWsLatency(null);
           if (pingInterval) clearInterval(pingInterval);
-          setTimeout(connectWs, 3000);
+          retryTimeout = setTimeout(connectWs, 3000);
         };
 
         ws.onerror = () => {
+          if (!isMounted) return;
           setWsConnected(false);
-          ws?.close();
+          try {
+            ws?.close();
+          } catch {}
         };
       } catch {
+        if (!isMounted) return;
         setWsConnected(false);
+        retryTimeout = setTimeout(connectWs, 3000);
       }
     };
 
     connectWs();
 
     return () => {
+      isMounted = false;
       if (pingInterval) clearInterval(pingInterval);
-      if (ws) ws.close();
+      if (retryTimeout) clearTimeout(retryTimeout);
+      if (ws) {
+        try {
+          ws.close();
+        } catch {}
+      }
     };
   }, []);
 
@@ -186,9 +205,9 @@ export default function DashboardShell({ children }: { children: React.ReactNode
   const runAuditNow = async () => {
     setAuditing(true);
     try {
-      const res = await fetch("http://localhost:8000/api/v1/watchdog/run-audit", { method: "POST" });
+      const res = await fetch("/api/v1/watchdog/run-audit", { method: "POST" });
       if (res.ok) {
-        const aRes = await fetch("http://localhost:8000/api/v1/watchdog/alerts");
+        const aRes = await fetch("/api/v1/watchdog/alerts");
         const aData = await aRes.json();
         if (aData && Array.isArray(aData.alerts)) {
           setAlerts(aData.alerts);
@@ -205,7 +224,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
   const resolveAlertItem = async (alertId: string) => {
     setAlerts((prev) => prev.filter((a) => a.id !== alertId));
     try {
-      await fetch(`http://localhost:8000/api/v1/watchdog/alerts/${alertId}/resolve`, {
+      await fetch(`/api/v1/watchdog/alerts/${alertId}/resolve`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ resolved_by: "operator" }),
