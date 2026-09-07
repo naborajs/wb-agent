@@ -19,9 +19,11 @@ interface Variant {
   id: string;
   sku: string;
   name: string;
-  packaging_type: string;
-  weight_kg: number;
-  base_price_per_kg: number;
+  packaging_type?: string;
+  weight_kg?: number;
+  unit_quantity?: number;
+  base_price_per_unit?: number;
+  base_price_per_kg?: number;
 }
 
 interface Product {
@@ -30,9 +32,11 @@ interface Product {
   name: string;
   category: string;
   description: string;
-  tea_grade: string;
-  origin: string;
-  min_order_quantity_kg: number;
+  grade?: string;
+  tea_grade?: string;
+  origin?: string;
+  min_order_quantity?: number;
+  min_order_quantity_kg?: number;
   in_stock: boolean;
   variants: Variant[];
 }
@@ -41,47 +45,53 @@ export default function ProductsCatalogPage() {
   const [products, setProducts] = useState<Product[]>([
     {
       id: "prod_1",
-      sku: "NBT-DARJ-FF",
-      name: "Darjeeling Spring First Flush Special",
-      category: "Darjeeling",
-      description: "Hand-plucked high-altitude first flush from Kurseong & Mirik estates. Delicate floral aroma with crisp muscatel notes.",
-      tea_grade: "FTGFOP1",
-      origin: "Darjeeling, West Bengal",
+      sku: "PROD-STD-001",
+      name: "Standard Commercial Package",
+      category: "Commercial",
+      description: "Comprehensive standard commercial product tier suited for business operations, reliable recurring supply, and enterprise delivery.",
+      grade: "Commercial Grade A",
+      tea_grade: "Commercial Grade A",
+      origin: "Main Distribution Facility",
+      min_order_quantity: 10,
       min_order_quantity_kg: 10,
       in_stock: true,
       variants: [
-        { id: "v1", sku: "NBT-DARJ-FF-5KG", name: "5kg Foil Bag", packaging_type: "foil_bag", weight_kg: 5, base_price_per_kg: 1600 },
-        { id: "v2", sku: "NBT-DARJ-FF-20KG", name: "20kg Wooden Chest", packaging_type: "chest", weight_kg: 20, base_price_per_kg: 1450 },
+        { id: "v1", sku: "PROD-STD-V1", name: "Standard Pack (10 Units)", packaging_type: "box", unit_quantity: 10, weight_kg: 10, base_price_per_unit: 350, base_price_per_kg: 350 },
+        { id: "v2", sku: "PROD-STD-V2", name: "Master Carton (50 Units)", packaging_type: "carton", unit_quantity: 50, weight_kg: 50, base_price_per_unit: 310, base_price_per_kg: 310 },
       ],
     },
     {
       id: "prod_2",
-      sku: "NBT-ASSAM-CTC",
-      name: "Assam Kadak CTC Granules",
-      category: "Assam CTC",
-      description: "Extra strong, malty CTC tea granules from Upper Assam. Thick, brisk liquor with high milk tolerance.",
-      tea_grade: "BP",
-      origin: "Upper Assam",
-      min_order_quantity_kg: 25,
+      sku: "PROD-PREM-002",
+      name: "Premium Commercial Package",
+      category: "Premium",
+      description: "High-grade commercial selection with enhanced specifications, strict quality assurance, and priority fulfillment dispatch.",
+      grade: "Enterprise Select",
+      tea_grade: "Enterprise Select",
+      origin: "Primary Facility",
+      min_order_quantity: 5,
+      min_order_quantity_kg: 5,
       in_stock: true,
       variants: [
-        { id: "v3", sku: "NBT-ASSAM-CTC-10KG", name: "10kg Commercial Sack", packaging_type: "sack", weight_kg: 10, base_price_per_kg: 380 },
-        { id: "v4", sku: "NBT-ASSAM-CTC-30KG", name: "30kg Master Bag", packaging_type: "sack", weight_kg: 30, base_price_per_kg: 340 },
+        { id: "v3", sku: "PROD-PREM-V1", name: "Premium Unit (5 Units)", packaging_type: "box", unit_quantity: 5, weight_kg: 5, base_price_per_unit: 850, base_price_per_kg: 850 },
+        { id: "v4", sku: "PROD-PREM-V2", name: "Bulk Premium Crate (25 Units)", packaging_type: "crate", unit_quantity: 25, weight_kg: 25, base_price_per_unit: 780, base_price_per_kg: 780 },
       ],
     },
     {
       id: "prod_3",
-      sku: "NBT-DOOARS-HB",
-      name: "Dooars Terai Hotel Master Blend",
-      category: "Dooars",
-      description: "Specially formulated blend engineered for maximum cuppage and fast liquor release for commercial hospitality.",
-      tea_grade: "BOP / OF",
-      origin: "Dooars & Terai, West Bengal",
-      min_order_quantity_kg: 20,
+      sku: "PROD-ENT-003",
+      name: "Enterprise Bulk Package",
+      category: "Enterprise",
+      description: "High-volume wholesale supply tier engineered for large institutional accounts, custom service terms, and distributor operations.",
+      grade: "Industrial Grade 1",
+      tea_grade: "Industrial Grade 1",
+      origin: "Regional Logistics Hub",
+      min_order_quantity: 25,
+      min_order_quantity_kg: 25,
       in_stock: true,
       variants: [
-        { id: "v5", sku: "NBT-DOOARS-HB-20KG", name: "20kg Poly Sack", packaging_type: "sack", weight_kg: 20, base_price_per_kg: 260 },
-        { id: "v6", sku: "NBT-DOOARS-HB-50KG", name: "50kg Bulk Jute Sack", packaging_type: "sack", weight_kg: 50, base_price_per_kg: 230 },
+        { id: "v5", sku: "PROD-ENT-V1", name: "Master Bulk Pack (25 Units)", packaging_type: "pallet", unit_quantity: 25, weight_kg: 25, base_price_per_unit: 260, base_price_per_kg: 260 },
+        { id: "v6", sku: "PROD-ENT-V2", name: "Direct Freight Consignment (100 Units)", packaging_type: "container", unit_quantity: 100, weight_kg: 100, base_price_per_unit: 230, base_price_per_kg: 230 },
       ],
     },
   ]);
@@ -94,14 +104,14 @@ export default function ProductsCatalogPage() {
   // Form states for Add Product
   const [newProd, setNewProd] = useState({
     name: "",
-    category: "Assam CTC",
-    tea_grade: "BP",
-    origin: "North Bengal, India",
+    category: "Commercial",
+    tea_grade: "Commercial Grade A",
+    origin: "Main Facility",
     description: "",
-    min_order_quantity_kg: 20,
-    base_price_per_kg: 340,
-    weight_kg: 20,
-    packaging_type: "sack",
+    min_order_quantity_kg: 10,
+    base_price_per_kg: 350,
+    weight_kg: 10,
+    packaging_type: "box",
     in_stock: true,
   });
 
@@ -211,9 +221,10 @@ export default function ProductsCatalogPage() {
   };
 
   const filtered = products.filter((p) => {
+    const gradeStr = p.grade || p.tea_grade || "";
     const matchesSearch =
       p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.tea_grade?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      gradeStr.toLowerCase().includes(searchQuery.toLowerCase()) ||
       p.category.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = selectedCategory === "ALL" || p.category === selectedCategory;
     return matchesSearch && matchesCategory;
@@ -225,10 +236,10 @@ export default function ProductsCatalogPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight text-[var(--ed-text-primary)]">
-            Wholesale Catalog & Stock Management
+            Products & Services Catalog
           </h2>
           <p className="text-sm text-[var(--ed-text-muted)] mt-1">
-            Live catalog customization, 1-click in-stock toggling, pricing variants, and Minimum Order Quantities (MOQ).
+            Industry-agnostic catalog management, 1-click in-stock toggling, pricing variants, and Minimum Order Quantities (MOQ).
           </p>
         </div>
 
@@ -238,7 +249,7 @@ export default function ProductsCatalogPage() {
           style={{ background: "var(--ed-accent)", minHeight: "44px" }}
         >
           <Plus className="w-4 h-4" />
-          Add New Tea
+          Add Product
         </button>
       </div>
 
@@ -248,7 +259,7 @@ export default function ProductsCatalogPage() {
           <Search className="w-4 h-4 text-[var(--ed-text-muted)] absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Search teas, grades, origins..."
+            placeholder="Search products, specifications, categories..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-9 pr-3 py-2 text-xs rounded-lg border border-[var(--ed-border)] text-[var(--ed-text-primary)] placeholder:text-[var(--ed-text-muted)] focus:outline-none ed-focus-ring"
@@ -257,7 +268,7 @@ export default function ProductsCatalogPage() {
         </div>
 
         <div className="flex items-center gap-2 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0 scrollbar-none">
-          {["ALL", "Darjeeling", "Assam CTC", "Dooars", "Green Tea"].map((cat) => (
+          {["ALL", "Commercial", "Premium", "Enterprise", "Hospitality", "Custom"].map((cat) => (
             <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}
@@ -299,7 +310,7 @@ export default function ProductsCatalogPage() {
                 </span>
                 <div className="flex items-center gap-1.5">
                   <span className="text-xs font-semibold text-[var(--ed-text-muted)]">
-                    Grade: {p.tea_grade || "Estate"}
+                    {p.grade || p.tea_grade || "Standard"}
                   </span>
                   <button
                     onClick={() => setEditingProduct(p)}
@@ -320,7 +331,7 @@ export default function ProductsCatalogPage() {
 
               <h3 className="font-bold text-base text-[var(--ed-text-primary)] mt-3">{p.name}</h3>
               <div className="text-xs text-[var(--ed-text-muted)] font-data mt-0.5">
-                SKU: {p.sku} • {p.origin}
+                SKU: {p.sku} • {p.origin || "Main Warehouse"}
               </div>
               <p className="text-xs text-[var(--ed-text-muted)] mt-3 leading-relaxed">
                 {p.description}
@@ -329,26 +340,30 @@ export default function ProductsCatalogPage() {
               {/* Packaging Variants & Rates */}
               <div className="mt-4 pt-4 border-t border-[var(--ed-border)]">
                 <div className="text-[11px] font-semibold text-[var(--ed-text-muted)] uppercase tracking-wider mb-2">
-                  Packaging & Base Rates
+                  Variants & Base Rates
                 </div>
                 <div className="space-y-1.5">
                   {p.variants && p.variants.length > 0 ? (
-                    p.variants.map((v) => (
-                      <div
-                        key={v.id}
-                        className="flex justify-between items-center text-xs p-2 rounded border border-[var(--ed-border)] text-[var(--ed-text-primary)]"
-                        style={{ background: "var(--ed-bg)" }}
-                      >
-                        <span className="font-medium">
-                          {v.name} (<span className="font-data">{v.weight_kg}kg</span>)
-                        </span>
-                        <span className="font-bold font-data text-[var(--ed-text-primary)]">
-                          ₹{v.base_price_per_kg}/kg
-                        </span>
-                      </div>
-                    ))
+                    p.variants.map((v) => {
+                      const price = v.base_price_per_unit ?? v.base_price_per_kg ?? 0;
+                      const qty = v.unit_quantity ?? v.weight_kg ?? 1;
+                      return (
+                        <div
+                          key={v.id}
+                          className="flex justify-between items-center text-xs p-2 rounded border border-[var(--ed-border)] text-[var(--ed-text-primary)]"
+                          style={{ background: "var(--ed-bg)" }}
+                        >
+                          <span className="font-medium">
+                            {v.name} (<span className="font-data">{qty} units</span>)
+                          </span>
+                          <span className="font-bold font-data text-[var(--ed-text-primary)]">
+                            ₹{price}
+                          </span>
+                        </div>
+                      );
+                    })
                   ) : (
-                    <div className="text-xs text-[var(--ed-text-muted)] italic">No packaging variants defined</div>
+                    <div className="text-xs text-[var(--ed-text-muted)] italic">No variants defined</div>
                   )}
                 </div>
               </div>
@@ -357,7 +372,7 @@ export default function ProductsCatalogPage() {
             {/* Card Footer */}
             <div className="mt-5 pt-4 border-t border-[var(--ed-border)] flex items-center justify-between">
               <span className="text-xs text-[var(--ed-text-muted)] font-semibold">
-                MOQ: <span className="font-data font-bold text-[var(--ed-text-primary)]">{p.min_order_quantity_kg}kg</span>
+                MOQ: <span className="font-data font-bold text-[var(--ed-text-primary)]">{p.min_order_quantity ?? p.min_order_quantity_kg ?? 1} units</span>
               </span>
               <button
                 onClick={() => handleToggleStock(p)}
@@ -394,7 +409,7 @@ export default function ProductsCatalogPage() {
             <div className="flex items-center justify-between border-b border-[var(--ed-border)] pb-3">
               <h3 className="font-bold text-base text-[var(--ed-text-primary)] flex items-center gap-2">
                 <Package className="w-5 h-5 text-[var(--ed-accent)]" />
-                Add Wholesale Tea to Catalog
+                Add Product to Catalog
               </h3>
               <button
                 onClick={() => setIsAddModalOpen(false)}
@@ -408,12 +423,12 @@ export default function ProductsCatalogPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block font-semibold text-[var(--ed-text-primary)] mb-1">
-                    Tea Blend / Product Name
+                    Product / Service Name
                   </label>
                   <input
                     type="text"
                     required
-                    placeholder="e.g. Kurseong Muscatel Second Flush"
+                    placeholder="e.g. Enterprise Cloud Suite / Standard Unit"
                     value={newProd.name}
                     onChange={(e) => setNewProd({ ...newProd, name: e.target.value })}
                     className="w-full p-2.5 rounded-lg border border-[var(--ed-border)] text-[var(--ed-text-primary)] placeholder:text-[var(--ed-text-muted)] focus:outline-none ed-focus-ring"
@@ -430,11 +445,11 @@ export default function ProductsCatalogPage() {
                     className="w-full p-2.5 rounded-lg border border-[var(--ed-border)] text-[var(--ed-text-primary)] focus:outline-none ed-focus-ring"
                     style={{ background: "var(--ed-bg)" }}
                   >
-                    <option value="Assam CTC">Assam CTC</option>
-                    <option value="Darjeeling">Darjeeling</option>
-                    <option value="Dooars">Dooars</option>
-                    <option value="Green Tea">Green Tea</option>
-                    <option value="Specialty">Specialty</option>
+                    <option value="Commercial">Commercial</option>
+                    <option value="Premium">Premium</option>
+                    <option value="Enterprise">Enterprise</option>
+                    <option value="Services">Services</option>
+                    <option value="Custom">Custom</option>
                   </select>
                 </div>
               </div>
@@ -442,11 +457,11 @@ export default function ProductsCatalogPage() {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="block font-semibold text-[var(--ed-text-primary)] mb-1">
-                    Tea Grade
+                    Grade / Specification
                   </label>
                   <input
                     type="text"
-                    placeholder="e.g. FTGFOP1 / BP / BOP"
+                    placeholder="e.g. Grade A / Standard / Tier 1"
                     value={newProd.tea_grade}
                     onChange={(e) => setNewProd({ ...newProd, tea_grade: e.target.value })}
                     className="w-full p-2.5 rounded-lg border border-[var(--ed-border)] text-[var(--ed-text-primary)] placeholder:text-[var(--ed-text-muted)] focus:outline-none ed-focus-ring"
@@ -455,12 +470,12 @@ export default function ProductsCatalogPage() {
                 </div>
                 <div>
                   <label className="block font-semibold text-[var(--ed-text-primary)] mb-1">
-                    Base Rate (₹/kg)
+                    Base Rate (₹)
                   </label>
                   <input
                     type="number"
                     required
-                    min="50"
+                    min="1"
                     value={newProd.base_price_per_kg}
                     onChange={(e) => setNewProd({ ...newProd, base_price_per_kg: Number(e.target.value) })}
                     className="w-full p-2.5 rounded-lg border border-[var(--ed-border)] text-[var(--ed-text-primary)] font-data font-bold focus:outline-none ed-focus-ring"
@@ -469,7 +484,7 @@ export default function ProductsCatalogPage() {
                 </div>
                 <div>
                   <label className="block font-semibold text-[var(--ed-text-primary)] mb-1">
-                    MOQ (kg)
+                    MOQ (Units)
                   </label>
                   <input
                     type="number"
@@ -485,11 +500,11 @@ export default function ProductsCatalogPage() {
 
               <div>
                 <label className="block font-semibold text-[var(--ed-text-primary)] mb-1">
-                  Product Description & Flavor Profile
+                  Product / Service Description
                 </label>
                 <textarea
                   rows={2}
-                  placeholder="Describe aroma, liquor strength, estate garden, recommended beverage type..."
+                  placeholder="Describe specifications, key features, packaging format, recommended usage..."
                   value={newProd.description}
                   onChange={(e) => setNewProd({ ...newProd, description: e.target.value })}
                   className="w-full p-2.5 rounded-lg border border-[var(--ed-border)] text-[var(--ed-text-primary)] placeholder:text-[var(--ed-text-muted)] focus:outline-none ed-focus-ring"
@@ -523,7 +538,7 @@ export default function ProductsCatalogPage() {
                     className="ed-btn-primary ed-press ed-focus-ring px-5 py-2.5 rounded-xl font-semibold text-xs flex items-center gap-1.5 shadow-md"
                   >
                     <Save className="w-4 h-4" />
-                    Save Tea
+                    Save Product
                   </button>
                 </div>
               </div>
@@ -538,7 +553,7 @@ export default function ProductsCatalogPage() {
           <div className="rounded-2xl border border-[var(--ed-border)] shadow-2xl max-w-md w-full p-6 space-y-4" style={{ background: "var(--ed-surface)" }}>
             <div className="flex items-center justify-between border-b border-[var(--ed-border)] pb-3">
               <h3 className="font-bold text-base text-[var(--ed-text-primary)]">
-                Edit Tea: {editingProduct.name}
+                Edit Product: {editingProduct.name}
               </h3>
               <button
                 onClick={() => setEditingProduct(null)}
@@ -566,7 +581,7 @@ export default function ProductsCatalogPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block font-semibold text-[var(--ed-text-primary)] mb-1">
-                    Tea Grade
+                    Grade / Specification
                   </label>
                   <input
                     type="text"
@@ -578,7 +593,7 @@ export default function ProductsCatalogPage() {
                 </div>
                 <div>
                   <label className="block font-semibold text-[var(--ed-text-primary)] mb-1">
-                    MOQ (kg)
+                    MOQ (Units)
                   </label>
                   <input
                     type="number"
