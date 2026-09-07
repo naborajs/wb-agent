@@ -411,7 +411,7 @@ export default function VoiceAgent() {
       } else if (name === "send_ai_promotional_message") {
         const targetPhone = args.target_phone || "";
         const recipientName = args.recipient_name || "Wholesale Buyer";
-        const instruction = args.instruction || "Special wholesale discounts on fresh harvest estate tea";
+        const instruction = args.instruction || "Special wholesale commercial discounts and priority catalog dispatch";
 
         try {
           const res = await fetch("/api/v1/voice/generate-promo-message", {

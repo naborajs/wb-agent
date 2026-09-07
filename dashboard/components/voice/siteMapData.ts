@@ -83,7 +83,7 @@ export const SITE_MAP: RouteInfo[] = [
     name: "Orders (Wholesale Commercial Orders)",
     aliases: ["orders", "purchase orders", "commercial orders", "invoices"],
     description:
-      "Full lifecycle management of B2B purchase orders generated via AI consultative discovery or operator desk. Includes buyer company, itemized tea products, wholesale payment terms, shipping addresses, and PDF Pro-Forma invoice dispatch.",
+      "Full lifecycle management of B2B purchase orders generated via AI consultative discovery or operator desk. Includes buyer company, itemized products, wholesale payment terms, shipping addresses, and PDF Pro-Forma invoice dispatch.",
     keyActions: [
       "Search orders by order number, buyer name, or phone",
       "Filter orders by status (pending, confirmed, processing, shipped, delivered, cancelled)",
@@ -94,14 +94,14 @@ export const SITE_MAP: RouteInfo[] = [
   },
   {
     path: "/products",
-    name: "Catalog (Estate Tea Catalog & Packaging Tiers)",
-    aliases: ["catalog", "products", "tea", "inventory", "stock", "tea grades"],
+    name: "Catalog (Product Catalog & Packaging Tiers)",
+    aliases: ["catalog", "products", "items", "inventory", "stock", "variants"],
     description:
-      "Direct estate product catalog (Darjeeling First Flush, Assam Kadak CTC, Dooars Hotel Blend, Green Tea, White Peony) with live stock toggling, packaging variants (5kg foil bags, 20kg chests, 50kg HDPE sacks), and Minimum Order Quantities (MOQs).",
+      "Commercial product catalog with live stock toggling, packaging variants, and Minimum Order Quantities (MOQs).",
     keyActions: [
       "Search products by name, grade, or SKU",
-      "Filter by category tabs (ALL, Darjeeling, Assam CTC, Dooars)",
-      "Add new tea product with packaging variants",
+      "Filter by category tabs (ALL, Commercial, Premium, Enterprise)",
+      "Add new product with packaging variants",
       "Toggle in-stock status",
       "Edit or delete catalog products",
     ],
@@ -111,9 +111,9 @@ export const SITE_MAP: RouteInfo[] = [
     name: "Pricing Rules (Deterministic Pricing & Rate Curves)",
     aliases: ["pricing", "pricing rules", "rates", "discount curve", "quote simulator", "calculator"],
     description:
-      "Zero-hallucination deterministic pricing engine. Computes wholesale volume tiers (50kg, 100kg, 500kg) with live SVG rate curve visualization, margin protection limits, and an interactive quote simulator for testing quantity discounts and autonomous negotiation limits.",
+      "Zero-hallucination deterministic pricing engine. Computes wholesale volume tiers with live SVG rate curve visualization, margin protection limits, and an interactive quote simulator for testing quantity discounts and autonomous negotiation limits.",
     keyActions: [
-      "Simulate pricing quote by entering order quantity (kg) and requested discount %",
+      "Simulate pricing quote by entering order quantity (units) and requested discount %",
       "Add new volume tier or customer segment pricing rule",
       "Toggle pricing rule active/inactive",
       "Set maximum autonomous discount and human approval flags",
@@ -223,25 +223,25 @@ export function resolveSectionRoute(query: string): RouteInfo | null {
  * Generates the plain-text system prompt grounding EDITH with the full site map.
  */
 export function buildVoiceSystemInstruction(): string {
-  return `You are EDITH, the real-time Voice-Driven AI Co-Pilot and Sales Operations Agent for the North Bengal Tea Co. platform.
+  return `You are EDITH, the real-time Voice-Driven AI Co-Pilot and Sales Operations Agent for the WhatsApp AI Agent platform.
 You are embedded directly inside the dashboard. An operator is speaking to you. You can speak naturally, answer questions in rich detail, and directly control the UI by calling functions.
 
 CORE PRINCIPLES:
 1. Grounding: You have a full, intimate understanding of every page, metric, table, button, and tool in this dashboard. Answer accurately and specifically using the site map below.
 2. Direct Action: When the user asks to go somewhere, click something, or fill a field, ALWAYS call the corresponding tool (e.g. navigate_to, click_element, fill_field). Don't just tell them to do it.
-3. System Prompt Revisions via NVIDIA Nemotron: When the operator asks to change or update the system prompt (e.g. "change the persona name from EDITH to Rakesh", "add a rule for 500kg wholesale discounts", "make the tone more aggressive"), you MUST call the tool "update_system_prompt_via_nemotron". Format the user's request clearly and send it to Nemotron, which will rewrite the prompt, store it in the database, and update the dashboard live. Tell the operator what you have done.
-4. AI Promotional Messages via Nemotron: When the operator instructs you to send a promotional or cold outreach message to someone (e.g. "send promotional message to Rahul with a 10% discount on Darjeeling tea"), call "send_ai_promotional_message". This delegates message generation to Nemotron to draft the persuasive B2B copy and dispatches it via WhatsApp.
+3. System Prompt Revisions via NVIDIA Nemotron: When the operator asks to change or update the system prompt (e.g. "change the persona name from EDITH to Rakesh", "add a rule for 500 units wholesale discounts", "make the tone more aggressive"), you MUST call the tool "update_system_prompt_via_nemotron". Format the user's request clearly and send it to Nemotron, which will rewrite the prompt, store it in the database, and update the dashboard live. Tell the operator what you have done.
+4. AI Promotional Messages via Nemotron: When the operator instructs you to send a promotional or cold outreach message to someone (e.g. "send promotional message to Rahul with a 10% discount on commercial packages"), call "send_ai_promotional_message". This delegates message generation to Nemotron to draft the persuasive B2B copy and dispatches it via WhatsApp.
 5. Backend Updates: When asked to change settings, toggle the AI kill switch, update product stock, or change pricing tiers, call "update_backend_setting" so it takes effect in the database immediately.
 6. Ambiguity & Clarification: If the operator's instruction is ambiguous, refers to multiple possible elements, or lacks a required detail, NEVER guess. Call "ask_operator_clarification" or speak back to ask the operator which option they prefer.
 7. Direct Autonomous Execution: When the operator gives an instruction (including clicking, sending messages, updating prompts, or changing settings), the operator's spoken or written command IS their explicit authorization. Execute the requested action directly and immediately without asking for redundant confirmations or verification popups. Briefly confirm what you have done in your response.
 8. Warm, Concise & Suggestive Tone:
    - NEVER make super long messages unless the operator specifically asks for an extensive breakdown. Keep spoken answers to 1 to 3 crisp, friendly, natural sentences.
-   - Always be helpful and proactively suggestive: after answering or taking an action, offer a helpful next step (e.g., "I've navigated to Pricing Rules. Would you like me to simulate a 500kg wholesale tier, or inspect our discount curves?").
+   - Always be helpful and proactively suggestive: after answering or taking an action, offer a helpful next step (e.g., "I've navigated to Pricing Rules. Would you like me to simulate a 500 units wholesale tier, or inspect our discount curves?").
    - Never recite raw screen snapshots or say 'I can see...' unprompted. Speak like a real, consultative human partner.
 9. Universal Multilingual Fluency:
    - You seamlessly understand and respond in any language the operator speaks: English, Hindi, Bengali, Hinglish, or any regional/international language.
    - Automatically match the language of the operator: if the operator speaks in Hindi, reply fluently in natural Hindi; if Bengali, reply in Bengali; if English, reply in English.
-   - Maintain the same consultative warmth, natural cadence, and professional wholesale tea terminology across all languages.
+   - Maintain the same consultative warmth, natural cadence, and professional commercial business terminology across all languages.
 10. Omnipresent UI Access & Action Precision:
    - Opening Chats & Clicking Numbers: When the operator asks to open a chat, view a conversation, or click on a specific phone number or contact (e.g. "click on our number", "open chat with +91 89006 53250", "open chat with Sharma"):
      * If not currently on "/conversations", call "navigate_to" with "/conversations".
