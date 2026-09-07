@@ -1,36 +1,80 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import {
+  ShieldCheck,
+  DollarSign,
+  Package,
   BookOpen,
+  Bot,
+  Cpu,
+  Sparkles,
+  Plus,
   Search,
   Upload,
-  FileText,
-  CheckCircle2,
-  RotateCw,
-  Sparkles,
-  Bot,
-  X,
+  RefreshCw,
   Layers,
-  Clock,
-  ShieldCheck,
+  CheckCircle2,
+  AlertTriangle,
+  ArrowRight,
+  Volume2,
+  VolumeX,
+  Trash2,
+  Edit2,
+  FileSpreadsheet,
+  FileText,
+  MessageSquare,
   ChevronRight,
+  Clock,
+  Send,
+  Sliders,
+  Check,
+  X,
+  Calculator,
 } from "lucide-react";
 
-interface KnowledgeDoc {
-  id?: string;
+interface KnowledgeItemRecord {
+  id: string;
+  category: "business_info" | "pricing_rule" | "catalog_product" | "agent_guidance" | "custom";
   title: string;
+  sku?: string | null;
+  source_type: string;
+  content_text: string;
+  structured_data: Record<string, any>;
+  base_price?: number | null;
+  currency?: string | null;
+  unit?: string | null;
+  min_order_quantity?: number | null;
+  min_quantity?: number | null;
+  max_quantity?: number | null;
+  discount_percentage?: number | null;
+  max_autonomous_discount?: number | null;
+  customer_segment?: string | null;
   version: number;
-  chunk_count?: number;
-  chunks?: number;
-  source_type?: string;
-  type?: string;
+  chunk_count: number;
+  is_active: boolean;
+  created_by_brain: string;
+  created_at?: string;
   updated_at?: string;
+}
+
+interface ChatMessage {
+  id: string;
+  sender: "operator" | "friday" | "edith";
+  text: string;
+  proposal?: any;
+  verdict?: "ACCEPTED" | "DENIED";
+  reasoning?: string;
+  suggestion?: string;
+  created_at: string;
 }
 
 interface RetrievalSource {
   chunk_id: string;
-  document_id: string;
+  document_id?: string;
+  item_id?: string;
+  category: string;
   document_title: string;
   version: number;
   section_heading?: string;
@@ -47,525 +91,1003 @@ interface AIQueryResponse {
   executed_at: string;
 }
 
-const SAMPLE_QUERIES = [
-  "What is the MOQ for standard commercial packages?",
-  "What are the typical delivery timelines?",
-  "What volume discounts are available for 500 units?",
-  "Do you provide commercial product samples?",
-  "What quality certifications do you hold?",
+const CATEGORY_TABS = [
+  { id: "all", label: "All Items", icon: Layers, color: "text-indigo-400" },
+  { id: "business_info", label: "Business Info", icon: FileText, color: "text-blue-400" },
+  { id: "pricing_rule", label: "Pricing Rules", icon: DollarSign, color: "text-emerald-400" },
+  { id: "catalog_product", label: "Catalog", icon: Package, color: "text-cyan-400" },
+  { id: "agent_guidance", label: "Agent Guidance", icon: BookOpen, color: "text-purple-400" },
+  { id: "custom", label: "Custom", icon: Sliders, color: "text-amber-400" },
 ];
 
-export default function KnowledgeBasePage() {
-  const [query, setQuery] = useState("");
-  const [activeQuery, setActiveQuery] = useState<string | null>(null);
-  const [aiAnswer, setAiAnswer] = useState<AIQueryResponse | null>(null);
-  const [results, setResults] = useState<RetrievalSource[]>([]);
-  const [searching, setSearching] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
-  const [refreshNotice, setRefreshNotice] = useState<string | null>(null);
-  const [recentQueries, setRecentQueries] = useState<string[]>([]);
-  const inputRef = useRef<HTMLInputElement>(null);
+const QUICK_CHAT_SUGGESTIONS = [
+  "Increase Tier 2 volume discount to 12% for 200 units",
+  "Update baseline catalog MOQ to 25 units",
+  "Add 7-day transit damage replacement policy",
+  "Give 35% discount for 50 units", // Will trigger EDITH's autonomous refusal!
+];
 
-  const [docs, setDocs] = useState<KnowledgeDoc[]>([
+function KnowledgeHubMain() {
+  const searchParams = useSearchParams();
+  const initialTab = searchParams.get("tab") || "all";
+
+  const [activeTab, setActiveTab] = useState<string>(initialTab);
+  const [items, setItems] = useState<KnowledgeItemRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchFilter, setSearchFilter] = useState("");
+  const [stats, setStats] = useState<Record<string, number>>({});
+
+  // Agentic Update Chat State
+  const [chatOpen, setChatOpen] = useState(true);
+  const [chatInput, setChatInput] = useState("");
+  const [chatLoading, setChatLoading] = useState(false);
+  const [ttsEnabled, setTtsEnabled] = useState(false);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
     {
-      title: "Commercial Quality Standards & Industry Certifications",
-      version: 1,
-      chunk_count: 1,
-      source_type: "Markdown",
-      updated_at: "2026-09-02",
-    },
-    {
-      title: "Commercial Evaluation & Product Sampling Policy",
-      version: 1,
-      chunk_count: 1,
-      source_type: "Markdown",
-      updated_at: "2026-09-02",
-    },
-    {
-      title: "Wholesale Logistics, Transit Timelines & Delivery Policy",
-      version: 1,
-      chunk_count: 1,
-      source_type: "Markdown",
-      updated_at: "2026-09-06",
-    },
-    {
-      title: "Wholesale Pricing Tiers, Packaging & Minimum Order Quantities (MOQs)",
-      version: 1,
-      chunk_count: 1,
-      source_type: "Markdown",
-      updated_at: "2026-09-06",
+      id: "welcome",
+      sender: "friday",
+      text: "Hello! I am Friday, your personal executive web copilot. Together with my partner brain EDITH, we can update any knowledge, volume pricing tier, or catalog product right here. Just tell me what you would like to change!",
+      created_at: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     },
   ]);
 
-  const fetchDocuments = async () => {
+  // Semantic RAG Test State
+  const [ragQuery, setRagQuery] = useState("");
+  const [ragLoading, setRagLoading] = useState(false);
+  const [ragResult, setRagResult] = useState<AIQueryResponse | null>(null);
+
+  // Modals
+  const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const [uploadCategory, setUploadCategory] = useState("business_info");
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+
+  // Quote Simulator State
+  const [simQty, setSimQty] = useState(150);
+  const [simPrice, setSimPrice] = useState(450);
+  const [simSegment, setSimSegment] = useState("wholesale");
+  const [simDiscount, setSimDiscount] = useState(0);
+
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  // Fetch Items & Stats
+  const fetchData = async () => {
     try {
-      const res = await fetch("/api/v1/knowledge/documents");
-      if (res.ok) {
-        const data = await res.json();
-        if (Array.isArray(data) && data.length > 0) {
-          setDocs(data);
-        }
+      setLoading(true);
+      const [itemsRes, statsRes] = await Promise.all([
+        fetch("/api/v1/knowledge/items"),
+        fetch("/api/v1/knowledge/stats"),
+      ]);
+      if (itemsRes.ok) {
+        const data = await itemsRes.json();
+        setItems(data);
       }
-    } catch (e) {
-      console.warn("Could not fetch knowledge documents:", e);
+      if (statsRes.ok) {
+        const s = await statsRes.json();
+        setStats(s);
+      }
+    } catch (err) {
+      console.error("Failed to load knowledge items:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchDocuments();
+    fetchData();
   }, []);
 
-  // Proper Refresh System: Re-indexes enterprise docs, re-syncs state, and clears stale query caches
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    setRefreshNotice(null);
+  // WebSocket Live Sync
+  useEffect(() => {
+    let ws: WebSocket | null = null;
     try {
-      const res = await fetch("/api/v1/knowledge/refresh-index", { method: "POST" });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.documents && Array.isArray(data.documents)) {
-          setDocs(data.documents);
+      const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
+      const host = window.location.hostname;
+      const port = "8000";
+      ws = new WebSocket(`${proto}//${host}:${port}/api/v1/ws`);
+
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (
+            data.type === "knowledge_item_updated" ||
+            data.type === "knowledge_item_created" ||
+            data.type === "knowledge_item_deleted"
+          ) {
+            fetchData();
+          }
+        } catch (e) {
+          // ignore parsing error
         }
-        setRefreshNotice("Index refreshed with active documents.");
-      } else {
-        await fetchDocuments();
-        setRefreshNotice("Documents reloaded.");
-      }
-      // Reset search results & clear input
-      setQuery("");
-      setActiveQuery(null);
-      setAiAnswer(null);
-      setResults([]);
-      if (inputRef.current) {
-        inputRef.current.value = "";
-      }
-      setTimeout(() => setRefreshNotice(null), 3500);
-    } catch (err) {
-      console.error("Refresh failed:", err);
-      await fetchDocuments();
-    } finally {
-      setRefreshing(false);
+      };
+    } catch (e) {
+      // WS unavailable
     }
-  };
 
-  // Execute RAG Query & AI Answer Generation
-  const handleSearch = async (overrideQuery?: string) => {
-    const rawVal = overrideQuery !== undefined ? overrideQuery : (inputRef.current?.value ?? query);
-    const targetQ = rawVal.trim();
-    if (!targetQ) return;
+    return () => {
+      if (ws) ws.close();
+    };
+  }, []);
 
-    setQuery(targetQ);
-    setActiveQuery(targetQ);
-    setSearching(true);
-    setAiAnswer(null);
-    setResults([]);
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chatMessages, chatLoading]);
 
-    // Keep unique recent queries
-    setRecentQueries((prev) => [targetQ, ...prev.filter((q) => q !== targetQ)].slice(0, 5));
+  // Handle Chat Submit
+  const handleSendChat = async (msgText?: string) => {
+    const textToSend = msgText || chatInput;
+    if (!textToSend.trim() || chatLoading) return;
+
+    const userMsg: ChatMessage = {
+      id: `user_${Date.now()}`,
+      sender: "operator",
+      text: textToSend.trim(),
+      created_at: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+    };
+
+    setChatMessages((prev) => [...prev, userMsg]);
+    if (!msgText) setChatInput("");
+    setChatLoading(true);
 
     try {
-      // 1. Try modern AI Answer Generation endpoint (/api/v1/knowledge/query)
-      const queryRes = await fetch("/api/v1/knowledge/query", {
+      const res = await fetch("/api/v1/knowledge/update-request", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: targetQ, top_k: 4 }),
+        body: JSON.stringify({
+          message: textToSend.trim(),
+          category_hint: activeTab !== "all" ? activeTab : undefined,
+        }),
       });
 
-      if (queryRes.ok) {
-        const queryData: AIQueryResponse = await queryRes.json();
-        setAiAnswer(queryData);
-        setResults(queryData.sources || []);
-      } else {
-        // Fallback to direct chunk search (/api/v1/knowledge/search)
-        const searchRes = await fetch("/api/v1/knowledge/search", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ query: targetQ, top_k: 3 }),
-        });
-        if (searchRes.ok) {
-          const searchData: RetrievalSource[] = await searchRes.json();
-          setResults(searchData);
-          if (searchData.length > 0) {
-            const top = searchData[0];
-            setAiAnswer({
-              query: targetQ,
-              answer: `According to ${top.document_title}: ${top.content.replace(/\n+/g, " ")}`,
-              model_used: "Deterministic Vector RAG",
-              confidence_score: top.similarity_score,
-              sources: searchData,
-              executed_at: new Date().toISOString(),
-            });
-          }
+      if (res.ok) {
+        const result = await res.json();
+        const fridayReply: ChatMessage = {
+          id: `friday_${Date.now()}`,
+          sender: "friday",
+          text: result.reply_text,
+          proposal: result.friday_proposal,
+          verdict: result.decision,
+          reasoning: result.edith_evaluation?.reasoning,
+          suggestion: result.edith_evaluation?.suggestion,
+          created_at: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        };
+        setChatMessages((prev) => [...prev, fridayReply]);
+
+        // Trigger TTS if enabled
+        if (ttsEnabled && result.speak_text && "speechSynthesis" in window) {
+          const utterance = new SpeechSynthesisUtterance(result.speak_text);
+          utterance.rate = 1.05;
+          window.speechSynthesis.speak(utterance);
         }
+
+        // Refresh items table if accepted
+        if (result.decision === "ACCEPTED") {
+          fetchData();
+        }
+      } else {
+        const err = await res.json();
+        setChatMessages((prev) => [
+          ...prev,
+          {
+            id: `err_${Date.now()}`,
+            sender: "friday",
+            text: `Error processing request: ${err.detail || "Server error"}`,
+            created_at: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          },
+        ]);
       }
-    } catch (e) {
-      console.error("Knowledge query error:", e);
+    } catch (err: any) {
+      setChatMessages((prev) => [
+        ...prev,
+        {
+          id: `err_${Date.now()}`,
+          sender: "friday",
+          text: `Communication error: ${err.message}`,
+          created_at: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        },
+      ]);
     } finally {
-      setSearching(false);
+      setChatLoading(false);
     }
   };
 
-  const clearQuery = () => {
-    setQuery("");
-    setActiveQuery(null);
-    setAiAnswer(null);
-    setResults([]);
-    if (inputRef.current) {
-      inputRef.current.value = "";
-      inputRef.current.focus();
+  // Handle RAG Semantic Search
+  const handleRAGSearch = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!ragQuery.trim() || ragLoading) return;
+
+    setRagLoading(true);
+    setRagResult(null);
+
+    try {
+      const res = await fetch("/api/v1/knowledge/query", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          query: ragQuery.trim(),
+          category: activeTab !== "all" ? activeTab : undefined,
+          top_k: 4,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setRagResult(data);
+      }
+    } catch (err) {
+      console.error("RAG search failed:", err);
+    } finally {
+      setRagLoading(false);
     }
   };
+
+  // Handle Item Toggle Active
+  const handleToggleActive = async (id: string) => {
+    try {
+      await fetch(`/api/v1/knowledge/items/${id}/toggle-active`, { method: "PATCH" });
+      setItems((prev) =>
+        prev.map((i) => (i.id === id ? { ...i, is_active: !i.is_active } : i))
+      );
+    } catch (err) {
+      console.error("Toggle active failed:", err);
+    }
+  };
+
+  // Handle Item Delete
+  const handleDeleteItem = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this knowledge asset?")) return;
+    try {
+      await fetch(`/api/v1/knowledge/items/${id}`, { method: "DELETE" });
+      setItems((prev) => prev.filter((i) => i.id !== id));
+    } catch (err) {
+      console.error("Delete failed:", err);
+    }
+  };
+
+  // Handle File Upload
+  const handleUploadSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!uploadFile) return;
+
+    setUploading(true);
+    const formData = new FormData();
+    formData.append("file", uploadFile);
+    formData.append("category", uploadCategory);
+
+    try {
+      const res = await fetch("/api/v1/knowledge/upload", {
+        method: "POST",
+        body: formData,
+      });
+      if (res.ok) {
+        setUploadModalOpen(false);
+        setUploadFile(null);
+        fetchData();
+      } else {
+        const err = await res.json();
+        alert(`Upload error: ${err.detail || "Failed to process file"}`);
+      }
+    } catch (err: any) {
+      alert(`Upload error: ${err.message}`);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // Filter Items
+  const filteredItems = items.filter((item) => {
+    const matchesTab = activeTab === "all" || item.category === activeTab;
+    const matchesSearch =
+      !searchFilter.trim() ||
+      item.title.toLowerCase().includes(searchFilter.toLowerCase()) ||
+      (item.sku && item.sku.toLowerCase().includes(searchFilter.toLowerCase())) ||
+      item.content_text.toLowerCase().includes(searchFilter.toLowerCase());
+    return matchesTab && matchesSearch;
+  });
+
+  // Calculate simulated pricing
+  const calculateSimQuote = () => {
+    // Find highest matching volume rule
+    const volumeRules = items
+      .filter((i) => i.category === "pricing_rule" && i.is_active)
+      .sort((a, b) => (b.min_quantity || 0) - (a.min_quantity || 0));
+
+    let appliedDiscount = 0;
+    let matchedRule = "Baseline Tariff";
+    let requiresApproval = false;
+
+    for (const r of volumeRules) {
+      const minQ = r.min_quantity || 0;
+      const maxQ = r.max_quantity || Infinity;
+      if (simQty >= minQ && simQty <= maxQ) {
+        appliedDiscount = Number(r.discount_percentage) || 0;
+        matchedRule = r.title;
+        if (Number(r.max_autonomous_discount) && appliedDiscount > Number(r.max_autonomous_discount)) {
+          requiresApproval = true;
+        }
+        break;
+      }
+    }
+
+    const totalBefore = simQty * simPrice;
+    const discountAmt = totalBefore * (appliedDiscount / 100);
+    const finalTotal = totalBefore - discountAmt;
+    const unitAfterDiscount = finalTotal / simQty;
+
+    return {
+      totalBefore,
+      discountAmt,
+      finalTotal,
+      unitAfterDiscount,
+      appliedDiscount,
+      matchedRule,
+      requiresApproval,
+    };
+  };
+
+  const simQuote = calculateSimQuote();
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-16">
-      {/* Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl ed-brand-avatar flex items-center justify-center p-2 shrink-0">
-            <img
-              src="/logo-icon.png"
-              alt="EDITH RAG"
-              className="w-full h-full object-contain drop-shadow-[0_2px_8px_rgba(56,189,248,0.35)]"
-            />
-          </div>
+    <div className="space-y-6">
+      {/* 1. Header Banner */}
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden">
+        <div className="absolute -right-10 -bottom-10 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
           <div>
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/25 mb-1">
-              <Sparkles className="w-3 h-3 animate-pulse text-sky-500" />
-              <span>Neural Vector RAG & Ground Truth Engine</span>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5" />
+                Dual-Brain Unified Architecture
+              </span>
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-800 text-slate-300 border border-slate-700">
+                Friday (Gemini 3.1) & EDITH (NVIDIA NIM)
+              </span>
             </div>
-            <h2 className="text-2xl font-bold tracking-tight text-[var(--ed-text-primary)]">
-              Knowledge Base & Vector RAG
-            </h2>
-            <p className="text-xs text-[var(--ed-text-muted)] mt-0.5">
-              Deterministic estate knowledge truth: certifications, wholesale MOQs, transit timelines, and live AI question synthesis.
+            <h1 className="text-2xl md:text-3xl font-bold text-slate-100 flex items-center gap-3">
+              Knowledge Hub & RAG Engine
+            </h1>
+            <p className="text-slate-400 text-sm mt-1.5 max-w-2xl">
+              Unified enterprise knowledge base: company policies, volume pricing rules, product catalog, and conversational agent guidance in one chat-driven workspace.
             </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              onClick={() => setChatOpen(!chatOpen)}
+              className={`px-4 py-2.5 rounded-xl font-medium text-sm flex items-center gap-2 transition shadow-lg ${
+                chatOpen
+                  ? "bg-indigo-600 text-white shadow-indigo-500/20 hover:bg-indigo-500"
+                  : "bg-slate-800 text-slate-200 hover:bg-slate-700 border border-slate-700"
+              }`}
+            >
+              <Bot className="w-4 h-4 text-indigo-300" />
+              {chatOpen ? "Hide Update Chat" : "Open Update Chat"}
+            </button>
+
+            <button
+              onClick={() => setUploadModalOpen(true)}
+              className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-medium text-sm flex items-center gap-2 transition"
+            >
+              <Upload className="w-4 h-4 text-cyan-400" />
+              Import File
+            </button>
+
+            <button
+              onClick={fetchData}
+              className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 border border-slate-700 transition"
+              title="Refresh Knowledge Index"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+            </button>
           </div>
         </div>
 
-        {/* Global Refresh & Status Actions */}
-        <div className="flex items-center gap-2 self-start sm:self-auto">
-          {refreshNotice && (
-            <div className="px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-medium animate-in fade-in flex items-center gap-1.5">
-              <CheckCircle2 className="w-3.5 h-3.5" />
-              <span>{refreshNotice}</span>
+        {/* Quick Stats Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 mt-6 pt-6 border-t border-slate-800/80">
+          <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800/60">
+            <div className="text-xs text-slate-400 mb-1">Total Assets</div>
+            <div className="text-lg font-bold text-slate-100">{stats.total || items.length}</div>
+          </div>
+          <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800/60">
+            <div className="text-xs text-blue-400 mb-1 flex items-center gap-1">
+              <FileText className="w-3 h-3" /> Business Info
             </div>
-          )}
-          <button
-            onClick={handleRefresh}
-            disabled={refreshing}
-            className="ed-press ed-focus-ring px-3.5 py-2 rounded-xl text-xs font-semibold border border-[var(--ed-border)] bg-[var(--ed-surface)] hover:bg-[var(--ed-bg)] text-[var(--ed-text-primary)] flex items-center gap-2 transition-all shadow-sm cursor-pointer disabled:opacity-50"
-            title="Refresh knowledge base index and re-sync documents"
-          >
-            <RotateCw className={`w-3.5 h-3.5 text-sky-500 ${refreshing ? "animate-spin" : ""}`} />
-            <span>{refreshing ? "Refreshing Index..." : "Refresh Index"}</span>
-          </button>
+            <div className="text-lg font-bold text-blue-300">
+              {stats.business_info || items.filter((i) => i.category === "business_info").length}
+            </div>
+          </div>
+          <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800/60">
+            <div className="text-xs text-emerald-400 mb-1 flex items-center gap-1">
+              <DollarSign className="w-3 h-3" /> Pricing Rules
+            </div>
+            <div className="text-lg font-bold text-emerald-300">
+              {stats.pricing_rule || items.filter((i) => i.category === "pricing_rule").length}
+            </div>
+          </div>
+          <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800/60">
+            <div className="text-xs text-cyan-400 mb-1 flex items-center gap-1">
+              <Package className="w-3 h-3" /> Catalog SKUs
+            </div>
+            <div className="text-lg font-bold text-cyan-300">
+              {stats.catalog_product || items.filter((i) => i.category === "catalog_product").length}
+            </div>
+          </div>
+          <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800/60">
+            <div className="text-xs text-purple-400 mb-1 flex items-center gap-1">
+              <BookOpen className="w-3 h-3" /> Agent Guidance
+            </div>
+            <div className="text-lg font-bold text-purple-300">
+              {stats.agent_guidance || items.filter((i) => i.category === "agent_guidance").length}
+            </div>
+          </div>
+          <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800/60">
+            <div className="text-xs text-amber-400 mb-1 flex items-center gap-1">
+              <Sliders className="w-3 h-3" /> Custom Config
+            </div>
+            <div className="text-lg font-bold text-amber-300">
+              {stats.custom || items.filter((i) => i.category === "custom").length}
+            </div>
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Column: Active Documents Table (5 cols) */}
-        <div className="lg:col-span-5 ed-panel rounded-2xl overflow-hidden flex flex-col">
-          <div className="p-4 border-b border-[var(--ed-border)] flex justify-between items-center bg-[var(--ed-bg)]/50">
-            <div className="flex items-center gap-2">
-              <BookOpen className="w-4 h-4 text-sky-500" />
-              <span className="font-bold text-xs uppercase tracking-wider text-[var(--ed-text-muted)]">
-                Active Grounded Documents ({docs.length})
+      {/* 2. Main Workspace Layout (Grid with optional Chat Panel) */}
+      <div className={`grid grid-cols-1 ${chatOpen ? "lg:grid-cols-12" : ""} gap-6`}>
+        {/* Left / Center Column: Tabbed Content & Tables */}
+        <div className={`${chatOpen ? "lg:col-span-7 xl:col-span-8" : "w-full"} space-y-6`}>
+          {/* Category Navigation Bar */}
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-2 flex flex-wrap gap-1.5 shadow-sm">
+            {CATEGORY_TABS.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              const count =
+                tab.id === "all"
+                  ? items.length
+                  : items.filter((i) => i.category === tab.id).length;
+
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium transition ${
+                    isActive
+                      ? "bg-slate-800 text-slate-100 shadow-sm border border-slate-700/80"
+                      : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
+                  }`}
+                >
+                  <Icon className={`w-4 h-4 ${tab.color}`} />
+                  <span>{tab.label}</span>
+                  <span
+                    className={`text-xs px-2 py-0.5 rounded-full ${
+                      isActive ? "bg-slate-700 text-slate-200" : "bg-slate-800 text-slate-500"
+                    }`}
+                  >
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Search & Filter Toolbar */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-900/60 p-3 rounded-2xl border border-slate-800">
+            <div className="relative w-full sm:w-80">
+              <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" />
+              <input
+                type="text"
+                value={searchFilter}
+                onChange={(e) => setSearchFilter(e.target.value)}
+                placeholder="Search by title, SKU, or keyword..."
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+              />
+            </div>
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+              <span className="text-xs text-slate-400">
+                Showing {filteredItems.length} of {items.length} items
               </span>
             </div>
-            <span className="text-[10px] font-medium text-[var(--ed-text-muted)]">100% GI Verified</span>
           </div>
 
-          <div className="divide-y divide-[var(--ed-border)] flex-1 overflow-y-auto max-h-[580px]">
-            {docs.map((d, idx) => (
-              <div
-                key={idx}
-                className="p-4 flex flex-col gap-2 hover:bg-[var(--ed-bg)]/60 transition-colors"
-              >
-                <div className="flex items-start gap-3 min-w-0">
-                  <div
-                    className="p-2 rounded-xl text-[var(--ed-accent)] mt-0.5 shrink-0"
-                    style={{ background: "color-mix(in srgb, var(--ed-accent) 10%, transparent)" }}
-                  >
-                    <FileText className="w-4 h-4" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <h4 className="font-semibold text-xs text-[var(--ed-text-primary)] leading-snug break-words">
-                      {d.title}
-                    </h4>
-                    <div className="text-[11px] text-[var(--ed-text-muted)] mt-1 flex items-center gap-2 flex-wrap">
-                      <span>Version {d.version}</span>
-                      <span>•</span>
-                      <span className="font-data">{d.chunk_count || d.chunks || 1} vector chunks</span>
-                      <span>•</span>
-                      <span className="capitalize">{d.source_type || d.type || "Markdown"}</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between pt-1 text-[11px]">
-                  <span className="inline-flex items-center gap-1 font-semibold text-emerald-600 dark:text-emerald-400">
-                    <CheckCircle2 className="w-3.5 h-3.5" /> Vector Indexed
-                  </span>
-                  <span className="text-[var(--ed-text-muted)] text-[10px]">
-                    {d.updated_at ? `Updated ${d.updated_at.slice(0, 10)}` : "Live"}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Right Column: Semantic Vector Search & Live AI Sourced Answer (7 cols) */}
-        <div className="lg:col-span-7 ed-panel rounded-2xl p-5 space-y-5 flex flex-col">
-          {/* Tester Header */}
-          <div className="flex items-center justify-between">
-            <div className="font-bold text-[var(--ed-text-primary)] text-sm flex items-center gap-2">
-              <div className="p-1.5 rounded-lg bg-sky-500/10 text-sky-500">
-                <Search className="w-4 h-4" />
-              </div>
-              <div>
-                <span>Semantic Retrieval & AI Answer Test</span>
-                <p className="text-[11px] font-normal text-[var(--ed-text-muted)]">
-                  Ask any operational question. Grounded answer and source chunks load live.
-                </p>
-              </div>
-            </div>
-
-            {/* Quick Reset Button */}
-            {(activeQuery || results.length > 0 || aiAnswer) && (
-              <button
-                type="button"
-                onClick={clearQuery}
-                className="ed-press text-xs text-[var(--ed-text-muted)] hover:text-[var(--ed-text-primary)] px-2.5 py-1 rounded-lg border border-[var(--ed-border)] hover:bg-[var(--ed-bg)] transition-colors flex items-center gap-1"
-              >
-                <X className="w-3 h-3" />
-                <span>Clear</span>
-              </button>
-            )}
-          </div>
-
-          {/* Input Bar with Direct Value Binding */}
-          <div className="space-y-2 text-xs">
-            <div className="relative flex items-center">
-              <input
-                ref={inputRef}
-                type="text"
-                placeholder="e.g. Do you provide commercial product samples? Or what are delivery timelines?"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    handleSearch();
-                  }
-                }}
-                className="w-full p-3 pl-3.5 pr-20 border border-[var(--ed-border)] rounded-xl text-xs text-[var(--ed-text-primary)] placeholder:text-[var(--ed-text-muted)] ed-focus-ring focus:outline-none shadow-sm transition-all"
-                style={{ background: "var(--ed-bg)" }}
-              />
-
-              {query && (
-                <button
-                  type="button"
-                  onClick={clearQuery}
-                  className="absolute right-12 p-1 text-[var(--ed-text-muted)] hover:text-[var(--ed-text-primary)] transition-colors cursor-pointer"
-                  title="Clear input"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
-
-              <button
-                type="button"
-                onClick={() => handleSearch()}
-                disabled={searching || (!query.trim() && !inputRef.current?.value?.trim())}
-                className="absolute right-2 px-3 py-1.5 rounded-lg bg-sky-500 hover:bg-sky-600 disabled:opacity-40 text-white font-bold text-xs flex items-center gap-1 shadow-sm transition-all cursor-pointer"
-              >
-                {searching ? (
-                  <RotateCw className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <ChevronRight className="w-3.5 h-3.5" />
-                )}
-              </button>
-            </div>
-
-            {/* Test RAG Query Full Button (matches voice agent clicks) */}
-            <button
-              id="test-rag-query-btn"
-              onClick={() => handleSearch()}
-              disabled={searching}
-              className="ed-interactive ed-press ed-focus-ring w-full px-6 py-2.5 rounded-xl text-xs font-bold text-white shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
-              style={{ background: "linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)" }}
-            >
-              {searching ? (
-                <>
-                  <RotateCw className="w-4 h-4 animate-spin" />
-                  <span>Searching Vector Space & Synthesizing Answer...</span>
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-4 h-4" />
-                  <span>Test RAG Query</span>
-                </>
-              )}
-            </button>
-          </div>
-
-          {/* Interactive Sample Questions Pills */}
-          <div className="space-y-1.5 pt-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--ed-text-muted)]">
-              Quick Test Prompts:
-            </span>
-            <div className="flex flex-wrap gap-1.5">
-              {SAMPLE_QUERIES.map((sq, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => {
-                    setQuery(sq);
-                    if (inputRef.current) inputRef.current.value = sq;
-                    handleSearch(sq);
-                  }}
-                  className="ed-press text-[11px] px-2.5 py-1 rounded-lg border border-[var(--ed-border)] bg-[var(--ed-bg)] hover:border-sky-500/50 hover:bg-sky-500/10 text-[var(--ed-text-muted)] hover:text-sky-600 dark:hover:text-sky-400 transition-all cursor-pointer text-left"
-                >
-                  "{sq}"
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Loading Skeleton */}
-          {searching && (
-            <div className="p-5 rounded-2xl border border-sky-500/30 bg-sky-500/5 space-y-3 animate-pulse">
-              <div className="flex items-center gap-2 text-sky-500 text-xs font-semibold">
-                <Bot className="w-4 h-4 animate-bounce" />
-                <span>EDITH Neural Grounding Engine is processing query...</span>
-              </div>
-              <div className="h-3.5 bg-sky-500/20 rounded-md w-3/4" />
-              <div className="h-3 bg-sky-500/15 rounded-md w-full" />
-              <div className="h-3 bg-sky-500/15 rounded-md w-5/6" />
-            </div>
-          )}
-
-          {/* SOURCED AI ANSWER CARD (Rendered Live on Webpage!) */}
-          {!searching && aiAnswer && (
-            <div className="rounded-2xl border-2 border-sky-500/40 bg-gradient-to-br from-sky-500/10 via-[var(--ed-surface)] to-[var(--ed-surface)] p-5 space-y-3 shadow-lg animate-in fade-in zoom-in-95 duration-200">
-              {/* Card Meta Bar */}
-              <div className="flex items-center justify-between gap-2 flex-wrap border-b border-[var(--ed-border)]/70 pb-3">
+          {/* Content Switcher by Active Tab */}
+          {activeTab === "pricing_rule" && (
+            /* Dedicated Interactive Quote Simulator inside Pricing Tab */
+            <div className="bg-slate-900 border border-emerald-500/20 rounded-2xl p-5 shadow-lg space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
                 <div className="flex items-center gap-2">
-                  <div className="p-1.5 rounded-xl bg-sky-500 text-white shadow-sm">
-                    <Sparkles className="w-4 h-4" />
+                  <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                    <Calculator className="w-4 h-4" />
                   </div>
                   <div>
-                    <h3 className="font-bold text-xs text-[var(--ed-text-primary)]">
-                      Grounded AI Answer
-                    </h3>
-                    <span className="text-[10px] text-[var(--ed-text-muted)]">
-                      Question: "{aiAnswer.query}"
-                    </span>
+                    <h3 className="text-sm font-semibold text-slate-100">Live B2B Quote Simulator</h3>
+                    <p className="text-xs text-slate-400">Calculates deterministic price tiers & discount boundary checks</p>
                   </div>
                 </div>
+                <span className="text-xs px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium">
+                  Deterministic Decimal Math
+                </span>
+              </div>
 
-                <div className="flex items-center gap-2">
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-sky-500/15 text-sky-600 dark:text-sky-400 border border-sky-500/30">
-                    {aiAnswer.model_used}
-                  </span>
-                  {aiAnswer.confidence_score > 0 && (
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold font-data bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
-                      Match: {(aiAnswer.confidence_score * 100).toFixed(1)}%
-                    </span>
-                  )}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-slate-400 block mb-1">Order Quantity (Units)</label>
+                  <input
+                    type="number"
+                    value={simQty}
+                    onChange={(e) => setSimQty(Math.max(1, Number(e.target.value)))}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-slate-400 block mb-1">Base Price / Unit (₹)</label>
+                  <input
+                    type="number"
+                    value={simPrice}
+                    onChange={(e) => setSimPrice(Math.max(1, Number(e.target.value)))}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-slate-400 block mb-1">Customer Segment</label>
+                  <select
+                    value={simSegment}
+                    onChange={(e) => setSimSegment(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-emerald-500"
+                  >
+                    <option value="wholesale">Wholesale Buyer</option>
+                    <option value="distributor">Distributor / Bulk</option>
+                    <option value="retail">Retail Store</option>
+                  </select>
                 </div>
               </div>
 
-              {/* Sourced Answer Body */}
-              <div className="text-xs text-[var(--ed-text-primary)] leading-relaxed font-normal whitespace-pre-line">
-                {aiAnswer.answer}
-              </div>
-
-              {/* Timestamp footer */}
-              <div className="pt-2 flex items-center justify-between text-[10px] text-[var(--ed-text-muted)]">
-                <span className="flex items-center gap-1">
-                  <ShieldCheck className="w-3 h-3 text-emerald-500" />
-                  <span>Sourced from verified enterprise documentation</span>
-                </span>
-                <span>
-                  {new Date(aiAnswer.executed_at).toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    second: "2-digit",
-                  })}
-                </span>
+              {/* Simulation Result */}
+              <div className="bg-slate-950/80 rounded-xl p-4 border border-slate-800 flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <div className="text-xs text-slate-500">Matched Volume Rule</div>
+                  <div className="text-sm font-semibold text-emerald-400 mt-0.5">{simQuote.matchedRule}</div>
+                  <div className="text-xs text-slate-400 mt-1">
+                    Applied Discount: <strong className="text-slate-200">{simQuote.appliedDiscount}%</strong>
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs text-slate-500">Gross Total</div>
+                  <div className="text-sm font-medium text-slate-400 line-through mt-0.5">
+                    ₹{simQuote.totalBefore.toLocaleString()}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs text-slate-500">Discount Savings</div>
+                  <div className="text-sm font-semibold text-emerald-400 mt-0.5">
+                    -₹{simQuote.discountAmt.toLocaleString()}
+                  </div>
+                </div>
+                <div className="border-l border-slate-800 pl-4">
+                  <div className="text-xs text-slate-500">Final Order Quote</div>
+                  <div className="text-lg font-bold text-slate-100 mt-0.5">
+                    ₹{simQuote.finalTotal.toLocaleString()}
+                  </div>
+                  <div className="text-xs text-slate-400">
+                    (₹{simQuote.unitAfterDiscount.toFixed(2)} / unit)
+                  </div>
+                </div>
               </div>
             </div>
           )}
 
-          {/* Sourced Vector Chunks & Citations */}
-          {!searching && results.length > 0 && (
-            <div className="space-y-3 pt-2">
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-bold text-[var(--ed-text-muted)] uppercase tracking-wider text-[10px] flex items-center gap-1.5">
-                  <Layers className="w-3.5 h-3.5 text-[var(--ed-accent)]" />
-                  <span>Retrieved Knowledge Chunks ({results.length})</span>
-                </span>
-                <span className="text-[10px] text-[var(--ed-text-muted)]">Cosine Similarity Sorted</span>
+          {/* Items Table / Grid */}
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-sm">
+            {loading ? (
+              <div className="p-12 text-center text-slate-400 space-y-3">
+                <RefreshCw className="w-6 h-6 animate-spin mx-auto text-indigo-400" />
+                <p className="text-sm">Loading knowledge assets...</p>
               </div>
-
-              <div className="space-y-2.5">
-                {results.map((r, idx) => (
+            ) : filteredItems.length === 0 ? (
+              <div className="p-12 text-center text-slate-400 space-y-3">
+                <div className="w-12 h-12 rounded-2xl bg-slate-800 flex items-center justify-center mx-auto text-slate-500">
+                  <BookOpen className="w-6 h-6" />
+                </div>
+                <p className="text-base font-semibold text-slate-300">No knowledge items found</p>
+                <p className="text-xs max-w-sm mx-auto text-slate-500">
+                  Type an update in the chat panel, import a file, or click &apos;Add Item&apos; to create your first asset in this category.
+                </p>
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-800/70">
+                {filteredItems.map((item) => (
                   <div
-                    key={idx}
-                    className="p-3.5 border border-[var(--ed-border)] rounded-xl text-xs space-y-2 hover:border-sky-500/40 transition-colors"
-                    style={{ background: "var(--ed-bg)" }}
+                    key={item.id}
+                    className="p-4 hover:bg-slate-800/40 transition flex flex-col md:flex-row md:items-center justify-between gap-4"
                   >
-                    <div className="flex justify-between items-start gap-2">
-                      <div>
-                        <span className="font-semibold text-[var(--ed-text-primary)] block text-xs">
-                          {r.document_title}
+                    <div className="space-y-1.5 flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span
+                          className={`text-xs px-2.5 py-0.5 rounded-full font-semibold border ${
+                            item.category === "pricing_rule"
+                              ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                              : item.category === "catalog_product"
+                              ? "bg-cyan-500/10 text-cyan-400 border-cyan-500/20"
+                              : item.category === "agent_guidance"
+                              ? "bg-purple-500/10 text-purple-400 border-purple-500/20"
+                              : item.category === "custom"
+                              ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                              : "bg-blue-500/10 text-blue-400 border-blue-500/20"
+                          }`}
+                        >
+                          {item.category.replace("_", " ").toUpperCase()}
                         </span>
-                        {r.section_heading && (
-                          <span className="text-[10px] text-[var(--ed-accent)] font-medium">
-                            § {r.section_heading}
+
+                        {item.sku && (
+                          <span className="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-mono">
+                            {item.sku}
                           </span>
                         )}
+
+                        <span className="text-xs text-slate-500">v{item.version}</span>
+
+                        <span
+                          className={`text-xs px-2 py-0.5 rounded-full flex items-center gap-1 ${
+                            item.is_active
+                              ? "bg-emerald-500/10 text-emerald-400"
+                              : "bg-slate-800 text-slate-500"
+                          }`}
+                        >
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full ${
+                              item.is_active ? "bg-emerald-400" : "bg-slate-500"
+                            }`}
+                          />
+                          {item.is_active ? "Active" : "Paused"}
+                        </span>
                       </div>
 
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <div className="w-16 h-1.5 rounded-full bg-gray-200 dark:bg-zinc-700 overflow-hidden">
-                          <div
-                            className="h-full rounded-full bg-sky-500"
-                            style={{
-                              width: `${Math.min(100, Math.max(8, r.similarity_score * 100))}%`,
-                            }}
-                          />
-                        </div>
-                        <span className="font-bold text-[10px] text-[var(--ed-accent)] font-data">
-                          {(r.similarity_score * 100).toFixed(1)}%
+                      <h4 className="text-sm font-semibold text-slate-100 truncate">{item.title}</h4>
+
+                      <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">
+                        {item.content_text.replace(/^#+\s+/gm, "").slice(0, 160)}...
+                      </p>
+
+                      {/* Structured Details Preview */}
+                      <div className="flex flex-wrap items-center gap-3 pt-1 text-xs text-slate-400">
+                        {item.base_price !== null && item.base_price !== undefined && (
+                          <span>
+                            Base: <strong className="text-slate-200">₹{item.base_price}</strong> / {item.unit || "unit"}
+                          </span>
+                        )}
+                        {item.min_order_quantity && (
+                          <span>
+                            MOQ: <strong className="text-slate-200">{item.min_order_quantity}</strong>
+                          </span>
+                        )}
+                        {item.discount_percentage !== null && item.discount_percentage !== undefined && (
+                          <span>
+                            Discount: <strong className="text-emerald-400">{item.discount_percentage}%</strong>
+                          </span>
+                        )}
+                        {item.max_autonomous_discount !== null && item.max_autonomous_discount !== undefined && (
+                          <span>
+                            Ceiling: <strong className="text-slate-200">{item.max_autonomous_discount}%</strong>
+                          </span>
+                        )}
+                        <span className="text-slate-500 flex items-center gap-1">
+                          <Layers className="w-3 h-3" /> {item.chunk_count} RAG chunks
                         </span>
                       </div>
                     </div>
 
-                    <div className="text-[var(--ed-text-primary)] leading-relaxed text-[11px] bg-[var(--ed-surface)] p-2.5 rounded-lg border border-[var(--ed-border)]/50 whitespace-pre-line font-mono text-[10.5px]">
-                      {r.content}
+                    <div className="flex items-center gap-2 self-end md:self-center shrink-0">
+                      <button
+                        onClick={() => handleToggleActive(item.id)}
+                        className={`text-xs px-2.5 py-1 rounded-lg border transition font-medium ${
+                          item.is_active
+                            ? "bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700"
+                            : "bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20"
+                        }`}
+                      >
+                        {item.is_active ? "Pause" : "Activate"}
+                      </button>
+
+                      <button
+                        onClick={() => handleDeleteItem(item.id)}
+                        className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition"
+                        title="Delete item and embeddings"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
                 ))}
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
-          {/* Empty State when no search executed yet */}
-          {!searching && !aiAnswer && results.length === 0 && (
-            <div className="h-44 rounded-2xl border border-dashed border-[var(--ed-border)] flex flex-col items-center justify-center text-center p-6 space-y-2 bg-[var(--ed-bg)]/40">
-              <Search className="w-6 h-6 text-[var(--ed-text-muted)] opacity-50" />
-              <div className="text-xs font-semibold text-[var(--ed-text-primary)]">
-                No active RAG query executed yet
+          {/* 3. Vector RAG Query Testing Console */}
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <Bot className="w-4 h-4 text-indigo-400" />
+                <h3 className="text-sm font-semibold text-slate-100">Vector Semantic Q&A Console</h3>
               </div>
-              <p className="text-[11px] text-[var(--ed-text-muted)] max-w-sm">
-                Type a question above, click any of the Quick Test Prompts, or speak to EDITH to test vector retrieval and AI answer synthesis.
-              </p>
+              <span className="text-xs text-slate-400">Tests cosine vector retrieval against active knowledge chunks</span>
             </div>
-          )}
+
+            <form onSubmit={handleRAGSearch} className="flex gap-2">
+              <input
+                type="text"
+                value={ragQuery}
+                onChange={(e) => setRagQuery(e.target.value)}
+                placeholder="Ask any policy or pricing question (e.g. What discount applies for 150 units?)"
+                className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+              />
+              <button
+                type="submit"
+                disabled={ragLoading || !ragQuery.trim()}
+                className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-medium transition disabled:opacity-50 flex items-center gap-2 shadow-lg shadow-indigo-500/20"
+              >
+                {ragLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                Query RAG
+              </button>
+            </form>
+
+            {/* Answer Display */}
+            {ragResult && (
+              <div className="bg-slate-950 rounded-xl p-4 border border-slate-800/80 space-y-3">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-semibold text-indigo-400 flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5" />
+                    Grounded AI Answer ({ragResult.model_used})
+                  </span>
+                  <span className="text-slate-400">
+                    Confidence: {(ragResult.confidence_score * 100).toFixed(1)}%
+                  </span>
+                </div>
+                <p className="text-sm text-slate-200 leading-relaxed">{ragResult.answer}</p>
+
+                {ragResult.sources && ragResult.sources.length > 0 && (
+                  <div className="pt-2 border-t border-slate-800/60">
+                    <div className="text-xs text-slate-500 mb-1.5">Cited Source Chunks:</div>
+                    <div className="space-y-1.5">
+                      {ragResult.sources.map((s, idx) => (
+                        <div key={idx} className="text-xs bg-slate-900/60 p-2 rounded-lg border border-slate-800 text-slate-400 flex items-start justify-between gap-2">
+                          <div>
+                            <strong className="text-slate-300">[{idx + 1}] {s.document_title}</strong>
+                            {s.section_heading && ` — ${s.section_heading}`}
+                            <p className="text-slate-500 text-[11px] mt-0.5 line-clamp-1">{s.content}</p>
+                          </div>
+                          <span className="text-[10px] px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-300 shrink-0">
+                            {(s.similarity_score * 100).toFixed(0)}% match
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
+
+        {/* Right Column: Dual-Brain Agentic Update Chat Panel */}
+        {chatOpen && (
+          <div className="lg:col-span-5 xl:col-span-4 bg-slate-900 border border-slate-800 rounded-2xl flex flex-col h-[780px] shadow-2xl overflow-hidden sticky top-6">
+            {/* Chat Panel Header */}
+            <div className="p-4 border-b border-slate-800 bg-slate-900/90 backdrop-blur flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-500 to-cyan-400 flex items-center justify-center text-slate-950 font-bold shadow-md shadow-indigo-500/20">
+                  <Bot className="w-4 h-4 text-white" />
+                </div>
+                <div>
+                  <div className="text-sm font-bold text-slate-100 flex items-center gap-2">
+                    Dual-Brain Update Console
+                  </div>
+                  <div className="text-xs text-slate-400 flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                    Friday & EDITH Live
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => setTtsEnabled(!ttsEnabled)}
+                  className={`p-1.5 rounded-lg border transition ${
+                    ttsEnabled
+                      ? "bg-indigo-500/10 text-indigo-400 border-indigo-500/30"
+                      : "text-slate-500 border-transparent hover:text-slate-300"
+                  }`}
+                  title={ttsEnabled ? "Speech audio enabled" : "Speech audio disabled"}
+                >
+                  {ttsEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            {/* Chat Message Stream */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {chatMessages.map((msg) => (
+                <div
+                  key={msg.id}
+                  className={`flex flex-col ${
+                    msg.sender === "operator" ? "items-end" : "items-start"
+                  }`}
+                >
+                  <div className="text-[11px] text-slate-500 mb-1 px-1">
+                    {msg.sender === "operator" ? "Operator" : "Friday (Gemini 3.1) & EDITH (NIM)"} • {msg.created_at}
+                  </div>
+
+                  <div
+                    className={`max-w-[90%] rounded-2xl p-3.5 text-sm leading-relaxed ${
+                      msg.sender === "operator"
+                        ? "bg-indigo-600 text-white rounded-br-none shadow-md shadow-indigo-500/10"
+                        : "bg-slate-950 border border-slate-800 text-slate-200 rounded-bl-none"
+                    }`}
+                  >
+                    <p>{msg.text}</p>
+
+                    {/* EDITH Deliberation & Policy Badge */}
+                    {msg.verdict && (
+                      <div className="mt-3 pt-2.5 border-t border-slate-800/80 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-semibold text-slate-400">EDITH Evaluation:</span>
+                          <span
+                            className={`text-xs px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1 ${
+                              msg.verdict === "ACCEPTED"
+                                ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                                : "bg-rose-500/10 text-rose-400 border border-rose-500/20"
+                            }`}
+                          >
+                            {msg.verdict === "ACCEPTED" ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                            {msg.verdict}
+                          </span>
+                        </div>
+
+                        {msg.reasoning && (
+                          <p className="text-xs text-slate-400 leading-relaxed">{msg.reasoning}</p>
+                        )}
+
+                        {msg.suggestion && (
+                          <div className="text-xs bg-amber-500/10 border border-amber-500/20 rounded-lg p-2 text-amber-300">
+                            💡 {msg.suggestion}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+
+              {chatLoading && (
+                <div className="flex items-center gap-2 text-slate-400 text-xs p-2">
+                  <Bot className="w-4 h-4 animate-bounce text-indigo-400" />
+                  <span>Friday is formulating changes & EDITH is verifying commercial guardrails...</span>
+                </div>
+              )}
+              <div ref={chatEndRef} />
+            </div>
+
+            {/* Quick Suggestion Chips */}
+            <div className="p-3 border-t border-slate-800/60 bg-slate-950/40">
+              <div className="text-[11px] text-slate-500 mb-1.5">Try an agentic update instruction:</div>
+              <div className="flex flex-wrap gap-1.5">
+                {QUICK_CHAT_SUGGESTIONS.map((s, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => handleSendChat(s)}
+                    disabled={chatLoading}
+                    className="text-xs px-2.5 py-1 rounded-lg bg-slate-800/80 hover:bg-slate-800 text-slate-300 border border-slate-700/60 transition disabled:opacity-50 text-left"
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Input Bar */}
+            <div className="p-3 border-t border-slate-800 bg-slate-900">
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleSendChat();
+                }}
+                className="flex items-center gap-2"
+              >
+                <input
+                  type="text"
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  placeholder="Tell Friday & EDITH what to change..."
+                  className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                />
+                <button
+                  type="submit"
+                  disabled={chatLoading || !chatInput.trim()}
+                  className="p-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl transition disabled:opacity-50 shadow-md shadow-indigo-500/20"
+                >
+                  <Send className="w-4 h-4" />
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Upload File Modal */}
+      {uploadModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 space-y-4 shadow-2xl relative">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <FileSpreadsheet className="w-5 h-5 text-indigo-400" />
+                <h3 className="text-base font-bold text-slate-100">Multi-Format File Ingestion</h3>
+              </div>
+              <button
+                onClick={() => setUploadModalOpen(false)}
+                className="p-1 text-slate-400 hover:text-slate-200"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleUploadSubmit} className="space-y-4">
+              <div>
+                <label className="text-xs font-semibold text-slate-400 block mb-1.5">
+                  Select Knowledge Category
+                </label>
+                <select
+                  value={uploadCategory}
+                  onChange={(e) => setUploadCategory(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-slate-200 focus:outline-none focus:border-indigo-500"
+                >
+                  <option value="business_info">Business Info (Policies, Certifications, FAQs)</option>
+                  <option value="pricing_rule">Pricing Rules (Volume Tiers, Discounts)</option>
+                  <option value="catalog_product">Catalog (Products, SKUs, MOQs)</option>
+                  <option value="agent_guidance">Agent Guidance (Safety, Objections)</option>
+                  <option value="custom">Custom Parameters</option>
+                </select>
+                <p className="text-[11px] text-slate-500 mt-1">
+                  Tagging CSV/XLSX as Pricing Rules or Catalog parses structured tabular records automatically.
+                </p>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-slate-400 block mb-1.5">
+                  Choose File (PDF, DOCX, XLSX, CSV, JSON, MD, TXT)
+                </label>
+                <input
+                  type="file"
+                  accept=".pdf,.docx,.xlsx,.xls,.csv,.json,.md,.txt"
+                  onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
+                  className="w-full text-xs text-slate-400 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-slate-800 file:text-slate-200 hover:file:bg-slate-700"
+                />
+              </div>
+
+              <div className="pt-2 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setUploadModalOpen(false)}
+                  className="px-4 py-2 rounded-xl text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={!uploadFile || uploading}
+                  className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-semibold transition disabled:opacity-50 flex items-center gap-2 shadow-lg shadow-indigo-500/20"
+                >
+                  {uploading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                  {uploading ? "Ingesting..." : "Upload & Index"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
+  );
+}
+
+export default function KnowledgeHubPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-slate-400">Loading Knowledge Hub...</div>}>
+      <KnowledgeHubMain />
+    </Suspense>
   );
 }
