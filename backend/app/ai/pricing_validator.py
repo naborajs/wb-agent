@@ -159,27 +159,32 @@ class PricingValidator:
 
                 subtot = base_rate * qty_dec
                 tot = eff_rate * qty_dec
+                demo_grade = matched_demo.get("grade") or matched_demo.get("tea_grade", "Standard Commercial")
                 verified_items.append({
                     "product_id": matched_demo["sku"],
                     "product_name": matched_demo["name"],
-                    "tea_grade": matched_demo.get("tea_grade", "Commercial Wholesale"),
+                    "grade": demo_grade,
+                    "tea_grade": demo_grade,
+                    "quantity": float(qty_dec),
                     "quantity_kg": float(qty_dec),
+                    "base_price_per_unit": float(base_rate),
                     "base_price_per_kg": float(base_rate),
                     "discount_percentage": float(disc_pct),
                     "unit_price": float(eff_rate),
                     "subtotal": float(subtot),
                     "discount_amount": float(subtot - tot),
                     "total": float(tot),
-                    "packaging_type": item.get("packaging_type") or "Standard multi-wall bag with food-grade liner",
+                    "packaging_type": item.get("packaging_type") or "Standard packaging with protective liner",
                 })
                 continue
 
             # Enforce Minimum Order Quantity (MOQ)
-            if qty_dec < Decimal(str(product.min_order_quantity_kg)):
+            prod_moq = getattr(product, "min_order_quantity", getattr(product, "min_order_quantity_kg", 1.0))
+            if qty_dec < Decimal(str(prod_moq)):
                 return (
                     False,
                     None,
-                    f"Item [{idx}] quantity ({qty_dec}kg) is below required MOQ ({product.min_order_quantity_kg}kg) for {product.name}",
+                    f"Item [{idx}] quantity ({qty_dec}) is below required MOQ ({prod_moq}) for {product.name}",
                 )
 
             # Compute authoritative verified pricing from DB
@@ -213,18 +218,22 @@ class PricingValidator:
                     return False, None, f"Item [{idx}] contains unparseable unit_price: '{model_unit_price}'"
 
             # Populate authoritative numbers from database
+            prod_grade = getattr(product, "grade", getattr(product, "tea_grade", "Standard Commercial"))
             verified_item = {
                 "product_id": product.id,
                 "product_name": product.name,
-                "tea_grade": getattr(product, "tea_grade", "Commercial Wholesale"),
+                "grade": prod_grade,
+                "tea_grade": prod_grade,
+                "quantity": float(qty_dec),
                 "quantity_kg": float(qty_dec),
+                "base_price_per_unit": float(calc_res.base_price_per_kg),
                 "base_price_per_kg": float(calc_res.base_price_per_kg),
                 "discount_percentage": float(calc_res.discount_percentage),
                 "unit_price": float(calc_res.effective_price_per_kg),
                 "subtotal": float(calc_res.subtotal),
                 "discount_amount": float(calc_res.discount_amount),
                 "total": float(calc_res.total),
-                "packaging_type": item.get("packaging_type") or "Standard multi-wall bag with food-grade liner",
+                "packaging_type": item.get("packaging_type") or "Standard packaging with protective liner",
             }
             verified_items.append(verified_item)
 

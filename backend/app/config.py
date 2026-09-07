@@ -39,6 +39,7 @@ class Settings(BaseSettings):
     BUSINESS_INDUSTRY: str = "General Business"
     BUSINESS_TAGLINE: str = "AI-Powered Business Operations"
     BUSINESS_DESCRIPTION: str = "AI-powered business operations platform for managing sales, customer interactions, and order processing."
+    BUSINESS_EMAIL: str = "contact@business.local"
     AGENT_NAME: str = "EDITH"
     AGENT_ROLE: str = "AI Sales & Support Agent"
     CURRENCY_SYMBOL: str = "₹"

@@ -45,7 +45,7 @@ CAPABILITY_CHAINS: Dict[Capability, List[str]] = {
         "gemini-3.1-flash-live-preview",  # Handled via scoped Gemini Live audio client
         "nvidia/riva-translate-4b-instruct-v2",
     ],
-    # Capability E: Image / document understanding (Tea specs, quotes, invoices, KYC docs)
+    # Capability E: Image / document understanding (Product specs, quotes, invoices, KYC docs)
     Capability.VISION_DOCUMENT: [
         "meta/llama-3.2-11b-vision-instruct",
         "meta/muse-glimmer-30b",

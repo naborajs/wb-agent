@@ -39,24 +39,24 @@ class InvoiceGenerator:
     Autonomous commercial quote and pro-forma invoice PDF generator.
     """
 
-    # Statutory details for North Bengal Tea Co.
-    SELLER_NAME: str = "North Bengal Tea Co."
-    SELLER_TAGLINE: str = "Premium Estate Teas & Commercial Wholesale Blends"
+    # Statutory details for business organization
+    SELLER_NAME: str = settings.BUSINESS_NAME
+    SELLER_TAGLINE: str = settings.BUSINESS_TAGLINE
     SELLER_GSTIN: str = "19AABCN1234F1Z5"
     SELLER_FSSAI: str = "12821019000123"
     SELLER_ADDRESS: str = "Siliguri Commercial Hub, Sevoke Road, Siliguri, West Bengal - 734001"
     SELLER_PHONE: str = "+91 89006 53250"
-    SELLER_EMAIL: str = "sales@northbengaltea.com"
+    SELLER_EMAIL: str = settings.BUSINESS_EMAIL
 
     # Banking payment instructions
     BANK_NAME: str = "State Bank of India"
-    ACCOUNT_NAME: str = "North Bengal Tea Co."
+    ACCOUNT_NAME: str = settings.BUSINESS_NAME
     ACCOUNT_NUMBER: str = "38472910543"
     IFSC_CODE: str = "SBIN0001234"
-    BANK_BRANCH: str = "Siliguri Commercial Branch"
+    BANK_BRANCH: str = "Commercial Branch"
 
     # Standard Rate Lock Term
-    RATE_LOCK_TERM: str = "Rate locked for 7 days from issue date. Subject to North Bengal Tea Co. standard trading terms."
+    RATE_LOCK_TERM: str = f"Rate locked for 7 days from issue date. Subject to {settings.BUSINESS_NAME} standard trading terms."
 
     @staticmethod
     def calculate_volume_discount_pct(quantity_kg: float) -> float:
@@ -89,27 +89,31 @@ class InvoiceGenerator:
                 or search_key in prod.get("category", "").lower()
             ):
                 variants = prod.get("variants", [])
-                base_price = float(variants[0]["base_price_per_kg"]) if variants else 350.0
-                grade = prod.get("tea_grade", "Commercial Blend")
+                base_price = float(variants[0]["base_price_per_unit"]) if (variants and "base_price_per_unit" in variants[0]) else (float(variants[0]["base_price_per_kg"]) if variants else 350.0)
+                grade = prod.get("grade", prod.get("tea_grade", "Standard Commercial"))
                 # Pick largest packaging
-                pkg = "25kg multi-wall paper sack with food-grade liner"
+                pkg = "Standard packaging with protective liner"
                 if variants:
-                    pkg = f"{variants[-1]['name']} with food-grade liner"
+                    pkg = f"{variants[-1]['name']} with protective liner"
                 return {
                     "matched_name": prod["name"],
+                    "grade": grade,
                     "tea_grade": grade,
                     "base_price_per_kg": base_price,
+                    "base_price_per_unit": base_price,
                     "default_packaging": pkg,
-                    "origin": prod.get("origin", "Siliguri, West Bengal"),
+                    "origin": prod.get("origin", "Fulfillment Center"),
                 }
 
         # Fallback default
         return {
-            "matched_name": product_name_or_sku or "Assam Kadak CTC Granules",
-            "tea_grade": "BP",
+            "matched_name": product_name_or_sku or "Standard Commercial Package",
+            "grade": "Standard Commercial",
+            "tea_grade": "Standard Commercial",
             "base_price_per_kg": 340.0,
-            "default_packaging": "25kg multi-wall paper sack with food-grade liner",
-            "origin": "Siliguri, West Bengal",
+            "base_price_per_unit": 340.0,
+            "default_packaging": "Standard commercial packaging",
+            "origin": "Fulfillment Center",
         }
 
     @classmethod
@@ -426,10 +430,10 @@ class InvoiceGenerator:
             [
                 Paragraph("<b>#</b>", cell_text_bold),
                 Paragraph("<b>Product Description</b>", cell_text_bold),
-                Paragraph("<b>Grade</b>", cell_text_bold),
+                Paragraph("<b>Grade / Specification</b>", cell_text_bold),
                 Paragraph("<b>Packaging Specification</b>", cell_text_bold),
-                Paragraph("<b>Qty (kg)</b>", cell_num_bold),
-                Paragraph("<b>Rate (₹/kg)</b>", cell_num_bold),
+                Paragraph("<b>Qty</b>", cell_num_bold),
+                Paragraph("<b>Rate (₹)</b>", cell_num_bold),
                 Paragraph("<b>Disc %</b>", cell_num_bold),
                 Paragraph("<b>Amount (₹)</b>", cell_num_bold),
             ]
@@ -440,10 +444,10 @@ class InvoiceGenerator:
         total_taxable = Decimal("0.00")
 
         for idx, itm in enumerate(raw_items, 1):
-            p_name = itm.get("product_name") or itm.get("item_name") or "Assam Kadak CTC Granules"
+            p_name = itm.get("product_name") or itm.get("item_name") or "Standard Commercial Package"
             defaults = cls.get_catalog_product_defaults(p_name)
             final_p_name = defaults["matched_name"]
-            tea_grade = itm.get("tea_grade") or defaults["tea_grade"]
+            item_grade = itm.get("grade") or itm.get("tea_grade") or defaults.get("grade") or defaults.get("tea_grade", "Standard")
 
             qty_kg = float(itm.get("quantity_kg") or itm.get("quantity") or 25.0)
 
@@ -489,7 +493,7 @@ class InvoiceGenerator:
                 [
                     Paragraph(str(idx), cell_text),
                     Paragraph(f"<b>{final_p_name}</b>", cell_text),
-                    Paragraph(tea_grade, cell_text),
+                    Paragraph(item_grade, cell_text),
                     Paragraph(pkg_spec, cell_text),
                     Paragraph(f"{qty_kg:.1f}", cell_num),
                     Paragraph(f"₹{base_rate:,.2f}", cell_num),

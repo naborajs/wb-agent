@@ -150,7 +150,7 @@ class NIMClient:
                 break
 
         simulated_reasoning = (
-            f"Evaluated inquiry using {model}. Grounded in verified tea estate catalog and MOQ rules."
+            f"Evaluated inquiry using {model}. Grounded in verified business catalog and pricing rules."
         )
 
         cap_name = str(request.metadata.get("capability", ""))
@@ -173,15 +173,15 @@ class NIMClient:
             elif any(w in last_user_msg for w in ["price", "rate", "cost", "quote", "discount", "kitna"]):
                 detected_intent = "price_inquiry"
                 detected_conf = 0.95
-            elif any(w in last_user_msg for w in ["sample", "tasting", "kit"]):
+            elif any(w in last_user_msg for w in ["sample", "tasting", "kit", "demo", "trial"]):
                 detected_intent = "sample_request"
                 detected_conf = 0.95
                 signals.append("sample_requested")
-            elif any(w in last_user_msg for w in ["darjeeling", "assam", "dooars", "tea", "chai", "blend"]):
+            elif any(w in last_user_msg for w in ["product", "catalog", "darjeeling", "assam", "dooars", "tea", "chai", "blend", "standard", "package"]):
                 detected_intent = "product_inquiry"
                 detected_conf = 0.92
 
-            if any(w in last_user_msg for w in ["kg", "kilo", "ton", "quintal"]):
+            if any(w in last_user_msg for w in ["kg", "kilo", "ton", "quintal", "unit", "units", "box", "boxes"]):
                 signals.append("volume_specified")
 
             simulated_content = json.dumps({
@@ -194,11 +194,13 @@ class NIMClient:
         # Capability E: Vision & Document Understanding simulation (§3.E)
         elif "vision" in model.lower() or "vision_document" in str(request.metadata) or cap_name == "vision_document":
             simulated_content = json.dumps({
-                "document_type": "tea_spec_and_quotation",
-                "extracted_product": "Assam Kadak CTC Granules",
-                "tea_grade": "BP",
-                "verified_moq_kg": 25.0,
-                "notes": "Verified authentic wholesale specification and commercial trade terms.",
+                "document_type": "product_spec_and_quotation",
+                "extracted_product": "Standard Commercial Package",
+                "grade": "Standard Commercial",
+                "tea_grade": "Standard Commercial",
+                "verified_moq": 10.0,
+                "verified_moq_kg": 10.0,
+                "notes": "Verified authentic commercial specification and trade terms.",
             })
 
         # Capability C: Structured Pricing & Order Extraction simulation (§3.C)
@@ -208,17 +210,21 @@ class NIMClient:
             or "invoice extraction" in str(request.messages[0].content if request.messages else "").lower()
             or ("extract" in last_user_msg and any(w in last_user_msg for w in ["order", "invoice", "price", "quote", "buyer"]))
         ):
-            p_name = "Assam Kadak CTC Granules"
+            p_name = "Standard Commercial Package"
             if "darjeeling" in last_user_msg:
                 p_name = "Darjeeling Spring First Flush Special"
             elif "dooars" in last_user_msg:
                 p_name = "Dooars Terai Hotel Master Blend"
             elif "green" in last_user_msg:
                 p_name = "Sub-Himalayan Green Tea Whole Leaf"
+            elif "premium" in last_user_msg:
+                p_name = "Premium Commercial Package"
+            elif "assam" in last_user_msg or "ctc" in last_user_msg or "chai" in last_user_msg:
+                p_name = "Assam Kadak CTC Granules"
 
             extracted_qty = 50.0
-            # Look for explicit weight units first (e.g., 100kg, 50 kilo)
-            m = re.search(r"(\d+(?:\.\d+)?)\s*(?:kg|kilos|kilo|ton|tons|quintal)", last_user_msg)
+            # Look for explicit weight/quantity units first
+            m = re.search(r"(\d+(?:\.\d+)?)\s*(?:kg|kilos|kilo|ton|tons|quintal|units|unit|pcs|boxes|box)", last_user_msg)
             if not m:
                 # Bounded quantity (1-4 digits) to avoid 10-12 digit phone numbers
                 m = re.search(r"(?:quantity|volume|qty|need|order)?\s*:?\s*\b(\d{1,4}(?:\.\d+)?)\b", last_user_msg)
@@ -231,20 +237,21 @@ class NIMClient:
                     pass
 
             pkg = (
-                "50kg multi-wall paper sacks with food-grade liner"
+                "Standard bulk packaging with protective liner"
                 if extracted_qty >= 50.0
-                else "25kg multi-wall paper sacks with food-grade liner"
+                else "Standard commercial packaging"
             )
 
             order_json = {
-                "buyer_name": "Siliguri Wholesale Partner",
-                "buyer_phone": "+919832012345",
-                "buyer_company": "Siliguri Commercial Cafe",
-                "delivery_city": "Siliguri",
-                "delivery_state": "West Bengal",
+                "buyer_name": "Commercial Partner",
+                "buyer_phone": "+919800000000",
+                "buyer_company": "Enterprise Client",
+                "delivery_city": "Metro Hub",
+                "delivery_state": "Commercial Zone",
                 "items": [
                     {
                         "product_name": p_name,
+                        "quantity": extracted_qty,
                         "quantity_kg": extracted_qty,
                         "packaging_type": pkg,
                     }
@@ -255,9 +262,9 @@ class NIMClient:
         # Capability F: Translation simulation (§3.F)
         elif "translate" in model.lower() or "translation" in str(request.metadata) or "translate" in last_user_msg:
             if "hindi" in str(request.metadata).lower() or "hindi" in last_user_msg:
-                simulated_content = "नमस्ते, हमें सिलीगुड़ी कैफे के लिए 50 किलो चाय चाहिए, कृपया दर बताइए।"
+                simulated_content = "नमस्ते, हमें हमारे प्रतिष्ठान के लिए 50 यूनिट की आवश्यकता है, कृपया दर बताइए।"
             else:
-                simulated_content = "Namaste, we need 50kg Assam CTC tea for our Siliguri cafe, please share the wholesale price."
+                simulated_content = "Namaste, we need 50 units for our commercial establishment, please share the wholesale price."
 
         # Safety Guardrails simulation (§3.G)
         elif "safety" in model.lower() or "guard" in model.lower():
@@ -310,10 +317,10 @@ class NIMClient:
             })
 
         # Standard sales dialogue
-        elif any(w in last_user_msg for w in ["sample", "tasting", "kit"]):
+        elif any(w in last_user_msg for w in ["sample", "tasting", "kit", "demo", "trial"]):
             simulated_content = (
-                "Yes, certainly! We offer a 200g commercial tasting kit so your team can evaluate the cup and aroma before committing to bulk. "
-                "May I confirm your delivery destination to dispatch the sample kit?"
+                "Yes, certainly! We provide product specification sheets and evaluation samples so your team can verify quality before committing to bulk. "
+                "May I confirm your delivery destination to dispatch this?"
             )
         elif "darjeeling" in last_user_msg:
             simulated_content = (
@@ -326,9 +333,10 @@ class NIMClient:
                 "(5% off at 50kg, 10% off at 100kg). What monthly volume are you planning?"
             )
         else:
+            from app.config import settings
             simulated_content = (
-                "Namaste! Welcome to North Bengal Tea Co. We supply commercial wholesale estate teas "
-                "(Assam CTC, Dooars Blend, Darjeeling Leaf) directly to cafes and hotels. How can we assist you today?"
+                f"Namaste! Welcome to {settings.BUSINESS_NAME}. We supply commercial products and verified enterprise solutions "
+                f"directly to business clients. How can we assist your operations today?"
             )
 
         return ModelResponse(

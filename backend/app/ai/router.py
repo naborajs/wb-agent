@@ -504,6 +504,8 @@ class AIRouter:
                     transcript = "Namaste, Darjeeling tea rate inquiry."
                 elif "assam" in raw_text or "ctc" in raw_text:
                     transcript = "Assam Kadak CTC inquiry."
+                elif "price" in raw_text or "quote" in raw_text or "order" in raw_text:
+                    transcript = "Namaste, inquiry regarding pricing, specifications, and commercial order."
                 else:
                     transcript = "[Audio message could not be transcribed clearly. Asking customer for clarification.]"
                 model_used = primary_model
@@ -521,7 +523,7 @@ class AIRouter:
                     {
                         "role": "user",
                         "content": (
-                            "Transcribe the customer's wholesale tea order voice note accurately in English, Hindi, or Hinglish: "
+                            "Transcribe the customer's commercial order voice note accurately in English, Hindi, or Hinglish: "
                             f"data:{clean_mime};base64,{b64_audio}"
                         ),
                     }
@@ -630,7 +632,7 @@ class AIRouter:
         ctx_str = "\n".join(ctx_lines) if ctx_lines else "No prior profile."
 
         system_msg = (
-            "You are a structured invoice and order extraction engine for North Bengal Tea Co.\n"
+            f"You are a structured invoice and order extraction engine for {settings.BUSINESS_NAME}.\n"
             "Extract the order details from the conversation into strict JSON schema:\n"
             "{\n"
             "  \"buyer_name\": \"...\",\n"
@@ -710,6 +712,8 @@ class AIRouter:
             # Zero-hallucination cross-check: verify product_name is not a placeholder
             inbound_lower = inbound_text.lower()
             _product_map = {
+                "standard": "Standard Commercial Package",
+                "premium": "Premium Commercial Package",
                 "darjeeling": "Darjeeling Spring First Flush Special",
                 "dooars": "Dooars Terai Hotel Master Blend",
                 "terai": "Dooars Terai Hotel Master Blend",
@@ -723,7 +727,7 @@ class AIRouter:
                 p_name = item.get("product_name", "")
                 if not p_name or p_name.strip() in ("...", "null", ""):
                     # Extract from inbound text using domain catalog
-                    detected = "Assam Kadak CTC Granules"  # default
+                    detected = "Standard Commercial Package"  # default
                     for keyword, catalog_name in _product_map.items():
                         if keyword in inbound_lower:
                             detected = catalog_name
@@ -739,9 +743,9 @@ class AIRouter:
                 if not pkg or pkg.strip() in ("...", "null", ""):
                     qty = item.get("quantity_kg", 50.0)
                     item["packaging_type"] = (
-                        "50kg multi-wall paper sacks with food-grade liner"
+                        "Standard bulk packaging with protective liner"
                         if qty >= 50.0
-                        else "25kg multi-wall paper sacks with food-grade liner"
+                        else "Standard commercial packaging"
                     )
 
             return parsed_order
@@ -750,7 +754,7 @@ class AIRouter:
 
         # Deterministic domain-grounded extraction fallback from customer text & context
         extracted_qty = 50.0
-        m_qty = re.search(r"(\d+(?:\.\d+)?)\s*(?:kg|kilos|kilo|ton|tons|quintal)", inbound_text, re.IGNORECASE)
+        m_qty = re.search(r"(\d+(?:\.\d+)?)\s*(?:kg|kilos|kilo|ton|tons|quintal|units|unit|pcs)", inbound_text, re.IGNORECASE)
         if not m_qty:
             m_qty = re.search(r"(?:quantity|volume|qty|need|order)?\s*:?\s*\b(\d{1,4}(?:\.\d+)?)\b", inbound_text, re.IGNORECASE)
         if m_qty:
@@ -762,24 +766,28 @@ class AIRouter:
                 pass
 
         inbound_lower = inbound_text.lower()
-        product_name = "Assam Kadak CTC Granules"
+        product_name = "Standard Commercial Package"
         if "darjeeling" in inbound_lower:
             product_name = "Darjeeling Spring First Flush Special"
         elif "dooars" in inbound_lower or "terai" in inbound_lower:
             product_name = "Dooars Terai Hotel Master Blend"
         elif "green" in inbound_lower:
             product_name = "Sub-Himalayan Green Tea Whole Leaf"
+        elif "premium" in inbound_lower:
+            product_name = "Premium Commercial Package"
+        elif "assam" in inbound_lower or "ctc" in inbound_lower or "chai" in inbound_lower:
+            product_name = "Assam Kadak CTC Granules"
 
         packaging = (
-            "50kg multi-wall paper sacks with food-grade liner"
+            "Standard bulk packaging with protective liner"
             if extracted_qty >= 50.0
-            else "25kg multi-wall paper sacks with food-grade liner"
+            else "Standard commercial packaging"
         )
 
-        buyer_name = context.get("buyer_name") or context.get("name") or "Siliguri Wholesale Partner"
-        buyer_phone = context.get("buyer_phone") or context.get("phone") or "+919832012345"
+        buyer_name = context.get("buyer_name") or context.get("name") or "Commercial Partner"
+        buyer_phone = context.get("buyer_phone") or context.get("phone") or "+919800000000"
         buyer_company = context.get("buyer_company") or context.get("company") or buyer_name
-        city = context.get("delivery_city") or ("Siliguri" if "siliguri" in inbound_lower else "Siliguri")
+        city = context.get("delivery_city") or ("Siliguri" if "siliguri" in inbound_lower else "Metro Hub")
 
         return {
             "buyer_name": buyer_name,
@@ -809,7 +817,7 @@ class AIRouter:
         src = f" from {source_language}" if source_language else ""
         system_msg = (
             f"You are an enterprise translation engine. Translate the provided text{src} accurately into {target_language}. "
-            "Preserve business terminology (estate names, tea grades, Indian rupee amounts). Output ONLY the translated text."
+            "Preserve business terminology (brand names, product specifications, currency amounts). Output ONLY the translated text."
         )
         req = ModelRequest(
             messages=[
@@ -827,7 +835,7 @@ class AIRouter:
         self,
         image_data: Any,
         mime_type: str = "image/jpeg",
-        prompt: str = "Extract product specifications, tea grade, pricing, and volume details from this document.",
+        prompt: str = "Extract product specifications, grade/specification, pricing, and volume details from this document.",
     ) -> ModelResponse:
         """
         Capability E: Vision & Document Understanding (Directive §3.E).
@@ -1315,7 +1323,7 @@ class AIRouter:
         if any(w in lower_intent for w in ["make the prompt smaller", "make it smaller", "shorter", "smaller prompt", "dont think so much", "don't think so much"]):
             return (
                 f"CORE IDENTITY - {target_name.upper()}:\n"
-                f"YOU ARE {target_name.upper()}, an elite autonomous B2B sales consultant for North Bengal Tea Co.\n"
+                f"YOU ARE {target_name.upper()}, an elite autonomous B2B sales consultant for {settings.BUSINESS_NAME}.\n"
                 f"YOUR PRIMARY IDENTITY IS TO BE a professional, warm, respectful, and consultative commercial partner.\n"
                 f"YOU MUST actively listen, ask focused discovery questions, and guide purchase decisions with commercial expertise.\n"
                 f"YOU MUST NEVER sound desperate, pushy, or robotic. Never engage with unprofessional language."
