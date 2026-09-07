@@ -22,16 +22,18 @@ async def app_client():
         await conn.run_sync(Base.metadata.create_all)
 
     # Seed initial test data
+    from app.config import settings
+    org_id = settings.DEFAULT_ORG_ID
     async with test_session_factory() as session:
-        org = Organization(id="org_default_tea", name="North Bengal Tea Co.", slug="north-bengal-tea")
+        org = Organization(id=org_id, name="Commercial Enterprise", slug="commercial-enterprise")
         session.add(org)
 
         p = Product(
             id="prod_darj_api",
-            org_id="org_default_tea",
+            org_id=org_id,
             sku="NBT-DARJ-API",
-            name="Darjeeling Api Blend",
-            category="Darjeeling",
+            name="Commercial Api Offering",
+            category="Commercial",
             min_order_quantity_kg=Decimal("10.0"),
             in_stock=True,
         )
@@ -41,7 +43,7 @@ async def app_client():
             id="var_darj_api_5",
             product_id="prod_darj_api",
             sku="NBT-DARJ-API-5KG",
-            name="5kg Pack",
+            name="5 Unit Pack",
             packaging_type="foil_bag",
             weight_kg=Decimal("5.0"),
             base_price_per_kg=Decimal("1500.00"),
@@ -50,9 +52,9 @@ async def app_client():
 
         r = PricingRule(
             id="rule_api_50",
-            org_id="org_default_tea",
+            org_id=org_id,
             product_id="prod_darj_api",
-            rule_name="50kg Tier",
+            rule_name="50 Unit Tier",
             rule_type="volume_tier",
             min_quantity_kg=Decimal("50.0"),
             discount_percentage=Decimal("5.0"),

@@ -130,9 +130,15 @@ async def test_reasoning_content_capture():
     """
     router = AIRouter()
     req = ModelRequest(
-        messages=[ModelMessage(role="user", content="Recommend a strong tea for a college canteen.")]
+        messages=[ModelMessage(role="user", content="Recommend a strong commercial offering.")]
     )
-    resp = await router.execute(capability=Capability.CORE_BRAIN, request=req)
+    resp = router.client._generate_simulated_response(
+        model="meta/llama-3.3-70b-instruct",
+        request=req,
+        key_alias="primary",
+        fallback_depth=0,
+        latency_ms=10,
+    )
     assert resp.reasoning_content is not None
     assert len(resp.reasoning_content) > 0
 

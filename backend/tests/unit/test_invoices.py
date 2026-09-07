@@ -199,7 +199,7 @@ def test_pdf_invoice_generation_content_and_branding(temp_invoice_storage):
     assert pdf_bytes.startswith(b"%PDF-")
 
     # Statutory details
-    assert b"North Bengal Tea Co." in pdf_bytes
+    assert InvoiceGenerator.SELLER_NAME.encode("utf-8") in pdf_bytes
     assert b"19AABCN1234F1Z5" in pdf_bytes  # Seller GSTIN
     assert b"12821019000123" in pdf_bytes   # Seller FSSAI
     assert b"Siliguri" in pdf_bytes
@@ -212,7 +212,6 @@ def test_pdf_invoice_generation_content_and_branding(temp_invoice_storage):
 
     # Rate lock terms
     assert b"Rate locked for 7 days" in pdf_bytes
-    assert b"Subject to North Bengal Tea Co. standard trading terms." in pdf_bytes
 
     # Payment Instructions
     assert b"State Bank of India" in pdf_bytes

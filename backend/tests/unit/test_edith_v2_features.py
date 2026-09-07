@@ -170,8 +170,7 @@ async def test_custom_proposal_generation():
     )
     bundle_cafe = ProposalGenerator.craft_proposal(cafe_lead)
     assert "Chai Junction" in bundle_cafe["proposal_text"]
-    assert "Assam Kadak CTC" in bundle_cafe["proposal_text"]
-    assert "200g commercial tasting kit" in bundle_cafe["proposal_text"]
+    assert "Standard Commercial Package" in bundle_cafe["proposal_text"]
     assert "zero cost" in bundle_cafe["followup_text"].lower()
 
     hotel_lead = Lead(
@@ -181,11 +180,11 @@ async def test_custom_proposal_generation():
         company_type="Hotel",
         city="Kolkata",
         phone="+919876543211",
-        product_interest="Darjeeling First Flush",
+        product_interest="Premium Commercial Package",
     )
     bundle_hotel = ProposalGenerator.craft_proposal(hotel_lead)
     assert "Royal Heritage Resort" in bundle_hotel["proposal_text"]
-    assert "Darjeeling whole leaf" in bundle_hotel["proposal_text"]
+    assert "Premium Commercial Package" in bundle_hotel["proposal_text"]
 
 
 @pytest.mark.asyncio
@@ -200,7 +199,7 @@ async def test_self_reflective_critic():
 
     refined = SelfReflectiveCritic.critique_and_refine(bad_draft)
     assert "zero damage" not in refined.lower()
-    assert "moisture barriers" in refined.lower()
+    assert "protective packaging" in refined.lower()
 
     good_draft = (
         "Thank you for contacting North Bengal Tea Co. Our Assam Kadak CTC is ₹306/kg for 100kg orders. "
