@@ -50,18 +50,20 @@ if os.name == "nt":
 # Terminal Styling & Colors
 # =============================================================================
 class C:
-    RESET   = "\033[0m"
-    BOLD    = "\033[1m"
-    DIM     = "\033[2m"
-    RED     = "\033[91m"
-    GREEN   = "\033[92m"
-    YELLOW  = "\033[93m"
-    BLUE    = "\033[94m"
-    MAGENTA = "\033[95m"
-    CYAN    = "\033[96m"
-    WHITE   = "\033[97m"
-    BG_BLUE = "\033[44m"
-    BG_DARK = "\033[100m"
+    RESET     = "\033[0m"
+    BOLD      = "\033[1m"
+    DIM       = "\033[2m"
+    ITALIC    = "\033[3m"
+    UNDERLINE = "\033[4m"
+    RED       = "\033[91m"
+    GREEN     = "\033[92m"
+    YELLOW    = "\033[93m"
+    BLUE      = "\033[94m"
+    MAGENTA   = "\033[95m"
+    CYAN      = "\033[96m"
+    WHITE     = "\033[97m"
+    BG_BLUE   = "\033[44m"
+    BG_DARK   = "\033[100m"
 
 def timestamp():
     return time.strftime("%H:%M:%S")
