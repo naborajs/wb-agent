@@ -10,7 +10,7 @@ from app.agent.providers.base import LLMMessage, LLMProvider, LLMResponse
 
 class SimulatorProvider(LLMProvider):
     """
-    High-fidelity simulation model emulating sales consultant behavior for North Bengal Tea Co.
+    High-fidelity simulation model emulating sales consultant behavior for WhatsApp AI Agent by NS.
     Exercises the full tool router, structured decisions, and validation paths offline.
     """
 

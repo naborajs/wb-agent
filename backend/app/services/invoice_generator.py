@@ -1,5 +1,5 @@
 """
-Invoice Generator Service for North Bengal Tea Co.
+Invoice Generator Service for WhatsApp AI Agent by NS.
 Compiles professional, deterministic, vector PDF Commercial Pro-Forma Invoices
 using ReportLab with statutory compliance (GSTIN, FSSAI), volume discount tiers,
 packaging specifications, 7-day rate lock terms, and NEFT/RTGS bank details.
