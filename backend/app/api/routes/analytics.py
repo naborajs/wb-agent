@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 from app.database.models import Conversation, Deal, Handoff, Job, Lead, Message
 from app.database.session import get_db
+from app.brain.inter_brain_bus import inter_brain_bus
 
 router = APIRouter(prefix="/analytics", tags=["Analytics"])
 
@@ -55,6 +56,9 @@ async def get_analytics_overview(session: AsyncSession = Depends(get_db)):
     # Conversion rate
     conversion_rate = round((won_deals / total_leads * 100), 1) if total_leads > 0 else 0.0
 
+    # Dual-Brain Token Telemetry
+    telemetry = await inter_brain_bus.get_telemetry(session, org_id)
+
     return {
         "leads_total": total_leads,
         "conversations_total": total_convs,
@@ -65,6 +69,22 @@ async def get_analytics_overview(session: AsyncSession = Depends(get_db)):
         "queue_depth": queue_depth,
         "conversion_rate_pct": conversion_rate,
         "system_status": "operational",
+        "tokens_summary": {
+            "friday_tokens": telemetry["friday"]["total_tokens"],
+            "friday_input_tokens": telemetry["friday"]["input_tokens"],
+            "friday_output_tokens": telemetry["friday"]["output_tokens"],
+            "friday_model": telemetry["friday"]["model"],
+            "friday_cost_usd": telemetry["friday"]["cost_usd"],
+            "edith_tokens": telemetry["edith"]["total_tokens"],
+            "edith_input_tokens": telemetry["edith"]["input_tokens"],
+            "edith_output_tokens": telemetry["edith"]["output_tokens"],
+            "edith_reasoning_tokens": telemetry["edith"]["reasoning_tokens"],
+            "edith_model": telemetry["edith"]["model"],
+            "edith_cost_usd": telemetry["edith"]["cost_usd"],
+            "total_tokens": telemetry["economics"]["total_tokens"],
+            "total_cost_usd": telemetry["economics"]["total_cost_usd"],
+            "monthly_savings_usd": telemetry["economics"]["estimated_monthly_savings_usd"],
+        },
     }
 
 
