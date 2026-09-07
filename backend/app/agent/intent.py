@@ -72,21 +72,21 @@ def detect_intent_and_objection(text: str) -> Tuple[str, float, str]:
     )):
         return "objection", 0.90, "PRICE"
 
-    if any(k in lower for k in ("bad quality", "sample was bitter", "is it authentic", "fake", "original darjeeling")):
+    if any(k in lower for k in ("bad quality", "sample was bitter", "is it authentic", "fake", "defective", "defect", "poor quality", "not genuine")):
         return "objection", 0.85, "QUALITY"
 
     if any(k in lower for k in ("delayed delivery", "too slow", "can you deliver in 2 days", "transit time")):
         return "objection", 0.85, "DELIVERY"
 
     # 5. Pricing & Samples
-    if any(k in lower for k in ("sample", "testing kit", "sample pack", "trial")):
+    if any(k in lower for k in ("sample", "testing kit", "sample pack", "trial", "demo", "spec sheet")):
         return "sample_request", 0.90, "NONE"
 
-    if re.search(r"\b(price|prices|rate|rates|cost|costs|quote|quotes|discount|discounts|per kg)\b", lower):
+    if re.search(r"\b(price|prices|rate|rates|cost|costs|quote|quotes|discount|discounts|per kg|per unit|pricing)\b", lower):
         return "price_inquiry", 0.88, "NONE"
 
     # 6. Product Inquiry
-    if any(k in lower for k in ("darjeeling", "assam", "ctc", "dooars", "orthodox", "green tea", "blend", "grade", "ftgfop")):
+    if any(k in lower for k in ("product", "products", "catalog", "catalogue", "specs", "specification", "features", "options", "models", "grade", "darjeeling", "assam", "ctc", "dooars", "orthodox", "green tea", "blend", "ftgfop")):
         return "product_inquiry", 0.85, "NONE"
 
     # 7. Greeting / Opening
@@ -120,7 +120,7 @@ async def classify_intent_llm(
             ModelMessage(
                 role="system",
                 content=(
-                    "You are an intent router for a B2B tea sales platform. Classify customer intent and objection. "
+                    "You are an intent router for a B2B sales and commerce platform. Classify customer intent and objection. "
                     "Valid intents: 'greeting', 'product_inquiry', 'price_inquiry', 'sample_request', 'purchase_intent', "
                     "'objection', 'discovery_inquiry', 'human_request'. "
                     "Valid objections: 'NONE', 'PRICE', 'QUALITY', 'DELIVERY', 'TRUST'. "

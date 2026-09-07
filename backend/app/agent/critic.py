@@ -75,17 +75,18 @@ class SelfReflectiveCritic:
         # Refine rule 1: remove unsupported delivery guarantees
         refined = re.sub(
             r"\b(?:we promise zero damage|guaranteed 100% damage-free|zero damage)\b",
-            "secure food-grade bulk packaging with moisture barriers",
+            "secure, industry-standard protective packaging",
             refined,
             flags=re.IGNORECASE,
         )
 
         # Refine rule 2: remove fake seeds / horticulture claims
         if "no_fake_horticulture" in defects:
+            from app.config import settings
             refined = (
-                "North Bengal Tea Co. specializes directly in finished commercial wholesale black, green, "
-                "and CTC teas for hospitality and retail. We do not supply agricultural tea seeds or planting stock, "
-                "but we would be glad to share our estate tea catalog for your beverage menu."
+                f"{settings.BUSINESS_NAME} specializes directly in verified commercial products and services. "
+                "We do not supply agricultural planting stock or out-of-scope commodities, "
+                "but we would be glad to share our verified catalog for your requirements."
             )
 
         # Refine rule 3: prune excessive questions if interrogating
