@@ -44,6 +44,7 @@ from app.database.models import (
     Customer,
     CustomerMemory,
     Handoff,
+    Message,
     Notification,
     Product,
 )

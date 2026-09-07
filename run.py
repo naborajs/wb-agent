@@ -473,16 +473,19 @@ def start_service(cmd, cwd, prefix, color, env_extra=None):
     if env_extra:
         env.update(env_extra)
 
-    proc = subprocess.Popen(
-        cmd,
-        cwd=str(cwd),
-        env=env,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-        bufsize=1,
-        shell=True if os.name == "nt" else False,
-    )
+    popen_kwargs = {
+        "cwd": str(cwd),
+        "env": env,
+        "stdout": subprocess.PIPE,
+        "stderr": subprocess.STDOUT,
+        "text": True,
+        "bufsize": 1,
+        "shell": True if os.name == "nt" else False,
+    }
+    if os.name == "nt":
+        popen_kwargs["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
+
+    proc = subprocess.Popen(cmd, **popen_kwargs)
     PROCESSES.append((prefix, proc))
 
     t = threading.Thread(target=stream_process_output, args=(proc.stdout, prefix, color), daemon=True)

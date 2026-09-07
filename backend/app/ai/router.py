@@ -201,6 +201,15 @@ class AIRouter:
             latency_ms=int((time.time() - start_t) * 1000),
         )
 
+    async def execute_with_retry(
+        self,
+        request: ModelRequest,
+        preferred_capability: Capability = Capability.CORE_BRAIN,
+        timeout: Optional[float] = None,
+    ) -> ModelResponse:
+        """Compatibility method: executes model request with preferred capability."""
+        return await self.execute(preferred_capability, request, timeout=timeout)
+
     # -------------------------------------------------------------------------
     # Two-Stage Fail-Closed Safety Guardrails (§3.G)
     # -------------------------------------------------------------------------
