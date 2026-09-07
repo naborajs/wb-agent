@@ -12,6 +12,84 @@
 
 ---
 
+## ⚡ Quick Start Guide (Run in 2 Minutes with 1 Command)
+
+> **New to the project?** You don't need complex setup, manual database installs, or Docker. A single command (`python run.py`) checks your environment, installs missing packages, seeds the database, and boots the entire platform simultaneously!
+
+```mermaid
+flowchart LR
+    A[1. Clone Repo] --> B[2. Run python run.py]
+    B --> C[3. Connect WhatsApp or Test Live]
+    C --> D[4. Mission Control Ready!]
+```
+
+### 📋 Prerequisites
+- **Python**: 3.10 or higher (`python --version`)
+- **Node.js**: 18.0 or higher with npm (`node --version`)
+- **Git**: Installed and configured
+
+---
+
+### Step 1: Clone & Enter the Repository
+```bash
+git clone https://github.com/naborajs/wb-agent.git
+cd wb-agent
+```
+
+---
+
+### Step 2: (Optional) Configure Your `.env`
+If you want to use live LLMs (Google Gemini 3.1 Live or NVIDIA NIM), copy the template:
+```bash
+cp .env.example .env
+```
+*(💡 **Beginner Friendly:** You can skip this step! Without a `.env`, the system automatically runs with smart built-in fallback personas and local simulation mode so you can start right away).*
+
+---
+
+### Step 3: Run the Master Orchestrator 🚀
+Execute this single command in your terminal:
+```bash
+python run.py
+```
+
+#### What `run.py` does automatically:
+1. **Preflight Diagnostics**: Verifies Python and Node.js runtimes.
+2. **Auto-Install Missing Dependencies**: Installs Python backend packages, WhatsApp bridge modules, and Next.js dependencies.
+3. **Database Initialization**: Sets up SQLite database and seeds default commercial catalog rules, pricing tiers, and policies.
+4. **Boots All 4 Services Simultaneously**:
+   - 💻 **Next.js Operator Dashboard**: `http://localhost:3000` (auto-opens in your browser)
+   - ⚡ **FastAPI Backend & API Docs**: `http://localhost:8000/api/v1/docs`
+   - 📱 **WhatsApp Baileys Bridge**: `http://localhost:3001`
+   - 🧠 **Dual-Brain Deliberation Bus**: FRIDAY (Gemini Live) & EDITH (NVIDIA NIM)
+5. **Unified Multiplexed Logs**: Color-coded logs stream in your terminal. Press `Ctrl+C` anytime for a clean, graceful shutdown.
+
+---
+
+### Step 4: Connect WhatsApp (3 Simple Ways)
+
+When the dashboard opens at **`http://localhost:3000`**:
+
+| Method | Best For | How to Connect |
+| :--- | :--- | :--- |
+| **🟢 Method 1: Instant QR Scan** | Standard Phone | 1. Open WhatsApp &gt; **Settings / 3 dots &gt; Linked Devices &gt; Link a Device**.<br>2. Point camera at the live QR code directly on the **Dashboard Overview (`http://localhost:3000`)** or the terminal ASCII QR! |
+| **📱 Method 2: 8-Digit Pairing Code** | Remote VPS / No Camera | 1. On the **Dashboard Overview (`http://localhost:3000`)** or `http://localhost:3001/code`, enter your phone number with country code.<br>2. Click **"Get Code"** to receive an 8-character code (e.g. `ABCD-1234`).<br>3. On phone: WhatsApp &gt; **Linked Devices &gt; Link a Device &gt; Tap "Link with phone number instead"** and type code. |
+| **☁️ Method 3: Official Meta Cloud API** | Enterprise Production | Set `WHATSAPP_PROVIDER=meta_cloud`, `WHATSAPP_TOKEN`, and `WHATSAPP_PHONE_NUMBER_ID` in your `.env`. |
+
+---
+
+### Step 5: Test Instantly (Even Without a Phone!)
+You don't even need a phone connected to start testing:
+- **Instant AI Simulator**: Test customer inquiries directly on the Overview page (`http://localhost:3000`) with real-time reasoning and quote generation.
+- **Dual-Brain Console**: Open `http://localhost:3000/brain` to chat or talk via live voice with FRIDAY and delegate tasks to EDITH.
+- **Knowledge Hub RAG**: Open `http://localhost:3000/knowledge` to inspect catalog policies, or chat with EDITH to create and adjust pricing tiers.
+- **Run Automated Verification**:
+  ```bash
+  python backend/scripts/verify_edith_chat_brain.py
+  ```
+
+---
+
 ## 📸 Visual Operations Tour & Brand Design
 
 EDITH features a refined **Dual-Theme Design System** crafted for high-efficiency 24/7 wholesale operations:
@@ -137,73 +215,26 @@ EDITH is engineered mobile-first with adaptive touch UI optimized for operators 
 
 ---
 
-## ⚡ Super Fast Quickstart (Unified 1-Command Startup)
+## 🛠️ Developer Controls & Advanced Startup
 
-We provide a zero-configuration single root orchestrator (`run.py`) that checks preflight dependencies, verifies and frees ports, auto-installs missing packages, seeds the database, and boots all 4 microservices simultaneously into a unified terminal with live color-coded logging.
-
-```mermaid
-flowchart LR
-    A[1. Clone Repo] --> B[2. Configure .env]
-    B --> C[3. Run `python run.py`]
-    C --> D[4. Auto-opens Dashboard & QR]
-```
-
-### Step 1: Clone the Repository
+### CLI Flags & Performance Options
+The master orchestrator (`run.py`) supports convenient runtime flags:
 ```bash
-git clone https://github.com/naborajs/wb-agent.git
-cd wb-agent
+python run.py                # Standard zero-config startup with auto-install
+python run.py --skip-install # Instant warm reboot (skips dependency checking)
+python run.py --no-open      # Starts all services without auto-launching browser
+python run.py --clean        # Cleans caches, resets locks, and performs a fresh boot
 ```
 
-### Step 2: Environment Setup
-Copy the template configuration file:
-```bash
-cp .env.example .env
-```
-Ensure your `.env` contains your NVIDIA API key and WhatsApp configuration:
-```env
-# AI Model (NVIDIA Nemotron 3.5 / Ultra via NVIDIA NIM)
-NVIDIA_API_KEY=your-nvapi-key-here
-NVIDIA_FALLBACK_API_KEY=your-backup-nvapi-key
-NVIDIA_MODEL=nvidia/nemotron-3-ultra-550b-a55b
-LLM_PROVIDER=nvidia
-LLM_MAX_TOKENS=2048
-LLM_REQUEST_TIMEOUT=60
+### ❓ Developer Troubleshooting & FAQ
 
-# WhatsApp Integration (Linked Device Bridge)
-WHATSAPP_PROVIDER=bridge
-WHATSAPP_BRIDGE_URL=http://localhost:3001
-OWNER_WHATSAPP_NUMBER=+918900653250
-```
-
-### Step 3: Start Everything With One Single Command! 🚀
-Run the master orchestrator from the project root:
-```bash
-python run.py
-```
-
-What `run.py` does automatically:
-1. **Preflight Diagnostics**: Checks Python 3.11+, Node.js 18+, and npm versions.
-2. **Dependency Resolution**: Automatically installs any missing Python packages, WhatsApp bridge modules, and Next.js dependencies.
-3. **Port Conflict Protection**: Verifies ports `8000` (FastAPI), `3001` (WhatsApp Bridge), and `3000` (Next.js Dashboard), clearing stale locks.
-4. **Database & Catalog Seeding**: Auto-initializes SQLite / PostgreSQL and seeds generic commercial products, volume rules, and leads if empty (or pass `--demo tea` for optional tea sample data).
-5. **Simultaneous Multi-Service Boot**: Launches:
-   - ⚡ **FastAPI Backend Service** (`http://localhost:8000`)
-   - 🧠 **Durable Background Job Worker** (cadence follow-ups & async reasoning)
-   - 📱 **Baileys WhatsApp Bridge** (`http://localhost:3001`)
-   - 💻 **Next.js 14 Operator Control Center** (`http://localhost:3000`)
-6. **Live Unified Logging**: Color-coded prefix logs (`[BACKEND]`, `[WORKER]`, `[WHATSAPP]`, `[DASHBOARD]`) streamed directly to your terminal.
-7. **Clean Graceful Shutdown**: Pressing `Ctrl+C` cleanly shuts down all subprocesses without orphaned background tasks or port locking.
-
-*(Optional flags: `python run.py --no-open` to disable auto-opening browser tabs, `python run.py --skip-install` for instant warm reboots).*
-
----
-
-### Step 4: Connect WhatsApp (Simple QR Scan)
-When the browser opens [http://localhost:3001/qr](http://localhost:3001/qr):
-1. Open **WhatsApp** on your bot phone (`+91 89187 53100` or your test number).
-2. Tap **Settings > Linked Devices > Link a Device**.
-3. Scan the QR code shown on screen.
-4. 🎉 **Connected!** The bridge is linked and forwards incoming messages automatically.
+| Common Issue | Cause | Solution |
+| :--- | :--- | :--- |
+| **Port in Use (8000, 3000, 3001)** | A previous process was not killed cleanly | `run.py` automatically detects and clears port locks on startup. You can also run `python run.py --clean` or close stale terminal windows. |
+| **PowerShell Execution Policy** | Windows blocks running npm / activate scripts | Run: `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass` in PowerShell, or switch to Command Prompt (`cmd`). |
+| **How do I test without a phone?** | You want to verify AI negotiation without WhatsApp | Open `http://localhost:3000` and use the **Instant AI Simulator** widget on the Overview page, or run `python backend/scripts/verify_edith_chat_brain.py`. |
+| **How do I stop all services?** | Multi-process cleanup | Press **`Ctrl+C`** once in the terminal running `run.py`. The orchestrator will gracefully terminate FastAPI, Node.js, and background workers without orphan tasks. |
+| **Can I run without API keys?** | Testing offline | Yes! Without `.env`, EDITH and Friday operate in built-in offline simulation mode with grounded deterministic pricing and simulated turns. |
 
 ---
 
