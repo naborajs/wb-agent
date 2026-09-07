@@ -69,6 +69,7 @@ class VoiceKnowledgeActionRequest(BaseModel):
 class BrainDeliberationRequest(BaseModel):
     topic: str = Field(..., min_length=2, description="Strategic question, objection, or commercial proposal for dual-brain deliberation")
     context: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Optional customer profile or parameters")
+    requested_discount: Optional[float] = Field(None, description="Optional discount percentage being evaluated")
 
 
 class BrainDeliberationResponse(BaseModel):
@@ -183,6 +184,7 @@ async def deliberate_strategic_decision(
         org_id=org_id,
         topic=req.topic,
         context=req.context,
+        requested_discount=req.requested_discount,
     )
     return BrainDeliberationResponse(**result)
 

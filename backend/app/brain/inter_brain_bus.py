@@ -432,6 +432,140 @@ class FridayBrain:
                 "consulted_edith": False,
             }
 
+        # Fast Greeting Check
+        if user_lower in ["hi", "hello", "hey", "namaste", "hola", "sup", "good morning", "good evening", "good afternoon"] or user_lower.startswith(("hi friday", "hello friday", "hey friday")):
+            reply = (
+                "Hello! I am Friday, your personal executive web assistant powered by Google Gemini 3.1 Flash Live! "
+                "I work hand-in-hand with my partner AI brain EDITH. I have full, direct access to every button, "
+                "every form and typing control, all contacts and active WhatsApp leads, live knowledge base documents, "
+                "orders, and real-time business telemetry. How can I help you take command today?"
+            )
+            return {
+                "speaker": "Friday",
+                "model": "gemini-3.1-flash-live-preview",
+                "reply": reply,
+                "consulted_edith": False,
+            }
+
+        # Knowledge Hub & Files Inspection
+        is_knowledge_inquiry = any(w in user_lower for w in [
+            "what files", "which files", "show files", "list files", "explain file",
+            "what documents", "show documents", "knowledge base", "knowledge files",
+            "what products", "list products", "pricing rules", "pricing tiers",
+            "what is in the knowledge", "what information is there"
+        ])
+        if is_knowledge_inquiry:
+            k_stmt = (
+                select(KnowledgeItem)
+                .where(KnowledgeItem.org_id == org_id)
+                .order_by(KnowledgeItem.updated_at.desc())
+                .limit(10)
+            )
+            k_items = list((await session.execute(k_stmt)).scalars().all())
+
+            explain_match = re.search(r"explain\s+(?:me\s+)?(?:this\s+file\s+|the\s+file\s+|file\s+)?([a-zA-Z0-9_\-\. ]+)", user_lower)
+            target_title = explain_match.group(1).strip() if explain_match else ""
+
+            if target_title and len(target_title) > 2 and target_title not in ["me", "file", "this", "it"]:
+                for ki in k_items:
+                    if target_title in ki.title.lower():
+                        content_preview = ki.content[:600] if ki.content else "No raw text content available."
+                        rules_text = ""
+                        if ki.pricing_rules:
+                            rules_text = f"\n• Active Rules: {len(ki.pricing_rules)} pricing/discount rule(s)"
+                        reply = (
+                            f"Here is the breakdown of `{ki.title}` ({ki.category.value if hasattr(ki.category, 'value') else ki.category}):\n\n"
+                            f"• Status: {'Active' if ki.is_active else 'Paused'}\n"
+                            f"• Version: v{ki.version} | Chunks: {ki.chunk_count}{rules_text}\n\n"
+                            f"**Summary Content:**\n{content_preview}\n\n"
+                            "Would you like me or EDITH to modify any fields or open this in the spreadsheet editor?"
+                        )
+                        return {
+                            "speaker": "Friday",
+                            "model": "gemini-3.1-flash-live-preview",
+                            "reply": reply,
+                            "consulted_edith": False,
+                        }
+
+            if k_items:
+                file_lines = [
+                    f"• **{ki.title}** ({ki.category.value if hasattr(ki.category, 'value') else ki.category}) — v{ki.version}, {'🟢 Active' if ki.is_active else '⏸️ Paused'}"
+                    for ki in k_items
+                ]
+                reply = (
+                    f"Here are the active files and documents currently in our central Knowledge Hub:\n\n"
+                    + "\n".join(file_lines) +
+                    "\n\nYou can ask me to explain any of these files in detail, open them in our interactive spreadsheet/document editor, or tell me and EDITH to make live changes!"
+                )
+            else:
+                reply = (
+                    "Our Knowledge Hub currently has no uploaded assets yet. You can upload PDFs or Excel spreadsheets on the /knowledge page, or simply tell me what policy or pricing tier you'd like EDITH and me to create!"
+                )
+            return {
+                "speaker": "Friday",
+                "model": "gemini-3.1-flash-live-preview",
+                "reply": reply,
+                "consulted_edith": False,
+            }
+
+        # Contacts & Leads Inquiry
+        is_leads_inquiry = any(w in user_lower for w in [
+            "who are our leads", "show leads", "list leads", "what leads",
+            "how many leads", "who are our contacts", "show contacts",
+            "customer list", "pipeline contacts", "all contacts"
+        ])
+        if is_leads_inquiry:
+            lead_stmt = (
+                select(Lead)
+                .where(Lead.org_id == org_id)
+                .order_by(Lead.created_at.desc())
+                .limit(10)
+            )
+            leads = list((await session.execute(lead_stmt)).scalars().all())
+            if leads:
+                lead_lines = [
+                    f"• **{l.name}** ({l.phone or 'No phone'}) — Status: `{l.status}` | Company: {l.company_name or 'N/A'}" + (f" | Deal: ₹{l.deal_value:,.0f}" if l.deal_value else "")
+                    for l in leads
+                ]
+                reply = (
+                    f"Here are the latest leads and customer contacts in our CRM pipeline:\n\n"
+                    + "\n".join(lead_lines) +
+                    f"\n\nI can help you open any conversation on /conversations, update their lead status, or coordinate with EDITH for immediate WhatsApp sales outreach."
+                )
+            else:
+                reply = "We currently have no leads recorded in the database. You can import leads via CSV on the /leads page or let incoming WhatsApp inquiries populate the CRM automatically!"
+            return {
+                "speaker": "Friday",
+                "model": "gemini-3.1-flash-live-preview",
+                "reply": reply,
+                "consulted_edith": False,
+            }
+
+        # Collaborative Deliberation with EDITH
+        is_deliberation = any(w in user_lower for w in [
+            "deliberate with edith", "discuss with edith", "ask edith what she thinks",
+            "consult edith about", "debate with edith", "talk with edith about"
+        ])
+        if is_deliberation:
+            delib_res = await inter_brain_bus.deliberate(
+                session=session,
+                org_id=org_id,
+                topic=user_message,
+            )
+            reply = (
+                f"I've initiated a strategic deliberation with EDITH over the Inter-Brain Bus regarding: '{delib_res['topic']}'.\n\n"
+                f"• **EDITH's Independent Evaluation:** `{delib_res['edith_verdict']}`\n"
+                f"• **Reasoning:** {delib_res['edith_reasoning']}\n"
+                f"• **Dual-Brain Consensus:** {delib_res['consensus']}"
+            )
+            return {
+                "speaker": "Friday",
+                "model": "gemini-3.1-flash-live-preview",
+                "reply": reply,
+                "consulted_edith": True,
+                "edith_verdict": delib_res,
+            }
+
         # Check if user instruction is asking to inspect codebase or diagnose an error
         is_diagnose = any(w in user_lower for w in ["error", "traceback", "exception", "failed", "bug", "why did it fail"])
         is_inspect_code = any(w in user_lower for w in ["check code", "inspect code", "read file", "show file", "search code", "check backend", "look at file"])
@@ -938,6 +1072,7 @@ class InterBrainBus:
         org_id: str,
         topic: str,
         context: Optional[Dict[str, Any]] = None,
+        requested_discount: Optional[float] = None,
     ) -> Dict[str, Any]:
         """
         Friday and EDITH hold a real-time collaborative deliberation over the Inter-Brain Bus.
@@ -957,32 +1092,70 @@ class InterBrainBus:
             content=f"Strategic consultation for operator: '{topic}'. Requesting your commercial analysis and policy boundaries.",
             decision="PENDING",
             reasoning="Initiating dual-brain collaborative strategy session.",
-            metadata_payload=context,
+            metadata_payload={"topic": topic, "requested_discount": requested_discount, **context},
         )
         session.add(friday_msg)
         await session.commit()
         await session.refresh(friday_msg)
         await self._broadcast(org_id, friday_msg)
 
-        # 2. EDITH's independent evaluation & commercial feedback
-        edith_reasoning = (
-            f"From a commercial negotiation perspective, '{topic}' must align with our 5.0% autonomous margin ceiling "
-            "and deterministic SQL pricing rules. Customer cooling periods and MOQ thresholds remain protected."
+        # 2. Check for discount percentage in topic if not explicitly provided
+        if requested_discount is None:
+            disc_match = re.search(r"(\d+(?:\.\d+)?)\s*%", topic)
+            if disc_match:
+                try:
+                    requested_discount = float(disc_match.group(1))
+                except Exception:
+                    pass
+
+        # 3. Determine maximum allowed autonomous discount from DB
+        max_allowed_discount = 15.0
+        rule_stmt = (
+            select(PricingRule)
+            .where(PricingRule.org_id == org_id, PricingRule.is_active == True)
+            .order_by(PricingRule.max_autonomous_discount_percentage.desc())
+            .limit(1)
         )
-        edith_consensus = (
-            f"I recommend proceeding with structured tier validation: ensure minimum order quantities are verified, "
-            f"and propose our standard sample evaluation kit if the buyer seeks proof before commercial commitment."
-        )
+        rule_res = (await session.execute(rule_stmt)).scalar_one_or_none()
+        if rule_res and rule_res.max_autonomous_discount_percentage:
+            max_allowed_discount = float(rule_res.max_autonomous_discount_percentage)
+
+        # 4. Policy evaluation
+        if requested_discount is not None and requested_discount > max_allowed_discount:
+            verdict = "DENIED"
+            edith_reasoning = (
+                f"Proposed discount of {requested_discount:.1f}% exceeds our maximum authorized commercial threshold "
+                f"of {max_allowed_discount:.1f}%. To safeguard commercial gross margins, I advise countering with our "
+                f"standard {max_allowed_discount:.1f}% tier tied to a volume commitment or offering an evaluation sample kit."
+            )
+            edith_consensus = f"Reject {requested_discount:.1f}% discount. Counter-propose authorized {max_allowed_discount:.1f}% volume tier."
+        elif requested_discount is not None:
+            verdict = "ACCEPTED"
+            edith_reasoning = (
+                f"Requested discount of {requested_discount:.1f}% is within our authorized ceiling of {max_allowed_discount:.1f}%. "
+                f"Commercially viable provided buyer meets minimum volume tier qualification."
+            )
+            edith_consensus = f"Approve {requested_discount:.1f}% discount with MOQ commitment."
+        else:
+            verdict = "ACCEPTED"
+            edith_reasoning = (
+                f"From an autonomous sales negotiation perspective, '{topic}' aligns with our enterprise policies "
+                "and deterministic pricing rules. Customer cooling periods and MOQ thresholds remain protected."
+            )
+            edith_consensus = (
+                f"Proceed with structured qualification: verify minimum order quantities and buyer creditworthiness, "
+                f"and propose a sample evaluation kit if buyer requires prior product verification."
+            )
 
         edith_msg = InterBrainMessage(
             org_id=org_id,
             sender_brain="EDITH",
             recipient_brain="FRIDAY",
             message_type="DELIBERATION_RESPONSE",
-            content=f"Commercial analysis: {edith_consensus}",
-            decision="ACCEPTED",
+            content=f"Commercial analysis [{verdict}]: {edith_consensus}",
+            decision=verdict,
             reasoning=edith_reasoning,
-            metadata_payload={"topic": topic, **context},
+            metadata_payload={"topic": topic, "verdict": verdict, "requested_discount": requested_discount, **context},
             resolved_at=utc_now(),
         )
         session.add(edith_msg)
@@ -994,14 +1167,14 @@ class InterBrainBus:
         await self._broadcast(org_id, edith_msg)
 
         unified_synthesis = (
-            f"EDITH and I deliberated on '{topic}'. EDITH confirmed that our commercial margins and MOQ standards are protected. "
-            f"Our joint consensus is: {edith_consensus}"
+            f"EDITH and I deliberated on '{topic}'. EDITH's verdict is [{verdict}]: {edith_reasoning} "
+            f"Joint consensus: {edith_consensus}"
         )
 
         return {
             "topic": topic,
             "friday_query": friday_msg.content,
-            "edith_verdict": edith_msg.content,
+            "edith_verdict": verdict,
             "edith_reasoning": edith_reasoning,
             "consensus": unified_synthesis,
             "deliberation_id": friday_msg.id,
