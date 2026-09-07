@@ -33,11 +33,11 @@ class QuestionSelectionEngine:
 
     # Priority of discovery attributes: (field_name, prompt_suggestion, business_importance)
     DISCOVERY_PRIORITY = [
-        ("quantity", "What approximate volume or monthly quantity does your establishment typically require?", 10),
-        ("use_case", "Are you primarily brewing strong milk tea (chai) or offering light orthodox liquor tea?", 8),
-        ("location", "Which city or destination pin-code would we be dispatching this to?", 7),
-        ("business_type", "Could you share the type of establishment you operate (e.g. café, restaurant, hotel, or retail)?", 6),
-        ("packaging", "Do you prefer bulk 20kg food-grade jute bags or vacuum-sealed foil chests?", 5),
+        ("quantity", "What approximate volume or monthly quantity does your business typically require?", 10),
+        ("use_case", "Could you share a bit more about your specific use case or requirements?", 8),
+        ("location", "Which city or delivery destination would we be dispatching this to?", 7),
+        ("business_type", "Could you share the type of business or organization you operate?", 6),
+        ("packaging", "Do you have any specific packaging, service tier, or delivery preferences?", 5),
     ]
 
     @classmethod
@@ -58,7 +58,7 @@ class QuestionSelectionEngine:
 
 class ConsultativeSalesEngine:
     """
-    Coordinates consultative sales methodology, active listening, and next-best-action decisions for EDITH.
+    Coordinates consultative sales methodology, active listening, and next-best-action decisions for the AI agent.
     """
 
     @classmethod
@@ -112,17 +112,16 @@ class ConsultativeSalesEngine:
             )
 
         # 3. Unknown Business Information Detection (Section 19 & 21)
-        # Questions asking for things outside normal tea catalog, e.g. tea seeds, land, investments, private label contracts
+        # Questions asking for things outside normal catalog/services
         unsupported_topics = [
-            "tea seeds", "seeds", "seed", "beej", "bij", "plant seeds", "gardening",
-            "farming", "khet", "ket", "zameen", "acres", "bagan seeds", "horticulture",
-            "machinery", "fertilizer", "land", "nursery", "sapling", "saplings", "trees"
+            "machinery", "real estate", "land", "fertilizer", "investments", "stock equity",
+            "crypto", "bitcoin", "loan", "mortgage"
         ]
         if any(topic in lower for topic in unsupported_topics) and not knowledge_available:
             return SalesDecision(
                 action="ANSWER",
-                reason="Customer inquired about tea seeds/nursery/farming items which are outside verified business offerings.",
-                customer_goal="Inquire about tea seeds / farming",
+                reason="Customer inquired about topics outside verified business offerings.",
+                customer_goal="Inquire about out-of-scope services or products",
                 target_stage=current_stage,
                 score_delta=0,
                 is_unknown_question=True,
@@ -134,16 +133,16 @@ class ConsultativeSalesEngine:
             if objection == "price_too_high":
                 return SalesDecision(
                     action="HANDLE_OBJECTION",
-                    reason="Price objection detected. Emphasize cuppage yield, volume discount tiers, or low-cost hotel blend alternative.",
-                    customer_goal="Optimize cost-per-cup or negotiate wholesale rate",
+                    reason="Price objection detected. Emphasize value proposition, volume discount tiers, or cost-effective alternatives.",
+                    customer_goal="Optimize unit cost or negotiate volume rate",
                     target_stage="OBJECTION",
                     score_delta=+5,
                 )
             elif objection == "needs_quality_proof":
                 return SalesDecision(
                     action="HANDLE_OBJECTION",
-                    reason="Quality verification concern. Offer 200g commercial tasting kit for registered commercial buyers.",
-                    customer_goal="Verify tea grade, aroma, and liquor strength before bulk commitment",
+                    reason="Quality verification concern. Offer product specifications, trial samples, or commercial references.",
+                    customer_goal="Verify quality standards and specifications before bulk commitment",
                     target_stage="OBJECTION",
                     score_delta=+10,
                 )
@@ -155,8 +154,8 @@ class ConsultativeSalesEngine:
             target = "DISCOVERY" if current_stage in ("NEW", "CONTACTED") else "RECOMMENDATION"
             return SalesDecision(
                 action="RECOMMEND_PRODUCT" if current_stage not in ("NEW", "CONTACTED") else "ASK_DISCOVERY_QUESTION",
-                reason=f"Recommended {best_match.get('name')} based on customer use-case and quality fit." if current_stage not in ("NEW", "CONTACTED") else f"Initiate discovery for operational requirement: {next_q[0] if next_q else 'volume'}.",
-                customer_goal="Find optimal tea grade for menu/beverage service",
+                reason=f"Recommended {best_match.get('name')} based on customer use-case and requirements." if current_stage not in ("NEW", "CONTACTED") else f"Initiate discovery for operational requirement: {next_q[0] if next_q else 'volume'}.",
+                customer_goal="Find optimal product/solution for operational requirements",
                 target_stage=target,
                 score_delta=+15 if target == "RECOMMENDATION" else +10,
                 recommended_product=best_match.get("name"),
@@ -172,8 +171,8 @@ class ConsultativeSalesEngine:
             next_q = QuestionSelectionEngine.select_next_question(known_keys, current_stage)
             return SalesDecision(
                 action="PROVIDE_QUOTE",
-                reason="Customer asked for wholesale pricing. Provide verified catalog rates and volume discount structure.",
-                customer_goal="Understand commercial wholesale pricing structure",
+                reason="Customer asked for pricing. Provide verified catalog rates and volume discount structure.",
+                customer_goal="Understand commercial pricing structure",
                 target_stage="QUALIFIED" if current_stage in ("NEW", "CONTACTED", "DISCOVERY") else current_stage,
                 score_delta=+10,
                 missing_information=[next_q[0]] if next_q else [],
@@ -186,7 +185,7 @@ class ConsultativeSalesEngine:
             return SalesDecision(
                 action="ASK_DISCOVERY_QUESTION",
                 reason=f"Gather missing operational requirement: {next_q[0]}.",
-                customer_goal="Explore commercial tea supply options",
+                customer_goal="Explore commercial supply and service options",
                 target_stage="DISCOVERY" if current_stage in ("NEW", "CONTACTED") else current_stage,
                 score_delta=+5,
                 missing_information=[next_q[0]],
@@ -196,8 +195,8 @@ class ConsultativeSalesEngine:
         # 8. Default Professional Consultative Response
         return SalesDecision(
             action="ANSWER",
-            reason="Provide helpful, professional consultative response grounded in verified estate information.",
-            customer_goal="Learn about North Bengal Tea Co. offerings",
+            reason="Provide helpful, professional consultative response grounded in verified business information.",
+            customer_goal="Learn about business offerings and capabilities",
             target_stage=current_stage,
             score_delta=+2,
         )

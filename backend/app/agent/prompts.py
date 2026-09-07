@@ -11,6 +11,7 @@ Splits system instructions into independent, version-controlled, auditable modul
 from typing import Any, Dict, List, Optional
 from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.config import settings
 from app.database.models import PromptVersion
 from app.utils.logging import logger
 
@@ -34,7 +35,7 @@ DEFAULT_PROMPT_SECTIONS: Dict[str, str] = {
         "BUSINESS POLICY & PRICING AUTHORITY:\n"
         "1. Minimum Order Quantities (MOQ) are enforced deterministically.\n"
         "2. Maximum autonomous discount is capped at 5.0%. Larger discounts require human approval.\n"
-        "3. Orders exceeding 500kg or requiring custom payment terms trigger immediate human handoff.\n"
+        "3. High-value enterprise orders or orders requiring custom payment terms trigger human handoff.\n"
         "4. Follow-up cadences: Touch 1 after 20 minutes inactivity, Touch 2 after 8 hours, Touch 3 after 7 days."
     ),
     "sales_style": (
@@ -46,9 +47,9 @@ DEFAULT_PROMPT_SECTIONS: Dict[str, str] = {
     ),
     "business_profile": (
         "BUSINESS PROFILE:\n"
-        "Company: North Bengal Tea Co. (Direct Estate Wholesale)\n"
-        "Specialization: Bulk fresh commercial teas (Assam CTC, Darjeeling, Dooars) for cafes, hotels, and retail brands.\n"
-        "Value Proposition: Direct origin sourcing, consistent liquor quality, moisture-proof bulk packaging."
+        f"Company: {settings.BUSINESS_NAME} ({settings.BUSINESS_TAGLINE})\n"
+        f"Specialization: {settings.BUSINESS_INDUSTRY} - {settings.BUSINESS_DESCRIPTION}\n"
+        "Value Proposition: Direct commercial supply, transparent pricing rules, reliable fulfillment, and verified quality."
     ),
 }
 
