@@ -249,6 +249,26 @@ class AgentOrchestrator:
         if language and customer and customer.preferred_language != language:
             customer.preferred_language = language
 
+        # Detect rude, aggressive, or hostile customer tone -> EDITH posts emotional debrief to Friday
+        inbound_lower = inbound_message.lower()
+        rude_markers = ["bakwas", "pagal", "fraud", "scam", "loot", "rubbish", "stupid", "idiot", "useless", "worst", "harami", "chutiya", "shut up", "terrible", "cheat"]
+        if any(marker in inbound_lower for marker in rude_markers):
+            try:
+                from app.brain import inter_brain_bus
+                phone_str = customer.primary_phone if customer and customer.primary_phone else conv.channel_id
+                await inter_brain_bus.post_edith_debrief(
+                    session=self.session,
+                    org_id=self.org_id,
+                    category="RUDE_CUSTOMER",
+                    details={
+                        "phone": phone_str,
+                        "customer_message": inbound_message,
+                        "sentiment_score": -0.85,
+                    },
+                )
+            except Exception as debrief_err:
+                logger.debug(f"[EDITH Debrief] Rude customer debrief warning: {debrief_err}")
+
         # Persist extracted operational facts into Customer Profile & Memory
         known_profile: Dict[str, Any] = {}
         if customer:
@@ -366,7 +386,7 @@ class AgentOrchestrator:
             b_name = getattr(settings, "BUSINESS_NAME", "our business")
             reply_text = f"You have been successfully opted out from {b_name}. We will not send you further messages."
 
-        # 8. Check Unknown Question (Sections 19, 21, 22)
+        # 8. Check Unknown Question / Capability Gap (Sections 19, 21, 22)
         elif sales_decision.is_unknown_question:
             # Create Human Knowledge Request and alert owner
             req = await self.unknown_mgr.create_knowledge_request(
@@ -376,6 +396,22 @@ class AgentOrchestrator:
                 context_searched="Commercial Products Catalog, Business Policies",
                 urgency="NORMAL",
             )
+            # EDITH autonomously debriefs Friday about the missing knowledge / feature gap
+            try:
+                from app.brain import inter_brain_bus
+                phone_str = customer.primary_phone if customer and customer.primary_phone else conv.channel_id
+                await inter_brain_bus.post_edith_debrief(
+                    session=self.session,
+                    org_id=self.org_id,
+                    category="KNOWLEDGE_GAP",
+                    details={
+                        "phone": phone_str,
+                        "topic": inbound_message[:100],
+                        "customer_message": inbound_message,
+                    },
+                )
+            except Exception as debrief_err:
+                logger.debug(f"[EDITH Debrief] Knowledge gap log warning: {debrief_err}")
             is_hindi_hinglish = (
                 language in ("Hindi", "Hinglish")
                 or any(w in inbound_message.lower() for w in ["khet", "ket", "beej", "bij", "seeds", "mara", "mera", "bhai", "kitna", "chahiye", "ton", "bara", "ha", "ho", "karo", "dedo"])
