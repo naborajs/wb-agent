@@ -1,7 +1,7 @@
 """
 Multi-Turn AI Sales Agent Simulation Runner (Section 87).
 
-Runs automated end-to-end buyer persona simulations against North Bengal Tea Co.
+Runs automated end-to-end buyer persona simulations against WhatsApp AI Agent by NS.
 Evaluates:
 - Conversation stage transitions
 - Lead scoring progression
@@ -27,35 +27,35 @@ from app.utils.logging import logger
 
 SIMULATION_PERSONAS = [
     {
-        "name": "Boutique Café Owner (Sunita)",
-        "company": "Aura Artisanal Cafe, Bangalore",
-        "type": "Cafe",
+        "name": "Commercial Account Buyer (Sunita)",
+        "company": "Aura Commercial Enterprises, Bangalore",
+        "type": "Commercial Account",
         "phone": "+919876543201",
         "turns": [
-            "Hello, we run a specialty coffee and tea bar. What Darjeeling teas do you have?",
-            "Can we order sample packs to evaluate leaf grade and aroma first?",
-            "Sounds perfect. Please send the tasting kit and we will confirm the order.",
+            "Hello, we are expanding our supply chain. What commercial product packages do you offer?",
+            "Can we order sample packs to evaluate specifications and quality first?",
+            "Sounds perfect. Please send the evaluation kit and we will confirm the order.",
         ],
     },
     {
-        "name": "Hotel Chain Procurement Manager (Vikram)",
-        "company": "Grand Regency Hotel Group",
-        "type": "Hotel",
+        "name": "Corporate Procurement Director (Vikram)",
+        "company": "Grand Regency Group",
+        "type": "Corporate",
         "phone": "+919876543202",
         "turns": [
-            "We need a heavy Assam CTC for 500 cups daily breakfast service. Quote for 100kg/month.",
-            "Your rate is a bit higher than our local Guwahati supplier. Can you do better?",
-            "Okay, if the cuppage is indeed 20% higher, let us confirm 100kg trial order.",
+            "We need high-volume commercial supply for our regional facilities. Quote for 100 units/month.",
+            "Your rate is slightly higher than our regional distributor. Can you do better on volume?",
+            "Okay, if the specification consistency is guaranteed, let us confirm 100 units trial order.",
         ],
     },
     {
-        "name": "Skeptical Tea Retailer (Prabir)",
-        "company": "Prabir Tea Mart, Asansol",
+        "name": "Quality-Focused Retail Partner (Prabir)",
+        "company": "Prabir Distribution Hub, Asansol",
         "type": "Retailer",
         "phone": "+919876543203",
         "turns": [
-            "Is your Darjeeling 100% authentic GI registered, or blended with Nepal leaf?",
-            "Good. What is your minimum order quantity for 20kg chests?",
+            "Are your products fully certified with guaranteed origin compliance?",
+            "Good. What is your minimum order quantity for bulk packages?",
         ],
     },
     {
@@ -70,8 +70,8 @@ SIMULATION_PERSONAS = [
     },
     {
         "name": "Consent Opt-Out Customer",
-        "company": "Cafe Metro",
-        "type": "Cafe",
+        "company": "Commercial Corp",
+        "type": "Corporate",
         "phone": "+919876543205",
         "turns": [
             "STOP. Do not message me ever again.",
@@ -91,9 +91,9 @@ async def run_simulations():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
-    org_id = "org_demo_tea"
+    org_id = "org_demo_generic"
     async with session_factory() as session:
-        org = Organization(id=org_id, name="North Bengal Tea Co.", slug="north-bengal-tea")
+        org = Organization(id=org_id, name="WhatsApp AI Agent by NS", slug="whatsapp-ai-agent")
         session.add(org)
         await session.commit()
 
