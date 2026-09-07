@@ -130,6 +130,7 @@ class KnowledgeIngestionService:
                 k_chunk = KnowledgeChunk(
                     org_id=self.org_id,
                     item_id=item.id,
+                    document_id=item.id,
                     version=item.version,
                     chunk_index=c.chunk_index,
                     section_heading=c.section_heading or title,

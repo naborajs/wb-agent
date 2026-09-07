@@ -56,6 +56,8 @@ class RAGQueryResponse(BaseModel):
 class UpdateChatRequest(BaseModel):
     message: str
     category_hint: Optional[str] = None
+    image_data: Optional[str] = None
+    mime_type: Optional[str] = "image/png"
 
 
 class CreateKnowledgeItemRequest(BaseModel):
@@ -162,13 +164,28 @@ async def handle_agentic_update_request(
     Processes natural-language knowledge, pricing, or catalog modifications through
     the Dual-Brain deliberation bus (Friday proposes -> EDITH validates & approves/refuses).
     """
-    if not req.message or not req.message.strip():
-        raise HTTPException(status_code=400, detail="Message cannot be empty.")
+    instruction = req.message.strip() if req.message else ""
+    if req.image_data:
+        try:
+            from app.ai.router import ai_router
+            vision_res = await ai_router.inspect_document(
+                image_data=req.image_data,
+                mime_type=req.mime_type or "image/png",
+                prompt="Extract all business policies, pricing tiers, discounts, product specifications, or rules from this screenshot accurately.",
+            )
+            extracted = vision_res.content if hasattr(vision_res, "content") else str(vision_res)
+            if extracted:
+                instruction = f"{instruction}\n\n[Attached Screenshot / Image Content]:\n{extracted}".strip()
+        except Exception as e:
+            logger.warning(f"Failed to inspect image attachment: {e}")
+
+    if not instruction:
+        raise HTTPException(status_code=400, detail="Message or image attachment cannot be empty.")
 
     result = await inter_brain_bus.dispatch_knowledge_update(
         session=session,
         org_id=settings.DEFAULT_ORG_ID,
-        operator_instruction=req.message.strip(),
+        operator_instruction=instruction,
         category_hint=req.category_hint,
     )
     return result
@@ -185,13 +202,19 @@ async def list_knowledge_items(
     session: AsyncSession = Depends(get_db),
 ):
     """Lists unified knowledge items with category filtering and search."""
-    stmt = select(KnowledgeItem).where(KnowledgeItem.org_id == settings.DEFAULT_ORG_ID)
+    stmt = select(KnowledgeItem).where(
+        or_(
+            KnowledgeItem.org_id == settings.DEFAULT_ORG_ID,
+            KnowledgeItem.org_id == "org_default_tea",
+            KnowledgeItem.org_id == "org_default",
+        )
+    )
 
-    if category and category != "all":
-        stmt = stmt.where(KnowledgeItem.category == category)
-    if is_active is not None:
+    if isinstance(category, str) and category != "all" and category.strip():
+        stmt = stmt.where(KnowledgeItem.category == category.strip())
+    if isinstance(is_active, bool):
         stmt = stmt.where(KnowledgeItem.is_active == is_active)
-    if search and search.strip():
+    if isinstance(search, str) and search.strip():
         term = f"%{search.strip()}%"
         stmt = stmt.where(
             or_(
@@ -361,15 +384,29 @@ async def delete_knowledge_item(
 @router.get("/stats")
 async def get_knowledge_stats(session: AsyncSession = Depends(get_db)):
     """Returns asset counts and category breakdown across the unified hub."""
-    org_id = settings.DEFAULT_ORG_ID
     stmt = select(KnowledgeItem.category, func.count(KnowledgeItem.id)).where(
-        KnowledgeItem.org_id == org_id,
+        or_(
+            KnowledgeItem.org_id == settings.DEFAULT_ORG_ID,
+            KnowledgeItem.org_id == "org_default_tea",
+            KnowledgeItem.org_id == "org_default",
+        ),
         KnowledgeItem.is_active == True,
     ).group_by(KnowledgeItem.category)
     res = await session.execute(stmt)
     counts = dict(res.all())
-
     total = sum(counts.values())
+
+    # Self-heal / auto-migrate on first load if empty
+    if total == 0:
+        try:
+            await run_knowledge_hub_migration(session, settings.DEFAULT_ORG_ID)
+            await run_knowledge_hub_migration(session, "org_default_tea")
+            res = await session.execute(stmt)
+            counts = dict(res.all())
+            total = sum(counts.values())
+        except Exception as e:
+            logger.warning(f"Auto-migration in get_knowledge_stats skipped: {e}")
+
     return {
         "total": total,
         "business_info": counts.get("business_info", 0),
