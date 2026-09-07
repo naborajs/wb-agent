@@ -35,3 +35,17 @@ All endpoints are versioned under `/api/v1`. Interactive OpenAPI documentation i
 ## 7. Webhooks
 - `GET /api/v1/webhooks/whatsapp`: Meta GET verification challenge.
 - `POST /api/v1/webhooks/whatsapp`: Inbound customer messages and delivery receipts.
+
+## 8. Dual-Brain System & Inter-Brain Agency
+- `POST /api/v1/brain/chat`: Chat directly with Friday with contextual awareness of files, contacts, and telemetry.
+- `POST /api/v1/brain/request-edith`: Delegates WhatsApp tasks to EDITH with independent commercial policy evaluation and refusal rights.
+- `POST /api/v1/brain/edith-to-friday`: EDITH delegates an action to Friday; Friday evaluates and can refuse non-emergency audio interruptions. If refused, EDITH triggers direct fallback alert.
+- `GET /api/v1/brain/briefing`: Generates dynamic executive morning/daily audio debrief script with pipeline value, hot leads, margin defenses, and compute costs.
+- `GET /api/v1/brain/hourly-velocity`: 24-hour inbound traffic velocity, peak hours, autonomous conversions vs handoffs, and 1.1s turn latency curve.
+- `POST /api/v1/brain/background-think`: Triggers mutual idle background thinking & synaptic health audit across both brains.
+- `POST /api/v1/brain/toggle-safe-mode`: Toggles autonomous safe mode / pause AI.
+- `GET /api/v1/brain/safe-mode`: Returns whether autonomous safe mode is active.
+- `GET /api/v1/brain/telemetry`: Real-time token usage, model telemetry, context utilization, and comparative economics.
+- `POST /api/v1/brain/benchmark-model`: Live benchmark test calculating real latency, tokens, and cost.
+- `GET /api/v1/brain/dialogues`: Chronological audit log of thoughts, requests, refusals, and debriefs across the Inter-Brain bus.
+
