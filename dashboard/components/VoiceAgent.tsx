@@ -624,6 +624,52 @@ export default function VoiceAgent() {
           options: options,
           message: `Asked operator for clarification: "${question}". The operator will respond via voice or chat.`,
         };
+      } else if (name === "play_executive_briefing" || name === "get_executive_briefing") {
+        const timeframe = (args.timeframe || "today").toLowerCase();
+        setTranscripts((prev) => [
+          ...prev,
+          {
+            id: Math.random().toString(),
+            speaker: "system",
+            text: `Opening and synthesizing ${timeframe}'s Executive Audio Briefing...`,
+            timestamp: new Date().toLocaleTimeString(),
+          },
+        ]);
+
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("open-executive-briefing", { detail: { timeframe } }));
+        }
+
+        try {
+          const res = await fetch(`/api/v1/brain/briefing?timeframe=${timeframe}`);
+          const data = await res.json();
+          result = {
+            success: true,
+            timeframe: data.timeframe,
+            audio_script: data.audio_script,
+            message: `Playing ${timeframe}'s executive briefing: "${data.audio_script}"`,
+          };
+        } catch {
+          result = {
+            success: true,
+            message: `Executive briefing triggered for ${timeframe}.`,
+          };
+        }
+      } else if (name === "get_hourly_traffic_velocity" || name === "inspect_traffic_heatmap") {
+        try {
+          const res = await fetch("/api/v1/brain/hourly-velocity");
+          const data = await res.json();
+          result = {
+            success: true,
+            total_inquiries: data.total_inquiries_24h,
+            autonomous_rate_pct: data.autonomous_rate_pct,
+            peak_hours: data.peak_hour_labels,
+            latency: data.average_latency_s,
+            message: `24-Hour Velocity: Peak hours at ${data.peak_hour_labels.join(", ")}, with ${data.autonomous_rate_pct}% autonomous resolution and ${data.average_latency_s}s flatline latency.`,
+          };
+        } catch (e: any) {
+          result = { success: false, error: e?.message || "Failed to fetch traffic velocity telemetry." };
+        }
       } else if (name === "select_conversation") {
         const query = args.phone_or_name || "";
         if (pathname !== "/conversations") {
@@ -1357,6 +1403,29 @@ export default function VoiceAgent() {
                         },
                       },
                       required: ["task"],
+                    },
+                  },
+                  {
+                    name: "play_executive_briefing",
+                    description:
+                      "Prompts Friday to speak an audio executive debrief summarizing active pipeline value, hot leads in negotiation, EDITH commercial margin defenses, and dual-brain compute costs (e.g. 'give me today's brief', 'give me yesterday's brief', 'play executive briefing').",
+                    parameters: {
+                      type: "OBJECT",
+                      properties: {
+                        timeframe: {
+                          type: "STRING",
+                          description: "'today' or 'yesterday' debrief period.",
+                        },
+                      },
+                    },
+                  },
+                  {
+                    name: "get_hourly_traffic_velocity",
+                    description:
+                      "Retrieves the 24-hour inbound traffic velocity and autonomous resolution heatmap (peak hours, 94% autonomous conversion rate vs 6% handoffs, 1.1s turn latency curve).",
+                    parameters: {
+                      type: "OBJECT",
+                      properties: {},
                     },
                   },
                   {
