@@ -10,7 +10,7 @@ from app.database.base import Base, OrgScopedMixin, TimestampMixin, UniversalJSO
 
 class Order(Base, OrgScopedMixin, TimestampMixin):
     """
-    Wholesale commercial tea order generated through dashboard or sales conversion.
+    Commercial sales order generated through dashboard or autonomous AI sales close.
     """
     __tablename__ = "orders"
 
@@ -34,7 +34,7 @@ class Order(Base, OrgScopedMixin, TimestampMixin):
     shipping_postal_code = Column(String(32), nullable=True)
     
     payment_status = Column(String(32), default="pending", nullable=False)  # pending, advance_paid, fully_paid
-    payment_terms = Column(String(128), default="Standard Wholesale (100% on Dispatch)", nullable=False)
+    payment_terms = Column(String(128), default="Standard Terms (100% on Dispatch)", nullable=False)
     notes = Column(Text, nullable=True)
     extra_metadata = Column(UniversalJSON, default=dict, nullable=False)
 
@@ -49,7 +49,7 @@ class Order(Base, OrgScopedMixin, TimestampMixin):
 
 class OrderItem(Base, TimestampMixin):
     """
-    Line item belonging to a wholesale commercial tea order.
+    Line item belonging to a commercial order.
     """
     __tablename__ = "order_items"
 
@@ -59,15 +59,40 @@ class OrderItem(Base, TimestampMixin):
     variant_id = Column(String(64), ForeignKey("product_variants.id", ondelete="SET NULL"), nullable=True)
     
     product_name = Column(String(255), nullable=False)
-    tea_grade = Column(String(64), nullable=True)
-    packaging_type = Column(String(64), default="Jute Bag", nullable=False)
-    quantity_kg = Column(Numeric(10, 2), nullable=False)
-    unit_price_per_kg = Column(Numeric(10, 2), nullable=False)
+    grade = Column(String(64), nullable=True)
+    packaging_type = Column(String(64), default="Standard Package", nullable=False)
+    quantity = Column(Numeric(10, 2), nullable=False)
+    unit_price = Column(Numeric(10, 2), nullable=False)
     discount_pct = Column(Float, default=0.0, nullable=False)
     subtotal = Column(Numeric(12, 2), nullable=False)
 
     order = relationship("Order", back_populates="items")
     product = relationship("Product")
+
+    # Backward compatibility aliases
+    @property
+    def tea_grade(self):
+        return self.grade
+
+    @tea_grade.setter
+    def tea_grade(self, value):
+        self.grade = value
+
+    @property
+    def quantity_kg(self):
+        return self.quantity
+
+    @quantity_kg.setter
+    def quantity_kg(self, value):
+        self.quantity = value
+
+    @property
+    def unit_price_per_kg(self):
+        return self.unit_price
+
+    @unit_price_per_kg.setter
+    def unit_price_per_kg(self, value):
+        self.unit_price = value
 
 
 class Quote(Base, OrgScopedMixin, TimestampMixin):

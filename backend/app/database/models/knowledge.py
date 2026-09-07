@@ -16,8 +16,8 @@ except Exception:
 
 class KnowledgeDocument(Base, OrgScopedMixin, TimestampMixin):
     """
-    Source knowledge file (PDF, FAQ markdown, catalog document, tea specifications)
-    ingested into the system with full versioning (Section 17).
+    Source knowledge file (PDF, DOCX, FAQ markdown, CSV, XLSX, JSON, text documentation)
+    ingested into the system with full versioning.
     """
     __tablename__ = "knowledge_documents"
 
