@@ -30,6 +30,12 @@ import {
   AlertCircle,
   Eye,
   ArrowUpRight,
+  Edit3,
+  Save,
+  Table,
+  Copy,
+  Printer,
+  FileCode,
 } from "lucide-react";
 
 interface KnowledgeItemRecord {
@@ -302,12 +308,113 @@ function KnowledgeHubMain() {
   const [createSegment, setCreateSegment] = useState("wholesale");
   const [creating, setCreating] = useState(false);
 
+  // Interactive Asset Viewer & Manual Editor Modal State
+  const [editingItem, setEditingItem] = useState<KnowledgeItemRecord | null>(null);
+  const [editorMode, setEditorMode] = useState<"spreadsheet" | "document" | "raw">("spreadsheet");
+  const [editTitle, setEditTitle] = useState("");
+  const [editCategory, setEditCategory] = useState<
+    "business_info" | "pricing_rule" | "catalog_product" | "agent_guidance" | "custom"
+  >("pricing_rule");
+  const [editContentText, setEditContentText] = useState("");
+  const [editSku, setEditSku] = useState("");
+  const [editBasePrice, setEditBasePrice] = useState<number | "">("");
+  const [editUnit, setEditUnit] = useState("kg");
+  const [editMoq, setEditMoq] = useState<number | "">("");
+  const [editMinQty, setEditMinQty] = useState<number | "">("");
+  const [editMaxQty, setEditMaxQty] = useState<number | "">("");
+  const [editDiscountPct, setEditDiscountPct] = useState<number | "">("");
+  const [editMaxAutonDiscount, setEditMaxAutonDiscount] = useState<number | "">("");
+  const [editCustomerSegment, setEditCustomerSegment] = useState("wholesale");
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [editSaveToast, setEditSaveToast] = useState<string | null>(null);
+  const [copiedDocContent, setCopiedDocContent] = useState(false);
+
   // Quote Simulator State
   const [simQty, setSimQty] = useState(150);
   const [simPrice, setSimPrice] = useState(450);
   const [simSegment, setSimSegment] = useState("wholesale");
 
   const chatEndRef = useRef<HTMLDivElement>(null);
+
+  // Helper to open the editor
+  const handleOpenEditor = (item: KnowledgeItemRecord) => {
+    setEditingItem(item);
+    setEditTitle(item.title);
+    setEditCategory(item.category);
+    setEditContentText(item.content_text);
+    setEditSku(item.sku || "");
+    setEditBasePrice(item.base_price !== null && item.base_price !== undefined ? item.base_price : "");
+    setEditUnit(item.unit || "kg");
+    setEditMoq(item.min_order_quantity !== null && item.min_order_quantity !== undefined ? item.min_order_quantity : "");
+    setEditMinQty(item.min_quantity !== null && item.min_quantity !== undefined ? item.min_quantity : "");
+    setEditMaxQty(item.max_quantity !== null && item.max_quantity !== undefined ? item.max_quantity : "");
+    setEditDiscountPct(item.discount_percentage !== null && item.discount_percentage !== undefined ? item.discount_percentage : "");
+    setEditMaxAutonDiscount(item.max_autonomous_discount !== null && item.max_autonomous_discount !== undefined ? item.max_autonomous_discount : "");
+    setEditCustomerSegment(item.customer_segment || "wholesale");
+
+    // Natural default view
+    if (item.category === "pricing_rule" || item.category === "catalog_product") {
+      setEditorMode("spreadsheet");
+    } else {
+      setEditorMode("document");
+    }
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingItem) return;
+    setIsSavingEdit(true);
+    setEditSaveToast(null);
+
+    try {
+      const payload: any = {
+        title: editTitle.trim() || editingItem.title,
+        category: editCategory,
+        content_text: editContentText.trim() || editingItem.content_text,
+        sku: editSku.trim() || null,
+        base_price: editBasePrice !== "" ? Number(editBasePrice) : null,
+        unit: editUnit || "unit",
+        min_order_quantity: editMoq !== "" ? Number(editMoq) : null,
+        min_quantity: editMinQty !== "" ? Number(editMinQty) : null,
+        max_quantity: editMaxQty !== "" ? Number(editMaxQty) : null,
+        discount_percentage: editDiscountPct !== "" ? Number(editDiscountPct) : null,
+        max_autonomous_discount: editMaxAutonDiscount !== "" ? Number(editMaxAutonDiscount) : null,
+        customer_segment: editCustomerSegment || null,
+      };
+
+      const res = await fetch(`/api/v1/knowledge/items/${editingItem.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const updatedRecord = data.item || {
+          ...editingItem,
+          ...payload,
+          version: (editingItem.version || 1) + 1,
+        };
+
+        setItems((prev) =>
+          prev.map((it) => (it.id === editingItem.id ? updatedRecord : it))
+        );
+
+        setEditSaveToast("Saved successfully! Knowledge and RAG chunks synchronized live.");
+        window.dispatchEvent(new CustomEvent("knowledge-hub-updated"));
+        setTimeout(() => {
+          setEditingItem(null);
+          setEditSaveToast(null);
+        }, 800);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        alert(`Failed to save: ${err.detail || "Server error"}`);
+      }
+    } catch (e) {
+      alert("Network error updating knowledge asset.");
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
 
   // Fetch Items & Stats from Backend
   const fetchData = async () => {
@@ -1019,7 +1126,14 @@ function KnowledgeHubMain() {
                         </span>
                       </div>
 
-                      <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">{item.title}</h4>
+                      <h4
+                        onClick={() => handleOpenEditor(item)}
+                        className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate cursor-pointer hover:text-cyan-600 dark:hover:text-cyan-400 transition flex items-center gap-1.5"
+                        title="Click to view and edit"
+                      >
+                        {item.title}
+                        <ArrowUpRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 text-slate-400 transition" />
+                      </h4>
 
                       <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2 leading-relaxed">
                         {item.content_text.replace(/^#+\s+/gm, "").slice(0, 160)}...
@@ -1054,6 +1168,15 @@ function KnowledgeHubMain() {
                     </div>
 
                     <div className="flex items-center gap-2 self-end md:self-center shrink-0">
+                      <button
+                        onClick={() => handleOpenEditor(item)}
+                        className="text-xs px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 hover:border-slate-300 dark:hover:border-slate-600 transition font-medium flex items-center gap-1.5 shadow-sm"
+                        title="View spreadsheet or edit manually"
+                      >
+                        <Edit3 className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
+                        <span>Edit</span>
+                      </button>
+
                       <button
                         onClick={() => handleToggleActive(item.id)}
                         className={`text-xs px-2.5 py-1 rounded-lg border transition font-medium ${
@@ -1340,6 +1463,631 @@ function KnowledgeHubMain() {
           </div>
         )}
       </div>
+
+      {/* 4. Interactive Asset Viewer & Manual Editor Modal (Excel Grid, PDF Doc Preview, & Live Editor) */}
+      {editingItem && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-5xl shadow-2xl relative my-auto flex flex-col max-h-[94vh] overflow-hidden transition-all">
+            {/* Modal Header */}
+            <div className="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/60 flex flex-col md:flex-row md:items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5 flex-wrap min-w-0">
+                <span
+                  className={`text-xs px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider border ${
+                    editCategory === "pricing_rule"
+                      ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+                      : editCategory === "catalog_product"
+                      ? "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/20"
+                      : editCategory === "agent_guidance"
+                      ? "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20"
+                      : editCategory === "custom"
+                      ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20"
+                      : "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20"
+                  }`}
+                >
+                  {editCategory.replace("_", " ")}
+                </span>
+
+                <span className="text-xs px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-mono">
+                  v{editingItem.version || 1}.0
+                </span>
+
+                <span
+                  className={`text-xs px-2 py-0.5 rounded-full flex items-center gap-1 font-medium ${
+                    editingItem.is_active
+                      ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                      : "bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20"
+                  }`}
+                >
+                  <span className={`w-1.5 h-1.5 rounded-full ${editingItem.is_active ? "bg-emerald-500" : "bg-red-500"}`} />
+                  {editingItem.is_active ? "Active in RAG" : "Paused"}
+                </span>
+
+                {editSku && (
+                  <span className="text-xs px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 font-mono border border-cyan-500/20">
+                    SKU: {editSku}
+                  </span>
+                )}
+              </div>
+
+              {/* View Switcher Controls */}
+              <div className="flex items-center gap-1.5 bg-slate-200/80 dark:bg-slate-800 p-1 rounded-xl self-start md:self-auto">
+                <button
+                  type="button"
+                  onClick={() => setEditorMode("spreadsheet")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
+                    editorMode === "spreadsheet"
+                      ? "bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-sm"
+                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
+                  }`}
+                >
+                  <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-500" />
+                  <span>Excel Grid</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setEditorMode("document")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
+                    editorMode === "document"
+                      ? "bg-white dark:bg-slate-900 text-red-600 dark:text-red-400 shadow-sm"
+                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
+                  }`}
+                >
+                  <FileText className="w-3.5 h-3.5 text-red-500" />
+                  <span>PDF / Doc Preview</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setEditorMode("raw")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
+                    editorMode === "raw"
+                      ? "bg-white dark:bg-slate-900 text-cyan-600 dark:text-cyan-400 shadow-sm"
+                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
+                  }`}
+                >
+                  <Edit3 className="w-3.5 h-3.5 text-cyan-500" />
+                  <span>Text Editor</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setEditingItem(null)}
+                  className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-700 transition ml-1"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Quick Properties Bar */}
+            <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="sm:col-span-2">
+                <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 block mb-1">
+                  Asset Title
+                </label>
+                <input
+                  type="text"
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs sm:text-sm font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:border-cyan-500"
+                  placeholder="Asset title..."
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 block mb-1">
+                  Category
+                </label>
+                <select
+                  value={editCategory}
+                  onChange={(e) => setEditCategory(e.target.value as any)}
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-cyan-500"
+                >
+                  <option value="pricing_rule">Pricing Rules (Volume Tiers)</option>
+                  <option value="catalog_product">Catalog Product / SKU</option>
+                  <option value="business_info">Business Info & Policies</option>
+                  <option value="agent_guidance">Agent Guidance & Guardrails</option>
+                  <option value="custom">Custom Parameters</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 block mb-1">
+                  Customer Segment
+                </label>
+                <select
+                  value={editCustomerSegment}
+                  onChange={(e) => setEditCustomerSegment(e.target.value)}
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-cyan-500"
+                >
+                  <option value="wholesale">Wholesale Buyer</option>
+                  <option value="distributor">Distributor / Bulk</option>
+                  <option value="retail">Retail Store</option>
+                  <option value="all">All Buyer Segments</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Modal Body Container (Mode Dependent) */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-slate-50/50 dark:bg-slate-950/40">
+              {/* MODE 1: SPREADSHEET / EXCEL GRID */}
+              {editorMode === "spreadsheet" && (
+                <div className="space-y-4">
+                  {/* Excel Ribbon & Formula Bar */}
+                  <div className="bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 flex flex-wrap items-center justify-between gap-3 text-xs">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1.5">
+                        <FileSpreadsheet className="w-4 h-4" />
+                        <span>Sheet: {editCategory.toUpperCase()}_MATRIX.xlsx</span>
+                      </div>
+                      <span className="text-slate-400">|</span>
+                      <span className="text-slate-500 font-mono">Cell: [A1:{editCategory === "pricing_rule" ? "F2" : "E2"}]</span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] text-slate-500">Auto-calculated cells update structured RAG records directly.</span>
+                    </div>
+                  </div>
+
+                  {/* Pricing Rule Spreadsheet Table */}
+                  {editCategory === "pricing_rule" && (
+                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-x-auto shadow-sm">
+                      <table className="w-full text-xs text-left border-collapse">
+                        <thead>
+                          <tr className="bg-slate-100/80 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 font-semibold border-b border-slate-200 dark:border-slate-700">
+                            <th className="p-3 w-12 text-center bg-slate-200/60 dark:bg-slate-800/60">#</th>
+                            <th className="p-3 min-w-[140px]">Rule / Tier Name</th>
+                            <th className="p-3 min-w-[110px]">Min Qty ({editUnit})</th>
+                            <th className="p-3 min-w-[110px]">Max Qty ({editUnit})</th>
+                            <th className="p-3 min-w-[110px]">Discount Rate (%)</th>
+                            <th className="p-3 min-w-[120px]">Autonomous Ceiling (%)</th>
+                            <th className="p-3 min-w-[120px]">Applied Segment</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-mono">
+                          <tr className="hover:bg-emerald-50/40 dark:hover:bg-emerald-950/20 transition">
+                            <td className="p-3 text-center bg-slate-50 dark:bg-slate-900 font-bold text-slate-400">1</td>
+                            <td className="p-2">
+                              <input
+                                type="text"
+                                value={editTitle}
+                                onChange={(e) => setEditTitle(e.target.value)}
+                                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1.5 font-sans text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-emerald-500"
+                              />
+                            </td>
+                            <td className="p-2">
+                              <input
+                                type="number"
+                                value={editMinQty}
+                                onChange={(e) => {
+                                  const val = e.target.value === "" ? "" : Number(e.target.value);
+                                  setEditMinQty(val);
+                                  // Auto sync title if appropriate
+                                  if (typeof val === "number") {
+                                    setEditTitle(`Tier: ${val.toFixed(1)}+ Volume (${editDiscountPct || 0}% Discount)`);
+                                  }
+                                }}
+                                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-emerald-500"
+                                placeholder="100"
+                              />
+                            </td>
+                            <td className="p-2">
+                              <input
+                                type="number"
+                                value={editMaxQty}
+                                onChange={(e) => setEditMaxQty(e.target.value === "" ? "" : Number(e.target.value))}
+                                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-emerald-500"
+                                placeholder="No limit"
+                              />
+                            </td>
+                            <td className="p-2">
+                              <div className="relative">
+                                <input
+                                  type="number"
+                                  step="0.5"
+                                  value={editDiscountPct}
+                                  onChange={(e) => {
+                                    const val = e.target.value === "" ? "" : Number(e.target.value);
+                                    setEditDiscountPct(val);
+                                    if (typeof val === "number" && typeof editMinQty === "number") {
+                                      setEditTitle(`Tier: ${editMinQty.toFixed(1)}+ Volume (${val}% Discount)`);
+                                    }
+                                  }}
+                                  className="w-full bg-emerald-50/50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-700/60 rounded-lg pl-2.5 pr-6 py-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-400 focus:outline-none focus:border-emerald-500"
+                                  placeholder="12"
+                                />
+                                <span className="absolute right-2 top-1.5 text-slate-400 text-xs">%</span>
+                              </div>
+                            </td>
+                            <td className="p-2">
+                              <div className="relative">
+                                <input
+                                  type="number"
+                                  step="0.5"
+                                  value={editMaxAutonDiscount}
+                                  onChange={(e) => setEditMaxAutonDiscount(e.target.value === "" ? "" : Number(e.target.value))}
+                                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg pl-2.5 pr-6 py-1.5 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-emerald-500"
+                                  placeholder="15"
+                                />
+                                <span className="absolute right-2 top-1.5 text-slate-400 text-xs">%</span>
+                              </div>
+                            </td>
+                            <td className="p-2 font-sans">
+                              <select
+                                value={editCustomerSegment}
+                                onChange={(e) => setEditCustomerSegment(e.target.value)}
+                                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-emerald-500"
+                              >
+                                <option value="wholesale">Wholesale</option>
+                                <option value="distributor">Distributor</option>
+                                <option value="retail">Retail</option>
+                                <option value="all">All Segments</option>
+                              </select>
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+
+                      {/* Live Calculation Preview Banner */}
+                      <div className="p-3 bg-emerald-50/50 dark:bg-emerald-950/20 border-t border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2 text-xs">
+                        <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400 font-medium">
+                          <Calculator className="w-4 h-4" />
+                          <span>Live Rule Simulation:</span>
+                          <span className="text-slate-600 dark:text-slate-400">
+                            A buyer ordering <strong>{editMinQty || 100} {editUnit}</strong> receives an instant <strong>{editDiscountPct || 0}%</strong> discount.
+                          </span>
+                        </div>
+                        <div className="text-[11px] text-slate-500">
+                          Autonomous Margin Ceiling: <strong>{editMaxAutonDiscount || editDiscountPct || 0}%</strong>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Catalog Product Spreadsheet Table */}
+                  {editCategory === "catalog_product" && (
+                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-x-auto shadow-sm">
+                      <table className="w-full text-xs text-left border-collapse">
+                        <thead>
+                          <tr className="bg-slate-100/80 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 font-semibold border-b border-slate-200 dark:border-slate-700">
+                            <th className="p-3 w-12 text-center bg-slate-200/60 dark:bg-slate-800/60">#</th>
+                            <th className="p-3 min-w-[130px]">SKU Code</th>
+                            <th className="p-3 min-w-[160px]">Product Name</th>
+                            <th className="p-3 min-w-[110px]">Base Price (₹)</th>
+                            <th className="p-3 min-w-[90px]">Unit</th>
+                            <th className="p-3 min-w-[100px]">MOQ</th>
+                            <th className="p-3 min-w-[110px]">Segment</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-mono">
+                          <tr className="hover:bg-cyan-50/40 dark:hover:bg-cyan-950/20 transition">
+                            <td className="p-3 text-center bg-slate-50 dark:bg-slate-900 font-bold text-slate-400">1</td>
+                            <td className="p-2">
+                              <input
+                                type="text"
+                                value={editSku}
+                                onChange={(e) => setEditSku(e.target.value)}
+                                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-cyan-500 font-mono uppercase"
+                                placeholder="SKU-001"
+                              />
+                            </td>
+                            <td className="p-2">
+                              <input
+                                type="text"
+                                value={editTitle}
+                                onChange={(e) => setEditTitle(e.target.value)}
+                                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1.5 font-sans text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-cyan-500"
+                              />
+                            </td>
+                            <td className="p-2">
+                              <input
+                                type="number"
+                                value={editBasePrice}
+                                onChange={(e) => setEditBasePrice(e.target.value === "" ? "" : Number(e.target.value))}
+                                className="w-full bg-cyan-50/50 dark:bg-cyan-950/40 border border-cyan-300 dark:border-cyan-700/60 rounded-lg px-2.5 py-1.5 text-xs font-bold text-cyan-700 dark:text-cyan-400 focus:outline-none focus:border-cyan-500"
+                                placeholder="450"
+                              />
+                            </td>
+                            <td className="p-2">
+                              <input
+                                type="text"
+                                value={editUnit}
+                                onChange={(e) => setEditUnit(e.target.value)}
+                                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-cyan-500"
+                                placeholder="kg"
+                              />
+                            </td>
+                            <td className="p-2">
+                              <input
+                                type="number"
+                                value={editMoq}
+                                onChange={(e) => setEditMoq(e.target.value === "" ? "" : Number(e.target.value))}
+                                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-cyan-500"
+                                placeholder="10"
+                              />
+                            </td>
+                            <td className="p-2 font-sans">
+                              <select
+                                value={editCustomerSegment}
+                                onChange={(e) => setEditCustomerSegment(e.target.value)}
+                                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-cyan-500"
+                              >
+                                <option value="wholesale">Wholesale</option>
+                                <option value="distributor">Distributor</option>
+                                <option value="retail">Retail</option>
+                                <option value="all">All</option>
+                              </select>
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
+                  {/* Business Info / Policy Matrix Table */}
+                  {editCategory !== "pricing_rule" && editCategory !== "catalog_product" && (
+                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-x-auto shadow-sm">
+                      <table className="w-full text-xs text-left border-collapse">
+                        <thead>
+                          <tr className="bg-slate-100/80 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 font-semibold border-b border-slate-200 dark:border-slate-700">
+                            <th className="p-3 w-12 text-center bg-slate-200/60 dark:bg-slate-800/60">#</th>
+                            <th className="p-3 min-w-[150px]">Governance Policy</th>
+                            <th className="p-3 min-w-[200px]">Specification / Terms</th>
+                            <th className="p-3 min-w-[100px]">Category</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                          <tr className="hover:bg-red-50/40 dark:hover:bg-red-950/20 transition">
+                            <td className="p-3 text-center bg-slate-50 dark:bg-slate-900 font-bold text-slate-400">1</td>
+                            <td className="p-2">
+                              <input
+                                type="text"
+                                value={editTitle}
+                                onChange={(e) => setEditTitle(e.target.value)}
+                                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-red-500"
+                              />
+                            </td>
+                            <td className="p-2">
+                              <input
+                                type="text"
+                                value={editContentText.split("\n")[0] || editTitle}
+                                onChange={(e) => {
+                                  const lines = editContentText.split("\n");
+                                  lines[0] = e.target.value;
+                                  setEditContentText(lines.join("\n"));
+                                }}
+                                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-red-500"
+                              />
+                            </td>
+                            <td className="p-2 font-mono uppercase text-slate-500">
+                              {editCategory}
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* MODE 2: DOCUMENT / PDF PREVIEW */}
+              {editorMode === "document" && (
+                <div className="space-y-4 max-w-3xl mx-auto">
+                  {/* PDF Toolbar */}
+                  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 flex flex-wrap items-center justify-between gap-2 text-xs shadow-sm">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 rounded bg-red-500/10 text-red-600 dark:text-red-400 font-semibold border border-red-500/20">
+                        PDF Mode
+                      </span>
+                      <span className="text-slate-500">Enterprise Specification Sheet</span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(editContentText);
+                          setCopiedDocContent(true);
+                          setTimeout(() => setCopiedDocContent(false), 2000);
+                        }}
+                        className="px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-1.5 transition"
+                      >
+                        {copiedDocContent ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-slate-400" />}
+                        <span>{copiedDocContent ? "Copied" : "Copy Document"}</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setEditorMode("raw")}
+                        className="px-2.5 py-1 rounded-lg bg-red-600 hover:bg-red-500 text-white font-medium flex items-center gap-1.5 transition shadow-sm"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                        <span>Edit Text Directly</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Official PDF Document Card */}
+                  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 sm:p-8 shadow-md relative overflow-hidden space-y-6">
+                    {/* Top Accent Strip */}
+                    <div
+                      className={`h-1.5 -mt-6 -mx-6 sm:-mt-8 sm:-mx-8 ${
+                        editCategory === "pricing_rule"
+                          ? "bg-gradient-to-r from-emerald-500 to-teal-500"
+                          : editCategory === "catalog_product"
+                          ? "bg-gradient-to-r from-cyan-500 to-blue-500"
+                          : editCategory === "agent_guidance"
+                          ? "bg-gradient-to-r from-indigo-500 to-purple-500"
+                          : editCategory === "custom"
+                          ? "bg-gradient-to-r from-amber-500 to-orange-500"
+                          : "bg-gradient-to-r from-red-500 to-rose-500"
+                      }`}
+                    />
+
+                    {/* Document Official Header */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-5">
+                      <div className="flex items-center gap-3">
+                        <img src="/logo-icon.png" alt="Company Logo" className="w-9 h-9 rounded-xl object-contain bg-slate-100 dark:bg-slate-800 p-1 border border-slate-200 dark:border-slate-700" />
+                        <div>
+                          <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Commercial Intelligence Directive</div>
+                          <div className="text-sm font-bold text-slate-900 dark:text-slate-100">Enterprise Specification Sheet</div>
+                        </div>
+                      </div>
+
+                      <div className="text-right font-mono text-[11px] text-slate-500 space-y-0.5">
+                        <div>REF: <strong className="text-slate-800 dark:text-slate-200">DOC-{editingItem.id.slice(0, 8).toUpperCase()}</strong></div>
+                        <div>REVISION: <strong className="text-slate-800 dark:text-slate-200">v{editingItem.version || 1}.0</strong></div>
+                        <div>EFFECTIVE: <strong className="text-emerald-600 dark:text-emerald-400">Active</strong></div>
+                      </div>
+                    </div>
+
+                    {/* Document Title & Badges */}
+                    <div className="space-y-2">
+                      <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100 leading-tight">
+                        {editTitle}
+                      </h2>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                          Scope: {editCustomerSegment.toUpperCase()}
+                        </span>
+                        {editSku && (
+                          <span className="text-xs px-2.5 py-0.5 rounded-full font-mono bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20">
+                            SKU: {editSku}
+                          </span>
+                        )}
+                        {editDiscountPct && (
+                          <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                            {editDiscountPct}% Volume Discount
+                          </span>
+                        )}
+                        {editBasePrice && (
+                          <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                            Tariff: ₹{editBasePrice} / {editUnit}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Rendered Document Body */}
+                    <div className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed space-y-3 font-sans whitespace-pre-wrap bg-slate-50 dark:bg-slate-950/50 p-5 rounded-xl border border-slate-200/80 dark:border-slate-800/80">
+                      {editContentText}
+                    </div>
+
+                    {/* Document Official Footer */}
+                    <div className="border-t border-slate-200 dark:border-slate-800 pt-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-500">
+                      <div>Supervised by: <strong>EDITH (NVIDIA NIM) & FRIDAY</strong></div>
+                      <div>Status: Verified by Commercial Governance Engine</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* MODE 3: DIRECT MANUAL TEXTAREA EDITOR */}
+              {editorMode === "raw" && (
+                <div className="space-y-3">
+                  {/* Markdown Quick Formatting Toolbar */}
+                  <div className="bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-2 flex flex-wrap items-center gap-1.5 text-xs">
+                    <span className="text-[11px] font-bold text-slate-500 px-1">Quick Tools:</span>
+                    <button
+                      type="button"
+                      onClick={() => setEditContentText((prev) => prev + "\n### Section Heading\n")}
+                      className="px-2 py-1 rounded bg-white dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 font-semibold"
+                    >
+                      # Heading
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditContentText((prev) => prev + "**Bold Term** ")}
+                      className="px-2 py-1 rounded bg-white dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 font-bold"
+                    >
+                      B Bold
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditContentText((prev) => prev + "\n- Specification item\n- Clause detail\n")}
+                      className="px-2 py-1 rounded bg-white dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700"
+                    >
+                      • Bullet List
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditContentText((prev) => prev + "\n| Tier | Min Qty | Discount |\n| --- | --- | --- |\n| Standard | 50 | 5% |\n| Volume | 100 | 12% |\n")}
+                      className="px-2 py-1 rounded bg-white dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 font-mono"
+                    >
+                      | Table |
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditContentText((prev) => prev + "\n> [!NOTE]\n> Commercial terms approved under operator directive.\n")}
+                      className="px-2 py-1 rounded bg-white dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700"
+                    >
+                      &gt; Note Callout
+                    </button>
+                  </div>
+
+                  {/* Live Monospace Text Editor */}
+                  <div className="relative">
+                    <textarea
+                      rows={14}
+                      value={editContentText}
+                      onChange={(e) => setEditContentText(e.target.value)}
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-4 text-xs sm:text-sm font-mono text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-cyan-500 leading-relaxed shadow-inner"
+                      placeholder="Type custom terms, specifications, or rules here..."
+                    />
+                  </div>
+
+                  {/* Character / Word Counters */}
+                  <div className="flex items-center justify-between text-xs text-slate-500 px-1">
+                    <div className="flex items-center gap-3">
+                      <span>Characters: <strong className="text-slate-800 dark:text-slate-200">{editContentText.length}</strong></span>
+                      <span>Words: <strong className="text-slate-800 dark:text-slate-200">{editContentText.trim().split(/\s+/).filter(Boolean).length}</strong></span>
+                      <span>Lines: <strong className="text-slate-800 dark:text-slate-200">{editContentText.split("\n").length}</strong></span>
+                    </div>
+                    <span className="text-[11px] text-slate-400">Changes update directly to SQLite embeddings on save.</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Action Footer */}
+            <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-950/70 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                {editSaveToast && (
+                  <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5 animate-fade-in">
+                    <CheckCircle className="w-4 h-4 text-emerald-500" />
+                    {editSaveToast}
+                  </span>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setEditingItem(null)}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                >
+                  Discard / Cancel
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleSaveEdit}
+                  disabled={isSavingEdit || !editTitle.trim()}
+                  className="px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl text-xs font-bold transition disabled:opacity-50 flex items-center gap-2 shadow-lg shadow-emerald-500/20"
+                >
+                  {isSavingEdit ? (
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Save className="w-4 h-4" />
+                  )}
+                  <span>{isSavingEdit ? "Saving & Re-Indexing..." : "Save Changes (Live Sync)"}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Create File / Knowledge Asset Modal */}
       {createModalOpen && (

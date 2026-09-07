@@ -355,7 +355,35 @@ async def update_knowledge_item(
         "category": updated_item.category,
     })
 
-    return {"success": True, "id": updated_item.id, "title": updated_item.title, "version": updated_item.version}
+    return {
+        "success": True,
+        "id": updated_item.id,
+        "title": updated_item.title,
+        "version": updated_item.version,
+        "item": {
+            "id": updated_item.id,
+            "category": updated_item.category,
+            "title": updated_item.title,
+            "sku": updated_item.sku,
+            "source_type": updated_item.source_type,
+            "content_text": updated_item.content_text,
+            "structured_data": updated_item.structured_data or {},
+            "base_price": float(updated_item.base_price) if updated_item.base_price is not None else None,
+            "currency": updated_item.currency,
+            "unit": updated_item.unit,
+            "min_order_quantity": float(updated_item.min_order_quantity) if updated_item.min_order_quantity is not None else None,
+            "min_quantity": float(updated_item.min_quantity) if updated_item.min_quantity is not None else None,
+            "max_quantity": float(updated_item.max_quantity) if updated_item.max_quantity is not None else None,
+            "discount_percentage": float(updated_item.discount_percentage) if updated_item.discount_percentage is not None else None,
+            "max_autonomous_discount": float(updated_item.max_autonomous_discount) if updated_item.max_autonomous_discount is not None else None,
+            "customer_segment": updated_item.customer_segment,
+            "version": updated_item.version,
+            "chunk_count": updated_item.chunk_count,
+            "is_active": updated_item.is_active,
+            "created_by_brain": updated_item.created_by_brain,
+            "updated_at": updated_item.updated_at.isoformat() if updated_item.updated_at else None,
+        },
+    }
 
 
 @router.patch("/items/{item_id}/toggle-active")
