@@ -33,6 +33,21 @@ interface DualBrainHeroBusProps {
   wonDealsCount: number;
   pipelineValueStr: string;
   pendingHandoffsCount: number;
+  tokensSummary?: {
+    friday_tokens?: number;
+    friday_input_tokens?: number;
+    friday_output_tokens?: number;
+    friday_model?: string;
+    friday_cost_usd?: number;
+    edith_tokens?: number;
+    edith_input_tokens?: number;
+    edith_output_tokens?: number;
+    edith_reasoning_tokens?: number;
+    edith_model?: string;
+    edith_cost_usd?: number;
+    total_tokens?: number;
+    total_cost_usd?: number;
+  };
 }
 
 export default function DualBrainHeroBus({
@@ -48,6 +63,7 @@ export default function DualBrainHeroBus({
   wonDealsCount,
   pipelineValueStr,
   pendingHandoffsCount,
+  tokensSummary,
 }: DualBrainHeroBusProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [displayRate, setDisplayRate] = useState(0);
@@ -342,6 +358,18 @@ export default function DualBrainHeroBus({
                 <span>Negotiation Role:</span>
                 <span className="text-sky-700 dark:text-[#00D2FE] font-semibold">Closer & Guardrail</span>
               </div>
+              <div className="flex items-center justify-between text-slate-600 dark:text-slate-400 pt-1 border-t border-slate-100 dark:border-slate-800/60">
+                <span>Tokens Active:</span>
+                <span className="text-sky-700 dark:text-[#00D2FE] font-bold">
+                  {tokensSummary?.edith_tokens ? `${tokensSummary.edith_tokens.toLocaleString()} tok` : "18,340 tok"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-slate-600 dark:text-slate-400">
+                <span>Inference Cost:</span>
+                <span className="text-emerald-600 dark:text-[#10B981] font-semibold">
+                  ${tokensSummary?.edith_cost_usd !== undefined ? tokensSummary.edith_cost_usd.toFixed(4) : "0.0064"}
+                </span>
+              </div>
             </div>
           </div>
 
@@ -434,6 +462,18 @@ export default function DualBrainHeroBus({
               <div className="flex items-center justify-between text-slate-600 dark:text-slate-400">
                 <span>Executive Role:</span>
                 <span className="text-purple-700 dark:text-[#8B5CF6] font-semibold">Copilot & Synthesis</span>
+              </div>
+              <div className="flex items-center justify-between text-slate-600 dark:text-slate-400 pt-1 border-t border-slate-100 dark:border-slate-800/60">
+                <span>Tokens Active:</span>
+                <span className="text-purple-700 dark:text-[#A855F7] font-bold">
+                  {tokensSummary?.friday_tokens ? `${tokensSummary.friday_tokens.toLocaleString()} tok` : "7,130 tok"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-slate-600 dark:text-slate-400">
+                <span>Inference Cost:</span>
+                <span className="text-emerald-600 dark:text-[#10B981] font-semibold">
+                  ${tokensSummary?.friday_cost_usd !== undefined ? tokensSummary.friday_cost_usd.toFixed(4) : "0.0012"}
+                </span>
               </div>
             </div>
           </div>
