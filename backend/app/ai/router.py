@@ -437,6 +437,7 @@ class AIRouter:
             provider="gemini_emergency",
             key_alias="gemini",
             fallback_depth=fallback_depth,
+            reasoning_content=f"[Emergency Fallback Reasoning: Generated via Gemini fallback with {request.max_tokens} max tokens.]",
             latency_ms=latency_ms,
         )
 

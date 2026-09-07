@@ -151,7 +151,7 @@ async def get_brain_status():
         "friday": {
             "name": "Friday",
             "provider": "Google Gemini",
-            "model": "gemini-2.5-flash",
+            "model": getattr(settings, "GEMINI_MODEL", "gemini-3.1-flash-live-preview"),
             "role": "Personal AI Web Assistant & Direct Executive Copilot",
             "responsibilities": [
                 "In-browser voice assistant and DOM execution",
@@ -179,3 +179,106 @@ async def get_brain_status():
             "independent_agency_enabled": True,
         },
     }
+
+
+# -----------------------------------------------------------------------------
+# Codebase Self-Inspection, Diagnostics, and Meta-Cognitive APIs
+# -----------------------------------------------------------------------------
+
+class CodeReadRequest(BaseModel):
+    path: str = Field(..., description="File path relative to repository root (e.g. 'backend/app/config.py')")
+    start_line: Optional[int] = Field(1, ge=1, description="1-indexed starting line number")
+    end_line: Optional[int] = Field(150, ge=1, description="1-indexed ending line number")
+
+
+class CodeSearchRequest(BaseModel):
+    query: str = Field(..., min_length=2, description="Search term, symbol, or error string")
+    directory: Optional[str] = Field("backend/app", description="Directory to search in (e.g. 'backend/app', 'dashboard')")
+    max_results: Optional[int] = Field(30, ge=1, le=100, description="Maximum results to return")
+
+
+class ErrorDiagnoseRequest(BaseModel):
+    error_message: str = Field(..., min_length=3, description="Exception message or error text")
+    traceback: Optional[str] = Field(None, description="Optional stack trace string")
+
+
+@router.post("/code/read")
+async def read_codebase_file(req: CodeReadRequest):
+    """
+    Allows Friday and EDITH to inspect any source code file in the repository.
+    Safely restricted to within project boundaries.
+    """
+    from app.brain.code_service import CodebaseService
+    try:
+        return CodebaseService.read_code_file(
+            rel_path=req.path,
+            start_line=req.start_line or 1,
+            end_line=req.end_line or 150,
+        )
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+@router.post("/code/search")
+async def search_codebase(req: CodeSearchRequest):
+    """
+    Searches the codebase for functions, classes, configuration keys, or error messages.
+    """
+    from app.brain.code_service import CodebaseService
+    try:
+        return CodebaseService.search_codebase(
+            query=req.query,
+            directory=req.directory or "backend/app",
+            max_results=req.max_results or 30,
+        )
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+@router.get("/code/tree")
+async def get_codebase_tree(
+    subdir: str = Query("backend/app", description="Subdirectory to traverse"),
+    max_depth: int = Query(3, ge=1, le=5),
+):
+    """
+    Returns file and directory tree hierarchy for AI architecture inspection.
+    """
+    from app.brain.code_service import CodebaseService
+    try:
+        return CodebaseService.get_structure(subdir=subdir, max_depth=max_depth)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+@router.post("/code/diagnose")
+async def diagnose_code_error(req: ErrorDiagnoseRequest):
+    """
+    Takes an error message and optional traceback, locates the relevant codebase file and lines,
+    and returns a root-cause explanation and fix recommendation.
+    """
+    from app.brain.code_service import CodebaseService
+    try:
+        return CodebaseService.diagnose_error(
+            error_message=req.error_message,
+            traceback_str=req.traceback,
+        )
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+@router.get("/diagnostics")
+async def get_system_diagnostics(session: AsyncSession = Depends(get_db)):
+    """
+    Returns operational diagnostics, database table counts, and active model telemetry.
+    """
+    from app.brain.code_service import CodebaseService
+    return await CodebaseService.get_system_diagnostics(
+        session=session,
+        org_id=settings.DEFAULT_ORG_ID,
+    )

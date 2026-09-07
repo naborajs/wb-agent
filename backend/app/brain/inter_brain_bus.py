@@ -110,10 +110,14 @@ class EdithBrain:
             max_allowed_discount = float(rule_res.max_autonomous_discount_percentage)
 
         if requested_discount is not None and requested_discount > max_allowed_discount:
+            suggestion = (
+                f"Strategic Suggestion: I recommend proposing our verified Tier 2 volume discount of {max_allowed_discount:.1f}% "
+                f"for a 100-unit commitment, or offering a complimentary evaluation sample kit to secure buyer confidence without eroding gross margin."
+            )
             denial_reason = (
                 f"Requested discount of {requested_discount:.1f}% exceeds our maximum autonomous discount "
                 f"threshold of {max_allowed_discount:.1f}%. Approving discounts beyond this limit requires direct "
-                f"executive sign-off to protect commercial gross margins."
+                f"executive sign-off to protect commercial gross margins. {suggestion}"
             )
             logger.info(f"[EDITH Brain] Autonomously DENIED task: {denial_reason}")
             return {
@@ -122,6 +126,7 @@ class EdithBrain:
                 "policy_checked": "MAX_AUTONOMOUS_DISCOUNT_LIMIT",
                 "requested_discount": requested_discount,
                 "allowed_threshold": max_allowed_discount,
+                "suggestion": suggestion,
                 "action_executed": False,
             }
 
@@ -134,7 +139,7 @@ class EdithBrain:
                 .join(Customer, Customer.id == Conversation.customer_id)
                 .where(
                     Conversation.org_id == org_id,
-                    Customer.phone.contains(clean_phone[-10:]),
+                    Customer.primary_phone.contains(clean_phone[-10:]),
                 )
                 .limit(1)
             )
@@ -159,10 +164,14 @@ class EdithBrain:
 
                     # If contacted within last 1 hour and task is promotional outreach
                     if diff_hours < 1.0 and any(w in text_lower for w in ["promo", "outreach", "follow", "discount", "offer"]):
+                        wait_minutes = int((1.0 - diff_hours) * 60)
+                        suggestion = (
+                            f"Strategic Suggestion: I recommend waiting {max(15, wait_minutes)} minutes before following up, "
+                            f"and opening with our verified product specification sheet to keep customer engagement organic."
+                        )
                         denial_reason = (
                             f"Lead {target_phone} received an outbound communication {int(diff_hours * 60)} minutes ago. "
-                            f"Dispatching another message now violates our anti-spam cadence and risks customer opt-out. "
-                            f"I recommend waiting at least 2 to 4 hours before reaching out again."
+                            f"Dispatching another message now violates our anti-spam cadence and risks customer opt-out. {suggestion}"
                         )
                         logger.info(f"[EDITH Brain] Autonomously DENIED task: {denial_reason}")
                         return {
@@ -170,6 +179,7 @@ class EdithBrain:
                             "reasoning": denial_reason,
                             "policy_checked": "ANTI_SPAM_COOLING_OFF_CADENCE",
                             "last_contact_minutes_ago": int(diff_hours * 60),
+                            "suggestion": suggestion,
                             "action_executed": False,
                         }
 
@@ -313,12 +323,86 @@ class FridayBrain:
         # Fast Identity Check
         if any(w in user_lower for w in ["what is your name", "who are you", "your name", "tumhara naam kya hai", "naam kya hai"]):
             reply = (
-                "I am Friday, your personal executive web assistant! My partner AI brain EDITH handles our "
+                "I am Friday, your personal executive web assistant powered by Google Gemini 3.1 Flash Live! My partner AI brain EDITH handles our "
                 "external WhatsApp sales, client inquiries, and order negotiations. How can I assist you in the dashboard today?"
             )
             return {
                 "speaker": "Friday",
-                "model": "gemini-2.5-flash",
+                "model": "gemini-3.1-flash-live-preview",
+                "reply": reply,
+                "consulted_edith": False,
+            }
+
+        # Check if user instruction is asking to inspect codebase or diagnose an error
+        is_diagnose = any(w in user_lower for w in ["error", "traceback", "exception", "failed", "bug", "why did it fail"])
+        is_inspect_code = any(w in user_lower for w in ["check code", "inspect code", "read file", "show file", "search code", "check backend", "look at file"])
+        is_diagnostics = any(w in user_lower for w in ["system health", "diagnostics", "database status", "check tables"])
+
+        if is_diagnose and any(w in user_lower for w in ["traceback", "attributeerror", "keyerror", "why did", "error:"]):
+            from app.brain.code_service import CodebaseService
+            diag = CodebaseService.diagnose_error(user_message)
+            reply = (
+                f"I've analyzed that error for you! Here is what I found:\n\n"
+                f"🔍 **Diagnosis:** {diag['diagnosis']}\n"
+                + (f"📄 **Location:** `{diag['identified_file']}` (Line {diag['identified_line']})\n" if diag['identified_file'] else "")
+                + (f"💡 **Recommended Fix:** {diag['recommendations'][-1]}" if diag['recommendations'] else "")
+            )
+            return {
+                "speaker": "Friday",
+                "model": "gemini-3.1-flash-live-preview",
+                "reply": reply,
+                "consulted_edith": False,
+                "code_diagnosis": diag,
+            }
+
+        if is_inspect_code:
+            from app.brain.code_service import CodebaseService
+            path_match = re.search(r"([a-zA-Z0-9_\-\./]+\.(?:py|ts|tsx|json|md))", user_message)
+            if path_match:
+                rel_path = path_match.group(1)
+                try:
+                    read_res = CodebaseService.read_code_file(rel_path, 1, 60)
+                    reply = (
+                        f"I've inspected `{read_res['path']}`! It contains {read_res['total_lines']} lines of code. "
+                        f"Here is an initial excerpt:\n\n```python\n{read_res['lines_with_numbers'][:500]}\n```\n"
+                        "Let me know if you would like me to analyze any specific function or rule within it!"
+                    )
+                    return {
+                        "speaker": "Friday",
+                        "model": "gemini-3.1-flash-live-preview",
+                        "reply": reply,
+                        "consulted_edith": False,
+                    }
+                except Exception:
+                    pass
+
+            search_term = user_lower.replace("search code", "").replace("check code for", "").replace("search codebase for", "").strip()
+            if search_term:
+                search_res = CodebaseService.search_codebase(search_term, "backend/app", 3)
+                if search_res["matches"]:
+                    m_text = "\n".join([f"- `{m['file']}:{m['line_number']}`: `{m['content']}`" for m in search_res["matches"][:3]])
+                    reply = f"I searched our codebase for '{search_term}' and found {search_res['matches_found']} matches! Here are the top locations:\n\n{m_text}"
+                    return {
+                        "speaker": "Friday",
+                        "model": "gemini-3.1-flash-live-preview",
+                        "reply": reply,
+                        "consulted_edith": False,
+                    }
+
+        if is_diagnostics:
+            from app.brain.code_service import CodebaseService
+            diag = await CodebaseService.get_system_diagnostics(session, org_id)
+            tbls = ", ".join([f"{k}: {v}" for k, v in diag["database_tables"].items()])
+            reply = (
+                f"Our system is operating smoothly! 🚀\n\n"
+                f"• **Status:** {diag['status'].upper()}\n"
+                f"• **Active Models:** Friday ({diag['active_models']['friday']}) & EDITH ({diag['active_models']['edith']})\n"
+                f"• **Database Records:** {tbls}\n"
+                "Everything is connected and ready to assist you!"
+            )
+            return {
+                "speaker": "Friday",
+                "model": "gemini-3.1-flash-live-preview",
                 "reply": reply,
                 "consulted_edith": False,
             }
@@ -355,7 +439,7 @@ class FridayBrain:
 
             return {
                 "speaker": "Friday",
-                "model": "gemini-2.5-flash",
+                "model": "gemini-3.1-flash-live-preview",
                 "reply": reply,
                 "consulted_edith": True,
                 "edith_verdict": bus_res,
@@ -363,10 +447,11 @@ class FridayBrain:
 
         # General Executive Assistance Chat via Gemini (or simulated intelligent response if offline)
         api_key = getattr(settings, "GEMINI_API_KEY", "")
+        gemini_model = getattr(settings, "GEMINI_MODEL", "gemini-3.1-flash-live-preview")
         if api_key and not api_key.startswith("mock"):
             try:
                 import httpx
-                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/{gemini_model}:generateContent?key={api_key}"
                 prompt_text = f"{self.get_system_prompt()}\n\nOperator: {user_message}\nFriday:"
                 payload = {
                     "contents": [{"parts": [{"text": prompt_text}]}],
@@ -379,7 +464,7 @@ class FridayBrain:
                     reply = data["candidates"][0]["content"]["parts"][0]["text"].strip()
                     return {
                         "speaker": "Friday",
-                        "model": "gemini-2.5-flash",
+                        "model": gemini_model,
                         "reply": reply,
                         "consulted_edith": False,
                     }
@@ -400,7 +485,7 @@ class FridayBrain:
 
         return {
             "speaker": "Friday",
-            "model": "gemini-2.5-flash (local)",
+            "model": f"{gemini_model} (local)",
             "reply": reply,
             "consulted_edith": False,
         }

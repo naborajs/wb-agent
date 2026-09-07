@@ -70,6 +70,7 @@ class Settings(BaseSettings):
     AI_CIRCUIT_BREAKER_FAILURE_THRESHOLD: int = 3
     ENABLE_MINIMAX_M3: bool = False  # TODO: remove minimaxai/minimax-m3 deprecated model
     GEMINI_API_KEY: str = ""
+    GEMINI_MODEL: str = "gemini-3.1-flash-live-preview"
 
     @property
     def nvidia_primary_key(self) -> str:
