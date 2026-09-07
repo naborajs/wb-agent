@@ -24,6 +24,8 @@ from app.database.models import (
     Conversation,
     Customer,
     InterBrainMessage,
+    KnowledgeCategory,
+    KnowledgeItem,
     Lead,
     Message,
     PricingRule,
@@ -227,6 +229,93 @@ class EdithBrain:
             "target_phone": target_phone,
             "requested_discount": requested_discount,
             "action_executed": True,
+        }
+
+    async def evaluate_knowledge_update(
+        self,
+        session: AsyncSession,
+        org_id: str,
+        proposal: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """
+        Independently audits a proposed knowledge, pricing, or catalog change.
+        Enforces commercial margin protections, discount ceilings, and business sanity rules.
+        """
+        category = proposal.get("category", "business_info")
+        action = proposal.get("action", "update")
+        fields = proposal.get("fields", {})
+        title = proposal.get("title", "Knowledge Asset")
+        
+        # 1. Discount Ceiling Check
+        max_allowed_discount = 15.0
+        rule_stmt = (
+            select(PricingRule)
+            .where(PricingRule.org_id == org_id, PricingRule.is_active == True)
+            .order_by(PricingRule.max_autonomous_discount_percentage.desc())
+            .limit(1)
+        )
+        rule_res = (await session.execute(rule_stmt)).scalar_one_or_none()
+        if rule_res and rule_res.max_autonomous_discount_percentage:
+            max_allowed_discount = float(rule_res.max_autonomous_discount_percentage)
+
+        disc = fields.get("discount_percentage")
+        auto_disc = fields.get("max_autonomous_discount")
+        check_disc = disc if disc is not None else auto_disc
+
+        if check_disc is not None and float(check_disc) > max_allowed_discount:
+            suggestion = (
+                f"Strategic Counter-Proposal: Propose setting the volume discount to {max_allowed_discount:.1f}% "
+                f"with a 200-unit commitment to protect target gross margins."
+            )
+            denial_reason = (
+                f"Proposed discount of {float(check_disc):.1f}% exceeds our maximum authorized commercial ceiling "
+                f"of {max_allowed_discount:.1f}%. Modifying volume tiers beyond this ceiling requires board sign-off."
+            )
+            logger.info(f"[EDITH Brain] Autonomously DENIED knowledge update: {denial_reason}")
+            return {
+                "decision": "DENIED",
+                "reasoning": denial_reason,
+                "policy_checked": "MAX_AUTONOMOUS_DISCOUNT_LIMIT",
+                "requested_discount": float(check_disc),
+                "allowed_threshold": max_allowed_discount,
+                "suggestion": suggestion,
+            }
+
+        # 2. MOQ & Quantity Sanity Check
+        moq = fields.get("min_order_quantity") or fields.get("min_quantity")
+        if moq is not None and float(moq) < 0:
+            return {
+                "decision": "DENIED",
+                "reasoning": "Minimum order quantity cannot be negative.",
+                "policy_checked": "MOQ_SANITY",
+                "suggestion": "Specify a non-negative order quantity minimum.",
+            }
+
+        # 3. Base Price Sanity Check
+        base_price = fields.get("base_price")
+        if base_price is not None and float(base_price) < 0:
+            return {
+                "decision": "DENIED",
+                "reasoning": "Product base price cannot be negative.",
+                "policy_checked": "PRICE_SANITY",
+                "suggestion": "Specify a positive base price per unit.",
+            }
+
+        # 4. Free giveaway check
+        raw_text = proposal.get("raw_instruction", "").lower()
+        if any(w in raw_text for w in ["free for everyone", "100% discount", "give away"]):
+            return {
+                "decision": "DENIED",
+                "reasoning": "Unrestricted zero-cost promotions violate commercial sales charter.",
+                "policy_checked": "COMMERCIAL_VIABILITY",
+                "suggestion": "Configure a targeted evaluation sample kit instead.",
+            }
+
+        return {
+            "decision": "ACCEPTED",
+            "reasoning": f"Proposed change to '{title}' ({category}) complies with all commercial pricing boundaries and catalog governance.",
+            "policy_checked": "COMMERCIAL_GOVERNANCE_VERIFIED",
+            "suggestion": None,
         }
 
     async def generate_debrief(
@@ -539,6 +628,92 @@ class FridayBrain:
             "consulted_edith": False,
         }
 
+    async def formulate_knowledge_update(
+        self,
+        session: AsyncSession,
+        org_id: str,
+        operator_instruction: str,
+        category_hint: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """
+        Interprets natural-language instructions from the operator and compiles
+        a structured change proposal for EDITH to audit.
+        """
+        text = operator_instruction.strip()
+        text_lower = text.lower()
+
+        # 1. Determine Category
+        category = category_hint or KnowledgeCategory.BUSINESS_INFO.value
+        if any(w in text_lower for w in ["discount", "tier", "volume tier", "pricing", "tariff", "ceiling"]):
+            category = KnowledgeCategory.PRICING_RULE.value
+        elif any(w in text_lower for w in ["sku", "product", "catalog", "stock", "variant", "price per unit", "moq"]):
+            category = KnowledgeCategory.CATALOG_PRODUCT.value
+        elif any(w in text_lower for w in ["rule", "guidance", "objection", "instruction", "safety prompt", "spin"]):
+            category = KnowledgeCategory.AGENT_GUIDANCE.value
+        elif any(w in text_lower for w in ["custom", "setting", "config", "parameter"]):
+            category = KnowledgeCategory.CUSTOM.value
+
+        # 2. Extract Numbers & Parameters
+        fields: Dict[str, Any] = {}
+        # Check for discount percentage
+        disc_match = re.search(r"(\d+(?:\.\d+)?)\s*%", text_lower)
+        if disc_match:
+            fields["discount_percentage"] = float(disc_match.group(1))
+
+        # Check for ceiling percentage
+        ceiling_match = re.search(r"(?:max|ceiling|autonomous)\s*(?:discount)?\s*(?:of|at)?\s*(\d+(?:\.\d+)?)\s*%", text_lower)
+        if ceiling_match:
+            fields["max_autonomous_discount"] = float(ceiling_match.group(1))
+        elif "discount_percentage" in fields:
+            fields["max_autonomous_discount"] = min(fields["discount_percentage"], 15.0)
+
+        # Check for quantity / MOQ
+        qty_match = re.search(r"(\d+(?:\.\d+)?)\s*(?:units|unit|kg|pcs|packs|cartons)\b", text_lower)
+        if not qty_match:
+            qty_match = re.search(r"(?:for|min|moq|quantity|qty|over|above)\s*(\d+(?:\.\d+)?)\b", text_lower)
+        if not qty_match and category == KnowledgeCategory.PRICING_RULE.value:
+            qty_match = re.search(r"\b(\d+)\s*\+\b", text_lower)
+
+        if qty_match and float(qty_match.group(1)) > 0:
+            val = float(qty_match.group(1))
+            if category == KnowledgeCategory.PRICING_RULE.value:
+                fields["min_quantity"] = val
+            elif category == KnowledgeCategory.CATALOG_PRODUCT.value:
+                fields["min_order_quantity"] = val
+
+        # Check for price
+        price_match = re.search(r"(?:price|rate|cost|₹|\$)\s*(?:of|at)?\s*(\d+(?:\.\d+)?)", text_lower)
+        if price_match:
+            fields["base_price"] = float(price_match.group(1))
+
+        # Determine Title
+        title = "Commercial Policy"
+        if category == KnowledgeCategory.PRICING_RULE.value:
+            min_q = fields.get("min_quantity", 50)
+            disc = fields.get("discount_percentage", 5.0)
+            title = f"Tier: {min_q}+ Volume ({disc}% Discount)"
+        elif category == KnowledgeCategory.CATALOG_PRODUCT.value:
+            name_match = re.search(r'(?:product|item)\s+["\']?([^"\',]+)["\']?', text, re.IGNORECASE)
+            title = name_match.group(1).strip().title() if name_match else "Catalog Product"
+        else:
+            clean_title = re.sub(r"^(?:add|update|create|set)\s+", "", text, flags=re.IGNORECASE)
+            title = clean_title[:50].title()
+
+        # Generate markdown content
+        content_text = f"### {title}\n" + "\n".join([f"- **{k.replace('_', ' ').title()}:** {v}" for k, v in fields.items()])
+        if not fields:
+            content_text += f"\n{text}"
+
+        return {
+            "action": "create" if any(w in text_lower for w in ["add", "new", "create"]) else "update",
+            "category": category,
+            "title": title,
+            "fields": fields,
+            "content_text": content_text,
+            "raw_instruction": text,
+            "summary": f"Proposing {category} update: '{title}' with fields {fields}",
+        }
+
 
 class InterBrainBus:
     """
@@ -745,6 +920,178 @@ class InterBrainBus:
             "content": debrief["content"],
             "reasoning": debrief["reasoning"],
             "created_at": edith_msg.created_at.isoformat() if edith_msg.created_at else None,
+        }
+
+    async def dispatch_knowledge_update(
+        self,
+        session: AsyncSession,
+        org_id: str,
+        operator_instruction: str,
+        category_hint: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """
+        Coordinates dual-brain update chat deliberation:
+        1. Friday formulates structured proposal.
+        2. EDITH independently checks commercial policy guardrails.
+        3. If ACCEPTED: commits atomically, re-chunks, re-embeds, dispatches WebSocket event and notification.
+        4. If DENIED: returns policy rationale and counter-suggestion.
+        """
+        # 1. Friday formulates proposal
+        proposal = await self.friday.formulate_knowledge_update(
+            session=session,
+            org_id=org_id,
+            operator_instruction=operator_instruction,
+            category_hint=category_hint,
+        )
+
+        # 2. Log Friday's proposal to InterBrainMessage
+        friday_msg = InterBrainMessage(
+            org_id=org_id,
+            sender_brain="FRIDAY",
+            recipient_brain="EDITH",
+            message_type="KNOWLEDGE_UPDATE_PROPOSAL",
+            content=f"Proposed update to {proposal['category']}: {proposal['title']} ({proposal['summary']})",
+            decision="PENDING",
+            reasoning="Operator requested knowledge update via web dashboard chat.",
+            metadata_payload=proposal,
+        )
+        session.add(friday_msg)
+        await session.commit()
+        await session.refresh(friday_msg)
+        await self._broadcast(org_id, friday_msg)
+
+        # 3. EDITH independently evaluates
+        edith_eval = await self.edith.evaluate_knowledge_update(
+            session=session,
+            org_id=org_id,
+            proposal=proposal,
+        )
+
+        decision = edith_eval["decision"]
+        reasoning = edith_eval["reasoning"]
+        suggestion = edith_eval.get("suggestion")
+
+        # 4. Log EDITH's verdict to InterBrainMessage
+        edith_msg = InterBrainMessage(
+            org_id=org_id,
+            conversation_id=friday_msg.id,
+            sender_brain="EDITH",
+            recipient_brain="FRIDAY",
+            message_type="KNOWLEDGE_UPDATE_VERDICT",
+            content=f"Knowledge Update {decision}: {reasoning}",
+            decision=decision,
+            reasoning=reasoning,
+            metadata_payload=edith_eval,
+            resolved_at=utc_now(),
+        )
+        session.add(edith_msg)
+        friday_msg.decision = decision
+        friday_msg.resolved_at = utc_now()
+        await session.commit()
+        await session.refresh(edith_msg)
+        await self._broadcast(org_id, edith_msg)
+
+        resulting_item = None
+        if decision == "ACCEPTED":
+            from app.knowledge.ingestion import KnowledgeIngestionService
+            from decimal import Decimal
+            fields = proposal.get("fields", {})
+
+            ingest_svc = KnowledgeIngestionService(session, org_id)
+            k_item = await ingest_svc.ingest_knowledge_item(
+                title=proposal["title"],
+                content_text=proposal["content_text"],
+                category=proposal["category"],
+                source_type="chat_agent",
+                created_by_brain="FRIDAY",
+                structured_data=fields,
+                sku=fields.get("sku"),
+                base_price=Decimal(str(fields["base_price"])) if "base_price" in fields else None,
+                min_order_quantity=Decimal(str(fields["min_order_quantity"])) if "min_order_quantity" in fields else None,
+                min_quantity=Decimal(str(fields["min_quantity"])) if "min_quantity" in fields else None,
+                max_quantity=Decimal(str(fields["max_quantity"])) if "max_quantity" in fields else None,
+                discount_percentage=Decimal(str(fields["discount_percentage"])) if "discount_percentage" in fields else None,
+                max_autonomous_discount=Decimal(str(fields["max_autonomous_discount"])) if "max_autonomous_discount" in fields else None,
+                customer_segment=fields.get("customer_segment"),
+            )
+            resulting_item = {
+                "id": k_item.id,
+                "title": k_item.title,
+                "category": k_item.category,
+                "version": k_item.version,
+                "chunk_count": k_item.chunk_count,
+            }
+
+            # Broadcast live update
+            try:
+                from app.realtime.connection_manager import ws_manager
+                await ws_manager.broadcast_to_org(org_id, "knowledge_item_updated", {
+                    "item_id": k_item.id,
+                    "title": k_item.title,
+                    "category": k_item.category,
+                    "version": k_item.version,
+                    "chunk_count": k_item.chunk_count,
+                })
+            except Exception:
+                pass
+
+            # Dispatch Autonomous Notification
+            try:
+                from app.database.models import AgentNotification
+                from app.realtime.connection_manager import ws_manager
+                notif = AgentNotification(
+                    org_id=org_id,
+                    sender_brain="EDITH",
+                    title=f"Knowledge Hub Updated: {k_item.title}",
+                    content=f"EDITH verified and committed update for {k_item.category}: {reasoning}",
+                    category="KNOWLEDGE_UPDATE",
+                    severity="success",
+                    action_url=f"/knowledge?tab={k_item.category}",
+                )
+                session.add(notif)
+                await session.commit()
+                await ws_manager.broadcast_to_org(org_id, "agent_notification", {
+                    "id": notif.id,
+                    "sender_brain": "EDITH",
+                    "title": notif.title,
+                    "content": notif.content,
+                    "category": notif.category,
+                    "severity": notif.severity,
+                    "is_read": False,
+                    "action_url": notif.action_url,
+                    "created_at": utc_now().isoformat(),
+                })
+            except Exception:
+                pass
+
+            reply_text = (
+                f"I've updated {proposal['title']}! EDITH reviewed and verified the changes: {reasoning}"
+            )
+            speak_text = f"Updated {proposal['title']}. EDITH approved the change."
+        else:
+            reply_text = (
+                f"I consulted with EDITH, but EDITH declined to apply this update. "
+                f"Reason: {reasoning}"
+                + (f" {suggestion}" if suggestion else "")
+            )
+            speak_text = f"EDITH declined the update: {reasoning[:120]}"
+
+        return {
+            "success": decision == "ACCEPTED",
+            "decision": decision,
+            "friday_proposal": proposal,
+            "edith_evaluation": edith_eval,
+            "resulting_item": resulting_item,
+            "reply_text": reply_text,
+            "speak_text": speak_text,
+            "deliberation_flow": {
+                "operator_instruction": operator_instruction,
+                "friday_proposal": proposal["summary"],
+                "edith_verdict": decision,
+                "edith_reasoning": reasoning,
+                "edith_suggestion": suggestion,
+                "friday_reply": reply_text,
+            }
         }
 
     async def get_dialogue_history(
