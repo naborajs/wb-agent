@@ -247,8 +247,95 @@ async def get_brain_status():
             "status": "operational",
             "protocol": "InterBrainMessage (Persistent DB + Realtime WebSocket)",
             "independent_agency_enabled": True,
+            "safe_mode_enabled": inter_brain_bus.safe_mode_enabled,
         },
     }
+
+
+class EdithToFridayRequest(BaseModel):
+    action: str = Field(..., description="'VOICE_ALERT', 'VOICE_INTERRUPT', 'OPERATOR_NOTE'")
+    topic: Optional[str] = Field(None, description="Event or lead description")
+    message: Optional[str] = Field(None, description="Detailed message payload")
+    severity: Optional[str] = Field("medium", description="'low', 'medium', 'high', 'critical'")
+    urgency: Optional[str] = Field("normal", description="'normal', 'urgent', 'critical'")
+    target_phone: Optional[str] = Field(None, description="Optional customer phone")
+    details: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Additional context")
+
+
+class SafeModeRequest(BaseModel):
+    enabled: Optional[bool] = None
+
+
+@router.get("/briefing")
+async def get_executive_briefing(
+    timeframe: str = Query("today", description="'today' or 'yesterday'"),
+    session: AsyncSession = Depends(get_db),
+):
+    """
+    Returns executive morning/daily audio briefing script and aggregated operational metrics.
+    """
+    org_id = settings.DEFAULT_ORG_ID
+    return await inter_brain_bus.get_executive_briefing(session, org_id, timeframe=timeframe)
+
+
+@router.get("/hourly-velocity")
+async def get_hourly_velocity(session: AsyncSession = Depends(get_db)):
+    """
+    Returns 24-hour inbound traffic velocity, peak hours, autonomous conversions vs handoffs, and latency curve.
+    """
+    org_id = settings.DEFAULT_ORG_ID
+    return await inter_brain_bus.get_hourly_velocity(session, org_id)
+
+
+@router.post("/edith-to-friday")
+async def edith_request_friday(
+    req: EdithToFridayRequest,
+    session: AsyncSession = Depends(get_db),
+):
+    """
+    EDITH delegates an action to Friday. Friday independently evaluates and may accept or deny.
+    If Friday denies with reason, EDITH executes its fallback system to notify the operator directly.
+    """
+    org_id = settings.DEFAULT_ORG_ID
+    details = {
+        "topic": req.topic or req.message,
+        "message": req.message or req.topic,
+        "severity": req.severity,
+        "urgency": req.urgency,
+        "target_phone": req.target_phone,
+        **(req.details or {}),
+    }
+    return await inter_brain_bus.edith_request_friday(
+        session=session,
+        org_id=org_id,
+        action=req.action,
+        details=details,
+    )
+
+
+@router.post("/background-think")
+async def trigger_background_thinking(session: AsyncSession = Depends(get_db)):
+    """
+    Triggers mutual background thinking & idle synaptic audit cycle across EDITH and Friday.
+    """
+    org_id = settings.DEFAULT_ORG_ID
+    return await inter_brain_bus.run_background_thinking_cycle(session, org_id)
+
+
+@router.post("/toggle-safe-mode")
+async def toggle_safe_mode(req: Optional[SafeModeRequest] = None):
+    """
+    Toggles or sets the autonomous safe mode / pause AI guardrail.
+    """
+    enabled = req.enabled if req else None
+    status = inter_brain_bus.toggle_safe_mode(enabled)
+    return {"safe_mode_enabled": status}
+
+
+@router.get("/safe-mode")
+async def get_safe_mode():
+    """Returns whether autonomous safe mode is currently enabled."""
+    return {"safe_mode_enabled": inter_brain_bus.safe_mode_enabled}
 
 
 class BenchmarkModelRequest(BaseModel):
