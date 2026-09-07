@@ -44,8 +44,10 @@ from app.database.models.learning import SalesLearning
 from app.database.models.prompt_version import PromptVersion
 from app.database.models.watchdog import WatchdogAlert
 from app.database.models.inter_brain import InterBrainMessage
+from app.database.models.notification import AgentNotification
 
 __all__ = [
+    "AgentNotification",
     "InterBrainMessage",
     "Organization",
     "User",

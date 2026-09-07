@@ -32,6 +32,9 @@ class BrainChatResponse(BaseModel):
     reply: str
     consulted_edith: bool = False
     edith_verdict: Optional[Dict[str, Any]] = None
+    speak_text: Optional[str] = None
+    delegation_flow: Optional[Dict[str, Any]] = None
+    code_diagnosis: Optional[Dict[str, Any]] = None
 
 
 class BrainTaskRequest(BaseModel):

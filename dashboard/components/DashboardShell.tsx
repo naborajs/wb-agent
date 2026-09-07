@@ -36,6 +36,7 @@ import {
 const navigation = [
   { name: "Overview", href: "/", icon: BarChart3 },
   { name: "Dual Brains", href: "/brain", icon: Cpu },
+  { name: "Notifications", href: "/notifications", icon: Bell },
   { name: "Live Inbox", href: "/conversations", icon: Inbox },
   { name: "Leads", href: "/leads", icon: Users },
   { name: "Campaigns", href: "/campaigns", icon: Send },
@@ -62,6 +63,18 @@ interface WatchdogAlertItem {
   created_at?: string;
 }
 
+interface AgentNotificationItem {
+  id: string;
+  sender_brain: "FRIDAY" | "EDITH";
+  title: string;
+  content: string;
+  category: string;
+  severity: "info" | "warning" | "critical" | "success";
+  is_read: boolean;
+  action_url?: string;
+  created_at?: string;
+}
+
 export default function DashboardShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [darkMode, setDarkMode] = useState(false);
@@ -69,6 +82,13 @@ export default function DashboardShell({ children }: { children: React.ReactNode
   const [profileOpen, setProfileOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
+
+  // Agent Autonomous Notifications State
+  const [agentNotifs, setAgentNotifs] = useState<AgentNotificationItem[]>([]);
+  const [agentNotifOpen, setAgentNotifOpen] = useState(false);
+  const [unreadNotifCount, setUnreadNotifCount] = useState(0);
+  const [liveToast, setLiveToast] = useState<AgentNotificationItem | null>(null);
+  const agentNotifRef = useRef<HTMLDivElement>(null);
 
   // Live WebSocket Heartbeat & Watchdog Alert Center state
   const [wsConnected, setWsConnected] = useState(false);
@@ -115,6 +135,16 @@ export default function DashboardShell({ children }: { children: React.ReactNode
       })
       .catch(() => {});
 
+    fetch("/api/v1/notifications?limit=20")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data && Array.isArray(data.notifications)) {
+          setAgentNotifs(data.notifications);
+          setUnreadNotifCount(data.unread_count || 0);
+        }
+      })
+      .catch(() => {});
+
     let ws: WebSocket | null = null;
     let pingInterval: NodeJS.Timeout | null = null;
     let retryTimeout: NodeJS.Timeout | null = null;
@@ -147,6 +177,19 @@ export default function DashboardShell({ children }: { children: React.ReactNode
               if (pingStart > 0) {
                 const roundtrip = Math.round(performance.now() - pingStart);
                 setWsLatency(roundtrip);
+              }
+            } else if (msg.event === "agent_notification" && msg.data) {
+              const notifItem = msg.data;
+              setAgentNotifs((prev) => [notifItem, ...prev]);
+              setUnreadNotifCount((prev) => prev + 1);
+              setLiveToast(notifItem);
+              setTimeout(() => setLiveToast(null), 8000);
+              if (typeof window !== "undefined" && "speechSynthesis" in window) {
+                try {
+                  const u = new SpeechSynthesisUtterance(`${notifItem.sender_brain} alert: ${notifItem.title}`);
+                  u.rate = 1.05;
+                  window.speechSynthesis.speak(u);
+                } catch {}
               }
             } else if (msg.event === "watchdog_alert") {
               const newAlert = msg.data;
@@ -243,10 +286,13 @@ export default function DashboardShell({ children }: { children: React.ReactNode
       if (watchdogRef.current && !watchdogRef.current.contains(e.target as Node)) {
         setWatchdogOpen(false);
       }
+      if (agentNotifRef.current && !agentNotifRef.current.contains(e.target as Node)) {
+        setAgentNotifOpen(false);
+      }
     };
-    if (profileOpen || watchdogOpen) document.addEventListener("mousedown", handleClickOutside);
+    if (profileOpen || watchdogOpen || agentNotifOpen) document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [profileOpen, watchdogOpen]);
+  }, [profileOpen, watchdogOpen, agentNotifOpen]);
 
   // Close mobile nav on route change
   useEffect(() => {
@@ -430,6 +476,68 @@ export default function DashboardShell({ children }: { children: React.ReactNode
               <Radio className={`w-3 h-3 ${wsConnected ? "animate-pulse" : ""}`} />
               {wsConnected ? (wsLatency !== null ? `${wsLatency}ms` : "Live") : "Reconnecting"}
             </span>
+
+            {/* Autonomous Agent Notifications Bell (EDITH & Friday) */}
+            <div className="relative" ref={agentNotifRef}>
+              <button
+                onClick={() => setAgentNotifOpen(!agentNotifOpen)}
+                className={`ed-press ed-focus-ring relative p-2 sm:p-2.5 rounded-lg border transition-all ${
+                  unreadNotifCount > 0
+                    ? "border-sky-500/40 bg-sky-500/10 text-sky-600 dark:text-sky-400"
+                    : "border-[var(--ed-border)] text-[var(--ed-text-muted)] hover:text-[var(--ed-text-primary)]"
+                }`}
+                style={unreadNotifCount === 0 ? { background: "var(--ed-surface)" } : {}}
+                aria-label="Agent Notifications"
+              >
+                <Bell className="w-4 h-4" />
+                {unreadNotifCount > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-sky-500 px-1 text-[9px] font-bold text-white shadow-sm animate-pulse">
+                    {unreadNotifCount}
+                  </span>
+                )}
+              </button>
+
+              {agentNotifOpen && (
+                <div
+                  className="fixed inset-x-3 top-16 sm:absolute sm:inset-x-auto sm:right-0 sm:top-12 w-auto sm:w-96 max-w-[calc(100vw-1.5rem)] rounded-2xl border border-[var(--ed-border)] shadow-ed-elevated z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-100"
+                  style={{ background: "var(--ed-surface)" }}
+                >
+                  <div className="p-3.5 border-b border-[var(--ed-border)] flex items-center justify-between" style={{ background: "var(--ed-bg)" }}>
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-sky-500" />
+                      <span className="text-xs font-bold text-[var(--ed-text-primary)]">Agent Notifications</span>
+                      <span className="text-[10px] text-[var(--ed-text-muted)]">EDITH & Friday</span>
+                    </div>
+                    <Link
+                      href="/notifications"
+                      onClick={() => setAgentNotifOpen(false)}
+                      className="text-[11px] text-sky-600 dark:text-sky-400 hover:underline font-medium flex items-center gap-1"
+                    >
+                      View All
+                    </Link>
+                  </div>
+
+                  <div className="max-h-80 overflow-y-auto divide-y divide-[var(--ed-border)] text-xs">
+                    {agentNotifs.length === 0 ? (
+                      <div className="p-8 text-center text-[var(--ed-text-muted)]">No agent notifications yet.</div>
+                    ) : (
+                      agentNotifs.slice(0, 8).map((n) => (
+                        <div key={n.id} className="p-3 hover:bg-[var(--ed-bg)] transition-colors space-y-1">
+                          <div className="flex items-center justify-between gap-1">
+                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full uppercase ${n.sender_brain === "EDITH" ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300" : "bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300"}`}>
+                              {n.sender_brain}
+                            </span>
+                            <span className="text-[10px] text-[var(--ed-text-muted)]">{n.created_at ? new Date(n.created_at).toLocaleTimeString() : ""}</span>
+                          </div>
+                          <div className="font-semibold text-[var(--ed-text-primary)] truncate">{n.title}</div>
+                          <div className="text-[11px] text-[var(--ed-text-muted)] line-clamp-2">{n.content}</div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* Watchdog AI Alert Center Icon */}
             <div className="relative" ref={watchdogRef}>

@@ -15,6 +15,7 @@ from app.api.routes import (
     invoices,
     knowledge,
     leads,
+    notifications,
     orders,
     products,
     prompts,
@@ -35,10 +36,20 @@ from app.utils.logging import logger
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
-    FastAPI Lifespan: Automatically starts the background Worker daemon
+    FastAPI Lifespan: Ensures database schema is created, starts the background Worker daemon
     to continuously process inbound WhatsApp messages, follow-ups, and sales jobs,
     as well as the autonomous Watchdog AI Supervisor for continuous telemetry.
     """
+    try:
+        from app.database.session import get_engine
+        from app.database.base import Base
+        engine = get_engine()
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        logger.info("FastAPI Lifespan: Database schema verified and all tables created.")
+    except Exception as e:
+        logger.warning(f"FastAPI Lifespan: Database schema init notice: {e}")
+
     worker = Worker("fastapi_lifespan_worker")
     worker_task = asyncio.create_task(worker.start(poll_interval=0.5))
     logger.info("FastAPI Lifespan: Autonomous Worker daemon started.")
@@ -119,6 +130,7 @@ app.include_router(whatsapp.router, prefix=api_v1)
 app.include_router(settings_router.router, prefix=api_v1)
 app.include_router(voice.router, prefix=api_v1)
 app.include_router(brain.router, prefix=api_v1)
+app.include_router(notifications.router, prefix=api_v1)
 app.include_router(watchdog.router, prefix=api_v1)
 app.include_router(ws.router, prefix=api_v1)
 

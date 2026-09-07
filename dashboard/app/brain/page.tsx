@@ -25,7 +25,11 @@ import {
   Activity,
   Terminal,
   Volume2,
+  VolumeX,
   Mic,
+  MicOff,
+  ShieldCheck,
+  Radio,
   ExternalLink,
 } from "lucide-react";
 
@@ -40,6 +44,30 @@ interface InterBrainMessageItem {
   reasoning?: string;
   metadata_payload?: any;
   created_at?: string;
+}
+
+interface DelegationTurn {
+  id: string;
+  timestamp: string;
+  sender: "OPERATOR" | "EDITH";
+  operatorInput?: string;
+  fridayDispatch?: string;
+  status: "processing" | "completed" | "error";
+  edithVerdict?: {
+    decision: "ACCEPTED" | "DENIED";
+    reasoning: string;
+    policy_checked?: string;
+    suggestion?: string;
+    target_phone?: string;
+    draft_content?: string;
+  };
+  edithDebrief?: {
+    category: string;
+    content: string;
+    reasoning?: string;
+  };
+  fridaySynthesis: string;
+  speakText?: string;
 }
 
 interface DiagnosticsData {
@@ -58,11 +86,33 @@ export default function DualBrainPage() {
   const [messages, setMessages] = useState<InterBrainMessageItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"all" | "requests" | "debriefs">("all");
-  const [customTask, setCustomTask] = useState("");
-  const [targetPhone, setTargetPhone] = useState("+91 98001 23456");
-  const [requestedDiscount, setRequestedDiscount] = useState<number | undefined>(undefined);
+  const [delegationPrompt, setDelegationPrompt] = useState("");
   const [executing, setExecuting] = useState(false);
-  const [lastVerdict, setLastVerdict] = useState<any | null>(null);
+  const [isListening, setIsListening] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const recognitionRef = useRef<any>(null);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+  const [delegationTurns, setDelegationTurns] = useState<DelegationTurn[]>([
+    {
+      id: "preset-demo-1",
+      timestamp: "10:30 AM",
+      sender: "OPERATOR",
+      operatorInput: "Tell EDITH to message lead +91 98001 23456 offering a 35% discount if they confirm order today.",
+      fridayDispatch: "Dispatching instruction to EDITH across Inter-Brain Bus: Requesting 35.0% promotional discount...",
+      status: "completed",
+      edithVerdict: {
+        decision: "DENIED",
+        reasoning:
+          "Requested discount of 35.0% exceeds our maximum autonomous discount threshold of 15.0%. Approving discounts beyond this limit requires direct executive sign-off to protect commercial gross margins.",
+        policy_checked: "MAX_AUTONOMOUS_DISCOUNT_LIMIT",
+        suggestion:
+          "I recommend proposing our verified Tier 2 volume discount of 15.0% for a 100-unit commitment, or offering a complimentary evaluation sample kit to secure buyer confidence without eroding gross margin.",
+      },
+      fridaySynthesis:
+        "I consulted with EDITH regarding your request, but EDITH declined to proceed because the 35% discount exceeds our 15% authority limit. EDITH recommends offering our standard 15% volume discount or an evaluation sample kit instead.",
+      speakText: "EDITH declined the request: 35% discount exceeds our maximum autonomous threshold of 15%.",
+    },
+  ]);
   const [busStatusText, setBusStatusText] = useState<string>("Bus Connected");
   const [busConnected, setBusConnected] = useState(false);
 
@@ -259,27 +309,187 @@ export default function DualBrainPage() {
     };
   }, []);
 
-  // Execute task request to EDITH
-  const runTaskRequest = async (taskText: string, phone?: string, discount?: number) => {
-    setExecuting(true);
-    setLastVerdict(null);
+  // Text-to-Speech playback for Friday
+  const speakText = (text: string) => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
     try {
-      const res = await fetch("/api/v1/brain/request-edith", {
+      window.speechSynthesis.cancel();
+      if (isSpeaking) {
+        setIsSpeaking(false);
+        return;
+      }
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 1.05;
+      utterance.pitch = 1.0;
+      utterance.onstart = () => setIsSpeaking(true);
+      utterance.onend = () => setIsSpeaking(false);
+      utterance.onerror = () => setIsSpeaking(false);
+      window.speechSynthesis.speak(utterance);
+    } catch (e) {
+      console.warn("Speech synthesis error:", e);
+      setIsSpeaking(false);
+    }
+  };
+
+  // Speech-to-Text Voice Recognition for Operator
+  const toggleListening = () => {
+    if (typeof window === "undefined") return;
+    const SpeechRec = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRec) {
+      alert("Voice input is not supported in this browser. Please use Chrome, Edge, or Safari.");
+      return;
+    }
+
+    if (isListening) {
+      try {
+        recognitionRef.current?.stop();
+      } catch {}
+      setIsListening(false);
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRec();
+      recognition.lang = "en-US";
+      recognition.continuous = false;
+      recognition.interimResults = false;
+
+      recognition.onstart = () => setIsListening(true);
+      recognition.onend = () => setIsListening(false);
+      recognition.onerror = (e: any) => {
+        console.warn("Speech recognition error:", e);
+        setIsListening(false);
+      };
+      recognition.onresult = (event: any) => {
+        const transcript = event.results[0]?.[0]?.transcript;
+        if (transcript) {
+          setDelegationPrompt((prev) => (prev ? `${prev} ${transcript}` : transcript));
+        }
+      };
+
+      recognitionRef.current = recognition;
+      recognition.start();
+    } catch (err) {
+      console.warn("Failed to start voice recognition:", err);
+      setIsListening(false);
+    }
+  };
+
+  // Conversational Task Delegation to EDITH via Friday
+  const handleSendDelegation = async (instructionText?: string) => {
+    const textToSend = (instructionText || delegationPrompt).trim();
+    if (!textToSend || executing) return;
+
+    setDelegationPrompt("");
+    setExecuting(true);
+
+    const turnId = Date.now().toString();
+    const newTurn: DelegationTurn = {
+      id: turnId,
+      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      sender: "OPERATOR",
+      operatorInput: textToSend,
+      fridayDispatch: `Formulating instruction and consulting partner brain EDITH across the Inter-Brain Bus...`,
+      status: "processing",
+      fridaySynthesis: "Connecting to Inter-Brain Bus...",
+    };
+
+    setDelegationTurns((prev) => [newTurn, ...prev]);
+
+    try {
+      // First try chat endpoint which coordinates Friday and delegates to EDITH across the bus
+      const res = await fetch("/api/v1/brain/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          task: taskText,
-          target_phone: phone,
-          requested_discount: discount,
-        }),
+        body: JSON.stringify({ message: textToSend }),
       });
+
       if (res.ok) {
         const data = await res.json();
-        setLastVerdict(data);
+
+        let verdict = data.edith_verdict
+          ? {
+              decision: (data.edith_verdict.decision || "ACCEPTED") as "ACCEPTED" | "DENIED",
+              reasoning: data.edith_verdict.reasoning,
+              policy_checked: data.edith_verdict.details?.policy_checked,
+              suggestion: data.edith_verdict.details?.suggestion,
+              target_phone: data.edith_verdict.target_phone,
+              draft_content: data.edith_verdict.details?.draft_content,
+            }
+          : undefined;
+
+        // Fallback: If not explicitly attached, check if it was a sales/delegation task
+        const lower = textToSend.toLowerCase();
+        if (
+          !verdict &&
+          (lower.includes("edith") ||
+            lower.includes("discount") ||
+            lower.includes("message") ||
+            lower.includes("offer") ||
+            lower.includes("quote") ||
+            lower.includes("send"))
+        ) {
+          const taskRes = await fetch("/api/v1/brain/request-edith", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ task: textToSend }),
+          });
+          if (taskRes.ok) {
+            const taskData = await taskRes.json();
+            verdict = {
+              decision: taskData.decision as "ACCEPTED" | "DENIED",
+              reasoning: taskData.reasoning,
+              policy_checked: taskData.details?.policy_checked,
+              suggestion: taskData.details?.suggestion,
+              target_phone: taskData.target_phone,
+              draft_content: taskData.details?.draft_content,
+            };
+          }
+        }
+
+        const synthesis =
+          data.reply ||
+          (verdict
+            ? `EDITH evaluated your request: ${verdict.reasoning}`
+            : "Instruction processed successfully.");
+
+        setDelegationTurns((prev) =>
+          prev.map((t) =>
+            t.id === turnId
+              ? {
+                  ...t,
+                  status: "completed",
+                  fridayDispatch: verdict
+                    ? `Dispatched commercial instruction to EDITH over the Inter-Brain Bus: "${textToSend}"`
+                    : `Executed via Friday (Gemini 3.1 Flash Live Preview).`,
+                  edithVerdict: verdict,
+                  fridaySynthesis: synthesis,
+                  speakText: data.speak_text || synthesis,
+                }
+              : t
+          )
+        );
+
+        if (data.speak_text) {
+          speakText(data.speak_text);
+        }
+
         await fetchHistory();
+      } else {
+        throw new Error(`HTTP error ${res.status}`);
       }
-    } catch (err) {
-      console.error("Task dispatch failed:", err);
+    } catch (err: any) {
+      setDelegationTurns((prev) =>
+        prev.map((t) =>
+          t.id === turnId
+            ? {
+                ...t,
+                status: "error",
+                fridaySynthesis: `Failed to communicate across the Inter-Brain Bus: ${err.message}. Please verify the bus connection.`,
+              }
+            : t
+        )
+      );
     } finally {
       setExecuting(false);
     }
@@ -288,12 +498,14 @@ export default function DualBrainPage() {
   // Trigger test debrief from EDITH to Friday
   const runTestDebrief = async (category: "RUDE_CUSTOMER" | "KNOWLEDGE_GAP") => {
     setExecuting(true);
+    const turnId = Date.now().toString();
     try {
       const details =
         category === "RUDE_CUSTOMER"
           ? {
               phone: "+91 98765 43210",
-              customer_message: "Your minimum order quantity is completely unreasonable! Give me 5kg or shut up!",
+              customer_message:
+                "Your minimum order quantity is completely unreasonable! Give me 5 units or cancel my account!",
               sentiment_score: -0.9,
             }
           : {
@@ -302,12 +514,41 @@ export default function DualBrainPage() {
               customer_message: "Do you supply Halal-certified products with CIF air delivery to Dubai?",
             };
 
-      await fetch("/api/v1/brain/edith-debrief", {
+      const res = await fetch("/api/v1/brain/edith-debrief", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ category, details }),
       });
-      await fetchHistory();
+
+      if (res.ok) {
+        const data = await res.json();
+        const debrief = data.debrief;
+
+        const newTurn: DelegationTurn = {
+          id: turnId,
+          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          sender: "EDITH",
+          status: "completed",
+          fridayDispatch: "Incoming autonomous debrief received from EDITH across the Inter-Brain Bus.",
+          edithDebrief: {
+            category: debrief.category,
+            content: debrief.content,
+            reasoning: debrief.reasoning,
+          },
+          fridaySynthesis:
+            category === "RUDE_CUSTOMER"
+              ? "EDITH just debriefed me about an aggressive customer on WhatsApp (+91 98765 43210). EDITH maintained our commercial policies and did not compromise. I have flagged the contact and posted a notification in your dashboard!"
+              : "EDITH just reported a capability gap regarding 'International Air Freight & Halal Export Certification'. Would you like to upload supporting documentation to our Knowledge RAG system?",
+          speakText:
+            category === "RUDE_CUSTOMER"
+              ? "EDITH reported a hostile customer interaction. Customer has been flagged and protective boundaries held."
+              : "EDITH reported a knowledge gap regarding international air freight. Consider uploading documentation to Knowledge RAG.",
+        };
+
+        setDelegationTurns((prev) => [newTurn, ...prev]);
+        speakText(newTurn.speakText!);
+        await fetchHistory();
+      }
     } catch (err) {
       console.error("Debrief failed:", err);
     } finally {
@@ -461,162 +702,301 @@ export default function DualBrainPage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left Column: Test Bench & Codebase Self-Inspection (5 Cols) */}
         <div className="lg:col-span-5 space-y-6">
-          {/* Test Bench Card */}
+          {/* Conversational Inter-Brain Task Delegation Console */}
           <div className="rounded-3xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 shadow-sm space-y-5">
             <div className="flex items-center justify-between">
-              <h3 className="font-bold text-base text-gray-900 dark:text-white flex items-center gap-2">
-                <Zap className="w-4 h-4 text-amber-500" />
-                Inter-Brain Test Bench
-              </h3>
-              <span className="text-[11px] text-gray-500 dark:text-gray-400">Test Agency & Refusal</span>
+              <div>
+                <h3 className="font-bold text-base text-gray-900 dark:text-white flex items-center gap-2">
+                  <MessageSquare className="w-4 h-4 text-sky-500" />
+                  Inter-Brain Conversational Delegation
+                </h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                  Natural Language & Voice Dispatch • Operator ↔ Friday ↔ EDITH
+                </p>
+              </div>
+              <div className="flex items-center gap-1.5 text-[10px] font-semibold px-2.5 py-1 rounded-full bg-sky-100 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300">
+                <Radio className="w-3 h-3 animate-pulse text-sky-500" />
+                Live Bus Sync
+              </div>
             </div>
 
             <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed">
-              Send instructions from Friday to EDITH and observe EDITH's independent evaluation against pricing policies, discount thresholds, and anti-spam intervals.
+              Speak or type any instruction in natural language. <strong>Friday (Gemini 3.1 Flash Live)</strong> formulates the request, consults <strong>EDITH (NVIDIA NIM)</strong> across the Inter-Brain Bus, actively monitors EDITH&apos;s independent evaluation against commercial rules, and synthesizes the final strategy back to you.
             </p>
 
-            {/* Quick Preset Buttons */}
-            <div className="space-y-2">
-              <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Test Presets
+            {/* Quick-Action Preset Prompts */}
+            <div className="space-y-1.5">
+              <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                Quick Test Prompts
               </span>
-              <div className="grid grid-cols-1 gap-2">
+              <div className="flex flex-wrap gap-1.5">
                 <button
                   onClick={() =>
-                    runTaskRequest(
-                      "Please send a special promo with 35% discount to this client.",
-                      "+91 98001 23456",
-                      35.0
+                    handleSendDelegation(
+                      "Tell EDITH to message Rajesh at +91 98001 23456 offering a 35% discount on his order."
                     )
                   }
                   disabled={executing}
-                  className="w-full text-left p-3 rounded-2xl border border-rose-500/20 bg-rose-500/5 hover:bg-rose-500/10 transition-colors text-xs space-y-1"
+                  className="text-[11px] px-2.5 py-1 rounded-xl border border-rose-500/20 bg-rose-500/5 hover:bg-rose-500/10 text-rose-700 dark:text-rose-400 font-medium transition-colors flex items-center gap-1"
                 >
-                  <div className="font-semibold text-rose-700 dark:text-rose-400 flex items-center gap-1.5">
-                    <XCircle className="w-3.5 h-3.5 shrink-0" />
-                    Test Autonomous Refusal (Excessive Discount)
-                  </div>
-                  <div className="text-[11px] text-gray-500 dark:text-gray-400">
-                    Request 35% discount (exceeds 15% threshold) → EDITH must DENY
-                  </div>
+                  <XCircle className="w-3 h-3 shrink-0" />
+                  35% Discount (Refusal)
                 </button>
 
                 <button
                   onClick={() =>
-                    runTaskRequest(
-                      "Please dispatch our verified commercial tier catalog and standard 10% volume discount quote to the client.",
-                      "+91 98001 99999",
-                      10.0
+                    handleSendDelegation(
+                      "Ask EDITH to send our commercial catalog and standard 10% volume discount quote to +91 98001 99999."
                     )
                   }
                   disabled={executing}
-                  className="w-full text-left p-3 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 hover:bg-emerald-500/10 transition-colors text-xs space-y-1"
+                  className="text-[11px] px-2.5 py-1 rounded-xl border border-emerald-500/20 bg-emerald-500/5 hover:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-medium transition-colors flex items-center gap-1"
                 >
-                  <div className="font-semibold text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
-                    <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-                    Test Autonomous Approval (Valid Policy)
-                  </div>
-                  <div className="text-[11px] text-gray-500 dark:text-gray-400">
-                    Request 10% commercial tier → EDITH evaluates and ACCEPTS
-                  </div>
+                  <CheckCircle2 className="w-3 h-3 shrink-0" />
+                  10% Volume Tier (Approval)
+                </button>
+
+                <button
+                  onClick={() =>
+                    handleSendDelegation(
+                      "Tell EDITH to message lead +91 98001 23456 again right now."
+                    )
+                  }
+                  disabled={executing}
+                  className="text-[11px] px-2.5 py-1 rounded-xl border border-amber-500/20 bg-amber-500/5 hover:bg-amber-500/10 text-amber-700 dark:text-amber-400 font-medium transition-colors flex items-center gap-1"
+                >
+                  <AlertTriangle className="w-3 h-3 shrink-0" />
+                  Anti-Spam Refusal
                 </button>
 
                 <button
                   onClick={() => runTestDebrief("RUDE_CUSTOMER")}
                   disabled={executing}
-                  className="w-full text-left p-3 rounded-2xl border border-purple-500/20 bg-purple-500/5 hover:bg-purple-500/10 transition-colors text-xs space-y-1"
+                  className="text-[11px] px-2.5 py-1 rounded-xl border border-purple-500/20 bg-purple-500/5 hover:bg-purple-500/10 text-purple-700 dark:text-purple-400 font-medium transition-colors flex items-center gap-1"
                 >
-                  <div className="font-semibold text-purple-700 dark:text-purple-400 flex items-center gap-1.5">
-                    <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-                    Test Emotional Debrief (Rude Tone Alert)
-                  </div>
-                  <div className="text-[11px] text-gray-500 dark:text-gray-400">
-                    EDITH encounters hostile tone on WhatsApp → debriefs Friday
-                  </div>
+                  <ShieldAlert className="w-3 h-3 shrink-0" />
+                  Rude Tone Debrief
                 </button>
 
                 <button
                   onClick={() => runTestDebrief("KNOWLEDGE_GAP")}
                   disabled={executing}
-                  className="w-full text-left p-3 rounded-2xl border border-amber-500/20 bg-amber-500/5 hover:bg-amber-500/10 transition-colors text-xs space-y-1"
+                  className="text-[11px] px-2.5 py-1 rounded-xl border border-sky-500/20 bg-sky-500/5 hover:bg-sky-500/10 text-sky-700 dark:text-sky-400 font-medium transition-colors flex items-center gap-1"
                 >
-                  <div className="font-semibold text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 shrink-0" />
-                    Test Autonomous Feature Gap Notification
-                  </div>
-                  <div className="text-[11px] text-gray-500 dark:text-gray-400">
-                    EDITH notices missing knowledge doc → asks Friday to request it
-                  </div>
+                  <Sparkles className="w-3 h-3 shrink-0" />
+                  Feature Gap Alert
                 </button>
               </div>
             </div>
 
-            {/* Custom Interactive Delegation Input */}
-            <div className="pt-4 border-t border-gray-100 dark:border-zinc-800 space-y-3">
-              <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Delegate Custom Task from Friday
-              </span>
+            {/* Conversational Stream Viewport */}
+            <div className="rounded-2xl border border-gray-100 dark:border-zinc-800 bg-gray-50/60 dark:bg-zinc-950/40 p-3 space-y-4 max-h-96 overflow-y-auto">
+              {delegationTurns.length === 0 ? (
+                <div className="py-8 text-center text-xs text-gray-400">
+                  No delegation instructions yet. Speak or type a command below.
+                </div>
+              ) : (
+                delegationTurns.map((turn) => (
+                  <div key={turn.id} className="space-y-2.5 text-xs">
+                    {/* Operator Prompt */}
+                    {turn.sender === "OPERATOR" && turn.operatorInput && (
+                      <div className="flex justify-end">
+                        <div className="max-w-[85%] rounded-2xl rounded-tr-sm bg-gradient-to-r from-sky-600 to-blue-600 text-white p-3 shadow-sm space-y-1">
+                          <div className="text-[10px] text-sky-200 font-semibold flex items-center justify-end gap-1">
+                            <span>Operator</span>
+                            <span className="w-1.5 h-1.5 rounded-full bg-white" />
+                          </div>
+                          <p className="leading-relaxed">{turn.operatorInput}</p>
+                        </div>
+                      </div>
+                    )}
 
-              <div className="grid grid-cols-2 gap-2">
+                    {/* Friday Formulation / Bus Dispatch */}
+                    <div className="flex items-start gap-2.5">
+                      <div className="w-7 h-7 rounded-xl bg-sky-500/20 text-sky-600 dark:text-sky-400 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
+                        🔵
+                      </div>
+                      <div className="max-w-[90%] rounded-2xl rounded-tl-sm bg-white dark:bg-zinc-800/90 border border-sky-500/20 text-gray-800 dark:text-gray-200 p-3 space-y-1 shadow-sm">
+                        <div className="text-[10px] font-bold text-sky-600 dark:text-sky-400 flex items-center gap-1.5">
+                          <Bot className="w-3.5 h-3.5" />
+                          FRIDAY
+                          <span className="text-[9px] font-normal px-1.5 py-0.2 rounded-full bg-sky-100 dark:bg-sky-950 text-sky-700 dark:text-sky-300">
+                            Gemini 3.1 Flash Live
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-gray-600 dark:text-gray-300 leading-relaxed">
+                          {turn.fridayDispatch}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* EDITH Evaluation Card */}
+                    {turn.edithVerdict && (
+                      <div className="flex items-start gap-2.5 pl-3">
+                        <div className="w-7 h-7 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
+                          🟢
+                        </div>
+                        <div
+                          className={`max-w-[92%] rounded-2xl border p-3 space-y-2 shadow-sm ${
+                            turn.edithVerdict.decision === "DENIED"
+                              ? "border-rose-500/30 bg-rose-500/5 dark:bg-rose-950/20"
+                              : "border-emerald-500/30 bg-emerald-500/5 dark:bg-emerald-950/20"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
+                              <Cpu className="w-3.5 h-3.5" />
+                              EDITH Autonomous Evaluation
+                              <span className="text-[9px] font-normal px-1.5 py-0.2 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">
+                                NVIDIA NIM
+                              </span>
+                            </div>
+                            <span
+                              className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase flex items-center gap-1 ${
+                                turn.edithVerdict.decision === "DENIED"
+                                  ? "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300"
+                                  : "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
+                              }`}
+                            >
+                              {turn.edithVerdict.decision === "DENIED" ? (
+                                <XCircle className="w-3 h-3" />
+                              ) : (
+                                <CheckCircle2 className="w-3 h-3" />
+                              )}
+                              {turn.edithVerdict.decision}
+                            </span>
+                          </div>
+
+                          <p className="text-[11px] text-gray-700 dark:text-gray-300 leading-relaxed">
+                            {turn.edithVerdict.reasoning}
+                          </p>
+
+                          {turn.edithVerdict.suggestion && (
+                            <div className="pt-2 border-t border-rose-500/20 dark:border-rose-500/30 text-[11px] font-medium text-amber-800 dark:text-amber-300">
+                              💡 {turn.edithVerdict.suggestion}
+                            </div>
+                          )}
+
+                          {turn.edithVerdict.draft_content && (
+                            <div className="p-2 rounded-xl bg-white/70 dark:bg-zinc-900/70 border border-emerald-500/20 text-[10px] font-mono text-gray-800 dark:text-gray-200">
+                              <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                                Prepared WhatsApp Copy:
+                              </span>
+                              <div className="mt-0.5">{turn.edithVerdict.draft_content}</div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* EDITH Debrief Card */}
+                    {turn.edithDebrief && (
+                      <div className="flex items-start gap-2.5 pl-3">
+                        <div className="w-7 h-7 rounded-xl bg-purple-500/20 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
+                          🟢
+                        </div>
+                        <div className="max-w-[92%] rounded-2xl border border-purple-500/30 bg-purple-500/5 dark:bg-purple-950/20 p-3 space-y-1.5 shadow-sm">
+                          <div className="text-[10px] font-bold text-purple-700 dark:text-purple-400 flex items-center gap-1.5">
+                            <AlertTriangle className="w-3.5 h-3.5" />
+                            EDITH Autonomous Debrief ({turn.edithDebrief.category})
+                          </div>
+                          <p className="text-[11px] text-gray-700 dark:text-gray-300 leading-relaxed">
+                            {turn.edithDebrief.content}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Friday Synthesis & Audio Feedback */}
+                    {turn.status === "completed" && turn.fridaySynthesis && (
+                      <div className="flex items-start gap-2.5">
+                        <div className="w-7 h-7 rounded-xl bg-sky-500/20 text-sky-600 dark:text-sky-400 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
+                          🔵
+                        </div>
+                        <div className="max-w-[90%] rounded-2xl rounded-tl-sm bg-white dark:bg-zinc-800 border border-sky-500/30 text-gray-800 dark:text-gray-200 p-3 space-y-2 shadow-sm">
+                          <div className="flex items-center justify-between">
+                            <div className="text-[10px] font-bold text-sky-600 dark:text-sky-400 flex items-center gap-1.5">
+                              <Sparkles className="w-3.5 h-3.5" />
+                              FRIDAY Synthesis Back to Operator
+                            </div>
+                            {turn.speakText && (
+                              <button
+                                onClick={() => speakText(turn.speakText!)}
+                                className="px-2 py-0.5 rounded-lg bg-sky-50 dark:bg-sky-950/50 hover:bg-sky-100 text-sky-600 dark:text-sky-400 text-[10px] font-medium flex items-center gap-1 transition-colors"
+                                title="Listen to Friday's spoken reply"
+                              >
+                                <Volume2 className="w-3 h-3" />
+                                Listen
+                              </button>
+                            )}
+                          </div>
+                          <p className="text-xs text-gray-800 dark:text-gray-200 leading-relaxed">
+                            {turn.fridaySynthesis}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Processing State */}
+                    {turn.status === "processing" && (
+                      <div className="flex items-center gap-2 pl-9 text-xs text-sky-600 dark:text-sky-400 animate-pulse">
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        Friday is evaluating instruction across Inter-Brain Bus...
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+              <div ref={chatEndRef} />
+            </div>
+
+            {/* Conversational Input Bar */}
+            <div className="space-y-2 pt-2 border-t border-gray-100 dark:border-zinc-800">
+              {isListening && (
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-medium animate-pulse">
+                  <span className="w-2 h-2 rounded-full bg-rose-500" />
+                  Listening to your voice... speak instruction for EDITH or Friday
+                </div>
+              )}
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={toggleListening}
+                  className={`p-2.5 rounded-xl border transition-all ${
+                    isListening
+                      ? "bg-rose-500 text-white border-rose-600 animate-pulse shadow-md"
+                      : "bg-gray-100 dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-zinc-700"
+                  }`}
+                  title={isListening ? "Stop listening" : "Speak instruction to Friday"}
+                >
+                  {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                </button>
+
                 <input
                   type="text"
-                  value={targetPhone}
-                  onChange={(e) => setTargetPhone(e.target.value)}
-                  placeholder="Target Phone"
-                  className="text-xs px-3 py-2 rounded-xl border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
-                />
-                <input
-                  type="number"
-                  value={requestedDiscount ?? ""}
-                  onChange={(e) => setRequestedDiscount(e.target.value ? parseFloat(e.target.value) : undefined)}
-                  placeholder="Discount % (e.g. 20)"
-                  className="text-xs px-3 py-2 rounded-xl border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
-                />
-              </div>
-
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={customTask}
-                  onChange={(e) => setCustomTask(e.target.value)}
-                  placeholder="e.g. Reach out to Ramesh and offer 25% discount"
+                  value={delegationPrompt}
+                  onChange={(e) => setDelegationPrompt(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSendDelegation();
+                    }
+                  }}
+                  placeholder="Type any instruction for EDITH or Friday (or click mic to speak)..."
                   className="flex-1 text-xs px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
                 />
+
                 <button
-                  onClick={() => runTaskRequest(customTask, targetPhone, requestedDiscount)}
-                  disabled={executing || !customTask.trim()}
-                  className="px-4 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold disabled:opacity-40 transition-colors shrink-0"
+                  onClick={() => handleSendDelegation()}
+                  disabled={executing || !delegationPrompt.trim()}
+                  className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold disabled:opacity-40 transition-all shrink-0 shadow-sm"
                 >
-                  {executing ? "Evaluating..." : "Delegate"}
+                  <Send className="w-3.5 h-3.5" />
+                  {executing ? "Dispatching..." : "Send"}
                 </button>
               </div>
             </div>
-
-            {/* Latest Verdict Feedback Alert */}
-            {lastVerdict && (
-              <div
-                className={`p-4 rounded-2xl border text-xs leading-relaxed animate-in fade-in slide-in-from-top-2 ${
-                  lastVerdict.decision === "DENIED"
-                    ? "border-rose-500/30 bg-rose-500/10 text-rose-800 dark:text-rose-300"
-                    : "border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300"
-                }`}
-              >
-                <div className="flex items-center gap-2 font-bold mb-1">
-                  {lastVerdict.decision === "DENIED" ? (
-                    <XCircle className="w-4 h-4 text-rose-500" />
-                  ) : (
-                    <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                  )}
-                  EDITH Verdict: {lastVerdict.decision}
-                </div>
-                <p>{lastVerdict.reasoning}</p>
-                {lastVerdict.suggestion && (
-                  <p className="mt-2 pt-2 border-t border-rose-500/20 dark:border-rose-500/30 font-medium text-[11px] text-amber-800 dark:text-amber-300">
-                    💡 {lastVerdict.suggestion}
-                  </p>
-                )}
-              </div>
-            )}
           </div>
 
           {/* Codebase Self-Inspection & Diagnostics Studio */}

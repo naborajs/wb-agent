@@ -80,7 +80,7 @@ class EdithBrain:
 
         # 1. Check for requested discount in text if not explicitly provided
         if requested_discount is None:
-            disc_match = re.search(r"(\d+(?:\.\d+)?)\s*%\s*(?:off|discount|less)", text_lower)
+            disc_match = re.search(r"(\d+(?:\.\d+)?)\s*%", text_lower)
             if disc_match:
                 try:
                     requested_discount = float(disc_match.group(1))
@@ -407,10 +407,47 @@ class FridayBrain:
                 "consulted_edith": False,
             }
 
+        # Check if user asks to create an autonomous notification
+        if any(w in user_lower for w in ["notify me", "send notification", "create alert", "test notification", "post notification"]):
+            from app.database.models import AgentNotification
+            from app.realtime.connection_manager import ws_manager
+            notif = AgentNotification(
+                org_id=org_id,
+                sender_brain="FRIDAY",
+                title="Friday Autonomous Executive Note",
+                content=user_message,
+                category="SUGGESTION",
+                severity="info",
+                action_url="/brain",
+            )
+            session.add(notif)
+            await session.commit()
+            await ws_manager.broadcast_to_org(org_id, "agent_notification", {
+                "id": notif.id,
+                "sender_brain": "FRIDAY",
+                "title": notif.title,
+                "content": notif.content,
+                "category": notif.category,
+                "severity": notif.severity,
+                "is_read": False,
+                "action_url": "/brain",
+                "created_at": utc_now().isoformat(),
+            })
+            reply = "I've sent an autonomous notification to your notification center! You can view it in the top bar notification bell or the Notifications page."
+            return {
+                "speaker": "Friday",
+                "model": "gemini-3.1-flash-live-preview",
+                "reply": reply,
+                "speak_text": "Notification dispatched to your dashboard.",
+                "consulted_edith": False,
+            }
+
         # Check if user instruction is asking to do an external WhatsApp or sales task
         is_sales_action = any(w in user_lower for w in [
             "tell edith", "ask edith", "send message to", "message", "discount",
-            "give discount", "send promo", "whatsapp", "quote to"
+            "give discount", "send promo", "whatsapp", "quote to", "outreach",
+            "reach out to", "negotiate", "offer", "send proposal", "proposal to",
+            "lead", "customer"
         ])
 
         if is_sales_action:
@@ -425,24 +462,36 @@ class FridayBrain:
             decision = bus_res.get("decision")
             reasoning = bus_res.get("reasoning", "")
             target_phone = bus_res.get("target_phone", "the client")
+            suggestion = bus_res.get("details", {}).get("suggestion")
 
             if decision == "DENIED":
                 reply = (
                     f"I consulted with EDITH regarding your request, but EDITH has declined to proceed. "
                     f"EDITH's reason: {reasoning} Would you like to adjust the parameters or discuss alternative approaches?"
                 )
+                speak_text = f"EDITH declined the request: {reasoning[:120]}"
             else:
                 reply = (
                     f"EDITH reviewed and accepted the task: {reasoning} "
                     f"EDITH has prepared the commercial communication for {target_phone}."
                 )
+                speak_text = f"EDITH accepted your task for {target_phone}."
 
             return {
                 "speaker": "Friday",
                 "model": "gemini-3.1-flash-live-preview",
                 "reply": reply,
+                "speak_text": speak_text,
                 "consulted_edith": True,
                 "edith_verdict": bus_res,
+                "delegation_flow": {
+                    "operator_input": user_message,
+                    "friday_delegation": f"Dispatched instruction to EDITH: '{user_message}'",
+                    "edith_verdict": decision,
+                    "edith_reasoning": reasoning,
+                    "edith_suggestion": suggestion,
+                    "friday_synthesis": reply,
+                },
             }
 
         # General Executive Assistance Chat via Gemini (or simulated intelligent response if offline)
@@ -577,6 +626,41 @@ class InterBrainBus:
         # Broadcast EDITH's verdict live
         await self._broadcast(org_id, edith_msg)
 
+        # Autonomous direct notification to operator
+        try:
+            from app.database.models import AgentNotification
+            from app.realtime.connection_manager import ws_manager
+            notif_title = (
+                f"EDITH Refused Task: {target_phone or 'Client'}"
+                if decision == "DENIED"
+                else f"EDITH Approved Action: {target_phone or 'Client'}"
+            )
+            notif = AgentNotification(
+                org_id=org_id,
+                sender_brain="EDITH",
+                title=notif_title,
+                content=reasoning,
+                category="POLICY_REFUSAL" if decision == "DENIED" else "SALES_ALERT",
+                severity="warning" if decision == "DENIED" else "success",
+                action_url="/brain",
+                metadata_payload=eval_result,
+            )
+            session.add(notif)
+            await session.commit()
+            await ws_manager.broadcast_to_org(org_id, "agent_notification", {
+                "id": notif.id,
+                "sender_brain": "EDITH",
+                "title": notif_title,
+                "content": reasoning,
+                "category": notif.category,
+                "severity": notif.severity,
+                "is_read": False,
+                "action_url": "/brain",
+                "created_at": utc_now().isoformat(),
+            })
+        except Exception as ne:
+            logger.debug(f"[InterBrainBus] Direct notification error: {ne}")
+
         return {
             "task_id": friday_msg.id,
             "decision": decision,
@@ -618,6 +702,42 @@ class InterBrainBus:
 
         # Broadcast debrief live
         await self._broadcast(org_id, edith_msg)
+
+        # Autonomous direct notification to operator
+        try:
+            from app.database.models import AgentNotification
+            from app.realtime.connection_manager import ws_manager
+            is_rude = category == "RUDE_CUSTOMER"
+            notif_title = (
+                "EDITH Emotional Debrief: Hostile Customer on WhatsApp"
+                if is_rude
+                else "EDITH Feature Gap: Missing Documentation Flagged"
+            )
+            notif = AgentNotification(
+                org_id=org_id,
+                sender_brain="EDITH",
+                title=notif_title,
+                content=debrief["content"],
+                category="DEBRIEF" if is_rude else "FEATURE_GAP",
+                severity="critical" if is_rude else "warning",
+                action_url="/brain",
+                metadata_payload={"category": category, **details},
+            )
+            session.add(notif)
+            await session.commit()
+            await ws_manager.broadcast_to_org(org_id, "agent_notification", {
+                "id": notif.id,
+                "sender_brain": "EDITH",
+                "title": notif_title,
+                "content": debrief["content"],
+                "category": notif.category,
+                "severity": notif.severity,
+                "is_read": False,
+                "action_url": "/brain",
+                "created_at": utc_now().isoformat(),
+            })
+        except Exception as ne:
+            logger.debug(f"[InterBrainBus] Debrief notification error: {ne}")
 
         return {
             "id": edith_msg.id,
