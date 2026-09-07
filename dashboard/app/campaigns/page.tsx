@@ -36,33 +36,33 @@ export default function CampaignsPage() {
   const [campaigns, setCampaigns] = useState<CampaignItem[]>([
     {
       id: "camp_01",
-      name: "Siliguri Café Autumn Outreach",
-      target_segment: "Café & Bistros",
+      name: "Commercial Client Q4 Outreach",
+      target_segment: "B2B Commercial Accounts",
       status: "active",
       total_leads: 85,
       sent_count: 34,
       replied_count: 14,
       daily_quota: 50,
       jitter_range: "25s – 45s (Anti-Ban Jitter)",
-      template_preview: "Namaste! North Bengal Tea Co. se bol rahe hain. Hum Siliguri ke cafes ke liye direct estate Assam Kadak CTC provide karte hain...",
+      template_preview: "Hello! We are reaching out from sales operations regarding our commercial supply packages with scheduled dispatch...",
       created_at: "2026-09-02",
     },
     {
       id: "camp_02",
-      name: "Darjeeling Hotel Buffet Orthodox Drive",
-      target_segment: "Hotels & Resorts",
+      name: "Enterprise Priority Tier Re-engagement",
+      target_segment: "Enterprise & Corporate",
       status: "paused",
       total_leads: 42,
       sent_count: 28,
       replied_count: 9,
       daily_quota: 30,
       jitter_range: "30s – 50s (High Safety)",
-      template_preview: "Hello! We are supplying fresh Autumnal Darjeeling FTGFOP1 directly from Kurseong estates with 5kg vacuum packaging...",
+      template_preview: "Greetings! Following up on your recent commercial inquiry. Our bulk volume tier rates are now available...",
       created_at: "2026-09-01",
     },
     {
       id: "camp_03",
-      name: "Kolkata Wholesale Bulk Tea Sacks",
+      name: "Regional Wholesale Volume Campaign",
       target_segment: "Distributors & Retail",
       status: "completed",
       total_leads: 120,
@@ -70,17 +70,17 @@ export default function CampaignsPage() {
       replied_count: 38,
       daily_quota: 100,
       jitter_range: "25s – 45s (Standard)",
-      template_preview: "Greetings! Bulk Dooars & Assam CTC tea available in 50kg HDPE sacks with immediate dispatch from Siliguri hub...",
+      template_preview: "Greetings! Direct commercial inventory available with immediate dispatch and automated volume tier discounts...",
       created_at: "2026-08-25",
     },
   ]);
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newName, setNewName] = useState("");
-  const [newSegment, setNewSegment] = useState("Café & Bistros");
+  const [newSegment, setNewSegment] = useState("B2B Commercial Accounts");
   const [newQuota, setNewQuota] = useState(50);
   const [newTemplate, setNewTemplate] = useState(
-    "Namaste! North Bengal Tea Co. se bol rahe hain. Hum cafes ke liye direct estate Assam Kadak CTC provide karte hain..."
+    "Hello! Reaching out regarding our commercial products and customized wholesale terms. Would you like to view our current catalog?"
   );
 
   const toggleStatus = (id: string) => {
@@ -287,7 +287,7 @@ export default function CampaignsPage() {
                   required
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
-                  placeholder="e.g. Siliguri Tea Barista Outreach Q4"
+                  placeholder="e.g. Commercial Q4 Re-engagement Campaign"
                   className="w-full px-3 py-2 rounded-xl border border-[var(--ed-border)] bg-[var(--ed-bg)] text-[var(--ed-text-primary)] focus:outline-none focus:ring-1 focus:ring-red-500"
                 />
               </div>
@@ -302,10 +302,10 @@ export default function CampaignsPage() {
                     onChange={(e) => setNewSegment(e.target.value)}
                     className="w-full px-3 py-2 rounded-xl border border-[var(--ed-border)] bg-[var(--ed-bg)] text-[var(--ed-text-primary)] focus:outline-none"
                   >
-                    <option value="Café & Bistros">Café & Bistros</option>
-                    <option value="Hotels & Resorts">Hotels & Resorts</option>
+                    <option value="B2B Commercial Accounts">B2B Commercial Accounts</option>
+                    <option value="Enterprise & Corporate">Enterprise & Corporate</option>
                     <option value="Distributors & Retail">Distributors & Retail</option>
-                    <option value="Office Pantries">Office Pantries</option>
+                    <option value="Specialty & Boutique">Specialty & Boutique</option>
                   </select>
                 </div>
 

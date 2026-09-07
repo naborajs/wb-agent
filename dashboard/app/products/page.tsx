@@ -162,14 +162,14 @@ export default function ProductsCatalogPage() {
         setIsAddModalOpen(false);
         setNewProd({
           name: "",
-          category: "Assam CTC",
-          tea_grade: "BP",
-          origin: "North Bengal, India",
+          category: "Commercial",
+          tea_grade: "Commercial Grade A",
+          origin: "Main Distribution Hub",
           description: "",
-          min_order_quantity_kg: 20,
-          base_price_per_kg: 340,
-          weight_kg: 20,
-          packaging_type: "sack",
+          min_order_quantity_kg: 10,
+          base_price_per_kg: 350,
+          weight_kg: 10,
+          packaging_type: "box",
           in_stock: true,
         });
         loadProducts();
