@@ -36,6 +36,8 @@ import {
   selectConversationItem,
   setColorTheme,
   typeText,
+  clickElement,
+  listAllClickableElements,
 } from "./voice/domActions";
 
 type ConnectionState = "disconnected" | "connecting" | "connected" | "error";
@@ -232,60 +234,57 @@ export default function VoiceAgent() {
         }
       } else if (name === "click_element") {
         const query = args.element_id_or_label || "";
-        const el = findMatchingElement(query);
-
-        if (!el) {
-          result = {
-            success: false,
-            error: `Element "${query}" was not found on the current screen (${pathname}).`,
-          };
-        } else {
-          highlightElement(el, "#0ea5e9", 1200);
-          el.click();
-          result = {
-            success: true,
-            clicked: el.innerText?.trim() || query,
-            message: `Successfully clicked "${query}".`,
-          };
-          setTranscripts((prev) => [
-            ...prev,
-            {
-              id: Math.random().toString(),
-              speaker: "system",
-              text: `Clicked: ${el.innerText?.trim() || query}`,
-              timestamp: new Date().toLocaleTimeString(),
-            },
-          ]);
-        }
+        const clickRes = clickElement(query);
+        result = clickRes;
+        setTranscripts((prev) => [
+          ...prev,
+          {
+            id: Math.random().toString(),
+            speaker: "system",
+            text: clickRes.success
+              ? `Clicked: ${clickRes.clicked_label || query}`
+              : `Click failed: ${clickRes.message || query}`,
+            timestamp: new Date().toLocaleTimeString(),
+          },
+        ]);
       } else if (name === "fill_field") {
         const fieldName = args.field_name || "";
         const value = String(args.value ?? "");
-        const el = findMatchingElement(fieldName);
-
-        if (!el || (el.tagName !== "INPUT" && el.tagName !== "TEXTAREA" && el.tagName !== "SELECT")) {
-          result = {
-            success: false,
-            error: `Form field "${fieldName}" was not found on the current screen (${pathname}).`,
-          };
-        } else {
-          highlightElement(el, "#0ea5e9", 1200);
-          setNativeValue(el as HTMLInputElement, value);
+        const typeRes = typeText(fieldName, value, false);
+        if (typeRes.success) {
           result = {
             success: true,
             field: fieldName,
             value: value,
-            message: `Filled field "${fieldName}" with "${value}".`,
+            message: typeRes.message,
           };
-          setTranscripts((prev) => [
-            ...prev,
-            {
-              id: Math.random().toString(),
-              speaker: "system",
-              text: `Filled ${fieldName}: "${value}"`,
-              timestamp: new Date().toLocaleTimeString(),
-            },
-          ]);
+        } else {
+          const el = findMatchingElement(fieldName);
+          if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT")) {
+            highlightElement(el, "#0ea5e9", 1200);
+            setNativeValue(el as HTMLInputElement, value);
+            result = {
+              success: true,
+              field: fieldName,
+              value: value,
+              message: `Filled field "${fieldName}" with "${value}".`,
+            };
+          } else {
+            result = {
+              success: false,
+              error: `Form field "${fieldName}" was not found on the current screen (${pathname}).`,
+            };
+          }
         }
+        setTranscripts((prev) => [
+          ...prev,
+          {
+            id: Math.random().toString(),
+            speaker: "system",
+            text: result.success ? `Filled ${fieldName}: "${value}"` : `Fill failed: ${result.error}`,
+            timestamp: new Date().toLocaleTimeString(),
+          },
+        ]);
       } else if (name === "consult_edith_for_task") {
         const task = args.task || "";
         const targetPhone = args.target_phone || "";
@@ -815,6 +814,339 @@ export default function VoiceAgent() {
             timestamp: new Date().toLocaleTimeString(),
           },
         ]);
+      } else if (name === "inspect_screen_elements") {
+        const elements = listAllClickableElements();
+        result = {
+          success: true,
+          count: elements.length,
+          elements: elements.slice(0, 35),
+          message: `Found ${elements.length} interactive elements on current screen (${pathname}).`,
+        };
+        setTranscripts((prev) => [
+          ...prev,
+          {
+            id: Math.random().toString(),
+            speaker: "system",
+            text: `Scanned screen: found ${elements.length} clickable controls`,
+            timestamp: new Date().toLocaleTimeString(),
+          },
+        ]);
+      } else if (name === "query_contacts_and_conversations") {
+        const type = args.type || "all";
+        const query = args.query || "";
+        const status = args.status;
+        let leads: any[] = [];
+        let conversations: any[] = [];
+
+        try {
+          if (type === "leads" || type === "all") {
+            const params = new URLSearchParams();
+            if (query) params.set("query", query);
+            if (status) params.set("status", status);
+            params.set("page_size", "20");
+            const res = await fetch(`/api/v1/leads?${params.toString()}`);
+            if (res.ok) {
+              const data = await res.json();
+              leads = data.items || [];
+            }
+          }
+          if (type === "conversations" || type === "all") {
+            const params = new URLSearchParams();
+            if (status) params.set("stage", status);
+            params.set("page_size", "20");
+            const res = await fetch(`/api/v1/conversations?${params.toString()}`);
+            if (res.ok) {
+              const data = await res.json();
+              conversations = data.items || [];
+              if (query) {
+                const qLower = query.toLowerCase();
+                conversations = conversations.filter(
+                  (c: any) =>
+                    c.customer_phone?.toLowerCase().includes(qLower) ||
+                    c.customer_name?.toLowerCase().includes(qLower) ||
+                    c.sales_stage?.toLowerCase().includes(qLower)
+                );
+              }
+            }
+          }
+          result = {
+            success: true,
+            total_leads: leads.length,
+            leads: leads.map((l: any) => ({
+              id: l.id,
+              name: l.name,
+              phone: l.phone,
+              company: l.company_name,
+              status: l.status,
+              deal_value: l.deal_value,
+              notes: l.notes,
+            })),
+            total_conversations: conversations.length,
+            conversations: conversations.map((c: any) => ({
+              id: c.id,
+              phone: c.customer_phone,
+              name: c.customer_name,
+              stage: c.sales_stage,
+              mode: c.mode,
+              unread: c.unread_count,
+              last_message: c.last_message_preview,
+            })),
+          };
+          setTranscripts((prev) => [
+            ...prev,
+            {
+              id: Math.random().toString(),
+              speaker: "system",
+              text: `Retrieved ${leads.length} contacts/leads and ${conversations.length} active chats`,
+              timestamp: new Date().toLocaleTimeString(),
+            },
+          ]);
+        } catch (e: any) {
+          result = { success: false, error: e?.message || "Failed to query contacts" };
+        }
+      } else if (name === "manage_contact_or_conversation") {
+        const action = args.action;
+        const targetId = args.id || args.phone || "";
+        const newStatus = args.new_status || "";
+
+        try {
+          if (action === "open_chat") {
+            if (pathname !== "/conversations") {
+              router.push("/conversations");
+              await new Promise((r) => setTimeout(r, 450));
+            }
+            result = selectConversationItem(targetId);
+          } else if (action === "takeover") {
+            const res = await fetch(`/api/v1/conversations/${targetId}/takeover`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ reason: args.reason || "Operator voice takeover via Friday" }),
+            });
+            const data = await res.json();
+            result = { success: res.ok, message: data.message || "Human takeover activated. AI paused.", data };
+          } else if (action === "resume_ai") {
+            const res = await fetch(`/api/v1/conversations/${targetId}/resume`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+            });
+            const data = await res.json();
+            result = { success: res.ok, message: data.message || "EDITH autonomous AI resumed for chat.", data };
+          } else if (action === "update_lead_status") {
+            const res = await fetch(`/api/v1/leads/${targetId}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ status: newStatus }),
+            });
+            const data = await res.json();
+            result = { success: res.ok, lead: data, message: `Lead status updated to ${newStatus}.` };
+          } else {
+            result = {
+              success: false,
+              error: `Unsupported action "${action}". Use 'open_chat', 'takeover', 'resume_ai', or 'update_lead_status'.`,
+            };
+          }
+          setTranscripts((prev) => [
+            ...prev,
+            {
+              id: Math.random().toString(),
+              speaker: "system",
+              text: `Contact action [${action}]: ${result.message || (result.success ? "Success" : result.error)}`,
+              timestamp: new Date().toLocaleTimeString(),
+            },
+          ]);
+        } catch (e: any) {
+          result = { success: false, error: e?.message || "Failed to manage contact" };
+        }
+      } else if (name === "search_knowledge_hub") {
+        const query = args.query || "";
+        const category = args.category;
+        try {
+          const params = new URLSearchParams();
+          params.set("query", query);
+          if (category) params.set("category", category);
+
+          const res = await fetch(`/api/v1/knowledge/search?${params.toString()}`);
+          if (res.ok) {
+            const data = await res.json();
+            const resultsArr = Array.isArray(data) ? data : (data.results || []);
+            result = {
+              success: true,
+              query: query,
+              results_count: resultsArr.length,
+              matches: resultsArr.slice(0, 6),
+            };
+          } else {
+            const listRes = await fetch("/api/v1/knowledge");
+            const listData = await listRes.json();
+            const items = listData.items || listData || [];
+            const matches = items
+              .filter(
+                (item: any) =>
+                  (item.title && item.title.toLowerCase().includes(query.toLowerCase())) ||
+                  (item.content && item.content.toLowerCase().includes(query.toLowerCase()))
+              )
+              .slice(0, 6);
+            result = { success: true, query, results_count: matches.length, matches };
+          }
+          setTranscripts((prev) => [
+            ...prev,
+            {
+              id: Math.random().toString(),
+              speaker: "system",
+              text: `Knowledge search "${query}": found ${result.results_count} articles/rules`,
+              timestamp: new Date().toLocaleTimeString(),
+            },
+          ]);
+        } catch (e: any) {
+          result = { success: false, error: e?.message || "Knowledge search failed" };
+        }
+      } else if (name === "read_knowledge_asset") {
+        const assetIdOrTitle = args.asset_id_or_title || "";
+        try {
+          const listRes = await fetch("/api/v1/knowledge");
+          const listData = await listRes.json();
+          const items = listData.items || listData || [];
+          const matched = items.find(
+            (item: any) =>
+              item.id === assetIdOrTitle ||
+              (item.title && item.title.toLowerCase().includes(assetIdOrTitle.toLowerCase()))
+          );
+          if (matched) {
+            result = {
+              success: true,
+              asset: {
+                id: matched.id,
+                title: matched.title,
+                category: matched.category,
+                content: matched.content,
+                is_active: matched.is_active,
+                metadata: matched.metadata,
+                pricing_rules: matched.pricing_rules,
+                spreadsheet_data: matched.spreadsheet_data,
+              },
+            };
+            setTranscripts((prev) => [
+              ...prev,
+              {
+                id: Math.random().toString(),
+                speaker: "system",
+                text: `Read Knowledge Asset: "${matched.title}" (${matched.category})`,
+                timestamp: new Date().toLocaleTimeString(),
+              },
+            ]);
+          } else {
+            result = { success: false, error: `Knowledge asset "${assetIdOrTitle}" not found.` };
+          }
+        } catch (e: any) {
+          result = { success: false, error: e?.message || "Failed to read knowledge asset" };
+        }
+      } else if (name === "deliberate_with_edith") {
+        const topic = args.topic || "";
+        const contextData = args.context || {};
+        const requestedDiscount = args.requested_discount ? Number(args.requested_discount) : undefined;
+
+        setTranscripts((prev) => [
+          ...prev,
+          {
+            id: Math.random().toString(),
+            speaker: "system",
+            text: `Deliberating with EDITH: "${topic}"...`,
+            timestamp: new Date().toLocaleTimeString(),
+          },
+        ]);
+
+        try {
+          const res = await fetch("/api/v1/brain/deliberate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              topic,
+              context: contextData,
+              requested_discount: requestedDiscount,
+            }),
+          });
+          const data = await res.json();
+          result = {
+            success: res.ok,
+            decision: data.edith_verdict,
+            reasoning: data.edith_reasoning,
+            consensus: data.consensus,
+            message: `EDITH Verdict [${data.edith_verdict}]: ${data.edith_reasoning}. Consensus: ${data.consensus}`,
+          };
+          setTranscripts((prev) => [
+            ...prev,
+            {
+              id: Math.random().toString(),
+              speaker: "system",
+              text: `EDITH [${data.edith_verdict}]: ${data.edith_reasoning}`,
+              timestamp: new Date().toLocaleTimeString(),
+            },
+          ]);
+        } catch (e: any) {
+          result = { success: false, error: e?.message || "Failed to deliberate with EDITH." };
+        }
+      } else if (name === "query_website_data") {
+        const dataScope = args.data_scope || "overview";
+        try {
+          if (dataScope === "whatsapp_status") {
+            const res = await fetch("/api/v1/whatsapp/status");
+            const data = await res.json();
+            result = { success: true, whatsapp: data };
+          } else if (dataScope === "orders") {
+            const res = await fetch("/api/v1/orders?page_size=10");
+            const data = await res.json();
+            result = { success: true, orders: data.items || data };
+          } else {
+            const res = await fetch("/api/v1/analytics/overview");
+            const data = await res.json();
+            result = { success: true, analytics: data };
+          }
+          setTranscripts((prev) => [
+            ...prev,
+            {
+              id: Math.random().toString(),
+              speaker: "system",
+              text: `Retrieved live website ${dataScope} data`,
+              timestamp: new Date().toLocaleTimeString(),
+            },
+          ]);
+        } catch (e: any) {
+          result = { success: false, error: e?.message || "Failed to fetch website data" };
+        }
+      } else if (name === "manage_order") {
+        const action = args.action || "list";
+        const orderId = args.order_id || "";
+        const newStatus = args.status || "";
+        try {
+          if (action === "get" && orderId) {
+            const res = await fetch(`/api/v1/orders/${orderId}`);
+            const data = await res.json();
+            result = { success: res.ok, order: data };
+          } else if (action === "update_status" && orderId) {
+            const res = await fetch(`/api/v1/orders/${orderId}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ status: newStatus }),
+            });
+            const data = await res.json();
+            result = { success: res.ok, order: data, message: `Order ${orderId} updated to ${newStatus}.` };
+          } else {
+            const res = await fetch("/api/v1/orders?page_size=15");
+            const data = await res.json();
+            result = { success: true, orders: data.items || data };
+          }
+          setTranscripts((prev) => [
+            ...prev,
+            {
+              id: Math.random().toString(),
+              speaker: "system",
+              text: `Order action [${action}]: ${result.success ? "Success" : result.error}`,
+              timestamp: new Date().toLocaleTimeString(),
+            },
+          ]);
+        } catch (e: any) {
+          result = { success: false, error: e?.message || "Order action failed" };
+        }
       } else {
         result = { success: false, error: `Unknown tool function: ${name}` };
       }
@@ -1287,6 +1619,158 @@ export default function VoiceAgent() {
                         },
                       },
                       required: ["user_query", "attempted_action"],
+                    },
+                  },
+                  {
+                    name: "inspect_screen_elements",
+                    description:
+                      "Inspects and returns a live list of all visible clickable buttons, links, tabs, switches, and inputs currently visible on the screen with their exact labels, selectors, and tags.",
+                    parameters: {
+                      type: "OBJECT",
+                      properties: {},
+                    },
+                  },
+                  {
+                    name: "query_contacts_and_conversations",
+                    description:
+                      "Queries and retrieves leads, contacts, or active WhatsApp conversations across the platform. Supports keyword search, lead status filtering ('new', 'contacted', 'qualified', 'proposal', 'won', 'lost') and conversation stage filtering.",
+                    parameters: {
+                      type: "OBJECT",
+                      properties: {
+                        type: {
+                          type: "STRING",
+                          description: "'leads', 'conversations', or 'all'",
+                        },
+                        query: {
+                          type: "STRING",
+                          description: "Optional search term for contact name, phone number, or business name.",
+                        },
+                        status: {
+                          type: "STRING",
+                          description: "Optional lead status ('new', 'qualified', etc.) or sales stage.",
+                        },
+                      },
+                    },
+                  },
+                  {
+                    name: "manage_contact_or_conversation",
+                    description:
+                      "Executes direct actions on contacts or conversations: 'open_chat' (navigates and selects thread), 'takeover' (pauses AI and activates human takeover), 'resume_ai' (hands conversation back to EDITH autonomous AI), or 'update_lead_status'.",
+                    parameters: {
+                      type: "OBJECT",
+                      properties: {
+                        action: {
+                          type: "STRING",
+                          description: "'open_chat', 'takeover', 'resume_ai', or 'update_lead_status'",
+                        },
+                        id: {
+                          type: "STRING",
+                          description: "Conversation ID, Lead ID, or phone number.",
+                        },
+                        new_status: {
+                          type: "STRING",
+                          description: "New status when action is 'update_lead_status'.",
+                        },
+                        reason: {
+                          type: "STRING",
+                          description: "Optional reason for takeover.",
+                        },
+                      },
+                      required: ["action", "id"],
+                    },
+                  },
+                  {
+                    name: "search_knowledge_hub",
+                    description:
+                      "Performs vector semantic RAG search across the entire Knowledge Hub (products, pricing tiers, objection handling scripts, business policies, wholesale FAQs).",
+                    parameters: {
+                      type: "OBJECT",
+                      properties: {
+                        query: {
+                          type: "STRING",
+                          description: "Semantic query or question to search the knowledge base for.",
+                        },
+                        category: {
+                          type: "STRING",
+                          description: "Optional category: 'business_info', 'pricing_rule', 'catalog_product', 'agent_guidance', 'custom'.",
+                        },
+                      },
+                      required: ["query"],
+                    },
+                  },
+                  {
+                    name: "read_knowledge_asset",
+                    description:
+                      "Fetches the complete content, pricing rules, catalog specs, markdown text, or spreadsheet cells for any specific knowledge asset in the Knowledge Hub.",
+                    parameters: {
+                      type: "OBJECT",
+                      properties: {
+                        asset_id_or_title: {
+                          type: "STRING",
+                          description: "The unique ID or title substring of the knowledge document or catalog item.",
+                        },
+                      },
+                      required: ["asset_id_or_title"],
+                    },
+                  },
+                  {
+                    name: "deliberate_with_edith",
+                    description:
+                      "Engages in collaborative dual-brain deliberation with partner brain EDITH over the Inter-Brain Bus. Friday and EDITH deliberate on commercial policies, discounts, strategies, or trade-offs, returning EDITH's independent judgment, boundary checks, and joint consensus.",
+                    parameters: {
+                      type: "OBJECT",
+                      properties: {
+                        topic: {
+                          type: "STRING",
+                          description: "The strategic commercial question, policy debate, or proposal to deliberate with EDITH.",
+                        },
+                        requested_discount: {
+                          type: "NUMBER",
+                          description: "Optional discount percentage being evaluated.",
+                        },
+                        context: {
+                          type: "OBJECT",
+                          description: "Optional background parameters or customer details.",
+                        },
+                      },
+                      required: ["topic"],
+                    },
+                  },
+                  {
+                    name: "query_website_data",
+                    description:
+                      "Queries live website data: 'overview' (live analytics, pipeline value, conversions), 'orders' (recent order transactions), or 'whatsapp_status' (connection health).",
+                    parameters: {
+                      type: "OBJECT",
+                      properties: {
+                        data_scope: {
+                          type: "STRING",
+                          description: "'overview', 'orders', or 'whatsapp_status'",
+                        },
+                      },
+                    },
+                  },
+                  {
+                    name: "manage_order",
+                    description:
+                      "Lists orders, inspects a single order, or updates order status ('draft', 'pending', 'confirmed', 'dispatched', 'delivered').",
+                    parameters: {
+                      type: "OBJECT",
+                      properties: {
+                        action: {
+                          type: "STRING",
+                          description: "'list', 'get', or 'update_status'",
+                        },
+                        order_id: {
+                          type: "STRING",
+                          description: "Order ID (required for 'get' and 'update_status').",
+                        },
+                        status: {
+                          type: "STRING",
+                          description: "New order status when action is 'update_status'.",
+                        },
+                      },
+                      required: ["action"],
                     },
                   },
                 ],
