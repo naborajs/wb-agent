@@ -40,54 +40,52 @@ class RAGQueryResponse(BaseModel):
 
 DEFAULT_KNOWLEDGE_DOCUMENTS = [
     (
-        "North Bengal Tea Co. Quality Standards & Certifications",
-        """# Quality Standards and Origin Authenticity
+        "Enterprise Quality Standards & Certifications",
+        """# Enterprise Quality Standards & Origin Authenticity
 
-North Bengal Tea Co. is directly affiliated with single estates across Darjeeling, Dooars, and Assam.
-Every batch is tested for:
-- Maximum moisture content under 6.5%
-- Heavy metal and pesticide residues compliant with FSSAI standards
-- 100% authentic GI (Geographical Indication) certified Darjeeling leaf
-- Rainforest Alliance and Ethical Tea Partnership certified estates
+Our business adheres to strict commercial quality controls, source verification, and batch inspection standards.
+Every consignment is verified for:
+- 100% compliance with applicable industry safety, purity, and manufacturing standards
+- Batch consistency, moisture/tolerance thresholds, and contamination-free storage
+- Certified production facilities with ISO, FSSAI, and international origin traceability
+- Authentic single-origin or engineered enterprise grades with certificate of analysis (COA)
 
-We do not blend cheap auction sweepings into our orthodox whole-leaf offerings.
+We do not compromise on grading integrity, ensuring predictable quality for repeat commercial clients.
 """,
     ),
     (
-        "Commercial Sampling Policy for Hospitality Buyers",
+        "Commercial Sampling Policy & Evaluation Protocol",
         """# Commercial Sampling Policy
 
-For genuine B2B buyers (cafes, hotels, restaurants, distributors):
-- We dispatch a 3-blend tasting kit (100g each: Darjeeling First Flush, Assam Kadak CTC, Dooars Hotel Blend).
-- Standard sample kit charge is ₹499 covering express air courier across India.
-- 100% of the sample charge is refunded or credited against your first commercial order of 50kg+.
-- Typical courier transit time is 3 to 4 business days.
+For verified commercial buyers, hospitality groups, retailers, and distributors:
+- We dispatch curated sample kits for professional sensory, technical, and commercial evaluation.
+- Standard sample kit charge is ₹499 (or equivalent in local currency) covering priority express courier delivery.
+- 100% of the sample evaluation fee is credited back against your first commercial order meeting the baseline MOQ.
+- Typical sample transit time is 2 to 4 business days with tracking details provided immediately.
 """,
     ),
     (
-        "Wholesale Logistics, Transit Timelines & Delivery Policy",
-        """# Freight, Logistics & Delivery Timelines
+        "Wholesale Freight, Logistics & Fulfillment Policy",
+        """# Freight, Logistics & Fulfillment Policies
 
-North Bengal Tea Co. operates direct dispatch warehousing hubs out of Siliguri and Kolkata.
-- Surface Logistics: Transit time to major metros (Delhi NCR, Mumbai, Bengaluru, Hyderabad, Kolkata) is 3 to 5 business days.
-- Regional Tier-2 and Tier-3 transit timeline: 5 to 7 business days via vetted logistics carriers (Safechem, TCI Freight, V-Trans).
-- Express Air Consignments: 24 to 48 hours door-to-door for urgent restaurant sample dispatches.
-- Real-time GPS consignment tracking and electronic Lorry Receipt (LR) copy dispatched within 2 hours of loading.
-- Standard packaging: Hermetically sealed multi-layer 5kg aluminium barrier pouches inside 20kg moisture-proof corrugated master cartons.
+We operate centralized dispatch hubs with nationwide and regional logistics coverage:
+- Surface Commercial Freight: Standard transit time to major commercial centers is 3 to 5 business days.
+- Regional transit timeline: 5 to 7 business days via contracted, insured tier-1 freight carriers.
+- Express Air Consignments: 24 to 48 hours door-to-door for urgent or time-critical stock requirements.
+- Real-time electronic dispatch tracking and digital consignment receipts dispatched within 2 hours of loading.
+- Commercial packaging: Heavy-duty, hermetically sealed, moisture-proof barrier packaging inside master cartons or containers.
 """,
     ),
     (
-        "Wholesale Pricing Tiers, Packaging & Minimum Order Quantities (MOQs)",
-        """# Wholesale Pricing Tiers and Minimum Order Quantities
+        "Commercial Pricing Rules, Packaging & Minimum Order Quantities",
+        """# Commercial Pricing Rules and Minimum Order Quantities
 
-Direct estate wholesale pricing for commercial accounts:
-- Minimum Order Quantity (MOQ): Standard MOQ is 50kg per individual tea grade (e.g. 50kg Darjeeling FTGFOP1 or 50kg Assam BP CTC).
-- Sample MOQ: 1 tasting kit (300g total).
-- Volume Discount Tiers:
-  * Tier 1 (50kg – 199kg): Standard wholesale baseline tariff (Darjeeling ₹950/kg, Assam CTC ₹290/kg, Dooars ₹240/kg).
-  * Tier 2 (200kg – 499kg): 5% volume discount applied automatically.
-  * Tier 3 (500kg+): 8% to 12% maximum autonomous volume discount with freight subsidies.
-- Payment Terms: First order requires 100% advance or 50% advance + 50% against LR copy. Recurring verified buyers qualify for 15-day credit terms.
+Standard commercial wholesale pricing tiers:
+- Minimum Order Quantity (MOQ): Standard MOQ applies per individual product SKU or grade.
+- Tier 1 (Baseline Order): Standard wholesale tariff with no minimum surcharge.
+- Tier 2 (Volume Order): 5% volume discount applied automatically on qualifying quantities.
+- Tier 3 (Distributor / Bulk Tier): 8% to 15% maximum autonomous volume discount with freight subsidies.
+- Payment Terms: Initial orders require 100% advance or 50% advance with balance against dispatch confirmation. Approved recurring buyers qualify for commercial net-15 or net-30 terms.
 """,
     ),
 ]
@@ -182,11 +180,11 @@ async def query_knowledge_with_ai(req: RAGQueryRequest, session: AsyncSession = 
         from app.ai.types import Capability, ModelMessage, ModelRequest
 
         sys_prompt = (
-            "You are the EDITH Knowledge Engine for North Bengal Tea Co. (B2B wholesale tea producer).\n"
+            f"You are the {settings.AGENT_NAME} Knowledge Engine for {settings.BUSINESS_NAME} ({settings.BUSINESS_INDUSTRY}).\n"
             "Your task: Answer the user's question clearly, concisely, and factually based STRICTLY on the provided knowledge context.\n"
             "Rules:\n"
             "1. Citing details: Include exact numbers, minimum order quantities (MOQs), transit days, and discount tiers if present.\n"
-            "2. Tone: Crisp, professional, B2B wholesale.\n"
+            "2. Tone: Crisp, professional, consultative B2B.\n"
             "3. Length: 2 to 4 sentences maximum. Do not hallucinate external facts."
         )
         user_msg = f"Knowledge Context:\n{context_str}\n\nQuestion: {req.query}"
