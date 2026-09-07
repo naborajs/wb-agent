@@ -18,9 +18,11 @@ import {
   ArrowRight,
   ArrowLeft,
   Bot,
+  Volume2,
 } from "lucide-react";
 
 interface DualBrainHeroBusProps {
+  onPlayBriefing?: () => void;
   queueDepth: number;
   autonomousRate: number;
   turnSpeed: string;
@@ -51,6 +53,7 @@ interface DualBrainHeroBusProps {
 }
 
 export default function DualBrainHeroBus({
+  onPlayBriefing,
   queueDepth,
   autonomousRate,
   turnSpeed,
@@ -316,6 +319,18 @@ export default function DualBrainHeroBus({
             <Zap className="w-3 h-3 text-sky-600 dark:text-[#38BDF8]" />
             <span>{turnSpeed} turn latency</span>
           </div>
+
+          {/* Glowing Action Button: Play Executive Morning Audio Briefing */}
+          {onPlayBriefing && (
+            <button
+              onClick={onPlayBriefing}
+              className="flex items-center gap-1.5 px-3.5 py-1 rounded-lg bg-gradient-to-r from-purple-600 via-indigo-600 to-sky-500 hover:from-purple-500 hover:to-sky-400 text-white text-[11px] font-mono font-bold shadow-md shadow-purple-500/25 transition-all hover:scale-105 active:scale-95 animate-pulse shrink-0 border border-purple-400/40"
+              title="Click to hear Friday speak an audio executive debrief of leads, pipeline, and margin defenses"
+            >
+              <Volume2 className="w-3.5 h-3.5 fill-white shrink-0" />
+              <span>Play Morning Briefing</span>
+            </button>
+          )}
         </div>
       </div>
 
