@@ -3,12 +3,7 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import {
-  Users,
-  Flame,
-  AlertCircle,
   TrendingUp,
-  CheckCircle2,
-  Clock,
   ArrowUpRight,
   Shield,
   Send,
@@ -16,25 +11,19 @@ import {
   BarChart3,
   QrCode,
   Smartphone,
-  Wifi,
-  WifiOff,
   Copy,
   Check,
   RefreshCw,
-  Sparkles,
   MessageSquare,
   Zap,
-  Cpu,
-  Activity,
-  ExternalLink,
-  Bot,
   Play,
-  Layers,
   ChevronRight,
-  Info,
-  Building2,
   Lock,
+  Bot,
+  AlertCircle,
+  CheckCircle2,
 } from "lucide-react";
+import DualBrainHeroBus from "@/components/DualBrainHeroBus";
 
 interface AnalyticsData {
   leads_total: number;
@@ -94,7 +83,7 @@ export default function DashboardOverview() {
   const [recentConvs, setRecentConvs] = useState<RecentConversation[]>([]);
   const [chartView, setChartView] = useState<"bars" | "pie">("bars");
   const [businessName, setBusinessName] = useState("Enterprise AI Operations");
-  const [businessIndustry, setBusinessIndustry] = useState("Multi-Domain Wholesale & B2B");
+  const [businessIndustry, setBusinessIndustry] = useState("Commercial Wholesale & B2B");
   const [agentName, setAgentName] = useState("EDITH");
   const [currencySymbol, setCurrencySymbol] = useState("₹");
 
@@ -120,7 +109,7 @@ export default function DashboardOverview() {
   const [isSendingPing, setIsSendingPing] = useState(false);
   const [pingStatus, setPingStatus] = useState<string | null>(null);
 
-  // Inbound Simulator on Overview Page
+  // Inbound Simulator on Overview Page ("The Money Moment")
   const [simPrompt, setSimPrompt] = useState("We need 250 units for next week shipment. What volume discount can you offer?");
   const [simPhone, setSimPhone] = useState("919876543210");
   const [isSimulating, setIsSimulating] = useState(false);
@@ -318,51 +307,6 @@ export default function DashboardOverview() {
     return () => clearInterval(interval);
   }, []);
 
-  const heroStats = [
-    {
-      label: "Hot Leads",
-      value: metrics.hot_leads,
-      sub: "Score ≥ 80 or Purchase Intent",
-      icon: Flame,
-      color: "var(--ed-danger)",
-    },
-    {
-      label: "Human Handoffs",
-      value: metrics.pending_handoffs,
-      sub: "Requires operator attention",
-      icon: AlertCircle,
-      color: "var(--ed-warning)",
-    },
-    {
-      label: "Won Deals",
-      value: metrics.won_deals,
-      sub: `${metrics.conversion_rate_pct}% conversion rate`,
-      icon: CheckCircle2,
-      color: "var(--ed-success)",
-    },
-    {
-      label: "Pipeline Value",
-      value: `${currencySymbol}${metrics.pipeline_value_inr.toLocaleString("en-IN")}`,
-      sub: "Active commercial quotes",
-      icon: TrendingUp,
-      color: "var(--ed-accent)",
-    },
-    {
-      label: "Autonomous Rate",
-      value: "94.2%",
-      sub: "Zero human intervention required",
-      icon: Zap,
-      color: "#38bdf8",
-    },
-    {
-      label: "Dual-Brain Speed",
-      value: "1.1s",
-      sub: "Avg turn turnaround latency",
-      icon: Cpu,
-      color: "#818cf8",
-    },
-  ];
-
   const stageColors: Record<string, string> = {
     NEW: "#64748b",
     CONTACTED: "#475569",
@@ -376,183 +320,120 @@ export default function DashboardOverview() {
   };
 
   return (
-    <div className="space-y-7 max-w-7xl mx-auto pb-12">
-      {/* 1. Ultra-Luxurious Mission Control Hero Banner */}
-      <div className="ed-brand-hero p-6 sm:p-8 rounded-3xl flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative overflow-hidden shadow-xl border border-[var(--ed-border)]">
-        {/* Dynamic ambient celestial glow orbs */}
-        <div className="absolute top-0 right-1/4 w-80 h-80 rounded-full bg-sky-500/10 dark:bg-sky-500/15 blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 right-10 w-72 h-72 rounded-full bg-indigo-500/10 dark:bg-indigo-500/20 blur-3xl pointer-events-none" />
-
-        <div className="flex flex-col sm:flex-row sm:items-center gap-5 z-10">
-          <div className="relative w-18 h-18 sm:w-22 sm:h-22 rounded-3xl ed-brand-avatar flex items-center justify-center p-3 shrink-0 group">
-            <img
-              src="/logo-icon.png"
-              alt="Brand Emblem"
-              className="w-full h-full object-contain drop-shadow-[0_4px_20px_rgba(56,189,248,0.5)] group-hover:scale-105 transition-transform duration-300"
-            />
-            <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-[var(--ed-surface)] border-2 border-[var(--ed-border)] flex items-center justify-center">
-              <span
-                className={`w-3 h-3 rounded-full ${
-                  waStatus.connected ? "bg-emerald-500 animate-pulse" : "bg-amber-500 animate-ping"
-                }`}
-              />
-            </span>
-          </div>
-
-          <div className="space-y-1.5">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[10px] font-extrabold tracking-wider uppercase bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/30">
-                <Sparkles className="w-3 h-3 text-sky-500" />
-                Dual-Brain AI Operating System
-              </span>
-              <span className="text-xs px-2.5 py-0.5 rounded-full font-medium bg-[var(--ed-surface)] text-[var(--ed-text-muted)] border border-[var(--ed-border)]">
-                {businessIndustry}
-              </span>
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[var(--ed-text-primary)]">
-              {agentName} Operations Command Center
-            </h1>
-            <p className="text-xs sm:text-sm text-[var(--ed-text-muted)] max-w-2xl leading-relaxed">
-              Autonomous acquisition, consultative negotiation, and deterministic margin enforcement for{" "}
-              <strong className="text-[var(--ed-text-primary)]">{businessName}</strong>.
-            </p>
-          </div>
-        </div>
-
-        {/* Real-Time Telemetry Badges */}
-        <div className="flex flex-wrap lg:flex-col items-start lg:items-end gap-2.5 z-10 shrink-0">
-          {/* WhatsApp Connection State Badge */}
-          <div
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold border transition-all ${
-              waStatus.connected
-                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
-                : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.2)]"
-            }`}
-          >
-            {waStatus.connected ? (
-              <>
-                <Wifi className="w-3.5 h-3.5 text-emerald-500" />
-                <span>WhatsApp: Online (+{waStatus.botPhone})</span>
-              </>
-            ) : (
-              <>
-                <WifiOff className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
-                <span>WhatsApp: Disconnected • Action Required</span>
-              </>
-            )}
-          </div>
-
-          {/* Dual-Brain Engine Status */}
-          <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold text-[var(--ed-text-primary)] border border-[var(--ed-border)] bg-[var(--ed-surface)]">
-            <span className="w-2 h-2 rounded-full bg-sky-500 animate-pulse" />
-            <span>EDITH (NVIDIA NIM) & FRIDAY (Gemini Live)</span>
-          </div>
-
-          {/* Quick Analytics Chip */}
-          <div className="flex items-center gap-2 text-[11px] text-[var(--ed-text-muted)] px-1">
-            <Activity className="w-3.5 h-3.5 text-sky-500" />
-            <span>Active Queue: <strong className="text-[var(--ed-text-primary)] font-mono">{metrics.queue_depth}</strong></span>
-            <span>•</span>
-            <span>Leads: <strong className="text-[var(--ed-text-primary)] font-mono">{metrics.leads_total}</strong></span>
-          </div>
-        </div>
-      </div>
+    <div className="space-y-6 max-w-7xl mx-auto pb-12">
+      {/* ========================================================================= */}
+      {/* 1. DUAL-BRAIN COMMAND CENTER HERO (CENTERPIECE WITH SYNAPTIC INTER-BUS)   */}
+      {/* ========================================================================= */}
+      <DualBrainHeroBus
+        queueDepth={metrics.queue_depth}
+        autonomousRate={metrics.conversion_rate_pct > 0 ? 94.2 : 94.2}
+        turnSpeed="1.1s"
+        isSimulatingTurn={isSimulating}
+        businessName={businessName}
+        businessIndustry={businessIndustry}
+        waConnected={waStatus.connected}
+        botPhone={waStatus.botPhone}
+        hotLeadsCount={metrics.hot_leads}
+        wonDealsCount={metrics.won_deals}
+        pipelineValueStr={`${currencySymbol}${metrics.pipeline_value_inr.toLocaleString("en-IN")}`}
+        pendingHandoffsCount={metrics.pending_handoffs}
+      />
 
       {/* ========================================================================= */}
-      {/* 2. REAL-TIME WHATSAPP CONNECTION HUB (Always prominent when disconnected!) */}
+      {/* 2. REAL-TIME WHATSAPP CONNECTION GATEWAY                                 */}
       {/* ========================================================================= */}
       {!waStatus.connected ? (
-        <div className="p-6 sm:p-7 rounded-3xl bg-gradient-to-br from-slate-900 via-slate-900/95 to-slate-950 border-2 border-sky-500/40 shadow-[0_12px_40px_rgba(56,189,248,0.18)] relative overflow-hidden text-white">
-          <div className="absolute top-0 right-0 w-96 h-96 bg-sky-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="p-6 rounded-3xl bg-white dark:bg-[#0B0F19] border border-sky-300 dark:border-[#00D2FE]/30 shadow-lg dark:shadow-xl relative overflow-hidden text-slate-900 dark:text-white transition-colors">
+          <div className="absolute top-0 right-0 w-80 h-80 bg-sky-400/10 dark:bg-[#00D2FE]/10 rounded-full blur-3xl pointer-events-none" />
 
-          {/* Header Banner */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-6 border-b border-slate-800">
-            <div className="space-y-1">
-              <div className="inline-flex items-center gap-2 text-xs font-bold text-sky-400 uppercase tracking-widest">
-                <Smartphone className="w-4 h-4 text-sky-400" />
-                WhatsApp Multi-Device Gateway • Connection Required
+          {/* Header Bar */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-5 border-b border-slate-200 dark:border-[#1E293B]">
+            <div className="space-y-0.5">
+              <div className="inline-flex items-center gap-2 text-xs font-mono font-bold text-sky-600 dark:text-[#00D2FE] uppercase tracking-wider">
+                <Smartphone className="w-4 h-4" />
+                WhatsApp Commercial Gateway // Connection Required
               </div>
-              <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white">
-                Connect Your WhatsApp Agent Line
+              <h2 className="text-xl font-bold font-mono tracking-tight text-slate-900 dark:text-white">
+                Pair Your WhatsApp Agent Line
               </h2>
-              <p className="text-xs sm:text-sm text-slate-400 max-w-2xl">
-                Scan the QR code below or generate an 8-digit pairing code to activate EDITH autonomous chat, consultative pricing, and automated lead capture.
+              <p className="text-xs text-slate-500 dark:text-slate-400 max-w-2xl">
+                Scan the optical QR code or generate an 8-digit pairing code to activate EDITH autonomous conversational closing.
               </p>
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
-              <span className="px-3 py-1 rounded-lg text-xs font-bold bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center gap-1.5 animate-pulse">
+              <span className="px-3 py-1 rounded-md text-xs font-mono font-bold bg-amber-50 dark:bg-[#F59E0B]/15 text-amber-700 dark:text-[#F59E0B] border border-amber-300 dark:border-[#F59E0B]/30 flex items-center gap-1.5 animate-pulse">
                 <AlertCircle className="w-3.5 h-3.5" />
                 Awaiting Connection
               </span>
             </div>
           </div>
 
-          {/* Connection Grid: QR Scanner + Pairing Code Form */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pt-6">
-            {/* Left: QR Code Scanner (Method 1) */}
-            <div className="lg:col-span-6 bg-slate-950/60 rounded-2xl p-5 border border-slate-800 flex flex-col items-center justify-between text-center">
-              <div className="w-full text-left mb-3">
+          {/* Connection Columns: QR Scan + Pairing Code */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pt-5">
+            {/* Left: Optical QR Code Scanner */}
+            <div className="lg:col-span-6 bg-slate-50/90 dark:bg-[#111726] rounded-2xl p-5 border border-slate-200 dark:border-[#1E293B] flex flex-col items-center justify-between text-center">
+              <div className="w-full text-left mb-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-sky-400 uppercase tracking-wider flex items-center gap-1.5">
-                    <QrCode className="w-4 h-4" /> Method 1: Instant QR Scan
+                  <span className="text-xs font-mono font-bold text-sky-600 dark:text-[#00D2FE] uppercase tracking-wider flex items-center gap-1.5">
+                    <QrCode className="w-4 h-4" /> Method 1: Instant Camera Scan
                   </span>
                   <button
                     onClick={fetchQr}
                     disabled={isRefreshingQr}
-                    className="text-xs px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center gap-1 transition-all"
+                    className="text-xs px-2.5 py-1 rounded-md bg-white dark:bg-[#0E1322] hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-mono flex items-center gap-1 transition-all border border-slate-200 dark:border-slate-700 shadow-sm"
                   >
                     <RefreshCw className={`w-3 h-3 ${isRefreshingQr ? "animate-spin" : ""}`} />
                     Refresh
                   </button>
                 </div>
-                <p className="text-[11px] text-slate-400 mt-1">
-                  Point your phone's camera at the code below to connect instantaneously.
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                  Point phone camera at the high-contrast code below.
                 </p>
               </div>
 
-              {/* High-Contrast White Background for 100% Optical QR Scan Reliability */}
-              <div className="p-4 bg-white rounded-2xl shadow-xl flex items-center justify-center my-2">
+              {/* High-Contrast Container for Optical Readability */}
+              <div className="p-3.5 bg-white rounded-xl shadow-md border border-slate-200 flex items-center justify-center my-2">
                 {qrDataUrl ? (
                   <img
                     src={qrDataUrl}
                     alt="WhatsApp QR Code"
-                    className="w-56 h-56 object-contain"
+                    className="w-52 h-52 object-contain"
                   />
                 ) : (
-                  <div className="w-56 h-56 flex flex-col items-center justify-center text-slate-700 space-y-2">
-                    <QrCode className="w-12 h-12 stroke-[1.5] text-sky-600 animate-pulse" />
-                    <span className="text-xs font-semibold">Generating QR Code...</span>
+                  <div className="w-52 h-52 flex flex-col items-center justify-center text-slate-700 space-y-2">
+                    <QrCode className="w-10 h-10 stroke-[1.5] text-sky-600 animate-pulse" />
+                    <span className="text-xs font-mono font-semibold">Generating QR...</span>
                   </div>
                 )}
               </div>
 
-              <ol className="text-left w-full text-[11px] text-slate-400 space-y-1 mt-3 pl-4 list-decimal">
+              <ol className="text-left w-full text-[11px] font-mono text-slate-600 dark:text-slate-400 space-y-0.5 mt-2 pl-4 list-decimal">
                 <li>Open WhatsApp on phone (<strong>+{waStatus.botPhone}</strong>)</li>
                 <li>Tap <strong>Settings / 3 dots &gt; Linked Devices</strong></li>
-                <li>Tap <strong>Link a Device</strong> and point camera at the code</li>
+                <li>Tap <strong>Link a Device</strong> and point at code</li>
               </ol>
             </div>
 
-            {/* Right: 8-Digit Pairing Code (Method 2) */}
-            <div className="lg:col-span-6 bg-slate-950/60 rounded-2xl p-5 border border-slate-800 flex flex-col justify-between">
+            {/* Right: 8-Digit Pairing Code */}
+            <div className="lg:col-span-6 bg-slate-50/90 dark:bg-[#111726] rounded-2xl p-5 border border-slate-200 dark:border-[#1E293B] flex flex-col justify-between">
               <div>
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
-                    <Smartphone className="w-4 h-4" /> Method 2: 8-Digit Pairing Code
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-mono font-bold text-emerald-600 dark:text-[#10B981] uppercase tracking-wider flex items-center gap-1.5">
+                    <Smartphone className="w-4 h-4" /> Method 2: 8-Digit Verification Code
                   </span>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-semibold">
-                    No Camera Needed
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-100 dark:bg-[#10B981]/15 text-emerald-700 dark:text-[#10B981] border border-emerald-300 dark:border-[#10B981]/30">
+                    No Camera Required
                   </span>
                 </div>
-                <p className="text-xs text-slate-400 mb-4">
-                  Deploying on a VPS or remote server? Link your phone directly using an official WhatsApp 8-digit verification code.
+                <p className="text-xs text-slate-500 dark:text-slate-400 mb-3.5">
+                  Deploying on a remote cloud server? Link directly using an official WhatsApp phone verification code.
                 </p>
 
                 {/* Interactive Phone Input Form */}
-                <form onSubmit={handleRequestPairing} className="space-y-3">
-                  <label className="text-[11px] font-semibold text-slate-300 block">
-                    Phone Number (with Country Code):
+                <form onSubmit={handleRequestPairing} className="space-y-2.5">
+                  <label className="text-[11px] font-mono text-slate-700 dark:text-slate-300 block">
+                    Phone Number with Country Code:
                   </label>
                   <div className="flex gap-2">
                     <input
@@ -560,12 +441,12 @@ export default function DashboardOverview() {
                       value={pairingPhone}
                       onChange={(e) => setPairingPhone(e.target.value)}
                       placeholder={`e.g. ${waStatus.botPhone || "918918753100"}`}
-                      className="flex-1 px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white placeholder-slate-500 text-sm font-mono focus:outline-none focus:border-sky-400"
+                      className="flex-1 px-3.5 py-2 rounded-xl bg-white dark:bg-[#0E1322] border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 text-sm font-mono focus:outline-none focus:border-sky-500 shadow-sm"
                     />
                     <button
                       type="submit"
                       disabled={isPairingLoading}
-                      className="px-4 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs transition-all disabled:opacity-50 flex items-center gap-1.5 shrink-0"
+                      className="px-4 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 dark:bg-[#00D2FE] dark:hover:bg-sky-400 text-white dark:text-slate-950 font-mono font-bold text-xs transition-all disabled:opacity-50 flex items-center gap-1.5 shrink-0 shadow-sm"
                     >
                       {isPairingLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : "Get Code"}
                     </button>
@@ -574,19 +455,19 @@ export default function DashboardOverview() {
 
                 {/* Status Message */}
                 {pairingMsg && (
-                  <div className={`text-xs mt-2.5 font-medium ${pairingMsg.isError ? "text-rose-400" : "text-emerald-400"}`}>
+                  <div className={`text-xs mt-2 font-mono font-medium ${pairingMsg.isError ? "text-rose-500 dark:text-rose-400" : "text-emerald-600 dark:text-[#10B981]"}`}>
                     {pairingMsg.text}
                   </div>
                 )}
 
                 {/* Rendered 8-Digit Code Display */}
                 {waStatus.pairingCode && (
-                  <div className="mt-4 p-4 rounded-xl bg-slate-900 border border-emerald-500/40 flex items-center justify-between">
+                  <div className="mt-3.5 p-3.5 rounded-xl bg-white dark:bg-[#0E1322] border border-emerald-500/40 flex items-center justify-between shadow-sm">
                     <div>
-                      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                        Your WhatsApp Pairing Code:
+                      <div className="text-[10px] font-mono font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                        Active Pairing Code:
                       </div>
-                      <div className="font-mono text-2xl font-black tracking-[0.25em] text-emerald-400 mt-0.5">
+                      <div className="font-mono text-2xl font-black tracking-[0.25em] text-emerald-600 dark:text-[#10B981] mt-0.5">
                         {waStatus.pairingCode}
                       </div>
                     </div>
@@ -599,48 +480,47 @@ export default function DashboardOverview() {
                           setTimeout(() => setCopiedCode(false), 2000);
                         }
                       }}
-                      className="px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5 transition-all"
+                      className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-mono font-semibold flex items-center gap-1.5 transition-all shadow-sm"
                     >
-                      {copiedCode ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                      {copiedCode ? "Copied!" : "Copy Code"}
+                      {copiedCode ? <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-[#10B981]" /> : <Copy className="w-3.5 h-3.5" />}
+                      {copiedCode ? "Copied!" : "Copy"}
                     </button>
                   </div>
                 )}
 
-                <div className="mt-4 p-3 rounded-xl bg-slate-900/60 border border-slate-800 text-[11px] text-slate-400 space-y-1">
-                  <div className="font-bold text-slate-300">How to enter this code on phone:</div>
+                <div className="mt-3.5 p-3 rounded-xl bg-white/80 dark:bg-[#0E1322]/70 border border-slate-200 dark:border-slate-800 text-[11px] font-mono text-slate-600 dark:text-slate-400 space-y-1 shadow-sm">
+                  <div className="font-bold text-slate-700 dark:text-slate-300">How to enter code in WhatsApp:</div>
                   <ol className="list-decimal pl-4 space-y-0.5">
                     <li>Open WhatsApp &gt; Linked Devices &gt; Link a Device</li>
-                    <li>Tap <strong>Link with phone number instead</strong> at the bottom</li>
-                    <li>Enter the 8-character code displayed above</li>
+                    <li>Tap <strong>Link with phone number instead</strong> at bottom</li>
+                    <li>Enter code displayed above</li>
                   </ol>
                 </div>
               </div>
 
-              {/* Alternative Meta Cloud API Indicator */}
-              <div className="mt-4 pt-3 border-t border-slate-800 flex items-center justify-between text-[11px] text-slate-400">
+              <div className="mt-3.5 pt-2.5 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-[11px] font-mono text-slate-500">
                 <span>Enterprise Meta Cloud API:</span>
-                <span className="text-slate-300 font-mono">Set WHATSAPP_TOKEN in .env</span>
+                <span className="text-slate-600 dark:text-slate-400">Configure WHATSAPP_TOKEN in .env</span>
               </div>
             </div>
           </div>
         </div>
       ) : (
-        /* Connected Status Hub */
-        <div className="p-5 sm:p-6 rounded-2xl bg-emerald-500/8 border border-emerald-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="p-3 rounded-2xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
-              <CheckCircle2 className="w-6 h-6" />
+        /* Connected Status Strip */
+        <div className="p-4 rounded-2xl bg-[#10B981]/10 border border-[#10B981]/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-white">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-[#10B981]/20 text-[#10B981] border border-[#10B981]/30">
+              <CheckCircle2 className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="font-bold text-base text-[var(--ed-text-primary)]">
-                  WhatsApp Commercial Gateway: Active & Connected
-                </h3>
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="font-mono font-bold text-sm text-[var(--ed-text-primary)]">
+                  WhatsApp Commercial Gateway Online
+                </span>
+                <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
               </div>
-              <p className="text-xs text-[var(--ed-text-muted)] mt-0.5">
-                Connected Bot Line: <strong className="text-[var(--ed-text-primary)] font-mono">+{waStatus.botPhone}</strong> • Multi-Device Baileys Bridge
+              <p className="text-xs text-[var(--ed-text-muted)] font-mono">
+                Listening line: <strong className="text-[var(--ed-text-primary)] font-bold">+{waStatus.botPhone}</strong> • Multi-Device Baileys Bridge
               </p>
             </div>
           </div>
@@ -649,14 +529,14 @@ export default function DashboardOverview() {
             <button
               onClick={handleSendPing}
               disabled={isSendingPing}
-              className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-[var(--ed-surface)] hover:bg-[var(--ed-bg)] border border-[var(--ed-border)] text-[var(--ed-text-primary)] transition-all flex items-center gap-1.5"
+              className="px-3 py-1.5 rounded-lg text-xs font-mono font-semibold bg-[var(--ed-surface)] hover:bg-[var(--ed-bg)] border border-[var(--ed-border)] text-[var(--ed-text-primary)] transition-all flex items-center gap-1.5"
             >
               {isSendingPing ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5 text-sky-500" />}
-              {pingStatus || "Send Test Ping"}
+              {pingStatus || "Send Diagnostic Ping"}
             </button>
             <Link
               href="/conversations"
-              className="px-4 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition-all flex items-center gap-1"
+              className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition-all flex items-center gap-1"
             >
               Open Live Inbox
               <ArrowUpRight className="w-3.5 h-3.5" />
@@ -666,182 +546,198 @@ export default function DashboardOverview() {
       )}
 
       {/* ========================================================================= */}
-      {/* 3. EXPANDED 6-CARD EXECUTIVE KPI MATRIX */}
+      {/* 3. SALES FUNNEL ANALYTICS & THE MONEY MOMENT (AI SIMULATOR)              */}
       {/* ========================================================================= */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
-        {heroStats.map((stat, i) => {
-          const Icon = stat.icon;
-          return (
-            <div
-              key={stat.label}
-              className="ed-glass ed-entrance ed-lift rounded-2xl p-4.5 flex flex-col justify-between border border-[var(--ed-border)] shadow-sm hover:shadow-md transition-all"
-              style={{ animationDelay: `${i * 50}ms` }}
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold text-[var(--ed-text-muted)] uppercase tracking-wider">
-                  {stat.label}
-                </span>
-                <span
-                  className="p-1.5 rounded-lg"
-                  style={{ background: `color-mix(in srgb, ${stat.color} 14%, transparent)` }}
-                >
-                  <Icon className="w-4 h-4" style={{ color: stat.color }} />
-                </span>
-              </div>
-              <div className="mt-3">
-                <div className="text-2xl sm:text-3xl font-extrabold font-data text-[var(--ed-text-primary)]">
-                  {stat.value}
-                </div>
-                <div className="text-[11px] font-medium mt-1 truncate" style={{ color: stat.color }}>
-                  {stat.sub}
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* ========================================================================= */}
-      {/* 4. SALES FUNNEL ANALYTICS & DUAL-BRAIN STREAM */}
-      {/* ========================================================================= */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Sales Stage Funnel Distribution (7 cols) */}
-        <div className="lg:col-span-7 p-6 ed-panel rounded-2xl border border-[var(--ed-border)] shadow-sm flex flex-col justify-between">
-          <div>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
-              <div>
-                <h3 className="font-bold text-base text-[var(--ed-text-primary)] flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4 text-sky-500" />
-                  Sales Stage & Conversion Velocity
-                </h3>
-                <p className="text-xs text-[var(--ed-text-muted)] mt-0.5">
-                  Live distribution of active B2B conversations across commercial qualification tiers
-                </p>
-              </div>
-              <div className="flex items-center gap-1 p-1 rounded-xl border border-[var(--ed-border)] text-xs" style={{ background: "var(--ed-bg)" }}>
-                <button
-                  onClick={() => setChartView("bars")}
-                  className={`px-3 py-1 rounded-lg font-semibold transition-colors flex items-center gap-1.5 ${
-                    chartView === "bars"
-                      ? "text-[var(--ed-text-primary)] shadow-sm"
-                      : "text-[var(--ed-text-muted)]"
-                  }`}
-                  style={chartView === "bars" ? { background: "var(--ed-surface)" } : {}}
-                >
-                  <BarChart3 className="w-3.5 h-3.5" /> Funnel Bars
-                </button>
-                <button
-                  onClick={() => setChartView("pie")}
-                  className={`px-3 py-1 rounded-lg font-semibold transition-colors flex items-center gap-1.5 ${
-                    chartView === "pie"
-                      ? "text-[var(--ed-text-primary)] shadow-sm"
-                      : "text-[var(--ed-text-muted)]"
-                  }`}
-                  style={chartView === "pie" ? { background: "var(--ed-surface)" } : {}}
-                >
-                  <PieIcon className="w-3.5 h-3.5" /> Donut Chart
-                </button>
-              </div>
+        <div className="lg:col-span-7 p-6 rounded-2xl bg-[var(--ed-surface)] border border-[var(--ed-border)] shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+            <div>
+              <h3 className="font-bold text-base text-[var(--ed-text-primary)] flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-sky-500" />
+                Sales Stage & Conversion Velocity
+              </h3>
+              <p className="text-xs text-[var(--ed-text-muted)] mt-0.5">
+                Active B2B buyer distribution across commercial qualification tiers
+              </p>
             </div>
+            <div className="flex items-center gap-1 p-1 rounded-xl border border-[var(--ed-border)] text-xs bg-[var(--ed-bg)]">
+              <button
+                onClick={() => setChartView("bars")}
+                className={`px-3 py-1 rounded-lg font-semibold transition-colors flex items-center gap-1.5 ${
+                  chartView === "bars"
+                    ? "text-[var(--ed-text-primary)] bg-[var(--ed-surface)] shadow-sm"
+                    : "text-[var(--ed-text-muted)]"
+                }`}
+              >
+                <BarChart3 className="w-3.5 h-3.5" /> Funnel Bars
+              </button>
+              <button
+                onClick={() => setChartView("pie")}
+                className={`px-3 py-1 rounded-lg font-semibold transition-colors flex items-center gap-1.5 ${
+                  chartView === "pie"
+                    ? "text-[var(--ed-text-primary)] bg-[var(--ed-surface)] shadow-sm"
+                    : "text-[var(--ed-text-muted)]"
+                }`}
+              >
+                <PieIcon className="w-3.5 h-3.5" /> Donut Chart
+              </button>
+            </div>
+          </div>
 
-            {chartView === "bars" ? (
-              <div className="space-y-3.5">
-                {funnel.map((item) => {
-                  const maxVal = Math.max(...funnel.map((f) => f.count), 1);
-                  const pct = Math.round((item.count / maxVal) * 100);
-                  const color = stageColors[item.stage] || "var(--ed-accent)";
-                  return (
-                    <div key={item.stage} className="space-y-1.5">
-                      <div className="flex justify-between text-xs font-medium">
-                        <span className="text-[var(--ed-text-primary)] font-semibold flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
-                          {item.stage}
-                        </span>
-                        <span className="text-[var(--ed-text-muted)] font-data font-semibold">{item.count} leads</span>
-                      </div>
-                      <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: "var(--ed-bg)" }}>
-                        <div
-                          className="h-full rounded-full transition-all duration-500"
-                          style={{ width: `${pct}%`, background: color }}
-                        />
-                      </div>
+          {chartView === "bars" ? (
+            <div className="space-y-3">
+              {funnel.map((item) => {
+                const maxVal = Math.max(...funnel.map((f) => f.count), 1);
+                const pct = Math.round((item.count / maxVal) * 100);
+                const color = stageColors[item.stage] || "var(--ed-accent)";
+                return (
+                  <div key={item.stage} className="space-y-1">
+                    <div className="flex justify-between text-xs font-medium">
+                      <span className="text-[var(--ed-text-primary)] font-semibold flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
+                        {item.stage}
+                      </span>
+                      <span className="text-[var(--ed-text-muted)] font-mono font-semibold">{item.count} leads</span>
                     </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 items-center py-3">
-                <div className="flex justify-center">
-                  <svg width="210" height="210" viewBox="0 0 210 210" className="transform -rotate-90 max-w-[210px] w-full h-auto">
-                    {(() => {
-                      const total = funnel.reduce((acc, f) => acc + f.count, 0) || 1;
-                      const circumference = 2 * Math.PI * 75;
-                      let accumulated = 0;
-
-                      return funnel.map((item) => {
-                        const ratio = item.count / total;
-                        const dash = ratio * circumference;
-                        const offset = -accumulated * circumference;
-                        accumulated += ratio;
-                        const color = stageColors[item.stage] || "#64748b";
-
-                        return (
-                          <circle
-                            key={item.stage}
-                            cx="105"
-                            cy="105"
-                            r="75"
-                            fill="transparent"
-                            stroke={color}
-                            strokeWidth="28"
-                            strokeDasharray={`${dash} ${circumference}`}
-                            strokeDashoffset={offset}
-                            className="transition-all duration-500 hover:opacity-80"
-                          />
-                        );
-                      });
-                    })()}
-                  </svg>
-                </div>
-
-                <div className="space-y-2 text-xs">
+                    <div className="w-full h-2 rounded-full overflow-hidden bg-[var(--ed-bg)]">
+                      <div
+                        className="h-full rounded-full transition-all duration-500"
+                        style={{ width: `${pct}%`, background: color }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 items-center py-2">
+              <div className="flex justify-center">
+                <svg width="200" height="200" viewBox="0 0 200 200" className="transform -rotate-90 max-w-[200px] w-full h-auto">
                   {(() => {
                     const total = funnel.reduce((acc, f) => acc + f.count, 0) || 1;
+                    const circumference = 2 * Math.PI * 70;
+                    let accumulated = 0;
+
                     return funnel.map((item) => {
-                      const pct = Math.round((item.count / total) * 100);
+                      const ratio = item.count / total;
+                      const dash = ratio * circumference;
+                      const offset = -accumulated * circumference;
+                      accumulated += ratio;
                       const color = stageColors[item.stage] || "#64748b";
+
                       return (
-                        <div key={item.stage} className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
-                            <span className="font-semibold text-[var(--ed-text-primary)]">{item.stage}</span>
-                          </div>
-                          <span className="font-data text-[var(--ed-text-muted)]">
-                            {item.count} leads ({pct}%)
-                          </span>
-                        </div>
+                        <circle
+                          key={item.stage}
+                          cx="100"
+                          cy="100"
+                          r="70"
+                          fill="transparent"
+                          stroke={color}
+                          strokeWidth="24"
+                          strokeDasharray={`${dash} ${circumference}`}
+                          strokeDashoffset={offset}
+                          className="transition-all duration-500 hover:opacity-80"
+                        />
                       );
                     });
                   })()}
-                </div>
+                </svg>
               </div>
-            )}
-          </div>
 
-          <div className="mt-6 pt-4 border-t border-[var(--ed-border)] flex items-center justify-between text-xs text-[var(--ed-text-muted)]">
-            <span>Overall Funnel Velocity: <strong>Strong</strong></span>
+              <div className="space-y-1.5 text-xs">
+                {(() => {
+                  const total = funnel.reduce((acc, f) => acc + f.count, 0) || 1;
+                  return funnel.map((item) => {
+                    const pct = Math.round((item.count / total) * 100);
+                    const color = stageColors[item.stage] || "#64748b";
+                    return (
+                      <div key={item.stage} className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
+                          <span className="font-semibold text-[var(--ed-text-primary)]">{item.stage}</span>
+                        </div>
+                        <span className="font-mono text-[var(--ed-text-muted)]">
+                          {item.count} ({pct}%)
+                        </span>
+                      </div>
+                    );
+                  });
+                })()}
+              </div>
+            </div>
+          )}
+
+          <div className="mt-5 pt-3.5 border-t border-[var(--ed-border)] flex items-center justify-between text-xs text-[var(--ed-text-muted)]">
+            <span>Overall Funnel Velocity: <strong className="text-emerald-500">Autonomous Flow Active</strong></span>
             <Link href="/analytics" className="text-sky-500 hover:underline font-semibold flex items-center gap-1">
               View Analytics Deep-Dive <ArrowUpRight className="w-3 h-3" />
             </Link>
           </div>
         </div>
 
-        {/* Right: Real-Time Wholesale Opportunities & Instant Simulation (5 cols) */}
+        {/* Right: The Money Moment (Instant AI Simulator & Live Queue) (5 cols) */}
         <div className="lg:col-span-5 space-y-6">
-          {/* Live Recent Inquiries Feed */}
-          <div className="p-6 ed-panel rounded-2xl border border-[var(--ed-border)] shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-base text-[var(--ed-text-primary)] flex items-center gap-2">
+          {/* Instant AI Turn Simulator ("The Money Moment") */}
+          <div className="p-6 rounded-2xl bg-gradient-to-br from-[#0B0F19] to-[#111726] border-2 border-[#00D2FE]/40 shadow-xl text-white space-y-3 relative overflow-hidden">
+            <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-[#00D2FE]/15 blur-2xl pointer-events-none" />
+
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-mono font-bold text-[#00D2FE] uppercase tracking-wider flex items-center gap-1.5">
+                <Play className="w-3.5 h-3.5 fill-[#00D2FE]" /> The Money Moment: Live AI Simulator
+              </span>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#00D2FE]/20 text-[#00D2FE] border border-[#00D2FE]/30 font-semibold">
+                Instant Turn
+              </span>
+            </div>
+            <p className="text-xs text-slate-300">
+              Watch EDITH compute deterministic wholesale rates and reason over the Inter-Brain Bus in real time:
+            </p>
+
+            <div className="space-y-2">
+              <input
+                type="text"
+                value={simPrompt}
+                onChange={(e) => setSimPrompt(e.target.value)}
+                placeholder="Type customer inquiry..."
+                className="w-full px-3.5 py-2.5 rounded-xl bg-[#0E1322] border border-slate-700 text-white text-xs placeholder-slate-500 focus:outline-none focus:border-[#00D2FE] font-mono"
+              />
+              <button
+                onClick={handleRunSimulation}
+                disabled={isSimulating}
+                className="w-full py-2.5 rounded-xl bg-[#00D2FE] hover:bg-sky-400 text-slate-950 font-mono font-black text-xs transition-all flex items-center justify-center gap-2 disabled:opacity-50 shadow-md"
+              >
+                {isSimulating ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span>Transmitting Across Inter-Brain Bus...</span>
+                  </>
+                ) : (
+                  <>
+                    <Zap className="w-4 h-4 fill-slate-950" />
+                    <span>Execute Simulated Inquiry</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            {simResult && (
+              <div className="p-3.5 rounded-xl bg-[#0E1322]/90 border border-[#00D2FE]/30 text-xs space-y-1.5 animate-in fade-in">
+                <div className="flex items-center justify-between text-[11px] font-mono text-slate-400 border-b border-slate-800 pb-1">
+                  <span>Sales Stage: <strong className="text-[#00D2FE]">{simResult.stage}</strong></span>
+                  <span>Lead Score: <strong className="text-[#10B981]">{simResult.score}</strong></span>
+                </div>
+                <div className="text-slate-200 text-xs leading-relaxed pt-1">
+                  <strong className="text-[#00D2FE]">EDITH:</strong> {simResult.reply}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Live Inquiries Queue Feed */}
+          <div className="p-5 rounded-2xl bg-[var(--ed-surface)] border border-[var(--ed-border)] shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-bold text-sm text-[var(--ed-text-primary)] flex items-center gap-2">
                 <MessageSquare className="w-4 h-4 text-sky-500" />
                 Live Conversation Queue
               </h3>
@@ -849,17 +745,17 @@ export default function DashboardOverview() {
                 href="/conversations"
                 className="text-xs text-sky-500 font-semibold hover:underline flex items-center gap-0.5"
               >
-                All Chats <ChevronRight className="w-3 h-3" />
+                Open Inbox <ChevronRight className="w-3 h-3" />
               </Link>
             </div>
 
             {recentConvs.length > 0 ? (
-              <div className="space-y-2.5">
+              <div className="space-y-2">
                 {recentConvs.map((conv) => (
                   <Link
                     key={conv.id}
                     href={`/conversations?id=${conv.id}`}
-                    className="p-3 rounded-xl bg-[var(--ed-surface)] hover:bg-[var(--ed-bg)] border border-[var(--ed-border)] flex items-center justify-between transition-all group block"
+                    className="p-2.5 rounded-xl bg-[var(--ed-bg)] hover:bg-[var(--ed-surface)] border border-[var(--ed-border)] flex items-center justify-between transition-all group block"
                   >
                     <div className="space-y-0.5">
                       <div className="flex items-center gap-2">
@@ -875,62 +771,17 @@ export default function DashboardOverview() {
                           {conv.sales_stage}
                         </span>
                       </div>
-                      <div className="text-[11px] text-[var(--ed-text-muted)]">
+                      <div className="text-[11px] text-[var(--ed-text-muted)] font-mono">
                         Mode: <strong>{conv.mode}</strong> • Score: <strong>{conv.lead_score}</strong>
                       </div>
                     </div>
-                    <ArrowUpRight className="w-4 h-4 text-slate-400 group-hover:text-sky-500 transition-colors" />
+                    <ArrowUpRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-sky-500 transition-colors" />
                   </Link>
                 ))}
               </div>
             ) : (
-              <div className="p-6 text-center text-xs text-[var(--ed-text-muted)] border border-dashed border-[var(--ed-border)] rounded-xl">
-                No conversations logged yet. Connect WhatsApp or use the test simulator below!
-              </div>
-            )}
-          </div>
-
-          {/* Instant Test Simulator Widget */}
-          <div className="p-6 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-950 border border-sky-500/30 shadow-md text-white space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-sky-400 uppercase tracking-wider flex items-center gap-1.5">
-                <Play className="w-3.5 h-3.5" /> Instant AI Turn Simulator
-              </span>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 font-semibold">
-                Live Test
-              </span>
-            </div>
-            <p className="text-xs text-slate-300">
-              Test how EDITH responds to customer pricing requests in real-time:
-            </p>
-
-            <div className="space-y-2">
-              <input
-                type="text"
-                value={simPrompt}
-                onChange={(e) => setSimPrompt(e.target.value)}
-                placeholder="Type customer inquiry..."
-                className="w-full px-3.5 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white text-xs placeholder-slate-500 focus:outline-none focus:border-sky-400"
-              />
-              <button
-                onClick={handleRunSimulation}
-                disabled={isSimulating}
-                className="w-full py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
-              >
-                {isSimulating ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
-                Execute Simulated Turn
-              </button>
-            </div>
-
-            {simResult && (
-              <div className="p-3 rounded-xl bg-slate-800/80 border border-sky-500/30 text-xs space-y-1.5 animate-in fade-in">
-                <div className="flex items-center justify-between text-[11px] text-slate-400">
-                  <span>Stage: <strong className="text-sky-400">{simResult.stage}</strong></span>
-                  <span>Lead Score: <strong className="text-emerald-400">{simResult.score}</strong></span>
-                </div>
-                <div className="text-slate-200 text-[11px] leading-relaxed">
-                  <strong>EDITH:</strong> {simResult.reply}
-                </div>
+              <div className="p-4 text-center text-xs text-[var(--ed-text-muted)] border border-dashed border-[var(--ed-border)] rounded-xl font-mono">
+                No conversations logged yet. Trigger a simulated turn above!
               </div>
             )}
           </div>
@@ -938,45 +789,45 @@ export default function DashboardOverview() {
       </div>
 
       {/* ========================================================================= */}
-      {/* 5. ARCHITECTURAL GUARDRAILS & SYSTEM GOVERNANCE */}
+      {/* 4. QUIET GROUND-TRUTH BEDROCK (GOVERNANCE & SAFETY RULES)                 */}
       {/* ========================================================================= */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-        <div className="p-5 ed-panel rounded-2xl border border-[var(--ed-border)] space-y-2">
-          <div className="flex items-center gap-2 text-[var(--ed-text-primary)] font-bold text-sm">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+        <div className="p-4 rounded-xl bg-[var(--ed-surface)] border border-[var(--ed-border)] space-y-1.5 text-xs">
+          <div className="flex items-center gap-2 text-[var(--ed-text-primary)] font-bold">
             <Shield className="w-4 h-4 text-emerald-500" />
-            Deterministic Commercial Guardrails
+            Deterministic Margin Ceiling
           </div>
-          <p className="text-xs text-[var(--ed-text-muted)] leading-relaxed">
-            Autonomous discounts are strictly capped at <strong>5.0%</strong>. Orders exceeding 500 units or custom bulk blend orders automatically trigger operator review.
+          <p className="text-[var(--ed-text-muted)] leading-relaxed">
+            Autonomous discounts are hard-capped at <strong>5.0%</strong>. Orders &gt;500kg automatically escalate to human operators.
           </p>
-          <Link href="/knowledge" className="text-xs text-sky-500 hover:underline font-semibold block pt-1">
-            Review Pricing Tiers in Knowledge Hub &rarr;
+          <Link href="/knowledge" className="text-sky-500 hover:underline font-semibold block pt-0.5">
+            Knowledge Hub RAG &rarr;
           </Link>
         </div>
 
-        <div className="p-5 ed-panel rounded-2xl border border-[var(--ed-border)] space-y-2">
-          <div className="flex items-center gap-2 text-[var(--ed-text-primary)] font-bold text-sm">
+        <div className="p-4 rounded-xl bg-[var(--ed-surface)] border border-[var(--ed-border)] space-y-1.5 text-xs">
+          <div className="flex items-center gap-2 text-[var(--ed-text-primary)] font-bold">
             <Lock className="w-4 h-4 text-sky-500" />
-            Prompt Sanitization & Security
+            Prompt Injection Defense
           </div>
-          <p className="text-xs text-[var(--ed-text-muted)] leading-relaxed">
-            Incoming WhatsApp messages undergo regex and semantic security sanitization to prevent prompt injection and unauthorized margin manipulation.
+          <p className="text-[var(--ed-text-muted)] leading-relaxed">
+            All incoming messages pass regex sanitization and semantic policy boundaries before reaching reasoning cores.
           </p>
-          <Link href="/settings" className="text-xs text-sky-500 hover:underline font-semibold block pt-1">
-            Configure Business Parameters &rarr;
+          <Link href="/settings" className="text-sky-500 hover:underline font-semibold block pt-0.5">
+            Security Settings &rarr;
           </Link>
         </div>
 
-        <div className="p-5 ed-panel rounded-2xl border border-[var(--ed-border)] space-y-2">
-          <div className="flex items-center gap-2 text-[var(--ed-text-primary)] font-bold text-sm">
+        <div className="p-4 rounded-xl bg-[var(--ed-surface)] border border-[var(--ed-border)] space-y-1.5 text-xs">
+          <div className="flex items-center gap-2 text-[var(--ed-text-primary)] font-bold">
             <Bot className="w-4 h-4 text-indigo-500" />
-            Dual-Brain Deliberation Protocol
+            Dual-Brain Bus Protocol
           </div>
-          <p className="text-xs text-[var(--ed-text-muted)] leading-relaxed">
-            FRIDAY (Executive Voice Copilot) and EDITH (Autonomous Negotiator) synchronize via the inter-brain bus with persistent audit trails.
+          <p className="text-[var(--ed-text-muted)] leading-relaxed">
+            Every delegation from FRIDAY to EDITH is recorded in persistent SQLite tables with refusal reasoning and debrief logs.
           </p>
-          <Link href="/brain" className="text-xs text-sky-500 hover:underline font-semibold block pt-1">
-            Open Dual-Brain Console &rarr;
+          <Link href="/brain" className="text-sky-500 hover:underline font-semibold block pt-0.5">
+            Dual-Brain Console &rarr;
           </Link>
         </div>
       </div>
