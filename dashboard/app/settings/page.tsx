@@ -37,13 +37,26 @@ interface BusinessPreset {
 
 const BUSINESS_PRESETS: BusinessPreset[] = [
   {
+    id: "general",
+    label: "General Commercial & B2B (Default)",
+    icon: "🏢",
+    name: "Enterprise Commerce Solutions",
+    industry: "Commercial B2B Products & Services",
+    tagline: "Direct Commercial Wholesale & Enterprise Supply",
+    description: "Industry-agnostic commercial supplier delivering premium products, recurring supply contracts, and tailored corporate solutions across diverse markets.",
+    agentName: "EDITH",
+    agentRole: "Commercial AI Sales Consultant",
+    unit: "units",
+    currency: "₹",
+  },
+  {
     id: "tea",
-    label: "Specialty Tea & Agro Estate",
+    label: "Specialty Tea & Agro Estate (Demo)",
     icon: "🍵",
     name: "North Bengal Tea Co.",
     industry: "Wholesale Tea & Agro Produce",
     tagline: "Direct Commercial Estate Wholesale",
-    description: "Direct commercial wholesale estate tea producer supplying single-estate Darjeeling, Dooars hotel blends, Assam Kadak CTC, and specialty Himalayan teas directly to cafes, restaurants, luxury hotels, and distributors across India.",
+    description: "Sample demo preset: commercial wholesale estate tea producer supplying single-estate Darjeeling, Dooars hotel blends, Assam Kadak CTC, and specialty Himalayan teas directly to cafes, restaurants, luxury hotels, and distributors across India.",
     agentName: "EDITH",
     agentRole: "Principal Commercial Sales Consultant",
     unit: "kg",
@@ -126,15 +139,15 @@ export default function SystemSettingsPage() {
   const [touch3Days, setTouch3Days] = useState(7);
   
   // Business Profile State
-  const [businessName, setBusinessName] = useState("North Bengal Tea Co.");
-  const [businessIndustry, setBusinessIndustry] = useState("Wholesale Tea & Agro Produce");
-  const [businessTagline, setBusinessTagline] = useState("Direct Commercial Estate Wholesale");
-  const [businessDescription, setBusinessDescription] = useState("Commercial B2B supplier supplying fresh wholesale products directly to cafes, restaurants, hotels, and businesses.");
+  const [businessName, setBusinessName] = useState("Enterprise Commerce Solutions");
+  const [businessIndustry, setBusinessIndustry] = useState("Commercial B2B Products & Services");
+  const [businessTagline, setBusinessTagline] = useState("Direct Commercial Wholesale & Enterprise Supply");
+  const [businessDescription, setBusinessDescription] = useState("Commercial B2B supplier supplying verified wholesale products and recurring commercial orders directly to business buyers.");
   const [agentName, setAgentName] = useState("EDITH");
-  const [agentRole, setAgentRole] = useState("Principal Commercial Sales Consultant");
+  const [agentRole, setAgentRole] = useState("Commercial AI Sales Consultant");
   const [currencySymbol, setCurrencySymbol] = useState("₹");
-  const [catalogUnit, setCatalogUnit] = useState("kg");
-  const [activePreset, setActivePreset] = useState("tea");
+  const [catalogUnit, setCatalogUnit] = useState("units");
+  const [activePreset, setActivePreset] = useState("general");
 
   const [saved, setSaved] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -424,7 +437,7 @@ export default function SystemSettingsPage() {
               type="text"
               value={businessName}
               onChange={(e) => setBusinessName(e.target.value)}
-              placeholder="e.g. North Bengal Tea Co., Artisan Coffee Roasters"
+              placeholder="e.g. Enterprise Commerce Solutions, Artisan Roasters, Apex Tech"
               className="w-full p-3 rounded-xl border border-[var(--ed-border)] text-[var(--ed-text-primary)] font-semibold text-sm focus:outline-none ed-focus-ring"
               style={{ background: "var(--ed-bg)" }}
             />
@@ -441,7 +454,7 @@ export default function SystemSettingsPage() {
               type="text"
               value={businessIndustry}
               onChange={(e) => setBusinessIndustry(e.target.value)}
-              placeholder="e.g. Wholesale Tea, Specialty Coffee, Textile Exports"
+              placeholder="e.g. Commercial B2B, SaaS, Industrial Hardware, Specialty Exports"
               className="w-full p-3 rounded-xl border border-[var(--ed-border)] text-[var(--ed-text-primary)] font-semibold text-sm focus:outline-none ed-focus-ring"
               style={{ background: "var(--ed-bg)" }}
             />

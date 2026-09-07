@@ -48,10 +48,10 @@ interface AIQueryResponse {
 }
 
 const SAMPLE_QUERIES = [
-  "What is the MOQ for Darjeeling tea?",
+  "What is the MOQ for standard commercial packages?",
   "What are the typical delivery timelines?",
-  "What volume discounts are available for 500kg?",
-  "Do you provide commercial tasting samples?",
+  "What volume discounts are available for 500 units?",
+  "Do you provide commercial product samples?",
   "What quality certifications do you hold?",
 ];
 
@@ -68,14 +68,14 @@ export default function KnowledgeBasePage() {
 
   const [docs, setDocs] = useState<KnowledgeDoc[]>([
     {
-      title: "North Bengal Tea Co. Quality Standards & Certifications",
+      title: "Commercial Quality Standards & Industry Certifications",
       version: 1,
       chunk_count: 1,
       source_type: "Markdown",
       updated_at: "2026-09-02",
     },
     {
-      title: "Commercial Sampling Policy for Hospitality Buyers",
+      title: "Commercial Evaluation & Product Sampling Policy",
       version: 1,
       chunk_count: 1,
       source_type: "Markdown",
@@ -349,7 +349,7 @@ export default function KnowledgeBasePage() {
               <input
                 ref={inputRef}
                 type="text"
-                placeholder="e.g. Do you provide free tea samples? Or what are delivery timelines?"
+                placeholder="e.g. Do you provide commercial product samples? Or what are delivery timelines?"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={(e) => {
