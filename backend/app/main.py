@@ -8,6 +8,7 @@ from app.api.routes import (
     analytics,
     audio,
     auth,
+    brain,
     conversations,
     handoffs,
     health,
@@ -117,6 +118,7 @@ app.include_router(webhooks.router, prefix=api_v1)
 app.include_router(whatsapp.router, prefix=api_v1)
 app.include_router(settings_router.router, prefix=api_v1)
 app.include_router(voice.router, prefix=api_v1)
+app.include_router(brain.router, prefix=api_v1)
 app.include_router(watchdog.router, prefix=api_v1)
 app.include_router(ws.router, prefix=api_v1)
 
