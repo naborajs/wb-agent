@@ -20,6 +20,7 @@ from app.database.models.product_pricing import (
     Inventory,
 )
 from app.database.models.knowledge import KnowledgeDocument, KnowledgeChunk
+from app.database.models.knowledge_item import KnowledgeItem, KnowledgeCategory
 from app.database.models.campaign_followup import Campaign, CampaignLead, FollowupJob, Job
 from app.database.models.agent_audit import (
     AgentRun,
@@ -69,6 +70,8 @@ __all__ = [
     "Inventory",
     "KnowledgeDocument",
     "KnowledgeChunk",
+    "KnowledgeItem",
+    "KnowledgeCategory",
     "Campaign",
     "CampaignLead",
     "FollowupJob",

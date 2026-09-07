@@ -45,7 +45,8 @@ class KnowledgeChunk(Base, OrgScopedMixin, TimestampMixin):
     __tablename__ = "knowledge_chunks"
 
     id = Column(String(64), primary_key=True, default=generate_uuid)
-    document_id = Column(String(64), ForeignKey("knowledge_documents.id", ondelete="CASCADE"), nullable=False, index=True)
+    item_id = Column(String(64), ForeignKey("knowledge_items.id", ondelete="CASCADE"), nullable=True, index=True)
+    document_id = Column(String(64), ForeignKey("knowledge_documents.id", ondelete="CASCADE"), nullable=True, index=True)
     version = Column(Integer, default=1, nullable=False)
     chunk_index = Column(Integer, nullable=False)
     section_heading = Column(String(255), nullable=True)
@@ -55,8 +56,10 @@ class KnowledgeChunk(Base, OrgScopedMixin, TimestampMixin):
     embedding_model = Column(String(128), default="nvidia/nv-embedqa-e5-v5", nullable=False)
     embedding = Column(VectorType, nullable=True)
 
-    document = relationship("KnowledgeDocument", back_populates="chunks")
+    document = relationship("KnowledgeDocument", back_populates="chunks", foreign_keys=[document_id])
+    knowledge_item = relationship("KnowledgeItem", back_populates="chunks", foreign_keys=[item_id])
 
     __table_args__ = (
         Index("ix_knowledge_chunks_org_doc", "org_id", "document_id", "chunk_index"),
+        Index("ix_knowledge_chunks_org_item", "org_id", "item_id", "chunk_index"),
     )
