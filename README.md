@@ -85,7 +85,8 @@ You don't even need a phone connected to start testing:
 - **Knowledge Hub RAG**: Open `http://localhost:3000/knowledge` to inspect catalog policies, or chat with EDITH to create and adjust pricing tiers.
 - **Run Automated Verification**:
   ```bash
-  python backend/scripts/verify_edith_chat_brain.py
+  python backend/scripts/verify_dual_brain_endpoints.py # Verifies dual-brain refusal, fallback, briefing, and 24h velocity
+  python backend/scripts/verify_edith_chat_brain.py    # Verifies EDITH catalog & knowledge chat
   ```
 
 ---
@@ -109,8 +110,48 @@ The operational command center for real-time buyer conversations, AI consultativ
 
 ---
 
-### 2. Wholesale Operations Center (Overview)
-Executive command view featuring real-time KPI metrics, active pipeline valuation, 16-stage consultative sales funnel distribution, and safety rule bounds:
+### 2. Dual-Brain Command Center (Overview & Inter-Brain Agency)
+The mission control centerpiece powered by the **InterBrainMessage Synaptic Protocol** between **FRIDAY** (Google Gemini 3.1 Flash Live) and **EDITH** (NVIDIA NIM). It features 5 real-time autonomous operational mechanics:
+
+#### ⚡ 1. Live "Inter-Brain Activity Ticker" (Real-Time Synaptic Stream)
+- Pinned directly beneath the Hero Bus on the Overview page.
+- Real-time auto-updating terminal ticker showing autonomous decisions as they occur:
+  - 🟢 `[10:42:15 AM] EDITH held 15% margin boundary: Denied 35% discount for lead +91 98001...`
+  - 🟣 `[10:41:02 AM] FRIDAY voice query: Executed DOM inspection on Knowledge Hub (185ms)`
+  - 🟢 `[10:38:20 AM] EDITH outbound: Qualified bulk Darjeeling buyer, quote sent via WhatsApp`
+- Interactive controls: Filter pills (`All Synapses`, `🟢 EDITH Only`, `🟣 FRIDAY Only`), pause on hover, and clickable event telemetry audit modal.
+- Connected via real-time WebSockets with automatic fallback to `/api/v1/brain/dialogues`.
+
+#### 🎙️ 2. "Play Executive Morning Audio Briefing" (Friday Voice Brief)
+- Prominent glowing action button on the Hero Bus with pulsing radar ring + voice trigger (*"give me today's brief"*, *"yesterday's brief"*, *"play briefing"*).
+- Prompts Friday to synthesize an audio executive debrief:
+  > *"Good morning! WhatsApp gateway is connected. You have 7 hot leads in negotiation with ₹4,85,000 in active pipeline. EDITH successfully defended our commercial margin on 2 wholesale requests today. Dual-brain compute cost is running at $0.0076."*
+- Features an active animated speech waveform visualizer syncing with Web Speech API audio, today/yesterday selector, live metrics cards, and a transcript card.
+- Backed by `GET /api/v1/brain/briefing?timeframe=today|yesterday`.
+
+#### 🧠 3. Smart Bidirectional Connection & Refusal/Fallback (EDITH ↔ Friday)
+- **Bidirectional Refusal Protocol**: EDITH can delegate actions to Friday (`edith_request_friday`). Friday independently evaluates requests and has the authority to **refuse non-emergency audio interruptions** during operator focus:
+  > *"Voice interruption declined: Operator is in dashboard focus mode. Non-critical commercial notifications must not disrupt operator workflow via audio; routing to silent notification channel instead."*
+- **Autonomous Fallback System**: When Friday denies, EDITH does not get stuck. EDITH triggers its fallback plan:
+  > *"EDITH autonomous fallback initiated: Since Friday declined audio interruption, EDITH has dispatched a direct high-priority system alert to the operator's Notification Center."*
+  EDITH creates a direct `AgentNotification` and broadcasts it to the dashboard.
+- **Mutual Background Thinking**: When idle, both brains run background scans (`POST /api/v1/brain/background-think`) auditing catalog margins, anti-spam cooling periods, and bus latency, recording synchronized health dialogues in SQLite tables.
+
+#### 📈 4. 24-Hour Inbound Traffic Velocity & Autonomous Resolution Heatmap
+- Sleek 24-hour hourly activity histogram and sparkline chart:
+  - **Peak Operational Hours**: **10:00 AM** (Morning Surge), **2:00 PM** (Wholesale Restock), **9:00 PM** (Night Shift).
+  - **Autonomous Resolution**: **94.2% AI Conversions** (388 leads closed without human lag) vs **5.8% Human Handoffs** (24 escalations).
+  - **Flatline Latency Curve**: **1.1s** flatline turn latency across all volume spikes.
+  - Tailored design for both Light and Dark themes with interactive hover telemetry drawers.
+  - Friday Voice Copilot awareness (`get_hourly_traffic_velocity`) for instant spoken answers.
+  - Backed by `GET /api/v1/brain/hourly-velocity`.
+
+#### 🎯 5. Executive Quick-Action Dock
+- Compact quick-action tray pinned below the hero for instant 1-click workflows:
+  - ⚡ **Test 25% Discount Policy**: Pre-loads simulator with a 25% discount inquiry and triggers instant execution to watch EDITH hold commercial margin.
+  - 📡 **Send Live WhatsApp Test Ping**: Sends immediate diagnostic ping to WhatsApp gateway.
+  - 📚 **Add Temporary Knowledge Rule**: Emergency policy modal audited by EDITH before RAG ingestion.
+  - 🛑 **Toggle Autonomous Safe Mode / Pause AI**: Instant toggle between active autonomous closing and safe read-only mode (`POST /api/v1/brain/toggle-safe-mode`).
 
 ![Wholesale Operations Center](docs/screenshots/overview.png)
 
