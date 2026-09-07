@@ -129,6 +129,49 @@ PYTHONPATH="backend" python scripts/run_simulation.py
 
 ---
 
+## 🧠 Step 3.5: Dual-Brain Agentic Inter-Agency & Telemetry Verification
+
+Verify bidirectional delegation between EDITH and Friday, refusal rights, fallback alerts, executive audio briefing generation, and 24-hour velocity metrics:
+
+```bash
+python backend/scripts/verify_dual_brain_endpoints.py
+```
+
+Expected output:
+```text
+Testing Dual Brain Agentic Capabilities...
+
+--- 1. Executive Briefing ---
+Audio Script: Good morning! WhatsApp gateway is connected. You have 7 hot leads in negotiation with ₹485,000 in active pipeline. EDITH successfully defended our commercial margin on 3 wholesale requests today. Dual-brain compute cost is running at $0.0079.
+
+--- 2. 24-Hour Hourly Velocity ---
+Total 24h Inquiries: 412
+Autonomous Conversion Rate: 94.2 %
+Peak Hours: ['10:00 AM (Morning Surge)', '2:00 PM (Wholesale Restock)', '9:00 PM (Night Shift)']
+
+--- 3. EDITH -> Friday Delegation (Non-urgent voice interruption -> Denied -> Fallback Alert) ---
+Friday Decision: DENIED
+Friday Reasoning: Voice interruption declined: Operator is in dashboard focus mode. Non-critical commercial notifications must not disrupt operator workflow via audio; routing to silent notification channel instead.
+Fallback Executed: True
+Fallback Details: {'fallback_channel': 'DIRECT_AGENT_NOTIFICATION'}
+
+--- 4. Background Thinking Cycle ---
+Status: synchronized
+
+--- 5. Friday Chat answering briefing ---
+Friday Briefing Reply: Good morning! WhatsApp gateway is connected...
+
+--- 6. Friday Chat answering traffic velocity ---
+Friday Traffic Reply: Here is our 24-Hour Inbound Traffic Velocity Telemetry...
+
+--- 7. Safe Mode Toggle ---
+Safe Mode State: True -> False
+
+✅ All Dual-Brain Agentic Features Verified Successfully!
+```
+
+---
+
 ## 🎨 Step 4: Next.js Frontend Production Build
 
 Verify that all TypeScript types, React components, and static routes compile cleanly:
@@ -146,7 +189,7 @@ Expected output:
  ✓ Compiled successfully
    Linting and checking validity of types ...
    Collecting page data ...
- ✓ Generating static pages (19/19)
+ ✓ Generating static pages (21/21)
    Finalizing page optimization ...
 ```
 
