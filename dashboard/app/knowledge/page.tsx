@@ -329,6 +329,92 @@ function KnowledgeHubMain() {
   const [editSaveToast, setEditSaveToast] = useState<string | null>(null);
   const [copiedDocContent, setCopiedDocContent] = useState(false);
 
+  // Universal Multi-Industry Dynamic Spreadsheet Matrix State
+  const [gridColumns, setGridColumns] = useState<string[]>([]);
+  const [gridRows, setGridRows] = useState<string[][]>([]);
+  const [newColName, setNewColName] = useState("");
+  const [addingCol, setAddingCol] = useState(false);
+  const [docEditing, setDocEditing] = useState(false);
+  const [fridayActionNotice, setFridayActionNotice] = useState<string | null>(null);
+  const [showCsvImport, setShowCsvImport] = useState(false);
+  const [rawCsvInput, setRawCsvInput] = useState("");
+
+  // Universal Multi-Industry Schema Presets (Wholesale, Manufacturing, SaaS, Logistics)
+  const INDUSTRY_PRESETS = [
+    {
+      id: "wholesale",
+      label: "📦 Wholesale & Distribution",
+      columns: ["Tier / Item", "Min Qty", "Max Qty", "Base Tariff (₹)", "Discount %", "Margin Ceiling %", "Lead Time", "Payment Terms"],
+      rows: [
+        ["Standard Commercial", "50", "99", "450", "5%", "10%", "2-3 Days", "Net 15"],
+        ["Volume Tier", "100", "499", "410", "12%", "15%", "3-5 Days", "Net 30"],
+        ["Distributor Consignment", "500", "2000", "360", "18%", "20%", "5-7 Days", "50% Advance"],
+      ],
+    },
+    {
+      id: "manufacturing",
+      label: "🏭 Manufacturing & Materials",
+      columns: ["Part # / Material", "Grade / Spec", "Unit MOQ", "Unit Cost (₹)", "Bulk Discount %", "QC Standard", "Dispatch SLA"],
+      rows: [
+        ["ALUM-6061-T6", "Aerospace Grade Billet", "100 kg", "280", "8%", "ISO 9001 / ASTM B221", "48 Hours"],
+        ["STEEL-316L", "Marine Austenitic Stainless", "250 kg", "340", "12%", "EN 10088-3 Cert", "72 Hours"],
+        ["POLY-HDPE-01", "High Density Polymer Granules", "500 kg", "110", "15%", "RoHS Compliant", "24 Hours"],
+      ],
+    },
+    {
+      id: "saas",
+      label: "💻 SaaS & Cloud Services",
+      columns: ["Plan / Tier", "Seats / Quota", "Monthly (₹)", "Annual (₹)", "Volume Discount %", "SLA Guarantee", "Support Level"],
+      rows: [
+        ["Starter Cloud", "1-5 Users", "2499", "24990", "10%", "99.5%", "Email / Standard"],
+        ["Growth Business", "6-25 Users", "7999", "79990", "15%", "99.9%", "Priority 24/7"],
+        ["Enterprise Custom", "Unlimited", "24999", "249990", "25%", "99.99%", "Dedicated TAM"],
+      ],
+    },
+    {
+      id: "logistics",
+      label: "🚚 Logistics & Freight",
+      columns: ["Zone / Route", "Weight Min (kg)", "Weight Max (kg)", "Base Tariff (₹)", "Fuel Surcharge %", "Transit Days", "Tracking"],
+      rows: [
+        ["Intra-State Surface", "20", "100", "45/kg", "4%", "1-2 Days", "Live GPS / API"],
+        ["Inter-State Metro Hubs", "100", "500", "38/kg", "5%", "3-4 Days", "Automated Milestones"],
+        ["National Bulk Cargo", "500", "5000", "28/kg", "6%", "4-6 Days", "Dedicated Container"],
+      ],
+    },
+  ];
+
+  const applyIndustryPreset = (preset: (typeof INDUSTRY_PRESETS)[0]) => {
+    syncGridToContent(preset.columns, preset.rows);
+  };
+
+  const handleImportCsv = () => {
+    if (!rawCsvInput.trim()) return;
+    const lines = rawCsvInput.trim().split("\n").map((l) => l.trim()).filter(Boolean);
+    if (lines.length === 0) return;
+
+    const delimiter = lines[0].includes("\t") ? "\t" : lines[0].includes("|") ? "|" : ",";
+    const parseLine = (line: string) => {
+      if (delimiter === "|") {
+        return line.slice(line.startsWith("|") ? 1 : 0, line.endsWith("|") ? -1 : undefined).split("|").map((s) => s.trim());
+      }
+      return line.split(delimiter).map((s) => s.trim().replace(/^["']|["']$/g, ""));
+    };
+
+    const parsedHeader = parseLine(lines[0]).filter(Boolean);
+    const dataLines = lines.slice(1).filter((l) => !l.includes("---"));
+    const parsedRows = dataLines.map((l) => {
+      const cells = parseLine(l);
+      while (cells.length < parsedHeader.length) cells.push("");
+      return cells.slice(0, parsedHeader.length);
+    });
+
+    if (parsedHeader.length > 0 && parsedRows.length > 0) {
+      syncGridToContent(parsedHeader, parsedRows);
+      setShowCsvImport(false);
+      setRawCsvInput("");
+    }
+  };
+
   // Quote Simulator State
   const [simQty, setSimQty] = useState(150);
   const [simPrice, setSimPrice] = useState(450);
@@ -336,7 +422,111 @@ function KnowledgeHubMain() {
 
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  // Helper to open the editor
+  // Helper: Parse markdown table into columns and rows
+  const parseMarkdownTable = (text: string): { columns: string[]; rows: string[][] } | null => {
+    if (!text) return null;
+    const lines = text.split("\n").map((l) => l.trim()).filter((l) => l.startsWith("|") && l.endsWith("|"));
+    if (lines.length >= 2) {
+      const headerLine = lines[0];
+      const headers = headerLine.slice(1, -1).split("|").map((h) => h.trim());
+      const dataLines = lines.slice(1).filter((l) => !l.replace(/[\s|:-]/g, "") === false && !l.includes("---"));
+      const rows = dataLines.map((l) => l.slice(1, -1).split("|").map((c) => c.trim()));
+      if (headers.length > 0 && rows.length > 0) {
+        return { columns: headers, rows };
+      }
+    }
+    return null;
+  };
+
+  // Helper: Format columns and rows into Markdown table
+  const formatMarkdownTable = (cols: string[], rows: string[][]): string => {
+    if (cols.length === 0) return "";
+    const header = `| ${cols.join(" | ")} |`;
+    const sep = `| ${cols.map(() => "---").join(" | ")} |`;
+    const body = rows.map((r) => `| ${cols.map((_, i) => r[i] !== undefined ? r[i] : "").join(" | ")} |`).join("\n");
+    return `${header}\n${sep}\n${body}`;
+  };
+
+  // Sync grid change to content text
+  const syncGridToContent = (cols: string[], rows: string[][]) => {
+    setGridColumns(cols);
+    setGridRows(rows);
+    const tableMd = formatMarkdownTable(cols, rows);
+    // Keep non-table header lines if present
+    const nonTableLines = editContentText.split("\n").filter((l) => !l.trim().startsWith("|") || !l.trim().endsWith("|")).join("\n").trim();
+    const updatedContent = nonTableLines ? `${nonTableLines}\n\n${tableMd}` : tableMd;
+    setEditContentText(updatedContent);
+  };
+
+  // Dynamic Add Column
+  const handleAddColumn = (name?: string) => {
+    const colName = name?.trim() || newColName.trim() || `Parameter ${gridColumns.length + 1}`;
+    const updatedCols = [...gridColumns, colName];
+    const updatedRows = gridRows.map((r) => [...r, ""]);
+    syncGridToContent(updatedCols, updatedRows);
+    setNewColName("");
+    setAddingCol(false);
+  };
+
+  // Dynamic Delete Column
+  const handleDeleteColumn = (colIdx: number) => {
+    if (gridColumns.length <= 1) return;
+    const updatedCols = gridColumns.filter((_, i) => i !== colIdx);
+    const updatedRows = gridRows.map((r) => r.filter((_, i) => i !== colIdx));
+    syncGridToContent(updatedCols, updatedRows);
+  };
+
+  // Dynamic Add Row
+  const handleAddRow = (initialRow?: string[]) => {
+    const newRow = initialRow && initialRow.length === gridColumns.length 
+      ? initialRow 
+      : gridColumns.map((_, i) => (i === 0 ? `Item ${gridRows.length + 1}` : ""));
+    const updatedRows = [...gridRows, newRow];
+    syncGridToContent(gridColumns, updatedRows);
+  };
+
+  // Dynamic Delete Row
+  const handleDeleteRow = (rowIdx: number) => {
+    if (gridRows.length <= 1) return;
+    const updatedRows = gridRows.filter((_, i) => i !== rowIdx);
+    syncGridToContent(gridColumns, updatedRows);
+  };
+
+  // Update Specific Cell
+  const handleCellChange = (rowIdx: number, colIdx: number, val: string) => {
+    const updatedRows = gridRows.map((r, ri) =>
+      ri === rowIdx ? r.map((c, ci) => (ci === colIdx ? val : c)) : r
+    );
+    syncGridToContent(gridColumns, updatedRows);
+
+    // If editing a pricing rule or catalog item, auto-sync numeric attributes
+    if (rowIdx === 0) {
+      const colLower = (gridColumns[colIdx] || "").toLowerCase();
+      if (colLower.includes("min") || colLower.includes("moq")) {
+        const n = Number(val);
+        if (!isNaN(n)) setEditMinQty(n);
+      }
+      if (colLower.includes("discount") || colLower.includes("rate")) {
+        const n = Number(val.replace("%", "").trim());
+        if (!isNaN(n)) setEditDiscountPct(n);
+      }
+      if (colLower.includes("price") || colLower.includes("cost") || colLower.includes("tariff")) {
+        const n = Number(val.replace("₹", "").trim());
+        if (!isNaN(n)) setEditBasePrice(n);
+      }
+      if (colLower.includes("sku") || colLower.includes("code")) {
+        setEditSku(val);
+      }
+    }
+  };
+
+  // Rename Column Header
+  const handleRenameColumn = (colIdx: number, newName: string) => {
+    const updatedCols = gridColumns.map((c, i) => (i === colIdx ? newName : c));
+    syncGridToContent(updatedCols, gridRows);
+  };
+
+  // Helper to open the editor with full multi-industry parsing
   const handleOpenEditor = (item: KnowledgeItemRecord) => {
     setEditingItem(item);
     setEditTitle(item.title);
@@ -351,6 +541,44 @@ function KnowledgeHubMain() {
     setEditDiscountPct(item.discount_percentage !== null && item.discount_percentage !== undefined ? item.discount_percentage : "");
     setEditMaxAutonDiscount(item.max_autonomous_discount !== null && item.max_autonomous_discount !== undefined ? item.max_autonomous_discount : "");
     setEditCustomerSegment(item.customer_segment || "wholesale");
+    setDocEditing(false);
+
+    // Parse existing Markdown table if present
+    const parsed = parseMarkdownTable(item.content_text);
+    if (parsed) {
+      setGridColumns(parsed.columns);
+      setGridRows(parsed.rows);
+    } else if (item.category === "pricing_rule") {
+      setGridColumns(["Tier Name", "Min Volume", "Max Volume", "Discount %", "Ceiling %", "Segment", "Lead Time / Custom"]);
+      setGridRows([[
+        item.title,
+        String(item.min_quantity || 100),
+        String(item.max_quantity || "No limit"),
+        String(item.discount_percentage || 12),
+        String(item.max_autonomous_discount || 15),
+        item.customer_segment || "wholesale",
+        "3-5 days delivery"
+      ]]);
+    } else if (item.category === "catalog_product") {
+      setGridColumns(["SKU Code", "Product Name", "Base Price", "Unit", "MOQ", "Specification / Grade", "Availability"]);
+      setGridRows([[
+        item.sku || "PROD-001",
+        item.title,
+        String(item.base_price || 450),
+        item.unit || "unit",
+        String(item.min_order_quantity || 10),
+        "Commercial Grade",
+        "In Stock"
+      ]]);
+    } else {
+      setGridColumns(["Clause / Parameter", "Policy Specification", "Governance Scope", "Standard / SLA"]);
+      setGridRows([[
+        item.title,
+        item.content_text.replace(/^#+\s+/gm, "").slice(0, 100) || "Enterprise policy directive",
+        item.customer_segment || "All Operations",
+        "ISO/Commercial Compliance"
+      ]]);
+    }
 
     // Natural default view
     if (item.category === "pricing_rule" || item.category === "catalog_product") {
@@ -480,6 +708,98 @@ function KnowledgeHubMain() {
       if (ws) ws.close();
     };
   }, []);
+
+  // Real-Time FRIDAY Voice Copilot Action Bus (Visual clicking, typing, adding rows/columns, saving)
+  useEffect(() => {
+    const handleFridayOpen = (e: any) => {
+      const query = (e.detail?.query || e.detail?.title || e.detail?.id || "").toLowerCase().trim();
+      let match = items.find((it) =>
+        it.id.toLowerCase().includes(query) ||
+        it.title.toLowerCase().includes(query) ||
+        it.category.toLowerCase().includes(query) ||
+        (it.sku && it.sku.toLowerCase().includes(query))
+      );
+      if (!match && items.length > 0) match = items[0];
+      if (match) {
+        handleOpenEditor(match);
+        setFridayActionNotice(`FRIDAY: Opened knowledge editor for "${match.title}"`);
+        setTimeout(() => setFridayActionNotice(null), 4000);
+      }
+    };
+
+    const handleFridaySwitch = (e: any) => {
+      const mode = e.detail?.mode;
+      if (mode === "spreadsheet" || mode === "document" || mode === "raw") {
+        setEditorMode(mode);
+        if (mode === "document") setDocEditing(true);
+        setFridayActionNotice(`FRIDAY: Switched editor view to ${mode.toUpperCase()} mode`);
+        setTimeout(() => setFridayActionNotice(null), 4000);
+      }
+    };
+
+    const handleFridayAddCol = (e: any) => {
+      const name = e.detail?.name;
+      handleAddColumn(name);
+      setFridayActionNotice(`FRIDAY: Added dynamic column "${name || 'New Parameter'}"`);
+      setTimeout(() => setFridayActionNotice(null), 4000);
+    };
+
+    const handleFridayAddRow = (e: any) => {
+      const vals = e.detail?.values;
+      handleAddRow(vals);
+      setFridayActionNotice("FRIDAY: Added new row to dynamic matrix");
+      setTimeout(() => setFridayActionNotice(null), 4000);
+    };
+
+    const handleFridayEdit = (e: any) => {
+      const { field, value, rowIndex, colIndex, colName } = e.detail || {};
+      const f = (field || "").toLowerCase();
+      if (f === "title") setEditTitle(String(value));
+      else if (f === "sku") setEditSku(String(value));
+      else if (f === "price" || f === "base_price") setEditBasePrice(value === "" ? "" : Number(value));
+      else if (f === "unit") setEditUnit(String(value));
+      else if (f === "moq") setEditMoq(value === "" ? "" : Number(value));
+      else if (f === "min_qty" || f === "min_quantity") setEditMinQty(value === "" ? "" : Number(value));
+      else if (f === "max_qty" || f === "max_quantity") setEditMaxQty(value === "" ? "" : Number(value));
+      else if (f === "discount" || f === "discount_pct") setEditDiscountPct(value === "" ? "" : Number(value));
+      else if (f === "ceiling" || f === "max_discount") setEditMaxAutonDiscount(value === "" ? "" : Number(value));
+      else if (f === "segment") setEditCustomerSegment(String(value));
+      else if (f === "content" || f === "text") setEditContentText(String(value));
+      else if (f === "cell") {
+        const r = typeof rowIndex === "number" ? rowIndex : 0;
+        let c = typeof colIndex === "number" ? colIndex : 0;
+        if (colName) {
+          const idx = gridColumns.findIndex((cn) => cn.toLowerCase().includes(String(colName).toLowerCase()));
+          if (idx !== -1) c = idx;
+        }
+        handleCellChange(r, c, String(value));
+      }
+      setFridayActionNotice(`FRIDAY: Updated ${field} -> "${value}"`);
+      setTimeout(() => setFridayActionNotice(null), 4000);
+    };
+
+    const handleFridaySave = () => {
+      handleSaveEdit();
+      setFridayActionNotice("FRIDAY: Persisted knowledge asset live to RAG embeddings");
+      setTimeout(() => setFridayActionNotice(null), 4000);
+    };
+
+    window.addEventListener("friday-open-editor" as any, handleFridayOpen);
+    window.addEventListener("friday-switch-mode" as any, handleFridaySwitch);
+    window.addEventListener("friday-add-column" as any, handleFridayAddCol);
+    window.addEventListener("friday-add-row" as any, handleFridayAddRow);
+    window.addEventListener("friday-edit-field" as any, handleFridayEdit);
+    window.addEventListener("friday-save-editor" as any, handleFridaySave);
+
+    return () => {
+      window.removeEventListener("friday-open-editor" as any, handleFridayOpen);
+      window.removeEventListener("friday-switch-mode" as any, handleFridaySwitch);
+      window.removeEventListener("friday-add-column" as any, handleFridayAddCol);
+      window.removeEventListener("friday-add-row" as any, handleFridayAddRow);
+      window.removeEventListener("friday-edit-field" as any, handleFridayEdit);
+      window.removeEventListener("friday-save-editor" as any, handleFridaySave);
+    };
+  }, [items, gridColumns, gridRows, editContentText, editingItem, editTitle, editCategory, editSku, editBasePrice, editUnit, editMoq, editMinQty, editMaxQty, editDiscountPct, editMaxAutonDiscount, editCustomerSegment]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -1468,6 +1788,17 @@ function KnowledgeHubMain() {
       {editingItem && (
         <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-5xl shadow-2xl relative my-auto flex flex-col max-h-[94vh] overflow-hidden transition-all">
+            {/* Friday Live Action Copilot Notice */}
+            {fridayActionNotice && (
+              <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 text-white px-4 py-2 text-xs font-semibold flex items-center justify-between animate-pulse shadow-md z-10">
+                <div className="flex items-center gap-2">
+                  <Bot className="w-4 h-4 text-emerald-200" />
+                  <span className="font-bold tracking-wide">{fridayActionNotice}</span>
+                </div>
+                <span className="text-[10px] uppercase tracking-wider bg-white/20 px-2 py-0.5 rounded font-bold">FRIDAY LIVE COPILOT</span>
+              </div>
+            )}
+
             {/* Modal Header */}
             <div className="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/60 flex flex-col md:flex-row md:items-center justify-between gap-3">
               <div className="flex items-center gap-2.5 flex-wrap min-w-0">
@@ -1611,279 +1942,225 @@ function KnowledgeHubMain() {
 
             {/* Modal Body Container (Mode Dependent) */}
             <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-slate-50/50 dark:bg-slate-950/40">
-              {/* MODE 1: SPREADSHEET / EXCEL GRID */}
+              {/* MODE 1: UNIVERSAL MULTI-INDUSTRY SPREADSHEET / EXCEL GRID */}
               {editorMode === "spreadsheet" && (
                 <div className="space-y-4">
-                  {/* Excel Ribbon & Formula Bar */}
-                  <div className="bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 flex flex-wrap items-center justify-between gap-3 text-xs">
-                    <div className="flex items-center gap-2">
-                      <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1.5">
+                  {/* Industry Template Ribbon */}
+                  <div className="bg-slate-100/90 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-sm">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1.5 border border-emerald-500/20">
                         <FileSpreadsheet className="w-4 h-4" />
-                        <span>Sheet: {editCategory.toUpperCase()}_MATRIX.xlsx</span>
+                        <span>Dynamic Sheet: {editCategory.toUpperCase()}_GRID.xlsx</span>
                       </div>
                       <span className="text-slate-400">|</span>
-                      <span className="text-slate-500 font-mono">Cell: [A1:{editCategory === "pricing_rule" ? "F2" : "E2"}]</span>
+                      <span className="text-slate-600 dark:text-slate-400 font-mono">
+                        {gridRows.length} Rows × {gridColumns.length} Columns
+                      </span>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      <span className="text-[11px] text-slate-500">Auto-calculated cells update structured RAG records directly.</span>
+                    {/* Quick Industry Presets */}
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-[11px] font-bold text-slate-500 mr-1">Industry Templates:</span>
+                      {INDUSTRY_PRESETS.map((preset) => (
+                        <button
+                          key={preset.id}
+                          type="button"
+                          onClick={() => applyIndustryPreset(preset)}
+                          className="px-2 py-1 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-[11px] font-medium transition flex items-center gap-1"
+                          title={`Switch columns & rows to ${preset.label}`}
+                        >
+                          {preset.label}
+                        </button>
+                      ))}
                     </div>
                   </div>
 
-                  {/* Pricing Rule Spreadsheet Table */}
-                  {editCategory === "pricing_rule" && (
-                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-x-auto shadow-sm">
-                      <table className="w-full text-xs text-left border-collapse">
-                        <thead>
-                          <tr className="bg-slate-100/80 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 font-semibold border-b border-slate-200 dark:border-slate-700">
-                            <th className="p-3 w-12 text-center bg-slate-200/60 dark:bg-slate-800/60">#</th>
-                            <th className="p-3 min-w-[140px]">Rule / Tier Name</th>
-                            <th className="p-3 min-w-[110px]">Min Qty ({editUnit})</th>
-                            <th className="p-3 min-w-[110px]">Max Qty ({editUnit})</th>
-                            <th className="p-3 min-w-[110px]">Discount Rate (%)</th>
-                            <th className="p-3 min-w-[120px]">Autonomous Ceiling (%)</th>
-                            <th className="p-3 min-w-[120px]">Applied Segment</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-mono">
-                          <tr className="hover:bg-emerald-50/40 dark:hover:bg-emerald-950/20 transition">
-                            <td className="p-3 text-center bg-slate-50 dark:bg-slate-900 font-bold text-slate-400">1</td>
-                            <td className="p-2">
-                              <input
-                                type="text"
-                                value={editTitle}
-                                onChange={(e) => setEditTitle(e.target.value)}
-                                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1.5 font-sans text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-emerald-500"
-                              />
-                            </td>
-                            <td className="p-2">
-                              <input
-                                type="number"
-                                value={editMinQty}
-                                onChange={(e) => {
-                                  const val = e.target.value === "" ? "" : Number(e.target.value);
-                                  setEditMinQty(val);
-                                  // Auto sync title if appropriate
-                                  if (typeof val === "number") {
-                                    setEditTitle(`Tier: ${val.toFixed(1)}+ Volume (${editDiscountPct || 0}% Discount)`);
-                                  }
-                                }}
-                                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-emerald-500"
-                                placeholder="100"
-                              />
-                            </td>
-                            <td className="p-2">
-                              <input
-                                type="number"
-                                value={editMaxQty}
-                                onChange={(e) => setEditMaxQty(e.target.value === "" ? "" : Number(e.target.value))}
-                                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-emerald-500"
-                                placeholder="No limit"
-                              />
-                            </td>
-                            <td className="p-2">
-                              <div className="relative">
-                                <input
-                                  type="number"
-                                  step="0.5"
-                                  value={editDiscountPct}
-                                  onChange={(e) => {
-                                    const val = e.target.value === "" ? "" : Number(e.target.value);
-                                    setEditDiscountPct(val);
-                                    if (typeof val === "number" && typeof editMinQty === "number") {
-                                      setEditTitle(`Tier: ${editMinQty.toFixed(1)}+ Volume (${val}% Discount)`);
-                                    }
-                                  }}
-                                  className="w-full bg-emerald-50/50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-700/60 rounded-lg pl-2.5 pr-6 py-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-400 focus:outline-none focus:border-emerald-500"
-                                  placeholder="12"
-                                />
-                                <span className="absolute right-2 top-1.5 text-slate-400 text-xs">%</span>
-                              </div>
-                            </td>
-                            <td className="p-2">
-                              <div className="relative">
-                                <input
-                                  type="number"
-                                  step="0.5"
-                                  value={editMaxAutonDiscount}
-                                  onChange={(e) => setEditMaxAutonDiscount(e.target.value === "" ? "" : Number(e.target.value))}
-                                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg pl-2.5 pr-6 py-1.5 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-emerald-500"
-                                  placeholder="15"
-                                />
-                                <span className="absolute right-2 top-1.5 text-slate-400 text-xs">%</span>
-                              </div>
-                            </td>
-                            <td className="p-2 font-sans">
-                              <select
-                                value={editCustomerSegment}
-                                onChange={(e) => setEditCustomerSegment(e.target.value)}
-                                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-emerald-500"
-                              >
-                                <option value="wholesale">Wholesale</option>
-                                <option value="distributor">Distributor</option>
-                                <option value="retail">Retail</option>
-                                <option value="all">All Segments</option>
-                              </select>
-                            </td>
-                          </tr>
-                        </tbody>
-                      </table>
+                  {/* Grid Controls & Column Creator Toolbar */}
+                  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 flex flex-wrap items-center justify-between gap-3 text-xs shadow-sm">
+                    <div className="flex items-center gap-2 flex-wrap flex-1 min-w-[280px]">
+                      <button
+                        type="button"
+                        onClick={() => handleAddRow()}
+                        className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold flex items-center gap-1.5 transition shadow-sm"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Add Row</span>
+                      </button>
 
-                      {/* Live Calculation Preview Banner */}
-                      <div className="p-3 bg-emerald-50/50 dark:bg-emerald-950/20 border-t border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2 text-xs">
-                        <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400 font-medium">
-                          <Calculator className="w-4 h-4" />
-                          <span>Live Rule Simulation:</span>
-                          <span className="text-slate-600 dark:text-slate-400">
-                            A buyer ordering <strong>{editMinQty || 100} {editUnit}</strong> receives an instant <strong>{editDiscountPct || 0}%</strong> discount.
-                          </span>
-                        </div>
-                        <div className="text-[11px] text-slate-500">
-                          Autonomous Margin Ceiling: <strong>{editMaxAutonDiscount || editDiscountPct || 0}%</strong>
-                        </div>
+                      <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-1">
+                        <input
+                          type="text"
+                          value={newColName}
+                          onChange={(e) => setNewColName(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              handleAddColumn();
+                            }
+                          }}
+                          placeholder="New Column (e.g. Lead Time, Warranty, SLA)..."
+                          className="bg-transparent px-2 py-1 text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none w-56 font-sans"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleAddColumn()}
+                          className="px-2.5 py-1 rounded bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-semibold transition"
+                        >
+                          + Add Column
+                        </button>
                       </div>
                     </div>
-                  )}
 
-                  {/* Catalog Product Spreadsheet Table */}
-                  {editCategory === "catalog_product" && (
-                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-x-auto shadow-sm">
-                      <table className="w-full text-xs text-left border-collapse">
-                        <thead>
-                          <tr className="bg-slate-100/80 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 font-semibold border-b border-slate-200 dark:border-slate-700">
-                            <th className="p-3 w-12 text-center bg-slate-200/60 dark:bg-slate-800/60">#</th>
-                            <th className="p-3 min-w-[130px]">SKU Code</th>
-                            <th className="p-3 min-w-[160px]">Product Name</th>
-                            <th className="p-3 min-w-[110px]">Base Price (₹)</th>
-                            <th className="p-3 min-w-[90px]">Unit</th>
-                            <th className="p-3 min-w-[100px]">MOQ</th>
-                            <th className="p-3 min-w-[110px]">Segment</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-mono">
-                          <tr className="hover:bg-cyan-50/40 dark:hover:bg-cyan-950/20 transition">
-                            <td className="p-3 text-center bg-slate-50 dark:bg-slate-900 font-bold text-slate-400">1</td>
-                            <td className="p-2">
-                              <input
-                                type="text"
-                                value={editSku}
-                                onChange={(e) => setEditSku(e.target.value)}
-                                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-cyan-500 font-mono uppercase"
-                                placeholder="SKU-001"
-                              />
-                            </td>
-                            <td className="p-2">
-                              <input
-                                type="text"
-                                value={editTitle}
-                                onChange={(e) => setEditTitle(e.target.value)}
-                                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1.5 font-sans text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-cyan-500"
-                              />
-                            </td>
-                            <td className="p-2">
-                              <input
-                                type="number"
-                                value={editBasePrice}
-                                onChange={(e) => setEditBasePrice(e.target.value === "" ? "" : Number(e.target.value))}
-                                className="w-full bg-cyan-50/50 dark:bg-cyan-950/40 border border-cyan-300 dark:border-cyan-700/60 rounded-lg px-2.5 py-1.5 text-xs font-bold text-cyan-700 dark:text-cyan-400 focus:outline-none focus:border-cyan-500"
-                                placeholder="450"
-                              />
-                            </td>
-                            <td className="p-2">
-                              <input
-                                type="text"
-                                value={editUnit}
-                                onChange={(e) => setEditUnit(e.target.value)}
-                                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-cyan-500"
-                                placeholder="kg"
-                              />
-                            </td>
-                            <td className="p-2">
-                              <input
-                                type="number"
-                                value={editMoq}
-                                onChange={(e) => setEditMoq(e.target.value === "" ? "" : Number(e.target.value))}
-                                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-cyan-500"
-                                placeholder="10"
-                              />
-                            </td>
-                            <td className="p-2 font-sans">
-                              <select
-                                value={editCustomerSegment}
-                                onChange={(e) => setEditCustomerSegment(e.target.value)}
-                                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-cyan-500"
-                              >
-                                <option value="wholesale">Wholesale</option>
-                                <option value="distributor">Distributor</option>
-                                <option value="retail">Retail</option>
-                                <option value="all">All</option>
-                              </select>
-                            </td>
-                          </tr>
-                        </tbody>
-                      </table>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setShowCsvImport(!showCsvImport)}
+                        className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium flex items-center gap-1.5 transition"
+                      >
+                        <Table className="w-3.5 h-3.5 text-cyan-500" />
+                        <span>{showCsvImport ? "Close Table Importer" : "Paste CSV / Table"}</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* CSV / Markdown Table Importer Drawer */}
+                  {showCsvImport && (
+                    <div className="p-3 bg-cyan-500/5 dark:bg-cyan-950/20 border border-cyan-500/20 rounded-xl space-y-2 animate-fade-in text-xs">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-slate-800 dark:text-slate-200">
+                          Paste Raw CSV, TSV, or Markdown Table to populate dynamic spreadsheet:
+                        </span>
+                        <button
+                          type="button"
+                          onClick={handleImportCsv}
+                          disabled={!rawCsvInput.trim()}
+                          className="px-3 py-1 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg font-bold disabled:opacity-50 transition"
+                        >
+                          Parse & Load Grid
+                        </button>
+                      </div>
+                      <textarea
+                        rows={3}
+                        value={rawCsvInput}
+                        onChange={(e) => setRawCsvInput(e.target.value)}
+                        placeholder="e.g.&#10;Tier,Min Qty,Discount,Lead Time&#10;Standard,50,5%,2-3 Days&#10;Bulk,100,12%,4-5 Days"
+                        className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 font-mono text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-cyan-500"
+                      />
                     </div>
                   )}
 
-                  {/* Business Info / Policy Matrix Table */}
-                  {editCategory !== "pricing_rule" && editCategory !== "catalog_product" && (
-                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-x-auto shadow-sm">
-                      <table className="w-full text-xs text-left border-collapse">
-                        <thead>
-                          <tr className="bg-slate-100/80 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 font-semibold border-b border-slate-200 dark:border-slate-700">
-                            <th className="p-3 w-12 text-center bg-slate-200/60 dark:bg-slate-800/60">#</th>
-                            <th className="p-3 min-w-[150px]">Governance Policy</th>
-                            <th className="p-3 min-w-[200px]">Specification / Terms</th>
-                            <th className="p-3 min-w-[100px]">Category</th>
+                  {/* Dynamic Multi-Column Grid Table */}
+                  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-x-auto shadow-sm">
+                    <table className="w-full text-xs text-left border-collapse min-w-[700px]">
+                      <thead>
+                        <tr className="bg-slate-100/90 dark:bg-slate-800/90 text-slate-700 dark:text-slate-300 font-semibold border-b border-slate-200 dark:border-slate-700">
+                          <th className="p-2.5 w-12 text-center bg-slate-200/70 dark:bg-slate-800/70 font-mono text-slate-500">#</th>
+                          {gridColumns.map((colName, cIdx) => (
+                            <th key={cIdx} className="p-2 min-w-[150px] group border-r border-slate-200 dark:border-slate-800/60 last:border-r-0">
+                              <div className="flex items-center justify-between gap-1">
+                                <input
+                                  type="text"
+                                  value={colName}
+                                  onChange={(e) => handleRenameColumn(cIdx, e.target.value)}
+                                  className="bg-transparent border-b border-transparent hover:border-slate-400 dark:hover:border-slate-600 focus:border-emerald-500 px-1 py-0.5 font-bold text-slate-800 dark:text-slate-200 text-xs w-full focus:outline-none truncate"
+                                  title="Click to rename column header"
+                                />
+                                {gridColumns.length > 1 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteColumn(cIdx)}
+                                    className="p-1 text-slate-400 hover:text-red-500 rounded opacity-0 group-hover:opacity-100 transition"
+                                    title="Delete column"
+                                  >
+                                    <X className="w-3 h-3" />
+                                  </button>
+                                )}
+                              </div>
+                            </th>
+                          ))}
+                          <th className="p-2 w-12 text-center text-slate-400 font-normal">Del</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 font-mono">
+                        {gridRows.map((row, rIdx) => (
+                          <tr key={rIdx} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition">
+                            <td className="p-2 text-center bg-slate-50 dark:bg-slate-900/60 font-bold text-slate-400 select-none">
+                              {rIdx + 1}
+                            </td>
+                            {gridColumns.map((col, cIdx) => (
+                              <td key={cIdx} className="p-1.5 border-r border-slate-100 dark:border-slate-800/50 last:border-r-0">
+                                <input
+                                  type="text"
+                                  value={row[cIdx] !== undefined ? row[cIdx] : ""}
+                                  onChange={(e) => handleCellChange(rIdx, cIdx, e.target.value)}
+                                  className="w-full bg-transparent hover:bg-slate-100/50 dark:hover:bg-slate-800/50 focus:bg-white dark:focus:bg-slate-950 border border-transparent focus:border-emerald-500 rounded-md px-2 py-1 text-xs text-slate-900 dark:text-slate-100 focus:outline-none transition shadow-none focus:shadow-sm"
+                                  placeholder="Type cell value..."
+                                />
+                              </td>
+                            ))}
+                            <td className="p-1 text-center">
+                              {gridRows.length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteRow(rIdx)}
+                                  className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 rounded transition"
+                                  title="Delete row"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                            </td>
                           </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                          <tr className="hover:bg-red-50/40 dark:hover:bg-red-950/20 transition">
-                            <td className="p-3 text-center bg-slate-50 dark:bg-slate-900 font-bold text-slate-400">1</td>
-                            <td className="p-2">
-                              <input
-                                type="text"
-                                value={editTitle}
-                                onChange={(e) => setEditTitle(e.target.value)}
-                                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-red-500"
-                              />
-                            </td>
-                            <td className="p-2">
-                              <input
-                                type="text"
-                                value={editContentText.split("\n")[0] || editTitle}
-                                onChange={(e) => {
-                                  const lines = editContentText.split("\n");
-                                  lines[0] = e.target.value;
-                                  setEditContentText(lines.join("\n"));
-                                }}
-                                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-red-500"
-                              />
-                            </td>
-                            <td className="p-2 font-mono uppercase text-slate-500">
-                              {editCategory}
-                            </td>
-                          </tr>
-                        </tbody>
-                      </table>
+                        ))}
+                      </tbody>
+                    </table>
+
+                    {/* Bottom Add Row Strip */}
+                    <div className="p-2.5 bg-slate-50/60 dark:bg-slate-900/40 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500">
+                      <button
+                        type="button"
+                        onClick={() => handleAddRow()}
+                        className="px-3 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1.5 transition"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Add Row</span>
+                      </button>
+                      <span className="text-[11px] text-slate-400">
+                        Spreadsheet cells dynamically synchronize into markdown tables and semantic RAG vectors.
+                      </span>
                     </div>
-                  )}
+                  </div>
                 </div>
               )}
 
-              {/* MODE 2: DOCUMENT / PDF PREVIEW */}
+              {/* MODE 2: INTERACTIVE & INLINE-EDITABLE PDF / DOCUMENT MODE */}
               {editorMode === "document" && (
                 <div className="space-y-4 max-w-3xl mx-auto">
                   {/* PDF Toolbar */}
                   <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 flex flex-wrap items-center justify-between gap-2 text-xs shadow-sm">
                     <div className="flex items-center gap-2">
                       <span className="px-2 py-0.5 rounded bg-red-500/10 text-red-600 dark:text-red-400 font-semibold border border-red-500/20">
-                        PDF Mode
+                        PDF Format
                       </span>
-                      <span className="text-slate-500">Enterprise Specification Sheet</span>
+                      <span className="text-slate-500 font-medium">
+                        {docEditing ? "Direct Inline Editing Mode" : "Official Specification Sheet Preview"}
+                      </span>
                     </div>
 
                     <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setDocEditing(!docEditing)}
+                        className={`px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 transition shadow-sm ${
+                          docEditing
+                            ? "bg-emerald-600 hover:bg-emerald-500 text-white"
+                            : "bg-red-600 hover:bg-red-500 text-white"
+                        }`}
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                        <span>{docEditing ? "Finish Inline Editing" : "Click to Edit Document"}</span>
+                      </button>
+
                       <button
                         type="button"
                         onClick={() => {
@@ -1891,7 +2168,7 @@ function KnowledgeHubMain() {
                           setCopiedDocContent(true);
                           setTimeout(() => setCopiedDocContent(false), 2000);
                         }}
-                        className="px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-1.5 transition"
+                        className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-1.5 transition"
                       >
                         {copiedDocContent ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-slate-400" />}
                         <span>{copiedDocContent ? "Copied" : "Copy Document"}</span>
@@ -1900,16 +2177,18 @@ function KnowledgeHubMain() {
                       <button
                         type="button"
                         onClick={() => setEditorMode("raw")}
-                        className="px-2.5 py-1 rounded-lg bg-red-600 hover:bg-red-500 text-white font-medium flex items-center gap-1.5 transition shadow-sm"
+                        className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 font-medium flex items-center gap-1.5 transition shadow-sm"
                       >
-                        <Edit3 className="w-3.5 h-3.5" />
-                        <span>Edit Text Directly</span>
+                        <FileCode className="w-3.5 h-3.5 text-cyan-500" />
+                        <span>Raw Markdown</span>
                       </button>
                     </div>
                   </div>
 
                   {/* Official PDF Document Card */}
-                  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 sm:p-8 shadow-md relative overflow-hidden space-y-6">
+                  <div className={`bg-white dark:bg-slate-900 border rounded-2xl p-6 sm:p-8 shadow-md relative overflow-hidden space-y-6 transition ${
+                    docEditing ? "border-red-500/50 ring-2 ring-red-500/20" : "border-slate-200 dark:border-slate-800"
+                  }`}>
                     {/* Top Accent Strip */}
                     <div
                       className={`h-1.5 -mt-6 -mx-6 sm:-mt-8 sm:-mx-8 ${
@@ -1942,36 +2221,73 @@ function KnowledgeHubMain() {
                       </div>
                     </div>
 
-                    {/* Document Title & Badges */}
-                    <div className="space-y-2">
-                      <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100 leading-tight">
-                        {editTitle}
-                      </h2>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                    {/* Document Title & Badges (Inline Editable or View) */}
+                    <div className="space-y-3">
+                      {docEditing ? (
+                        <div>
+                          <label className="text-[10px] uppercase font-bold text-red-500 tracking-wider block mb-1">
+                            Document Heading (Editable)
+                          </label>
+                          <input
+                            type="text"
+                            value={editTitle}
+                            onChange={(e) => setEditTitle(e.target.value)}
+                            className="w-full text-xl font-bold bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-slate-100 focus:outline-none focus:border-red-500 leading-tight"
+                            placeholder="Type document title..."
+                          />
+                        </div>
+                      ) : (
+                        <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100 leading-tight cursor-pointer hover:text-red-600 transition" onClick={() => setDocEditing(true)} title="Click to edit heading">
+                          {editTitle}
+                        </h2>
+                      )}
+
+                      <div className="flex items-center gap-2 flex-wrap text-xs">
+                        <span className="px-2.5 py-0.5 rounded-full font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
                           Scope: {editCustomerSegment.toUpperCase()}
                         </span>
                         {editSku && (
-                          <span className="text-xs px-2.5 py-0.5 rounded-full font-mono bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20">
+                          <span className="px-2.5 py-0.5 rounded-full font-mono bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20">
                             SKU: {editSku}
                           </span>
                         )}
                         {editDiscountPct && (
-                          <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                          <span className="px-2.5 py-0.5 rounded-full font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                             {editDiscountPct}% Volume Discount
                           </span>
                         )}
                         {editBasePrice && (
-                          <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                          <span className="px-2.5 py-0.5 rounded-full font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
                             Tariff: ₹{editBasePrice} / {editUnit}
                           </span>
                         )}
                       </div>
                     </div>
 
-                    {/* Rendered Document Body */}
-                    <div className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed space-y-3 font-sans whitespace-pre-wrap bg-slate-50 dark:bg-slate-950/50 p-5 rounded-xl border border-slate-200/80 dark:border-slate-800/80">
-                      {editContentText}
+                    {/* Document Body: Direct Inline Rich Editor or Print View */}
+                    <div className="space-y-2">
+                      {docEditing ? (
+                        <div>
+                          <label className="text-[10px] uppercase font-bold text-red-500 tracking-wider block mb-1">
+                            Document Clauses & Terms (Click & Type Directly)
+                          </label>
+                          <textarea
+                            rows={12}
+                            value={editContentText}
+                            onChange={(e) => setEditContentText(e.target.value)}
+                            className="w-full text-sm text-slate-900 dark:text-slate-100 leading-relaxed font-sans bg-slate-50 dark:bg-slate-950 p-5 rounded-xl border border-red-500/40 focus:outline-none focus:ring-2 focus:ring-red-500/30 whitespace-pre-wrap shadow-inner"
+                            placeholder="Type specifications, clauses, terms, or policies here..."
+                          />
+                        </div>
+                      ) : (
+                        <div
+                          onClick={() => setDocEditing(true)}
+                          className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed space-y-3 font-sans whitespace-pre-wrap bg-slate-50 dark:bg-slate-950/50 p-5 rounded-xl border border-slate-200/80 dark:border-slate-800/80 cursor-text hover:border-slate-400 dark:hover:border-slate-600 transition"
+                          title="Click anywhere to edit this document directly"
+                        >
+                          {editContentText}
+                        </div>
+                      )}
                     </div>
 
                     {/* Document Official Footer */}

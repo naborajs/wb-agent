@@ -669,6 +669,127 @@ export default function VoiceAgent() {
             timestamp: new Date().toLocaleTimeString(),
           },
         ]);
+      } else if (name === "open_knowledge_editor") {
+        const query = args.query || "";
+        if (pathname !== "/knowledge") {
+          router.push("/knowledge");
+          await new Promise((r) => setTimeout(r, 450));
+        }
+        window.dispatchEvent(new CustomEvent("friday-open-editor", { detail: { query } }));
+        setTranscripts((prev) => [
+          ...prev,
+          {
+            id: Math.random().toString(),
+            speaker: "system",
+            text: `Opened knowledge editor for: "${query || 'asset'}"`,
+            timestamp: new Date().toLocaleTimeString(),
+          },
+        ]);
+        result = {
+          success: true,
+          query: query,
+          message: `Opened knowledge asset editor modal for "${query}". Excel spreadsheet and PDF document preview are visible on screen.`,
+        };
+      } else if (name === "switch_editor_mode") {
+        const mode = (args.mode || "spreadsheet").toLowerCase();
+        window.dispatchEvent(new CustomEvent("friday-switch-mode", { detail: { mode } }));
+        setTranscripts((prev) => [
+          ...prev,
+          {
+            id: Math.random().toString(),
+            speaker: "system",
+            text: `Switched editor view to ${mode.toUpperCase()}`,
+            timestamp: new Date().toLocaleTimeString(),
+          },
+        ]);
+        result = {
+          success: true,
+          mode: mode,
+          message: `Switched active editor view to ${mode} mode.`,
+        };
+      } else if (name === "modify_editor_cell_or_field") {
+        const field = args.field || "cell";
+        const value = args.value;
+        const rowIndex = typeof args.row_index === "number" ? args.row_index : undefined;
+        const colNameOrIndex = args.col_name_or_index;
+        window.dispatchEvent(
+          new CustomEvent("friday-edit-field", {
+            detail: {
+              field,
+              value,
+              rowIndex,
+              colName: typeof colNameOrIndex === "string" ? colNameOrIndex : undefined,
+              colIndex: typeof colNameOrIndex === "number" ? colNameOrIndex : undefined,
+            },
+          })
+        );
+        setTranscripts((prev) => [
+          ...prev,
+          {
+            id: Math.random().toString(),
+            speaker: "system",
+            text: `Typed into ${field}: "${value}"`,
+            timestamp: new Date().toLocaleTimeString(),
+          },
+        ]);
+        result = {
+          success: true,
+          field: field,
+          value: value,
+          message: `Successfully typed "${value}" into ${field}.`,
+        };
+      } else if (name === "add_spreadsheet_row_or_column") {
+        const type = (args.type || "row").toLowerCase();
+        const nameVal = args.name;
+        if (type === "column" || type === "col") {
+          window.dispatchEvent(new CustomEvent("friday-add-column", { detail: { name: nameVal } }));
+          setTranscripts((prev) => [
+            ...prev,
+            {
+              id: Math.random().toString(),
+              speaker: "system",
+              text: `Added spreadsheet column: "${nameVal || 'New Parameter'}"`,
+              timestamp: new Date().toLocaleTimeString(),
+            },
+          ]);
+          result = {
+            success: true,
+            type: "column",
+            name: nameVal || "New Parameter",
+            message: `Added dynamic column "${nameVal || 'New Parameter'}" to spreadsheet grid.`,
+          };
+        } else {
+          window.dispatchEvent(new CustomEvent("friday-add-row", { detail: { values: nameVal ? [nameVal] : undefined } }));
+          setTranscripts((prev) => [
+            ...prev,
+            {
+              id: Math.random().toString(),
+              speaker: "system",
+              text: "Added new row to dynamic spreadsheet matrix",
+              timestamp: new Date().toLocaleTimeString(),
+            },
+          ]);
+          result = {
+            success: true,
+            type: "row",
+            message: "Added new row with editable cells to spreadsheet grid.",
+          };
+        }
+      } else if (name === "save_open_editor") {
+        window.dispatchEvent(new CustomEvent("friday-save-editor", { detail: {} }));
+        setTranscripts((prev) => [
+          ...prev,
+          {
+            id: Math.random().toString(),
+            speaker: "system",
+            text: "Saved knowledge asset changes live to RAG embeddings",
+            timestamp: new Date().toLocaleTimeString(),
+          },
+        ]);
+        result = {
+          success: true,
+          message: "Triggered live save. Knowledge Hub database and semantic RAG embeddings updated.",
+        };
       } else if (name === "log_unhandled_request") {
         const userQuery = args.user_query || lastUserUtterance.current || "";
         const attemptedAction = args.attempted_action || "unhandled_intent";
@@ -1054,6 +1175,95 @@ export default function VoiceAgent() {
                         },
                       },
                       required: ["target", "text"],
+                    },
+                  },
+                  {
+                    name: "open_knowledge_editor",
+                    description:
+                      "Opens the interactive multi-mode knowledge asset editor modal (Excel Spreadsheet grid or PDF Document preview) for a specific document, pricing tier, catalog product, or policy.",
+                    parameters: {
+                      type: "OBJECT",
+                      properties: {
+                        query: {
+                          type: "STRING",
+                          description:
+                            "Name, ID, or search keyword of the asset to open (e.g. 'volume discount', 'Tier 2', 'Assam Kadak', 'logistics policy').",
+                        },
+                      },
+                      required: ["query"],
+                    },
+                  },
+                  {
+                    name: "switch_editor_mode",
+                    description:
+                      "Switches the active editor view between 'spreadsheet' (Excel grid with customizable cells, columns, and rows), 'document' (interactive editable PDF document), or 'raw' (markdown text editor).",
+                    parameters: {
+                      type: "OBJECT",
+                      properties: {
+                        mode: {
+                          type: "STRING",
+                          description: "'spreadsheet', 'document', or 'raw'",
+                        },
+                      },
+                      required: ["mode"],
+                    },
+                  },
+                  {
+                    name: "modify_editor_cell_or_field",
+                    description:
+                      "Modifies a specific field or spreadsheet cell in the currently open knowledge asset editor (e.g. setting title, discount percentage, SKU, base price, MOQ, or a specific cell value in row X column Y).",
+                    parameters: {
+                      type: "OBJECT",
+                      properties: {
+                        field: {
+                          type: "STRING",
+                          description:
+                            "'title', 'sku', 'price', 'discount', 'min_qty', 'max_qty', 'unit', 'moq', 'segment', 'content', or 'cell'",
+                        },
+                        value: {
+                          type: "STRING",
+                          description: "The new value to type or set.",
+                        },
+                        row_index: {
+                          type: "NUMBER",
+                          description: "Optional row index (0-based) when editing a spreadsheet cell.",
+                        },
+                        col_name_or_index: {
+                          type: "STRING",
+                          description:
+                            "Optional column name (e.g. 'Discount %', 'Price', 'Lead Time') or column index.",
+                        },
+                      },
+                      required: ["field", "value"],
+                    },
+                  },
+                  {
+                    name: "add_spreadsheet_row_or_column",
+                    description:
+                      "Adds a new customizable column or row to the open spreadsheet grid in the Knowledge Hub.",
+                    parameters: {
+                      type: "OBJECT",
+                      properties: {
+                        type: {
+                          type: "STRING",
+                          description: "'row' or 'column'",
+                        },
+                        name: {
+                          type: "STRING",
+                          description:
+                            "Optional column header name (e.g. 'Warranty', 'Lead Time', 'Specification', 'Fuel Surcharge') or initial cell text.",
+                        },
+                      },
+                      required: ["type"],
+                    },
+                  },
+                  {
+                    name: "save_open_editor",
+                    description:
+                      "Saves and persists all changes in the open knowledge asset editor to the backend database and live vector RAG embeddings.",
+                    parameters: {
+                      type: "OBJECT",
+                      properties: {},
                     },
                   },
                   {
