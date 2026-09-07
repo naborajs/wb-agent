@@ -1,6 +1,7 @@
 /**
  * Client-Side DOM Actions, Screen Grounding Snapshot, and Visual Highlighting
- * for EDITH Voice Agent.
+ * for EDITH & Friday Voice Agent.
+ * Gives Friday universal access to every button, input, tab, card, switch, and control.
  */
 
 import { SITE_MAP, resolveSectionRoute } from "./siteMapData";
@@ -32,7 +33,7 @@ export function highlightElement(element: HTMLElement, color = "#0ea5e9", durati
 
     element.style.transition = "all 0.25s ease-in-out";
     element.style.outline = `3px solid ${color}`;
-    element.style.boxShadow = `0 0 20px ${color}, inset 0 0 10px ${color}33`;
+    element.style.boxShadow = `0 0 24px ${color}, inset 0 0 10px ${color}33`;
 
     setTimeout(() => {
       element.style.outline = originalOutline;
@@ -45,7 +46,7 @@ export function highlightElement(element: HTMLElement, color = "#0ea5e9", durati
 }
 
 /**
- * Produces a compact, structured JSON snapshot of the visible screen
+ * Produces a comprehensive, structured JSON snapshot of the visible screen
  * for grounding the voice model in real-time.
  */
 export function getScreenSnapshot(currentPath: string): ScreenSnapshot {
@@ -73,15 +74,15 @@ export function getScreenSnapshot(currentPath: string): ScreenSnapshot {
   // Actionable inputs & buttons
   const actionable: Array<{ id?: string; tag: string; type?: string; label: string; value?: string }> = [];
 
-  // Buttons
-  document.querySelectorAll("button, [role='button']").forEach((btn) => {
+  // Buttons, Links, Tabs, Switches
+  document.querySelectorAll("button, [role='button'], a, [role='tab'], [role='switch'], input[type='checkbox']").forEach((btn) => {
     const b = btn as HTMLElement;
     if (b.offsetParent === null) return; // Hidden
-    const text = b.innerText?.trim() || b.getAttribute("aria-label") || b.id;
+    const text = b.innerText?.trim() || b.getAttribute("aria-label") || b.getAttribute("title") || b.id;
     if (text && text.length > 0 && text.length < 60) {
       actionable.push({
         id: b.id || undefined,
-        tag: "button",
+        tag: b.tagName.toLowerCase(),
         label: text.replace(/\s+/g, " "),
       });
     }
@@ -112,87 +113,268 @@ export function getScreenSnapshot(currentPath: string): ScreenSnapshot {
   return {
     current_path: currentPath,
     page_title: pageTitle,
-    visible_headings: headings.slice(0, 6),
-    actionable_elements: actionable.slice(0, 25), // Compact budget
+    visible_headings: headings.slice(0, 8),
+    actionable_elements: actionable.slice(0, 40), // Generous grounding budget
   };
 }
 
 /**
- * Searches the DOM for an element matching a voice label, query, ID, phone number, or text.
+ * Returns a human-readable list of all clickable buttons, tabs, and controls currently visible.
+ */
+export function listAllClickableElements(): string[] {
+  if (typeof document === "undefined") return [];
+  const elements = Array.from(
+    document.querySelectorAll<HTMLElement>("button, [role='button'], a, [role='tab'], [role='switch']")
+  );
+
+  const seen = new Set<string>();
+  const labels: string[] = [];
+
+  for (const el of elements) {
+    if (el.offsetParent === null) continue;
+    const text = el.innerText?.trim() || el.getAttribute("aria-label") || el.getAttribute("title");
+    if (text && text.length > 1 && text.length < 50 && !seen.has(text.toLowerCase())) {
+      seen.add(text.toLowerCase());
+      labels.push(text.replace(/\s+/g, " "));
+    }
+  }
+
+  return labels;
+}
+
+/**
+ * Universal element finder: searches DOM for any button, control, link, switch, or clickable item.
+ * Supports exact text, fuzzy text, aria-labels, IDs, Lucide icons, synonyms, ordinals, and CSS selectors.
  */
 export function findMatchingElement(query: string): HTMLElement | null {
   if (typeof document === "undefined") return null;
   const q = query.trim().toLowerCase();
   const digitsOnly = q.replace(/\D/g, "");
 
-  // 1. Direct ID match
+  // 1. CSS Selector query (if begins with #, ., [, or contains >)
+  if (query.startsWith("#") || query.startsWith(".") || query.startsWith("[") || query.includes(" > ")) {
+    try {
+      const selected = document.querySelector<HTMLElement>(query);
+      if (selected && selected.offsetParent !== null) return selected;
+    } catch {}
+  }
+
+  // 2. Direct ID or data attributes
   const byId = document.getElementById(query.trim()) || document.getElementById(q);
   if (byId) return byId;
 
-  // 2. data-voice-action match
-  const byVoiceAction = document.querySelector(`[data-voice-action="${q}"]`) as HTMLElement;
+  const byVoiceAction = document.querySelector<HTMLElement>(
+    `[data-voice-action="${q}"], [data-action="${q}"], [data-testid="${q}"]`
+  );
   if (byVoiceAction) return byVoiceAction;
 
-  // 3. Search visible buttons & links
-  const buttons = Array.from(document.querySelectorAll("button, [role='button'], a, [role='tab']"));
-  const exactBtn = buttons.find((el) => {
-    const text = el.textContent?.trim().toLowerCase();
-    const aria = el.getAttribute("aria-label")?.toLowerCase();
-    return text === q || aria === q;
-  }) as HTMLElement;
-  if (exactBtn) return exactBtn;
+  // 3. Known UI Controls & Synonyms Map
+  const synonymMap: Record<string, string[]> = {
+    ping: ["diagnostic ping", "send diagnostic ping", "send test ping", "test ping", "ping"],
+    simulator: ["execute simulated inquiry", "execute simulated turn", "simulate", "run simulator", "execute"],
+    copy: ["copied!", "copy", "copy code", "copy pairing code"],
+    get_code: ["get code", "generate code", "pairing code", "request code"],
+    qr: ["refresh", "refresh qr", "reload qr"],
+    inbox: ["open live inbox", "open inbox", "live inbox", "view chats"],
+    donut: ["donut chart", "donut", "pie chart", "pie"],
+    bars: ["funnel bars", "bars", "bar chart"],
+    new_chat: ["new chat", "+ new chat", "start chat", "create chat"],
+    takeover: ["take over", "human takeover", "operator takeover"],
+    resume_ai: ["resume ai", "resume", "ai mode", "let edith handle"],
+    order: ["create order", "+ create order", "new order", "add order"],
+    csv: ["upload csv", "import leads", "upload leads", "bulk upload"],
+    theme: ["toggle theme", "switch theme", "dark mode", "light mode"],
+    save: ["save", "save changes", "save asset", "persist"],
+    close: ["close", "dismiss", "cancel"],
+  };
 
-  const partialBtn = buttons.find((el) => {
-    const text = el.textContent?.trim().toLowerCase();
-    const aria = el.getAttribute("aria-label")?.toLowerCase();
-    return (text && text.includes(q)) || (aria && aria.includes(q));
-  }) as HTMLElement;
-  if (partialBtn) return partialBtn;
+  for (const [key, aliases] of Object.entries(synonymMap)) {
+    if (aliases.some((alias) => q.includes(alias) || alias.includes(q))) {
+      // Find candidate buttons matching any alias
+      const buttons = Array.from(document.querySelectorAll<HTMLElement>("button, [role='button'], a"));
+      for (const btn of buttons) {
+        if (btn.offsetParent === null) continue;
+        const btnText = (btn.innerText || btn.getAttribute("aria-label") || "").toLowerCase();
+        if (aliases.some((a) => btnText.includes(a))) {
+          return btn;
+        }
+      }
+    }
+  }
 
-  // 4. Search inputs & textareas by label, placeholder, name
-  const inputs = Array.from(document.querySelectorAll("input, textarea, select"));
-  const matchInput = inputs.find((el) => {
+  // 4. Lucide SVG Icon Class Resolver
+  const iconClasses = [
+    { key: "copy", selector: "svg.lucide-copy, svg[data-icon='copy']" },
+    { key: "refresh", selector: "svg.lucide-refresh-cw, svg.lucide-rotate-cw" },
+    { key: "send", selector: "svg.lucide-send" },
+    { key: "ping", selector: "svg.lucide-send, svg.lucide-radio" },
+    { key: "zap", selector: "svg.lucide-zap, svg.lucide-play" },
+    { key: "plus", selector: "svg.lucide-plus, svg.lucide-plus-circle" },
+    { key: "trash", selector: "svg.lucide-trash, svg.lucide-trash-2" },
+    { key: "edit", selector: "svg.lucide-edit, svg.lucide-pencil" },
+    { key: "search", selector: "svg.lucide-search" },
+    { key: "close", selector: "svg.lucide-x" },
+    { key: "theme", selector: "svg.lucide-sun, svg.lucide-moon" },
+  ];
+
+  for (const ic of iconClasses) {
+    if (q.includes(ic.key)) {
+      const svgs = document.querySelectorAll(ic.selector);
+      for (const svg of Array.from(svgs)) {
+        const btn = svg.closest("button, [role='button'], a") as HTMLElement;
+        if (btn && btn.offsetParent !== null) return btn;
+      }
+    }
+  }
+
+  // 5. Search all visible buttons, links, tabs, and switches by text / aria-label
+  const clickables = Array.from(
+    document.querySelectorAll<HTMLElement>("button, [role='button'], a, [role='tab'], [role='switch'], summary")
+  );
+
+  // 5a. Exact match
+  for (const el of clickables) {
+    if (el.offsetParent === null) continue;
+    const text = el.innerText?.trim().toLowerCase();
+    const aria = el.getAttribute("aria-label")?.toLowerCase();
+    const title = el.getAttribute("title")?.toLowerCase();
+    if (text === q || aria === q || title === q) return el;
+  }
+
+  // 5b. Substring match
+  for (const el of clickables) {
+    if (el.offsetParent === null) continue;
+    const text = el.innerText?.trim().toLowerCase();
+    const aria = el.getAttribute("aria-label")?.toLowerCase();
+    const title = el.getAttribute("title")?.toLowerCase();
+    if (
+      (text && (text.includes(q) || q.includes(text))) ||
+      (aria && (aria.includes(q) || q.includes(aria))) ||
+      (title && (title.includes(q) || q.includes(title)))
+    ) {
+      return el;
+    }
+  }
+
+  // 6. Search inputs & textareas by label, placeholder, name, id
+  const inputs = Array.from(document.querySelectorAll<HTMLElement>("input, textarea, select"));
+  for (const el of inputs) {
+    if (el.offsetParent === null) continue;
     const inp = el as HTMLInputElement;
     const name = inp.name?.toLowerCase();
     const placeholder = inp.placeholder?.toLowerCase();
     const aria = inp.getAttribute("aria-label")?.toLowerCase();
     const id = inp.id?.toLowerCase();
-    return (
+    if (
       name === q ||
       placeholder === q ||
       aria === q ||
       id === q ||
       (placeholder && placeholder.includes(q)) ||
       (name && name.includes(q))
-    );
-  }) as HTMLElement;
-  if (matchInput) return matchInput;
-
-  // 5. Search clickable rows, cards, or elements by phone number
-  if (digitsOnly.length >= 6) {
-    const allClickable = Array.from(
-      document.querySelectorAll<HTMLElement>("div[class*='cursor-pointer'], tr, [role='row'], li")
-    );
-    const phoneMatch = allClickable.find((el) => {
-      const textDigits = (el.textContent || "").replace(/\D/g, "");
-      return textDigits.includes(digitsOnly);
-    });
-    if (phoneMatch) return phoneMatch;
+    ) {
+      return el;
+    }
   }
 
-  // 6. Generic clickable div or text match
-  const allDivs = Array.from(document.querySelectorAll<HTMLElement>("div[class*='cursor-pointer'], span, td"));
-  const textMatch = allDivs.find((el) => {
+  // 7. Search clickable rows, cards, or elements by phone number
+  if (digitsOnly.length >= 6) {
+    const allCards = Array.from(
+      document.querySelectorAll<HTMLElement>(
+        "div[class*='cursor-pointer'], tr, [role='row'], li, div:has(> span.truncate)"
+      )
+    );
+    for (const el of allCards) {
+      if (el.offsetParent === null) continue;
+      const textDigits = (el.textContent || "").replace(/\D/g, "");
+      if (textDigits.includes(digitsOnly)) return el;
+    }
+  }
+
+  // 8. Ordinal Position ("first lead", "second button", "third row")
+  const ordinalMap: Record<string, number> = {
+    first: 0,
+    "1st": 0,
+    second: 1,
+    "2nd": 1,
+    third: 2,
+    "3rd": 2,
+    fourth: 3,
+    "4th": 3,
+    fifth: 4,
+    "5th": 4,
+    last: -1,
+  };
+
+  for (const [word, index] of Object.entries(ordinalMap)) {
+    if (q.includes(word)) {
+      if (q.includes("lead") || q.includes("chat") || q.includes("conversation")) {
+        const rows = Array.from(
+          document.querySelectorAll<HTMLElement>("div[class*='cursor-pointer'], [role='row'], a[href*='/conversations']")
+        ).filter((el) => el.offsetParent !== null);
+        if (rows.length > 0) {
+          const targetIdx = index === -1 ? rows.length - 1 : Math.min(index, rows.length - 1);
+          return rows[targetIdx];
+        }
+      }
+      if (q.includes("button")) {
+        const btns = Array.from(document.querySelectorAll<HTMLElement>("button")).filter(
+          (el) => el.offsetParent !== null
+        );
+        if (btns.length > 0) {
+          const targetIdx = index === -1 ? btns.length - 1 : Math.min(index, btns.length - 1);
+          return btns[targetIdx];
+        }
+      }
+    }
+  }
+
+  // 9. Generic clickable div, badge, or text match
+  const allDivs = Array.from(
+    document.querySelectorAll<HTMLElement>("div[class*='cursor-pointer'], span[class*='cursor-pointer'], td")
+  );
+  for (const el of allDivs) {
+    if (el.offsetParent === null) continue;
     const t = el.innerText?.trim().toLowerCase() || "";
-    return t === q || (q.length >= 4 && t.includes(q));
-  });
-  if (textMatch) return textMatch;
+    if (t === q || (q.length >= 4 && t.includes(q))) return el;
+  }
 
   return null;
 }
 
 /**
- * Dispatches synthetic input & change events for React state compatibility.
+ * Clicks an element by query, highlights it with an animated ring, and scrolls it into view.
+ */
+export function clickElement(query: string): { success: boolean; message: string; clicked_label?: string } {
+  const el = findMatchingElement(query);
+  if (!el) {
+    return {
+      success: false,
+      message: `Could not find any button, link, or clickable element matching "${query}" on the current screen.`,
+    };
+  }
+
+  highlightElement(el, "#00D2FE", 1200);
+
+  // Trigger real events
+  try {
+    el.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true }));
+    el.dispatchEvent(new MouseEvent("mouseup", { bubbles: true, cancelable: true }));
+    el.click();
+  } catch {
+    el.click();
+  }
+
+  const label = el.innerText?.trim() || el.getAttribute("aria-label") || el.getAttribute("title") || query;
+  return {
+    success: true,
+    message: `Successfully clicked "${label}".`,
+    clicked_label: label,
+  };
+}
+
+/**
+ * Dispatches synthetic input & change events for complete React and Next.js state compatibility.
  */
 export function setNativeValue(element: HTMLInputElement | HTMLTextAreaElement, value: string): void {
   const valueSetter = Object.getOwnPropertyDescriptor(element, "value")?.set;
@@ -209,6 +391,8 @@ export function setNativeValue(element: HTMLInputElement | HTMLTextAreaElement, 
 
   element.dispatchEvent(new Event("input", { bubbles: true }));
   element.dispatchEvent(new Event("change", { bubbles: true }));
+  element.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true }));
+  element.dispatchEvent(new KeyboardEvent("keyup", { bubbles: true }));
 }
 
 /**
@@ -219,7 +403,6 @@ export function selectConversationItem(phoneOrName: string): { success: boolean;
   const q = phoneOrName.trim().toLowerCase();
   const digitsOnly = q.replace(/\D/g, "");
 
-  // Search candidate cards on /conversations
   const cards = Array.from(
     document.querySelectorAll<HTMLElement>(
       "div[class*='cursor-pointer'], div[class*='p-3.5'], [role='row'], div:has(> span.truncate)"
@@ -227,6 +410,7 @@ export function selectConversationItem(phoneOrName: string): { success: boolean;
   );
 
   for (const card of cards) {
+    if (card.offsetParent === null) continue;
     const text = card.textContent?.toLowerCase() || "";
     const textDigits = text.replace(/\D/g, "");
 
@@ -283,7 +467,7 @@ export function setColorTheme(theme: string): { success: boolean; theme: string;
 }
 
 /**
- * Types text into any specified input, textarea, search bar, or composer.
+ * Types text into any specified input, textarea, search bar, composer, or spreadsheet cell.
  */
 export function typeText(targetQuery: string, text: string, submit = false): { success: boolean; message: string } {
   if (typeof document === "undefined") return { success: false, message: "Document not available" };
@@ -291,21 +475,35 @@ export function typeText(targetQuery: string, text: string, submit = false): { s
 
   let targetInput: HTMLInputElement | HTMLTextAreaElement | null = null;
 
-  // 1. Chat composer / message textarea
-  if (q.includes("composer") || q.includes("chat") || q.includes("message") || q.includes("reply") || q.includes("whatsapp")) {
+  // 1. Simulator input (e.g. on Overview page)
+  if (q.includes("simulat") || q.includes("inquiry") || q.includes("test")) {
+    targetInput = document.querySelector<HTMLInputElement>(
+      "input[placeholder*='inquiry'], input[placeholder*='customer'], input[placeholder*='Type customer']"
+    );
+  }
+
+  // 2. WhatsApp Pairing Phone input
+  if (!targetInput && (q.includes("phone") || q.includes("pairing") || q.includes("wa") || q.includes("country code"))) {
+    targetInput = document.querySelector<HTMLInputElement>(
+      "input[placeholder*='91'], input[placeholder*='Phone'], input[type='tel']"
+    );
+  }
+
+  // 3. Chat composer / message textarea
+  if (!targetInput && (q.includes("composer") || q.includes("chat") || q.includes("message") || q.includes("reply") || q.includes("whatsapp"))) {
     targetInput = document.querySelector<HTMLTextAreaElement | HTMLInputElement>(
       "textarea[placeholder*='message'], textarea, input[placeholder*='message']"
     );
   }
 
-  // 2. Search / filter inputs
+  // 4. Search / filter inputs
   if (!targetInput && (q.includes("search") || q.includes("find") || q.includes("filter"))) {
     targetInput = document.querySelector<HTMLInputElement>(
       "input[type='search'], input[placeholder*='Search'], input[placeholder*='search'], input[placeholder*='filter']"
     );
   }
 
-  // 3. Fallback to generic findMatchingElement
+  // 5. Fallback to generic findMatchingElement
   if (!targetInput) {
     const el = findMatchingElement(targetQuery);
     if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA")) {
@@ -313,9 +511,19 @@ export function typeText(targetQuery: string, text: string, submit = false): { s
     }
   }
 
-  // 4. Fallback to active element
+  // 6. Fallback to active focused element
   if (!targetInput && document.activeElement && (document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "TEXTAREA")) {
     targetInput = document.activeElement as HTMLInputElement | HTMLTextAreaElement;
+  }
+
+  // 7. Fallback to primary visible input on screen
+  if (!targetInput) {
+    const visibleInputs = Array.from(document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>("input, textarea")).filter(
+      (inp) => inp.offsetParent !== null && inp.type !== "hidden"
+    );
+    if (visibleInputs.length > 0) {
+      targetInput = visibleInputs[0];
+    }
   }
 
   if (!targetInput) {
@@ -328,11 +536,16 @@ export function typeText(targetQuery: string, text: string, submit = false): { s
   highlightElement(targetInput, "#0ea5e9", 1200);
   setNativeValue(targetInput, text);
 
+  // If submit requested
   if (submit) {
     const container = targetInput.closest("form") || targetInput.parentElement;
-    const sendBtn = container?.querySelector<HTMLButtonElement>("button[type='submit'], button:has(svg.lucide-send)");
+    const sendBtn = container?.querySelector<HTMLButtonElement>(
+      "button[type='submit'], button:has(svg.lucide-send), button:has(svg.lucide-zap)"
+    );
     if (sendBtn) {
-      setTimeout(() => sendBtn.click(), 100);
+      setTimeout(() => sendBtn.click(), 150);
+    } else {
+      targetInput.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", code: "Enter", keyCode: 13, bubbles: true }));
     }
   }
 
@@ -341,4 +554,3 @@ export function typeText(targetQuery: string, text: string, submit = false): { s
     message: `Successfully typed "${text}" into ${targetQuery}.`,
   };
 }
-

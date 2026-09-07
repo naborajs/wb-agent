@@ -66,6 +66,21 @@ class VoiceKnowledgeActionRequest(BaseModel):
     fields: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Extracted numerical or categorical parameters")
 
 
+class BrainDeliberationRequest(BaseModel):
+    topic: str = Field(..., min_length=2, description="Strategic question, objection, or commercial proposal for dual-brain deliberation")
+    context: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Optional customer profile or parameters")
+
+
+class BrainDeliberationResponse(BaseModel):
+    topic: str
+    friday_query: str
+    edith_verdict: str
+    edith_reasoning: str
+    consensus: str
+    deliberation_id: str
+    resolved_at: Optional[str] = None
+
+
 @router.post("/chat", response_model=BrainChatResponse)
 async def chat_with_friday(
     req: BrainChatRequest,
@@ -150,6 +165,26 @@ async def handle_voice_knowledge_action(
         fields=req.fields,
     )
     return result
+
+
+@router.post("/deliberate", response_model=BrainDeliberationResponse)
+async def deliberate_strategic_decision(
+    req: BrainDeliberationRequest,
+    session: AsyncSession = Depends(get_db),
+):
+    """
+    Initiates live collaborative deliberation between Friday and EDITH over the Inter-Brain Bus.
+    Exchanges strategic perspectives, audits commercial boundaries, persists thoughts,
+    and returns a joint consensus.
+    """
+    org_id = settings.DEFAULT_ORG_ID
+    result = await inter_brain_bus.deliberate(
+        session=session,
+        org_id=org_id,
+        topic=req.topic,
+        context=req.context,
+    )
+    return BrainDeliberationResponse(**result)
 
 
 @router.get("/dialogues")
