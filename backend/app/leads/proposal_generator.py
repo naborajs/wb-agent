@@ -9,6 +9,7 @@ from typing import Any, Dict, Optional
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.database.base import utc_now
 from app.database.models import Conversation, Customer, FollowupJob, Lead, Message
 from app.utils.logging import logger
@@ -17,7 +18,7 @@ from app.whatsapp.service import WhatsAppService
 
 class ProposalGenerator:
     """
-    Generates personalized wholesale tea proposals and schedules 24-48h zero-cost check-ins.
+    Generates personalized commercial B2B proposals and schedules 24-48h zero-cost check-ins.
     """
 
     def __init__(self, session: AsyncSession, org_id: str):
@@ -29,43 +30,46 @@ class ProposalGenerator:
         """
         Creates custom B2B proposal and 1-2 day zero-cost follow-up tailored to lead details.
         """
-        name = lead.first_name or (lead.name.split()[0] if lead.name else "Business Partner")
-        company = lead.company_name or "your establishment"
-        company_type = (lead.company_type or "Cafe").lower()
+        name = lead.contact_name or lead.company_name or "Partner"
+        company = lead.company_name or "your organization"
+        company_type = (lead.company_type or "business").lower()
         city = lead.city or "your city"
         interest = (lead.product_interest or "").lower()
 
+        sender = getattr(settings, "AGENT_NAME", "Rajiv")
+        business = getattr(settings, "BUSINESS_NAME", "our business")
+
         # 1. Custom tailored proposal message
-        if "hotel" in company_type or "resort" in company_type:
+        if "hotel" in company_type or "resort" in company_type or "hospitality" in company_type:
             proposal_text = (
-                f"Namaste {name}! Rajiv Sen here from North Bengal Tea Co. 🍃\n\n"
-                f"We supply direct estate teas from Kurseong and Assam to premier hospitality brands across India. "
-                f"For {company} in {city}, we offer single-estate Darjeeling whole leaf (FTGFOP1) for breakfast buffets "
-                f"and high-color Dooars blends (₹230/kg) for banquets with direct estate quality guarantees.\n\n"
-                f"Would you like us to courier a complimentary 200g commercial tasting kit to your culinary team in {city}?"
+                f"Namaste {name}! {sender} here from {business}. ✨\n\n"
+                f"We supply direct verified commercial solutions and premium wholesale packages to premier hospitality brands across India. "
+                f"For {company} in {city}, we offer our Premium Commercial Package with dedicated priority fulfillment "
+                f"and volume-tier commercial pricing with direct quality guarantees.\n\n"
+                f"Would you like us to dispatch a complimentary specification and sample evaluation kit to your team in {city}?"
             )
         elif "wholesaler" in company_type or "distributor" in company_type:
             proposal_text = (
-                f"Namaste {name}! Rajiv Sen here from North Bengal Tea Co. 🍃\n\n"
-                f"We supply fresh factory-direct tea chests and bulk 20kg food-grade jute bags straight from regional gardens. "
-                f"We eliminate middleman mandi commissions for distributors in {city}, offering Assam Kadak CTC at ₹306/kg "
-                f"(100kg tier) with 15% custom contract pricing on 500kg+ consignments.\n\n"
-                f"Could I share our complete wholesale grade catalog and estate dispatch schedule with you?"
+                f"Namaste {name}! {sender} here from {business}. ✨\n\n"
+                f"We supply factory-direct bulk shipments and commercial packages straight from primary production hubs. "
+                f"We eliminate middleman commissions for distributors in {city}, offering competitive volume discounts "
+                f"with custom contract pricing on enterprise consignments.\n\n"
+                f"Could I share our complete commercial grade catalog and dispatch schedule with you?"
             )
-        else:  # Cafe, Restaurant, Tea Stall, Retail
+        else:  # General commercial, Retail, Cafe, Enterprise
             proposal_text = (
-                f"Namaste {name}! Rajiv Sen here from North Bengal Tea Co. 🍃\n\n"
-                f"We supply direct estate teas to fast-growing cafes and tea bars. "
-                f"For {company} in {city}, our Assam Kadak CTC (₹306/kg for 100kg) and Dooars Hotel Blend (₹230/kg) "
-                f"are specially crafted for rich liquor, brisk color, and high milk tolerance—yielding ~20% more cups per kg.\n\n"
-                f"May we send you a complimentary 200g commercial tasting kit so your team can test the cup quality?"
+                f"Namaste {name}! {sender} here from {business}. ✨\n\n"
+                f"We supply verified commercial products and business solutions directly to fast-growing organizations. "
+                f"For {company} in {city}, our Standard Commercial Package is specially engineered for operational efficiency, "
+                f"reliable delivery, and transparent volume discount tiers.\n\n"
+                f"May we send you a complimentary specification package and product trial so your team can evaluate the quality?"
             )
 
         # 2. 1-2 Day polite follow-up (zero pressure, zero cost to ask)
         followup_text = (
-            f"Hi {name}, Rajiv here following up on our proposal for {company}! ☕\n\n"
-            f"Just wanted to gently check in—there is absolutely zero cost or obligation to enquire or request free tasting samples. "
-            f"If you have any questions on pricing, packaging, or blend testing for {city}, I'd be genuinely glad to help whenever you have a moment!"
+            f"Hi {name}, {sender} here following up on our proposal for {company}! ✨\n\n"
+            f"Just wanted to gently check in—there is absolutely zero cost or obligation to enquire or request evaluation samples. "
+            f"If you have any questions on pricing, packaging, or specifications for {city}, I'd be genuinely glad to help whenever you have a moment!"
         )
 
         return {

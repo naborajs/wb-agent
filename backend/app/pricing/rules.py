@@ -1,5 +1,5 @@
 """
-Default B2B pricing rules and discount policies for North Bengal Tea Co.
+Default B2B configurable pricing rules and discount policies for WhatsApp AI Agent by NS.
 """
 
 from decimal import Decimal
@@ -8,8 +8,10 @@ from typing import Any, Dict, List
 DEFAULT_PRICING_RULES: List[Dict[str, Any]] = [
     # Volume tier discounts (applies across catalog)
     {
-        "rule_name": "Tier 1: 50kg+ Volume Discount",
+        "rule_name": "Tier 1: 50+ Volume Discount",
         "rule_type": "volume_tier",
+        "min_quantity": Decimal("50.0"),
+        "max_quantity": Decimal("99.99"),
         "min_quantity_kg": Decimal("50.0"),
         "max_quantity_kg": Decimal("99.99"),
         "discount_percentage": Decimal("5.0"),
@@ -18,8 +20,10 @@ DEFAULT_PRICING_RULES: List[Dict[str, Any]] = [
         "max_autonomous_discount_percentage": Decimal("5.0"),
     },
     {
-        "rule_name": "Tier 2: 100kg+ Commercial Volume Discount",
+        "rule_name": "Tier 2: 100+ Commercial Volume Discount",
         "rule_type": "volume_tier",
+        "min_quantity": Decimal("100.0"),
+        "max_quantity": Decimal("499.99"),
         "min_quantity_kg": Decimal("100.0"),
         "max_quantity_kg": Decimal("499.99"),
         "discount_percentage": Decimal("10.0"),
@@ -28,8 +32,10 @@ DEFAULT_PRICING_RULES: List[Dict[str, Any]] = [
         "max_autonomous_discount_percentage": Decimal("7.5"),
     },
     {
-        "rule_name": "Tier 3: 500kg+ Wholesale / Distributor Tier",
+        "rule_name": "Tier 3: 500+ Wholesale / Distributor Tier",
         "rule_type": "volume_tier",
+        "min_quantity": Decimal("500.0"),
+        "max_quantity": None,
         "min_quantity_kg": Decimal("500.0"),
         "max_quantity_kg": None,
         "discount_percentage": Decimal("15.0"),
@@ -42,6 +48,7 @@ DEFAULT_PRICING_RULES: List[Dict[str, Any]] = [
         "rule_name": "Distributor Base Discount",
         "rule_type": "customer_segment",
         "customer_segment": "distributor",
+        "min_quantity": Decimal("100.0"),
         "min_quantity_kg": Decimal("100.0"),
         "discount_percentage": Decimal("8.0"),
         "min_margin_percentage": Decimal("15.0"),
@@ -49,9 +56,10 @@ DEFAULT_PRICING_RULES: List[Dict[str, Any]] = [
         "max_autonomous_discount_percentage": Decimal("5.0"),
     },
     {
-        "rule_name": "Café Starter Partner Discount",
+        "rule_name": "Commercial Starter Partner Discount",
         "rule_type": "customer_segment",
-        "customer_segment": "cafe",
+        "customer_segment": "commercial_starter",
+        "min_quantity": Decimal("25.0"),
         "min_quantity_kg": Decimal("25.0"),
         "discount_percentage": Decimal("5.0"),
         "min_margin_percentage": Decimal("15.0"),

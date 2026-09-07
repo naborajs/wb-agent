@@ -110,8 +110,8 @@ class SimulatorProvider(LLMProvider):
             )
         elif "human" in user_msg or "person" in user_msg or "call" in user_msg or "talk to" in user_msg:
             reply = (
-                "I am handing you over to our wholesale sales director Rajiv right now. "
-                "He will step into this WhatsApp chat shortly to assist you directly."
+                "I am connecting you with our sales director right now. "
+                "Our team will step into this chat shortly to assist you directly."
             )
         elif is_ongoing:
             # Context-preserving fallback instead of amnesiac greeting reset
@@ -120,9 +120,10 @@ class SimulatorProvider(LLMProvider):
                 "Could you please confirm if you would like me to proceed with finalizing this order specifications?"
             )
         else:
+            from app.config import settings
             reply = (
-                "Thank you for contacting North Bengal Tea Co. We supply direct estate teas to cafes, hotels, "
-                "and wholesale distributors across India. How can we help your business today?"
+                f"Thank you for contacting {settings.BUSINESS_NAME}. We supply commercial products and verified solutions "
+                "to businesses and commercial clients across India. How can we help your business today?"
             )
 
         latency_ms = int((time.time() - start_t) * 1000)

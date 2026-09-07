@@ -205,7 +205,7 @@ class AgentOrchestrator:
             )
             self.session.add(handoff)
             await self.conv_service.update_mode(conversation_id, "HUMAN", reason="input_guardrail_hold")
-            b_name = getattr(settings, "BUSINESS_NAME", "North Bengal Tea Co.")
+            b_name = getattr(settings, "BUSINESS_NAME", "our business")
             safe_reply = (
                 f"Thank you for contacting {b_name}. We have flagged your request for our commercial manager, "
                 "who will assist you personally."
@@ -363,7 +363,7 @@ class AgentOrchestrator:
                 customer.opt_in_status = False
                 customer.opt_out_timestamp = utc_now()
             target_stage = "OPTED_OUT"
-            b_name = getattr(settings, "BUSINESS_NAME", "North Bengal Tea Co.")
+            b_name = getattr(settings, "BUSINESS_NAME", "our business")
             reply_text = f"You have been successfully opted out from {b_name}. We will not send you further messages."
 
         # 8. Check Unknown Question (Sections 19, 21, 22)
@@ -373,26 +373,25 @@ class AgentOrchestrator:
                 customer_id=ctx.customer_id,
                 conversation_id=conversation_id,
                 question=inbound_message,
-                context_searched="Wholesale Estate Teas Catalog, Packaging Policies",
+                context_searched="Commercial Products Catalog, Business Policies",
                 urgency="NORMAL",
             )
             is_hindi_hinglish = (
                 language in ("Hindi", "Hinglish")
                 or any(w in inbound_message.lower() for w in ["khet", "ket", "beej", "bij", "seeds", "mara", "mera", "bhai", "kitna", "chahiye", "ton", "bara", "ha", "ho", "karo", "dedo"])
             )
+            b_name = getattr(settings, "BUSINESS_NAME", "our company")
             if is_hindi_hinglish:
                 reply_text = (
-                    "Namaste! Hum khet ya kheti ke liye tea seeds (beej) ya nursery paudhe supply nahi karte. "
-                    "North Bengal Tea Co. direct factory-fresh commercial bulk chai (Assam Kadak CTC, Dooars Blend, Darjeeling Leaf) "
-                    "cafes, hotels aur dukaano ke liye supply karti hai. "
-                    "Agar aapko commercial beverage service ke liye bulk chai chahiye, to zaroor batayein!"
+                    f"Namaste! Hum yeh anurodh verified services ya offerings ke antargat fulfill nahi karte. "
+                    f"{b_name} direct commercial products aur business solutions supply karta hai. "
+                    "Agar aapko hamare commercial offerings ke baare mein jaankari chahiye, to zaroor batayein!"
                 )
             else:
                 reply_text = (
-                    "North Bengal Tea Co. specializes strictly in processed commercial bulk and wholesale estate teas "
-                    "(Assam CTC, Darjeeling Whole Leaf, Dooars) for cafes, hotels, and retailers. "
-                    "We do not supply agricultural tea seeds, nursery saplings, or planting stock. "
-                    "If your establishment requires finished commercial teas for beverage service, we'd be delighted to assist!"
+                    f"{b_name} specializes directly in verified commercial products and business solutions. "
+                    "We do not supply out-of-scope commodities or unverified requests. "
+                    "If your establishment requires commercial supply from our verified catalog, we would be delighted to assist!"
                 )
 
         # 9. Check Purchase Intent & Human Handoff (Sections 25, 26, 58)
@@ -462,9 +461,9 @@ class AgentOrchestrator:
         # 10. Generate Context-Rich LLM Response via EDITH Persona
         else:
             # Load EDITH System Prompt with Dynamic Business Adaptation
-            b_name = getattr(settings, "BUSINESS_NAME", "North Bengal Tea Co.")
-            b_ind = getattr(settings, "BUSINESS_INDUSTRY", "Wholesale Produce & Goods")
-            b_desc = getattr(settings, "BUSINESS_DESCRIPTION", "Commercial B2B supplier supplying fresh wholesale products directly to businesses.")
+            b_name = getattr(settings, "BUSINESS_NAME", "My Business")
+            b_ind = getattr(settings, "BUSINESS_INDUSTRY", "Commercial Supply & Services")
+            b_desc = getattr(settings, "BUSINESS_DESCRIPTION", "Commercial B2B supplier supplying quality wholesale products and services directly to businesses.")
             a_name = getattr(settings, "AGENT_NAME", "EDITH")
             a_role = getattr(settings, "AGENT_ROLE", "Autonomous B2B AI Sales Consultant")
 
@@ -565,9 +564,10 @@ class AgentOrchestrator:
         is_valid, validation_issues, sanitized_reply = ResponseValidator.validate(reply_text)
         if not is_valid:
             logger.warning(f"Response validation issues: {validation_issues}. Falling back to safe response.")
+            b_name = getattr(settings, "BUSINESS_NAME", "our business")
             sanitized_reply = (
-                "Thank you for contacting North Bengal Tea Co. We supply estate-fresh wholesale teas directly to cafes and hotels. "
-                "What approximate monthly volume does your establishment require?"
+                f"Thank you for contacting {b_name}. We supply verified commercial products and business solutions directly to commercial clients. "
+                "What approximate volume or requirement does your establishment have?"
             )
 
         is_suppressed: bool = False

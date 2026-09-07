@@ -210,7 +210,7 @@ class MetaCloudWhatsAppProvider(WhatsAppProvider):
             "type": "document",
             "document": {
                 "link": f"{settings.API_URL}/api/v1/invoices/download?file={doc_name}" if not file_path.startswith("http") else file_path,
-                "caption": caption or "Commercial Pro-Forma Invoice - North Bengal Tea Co.",
+                "caption": caption or f"Commercial Pro-Forma Invoice - {settings.BUSINESS_NAME}",
                 "filename": doc_name,
             },
         }

@@ -222,7 +222,7 @@ async def send_quote_via_whatsapp(
 
     wa = WhatsAppService.get_provider()
     caption = (
-        f"📄 *North Bengal Tea Co. - Commercial Pro-Forma Invoice*\n"
+        f"📄 *{settings.BUSINESS_NAME} - Commercial Pro-Forma Invoice*\n"
         f"Quote No: *{quote.quote_number}*\n"
         f"Rate locked for 7 days. Please review itemized pricing and payment details."
     )

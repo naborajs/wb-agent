@@ -20,7 +20,7 @@ from app.utils.logging import logger
 
 class PricingService:
     """
-    Deterministic pricing authority for North Bengal Tea Co.
+    Deterministic pricing authority for commercial B2B operations.
     """
 
     def __init__(self, session: AsyncSession, org_id: str):
@@ -49,24 +49,25 @@ class PricingService:
             raise ValueError(f"Product with ID '{product_id}' not found.")
 
         # 2. Check Minimum Order Quantity (MOQ)
-        moq = product.min_order_quantity_kg
+        moq = getattr(product, "min_order_quantity", getattr(product, "min_order_quantity_kg", Decimal("1.0")))
         if quantity_kg < moq:
             raise ValueError(
-                f"Requested quantity {quantity_kg}kg is below the Minimum Order Quantity ({moq}kg) for {product.name}."
+                f"Requested quantity {quantity_kg} is below the Minimum Order Quantity ({moq}) for {product.name}."
             )
 
-        # 3. Determine Base Price per kg from largest matching variant or default variant
+        # 3. Determine Base Price per unit from largest matching variant or default variant
         base_price_per_kg = Decimal("0.0")
         if product.variants:
-            # Sort variants by weight descending to match wholesale economies of scale
-            sorted_variants = sorted(product.variants, key=lambda v: v.weight_kg, reverse=True)
+            # Sort variants by weight/quantity descending to match wholesale economies of scale
+            sorted_variants = sorted(product.variants, key=lambda v: getattr(v, "unit_quantity", getattr(v, "weight_kg", Decimal("1.0"))), reverse=True)
             # Find the best variant that fits the quantity, or default to the largest pack
             matching_variant = sorted_variants[0]
             for var in sorted_variants:
-                if quantity_kg >= var.weight_kg:
+                var_qty = getattr(var, "unit_quantity", getattr(var, "weight_kg", Decimal("1.0")))
+                if quantity_kg >= var_qty:
                     matching_variant = var
                     break
-            base_price_per_kg = matching_variant.base_price_per_kg
+            base_price_per_kg = getattr(matching_variant, "base_price_per_unit", getattr(matching_variant, "base_price_per_kg", Decimal("500.00")))
         else:
             base_price_per_kg = Decimal("500.00")  # Fallback base rate
 
@@ -92,8 +93,10 @@ class PricingService:
             rule_applies = False
 
             if rule.rule_type == "volume_tier":
-                if rule.min_quantity_kg <= quantity_kg:
-                    if rule.max_quantity_kg is None or quantity_kg <= rule.max_quantity_kg:
+                min_q = getattr(rule, "min_quantity", getattr(rule, "min_quantity_kg", Decimal("0.0")))
+                max_q = getattr(rule, "max_quantity", getattr(rule, "max_quantity_kg", None))
+                if min_q <= quantity_kg:
+                    if max_q is None or quantity_kg <= max_q:
                         rule_applies = True
 
             elif rule.rule_type == "customer_segment" and norm_segment:
