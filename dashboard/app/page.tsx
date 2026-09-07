@@ -24,6 +24,10 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import DualBrainHeroBus from "@/components/DualBrainHeroBus";
+import SynapticActivityTicker from "@/components/SynapticActivityTicker";
+import ExecutiveBriefingModal from "@/components/ExecutiveBriefingModal";
+import HourlyVelocityHeatmap from "@/components/HourlyVelocityHeatmap";
+import ExecutiveQuickDock from "@/components/ExecutiveQuickDock";
 
 interface AnalyticsData {
   leads_total: number;
@@ -134,6 +138,22 @@ export default function DashboardOverview() {
     stage: string;
     score: number;
   } | null>(null);
+
+  // Feature 2: Executive Audio Briefing State
+  const [showBriefing, setShowBriefing] = useState(false);
+  const [briefingTimeframe, setBriefingTimeframe] = useState<"today" | "yesterday">("today");
+
+  // Listen for voice agent / window events to trigger briefing
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handleOpenBriefing = (e: any) => {
+      const tf = e?.detail?.timeframe === "yesterday" ? "yesterday" : "today";
+      setBriefingTimeframe(tf);
+      setShowBriefing(true);
+    };
+    window.addEventListener("open-executive-briefing", handleOpenBriefing);
+    return () => window.removeEventListener("open-executive-briefing", handleOpenBriefing);
+  }, []);
 
   // Fetch QR Code data URL
   const fetchQr = async () => {
@@ -341,6 +361,10 @@ export default function DashboardOverview() {
       {/* 1. DUAL-BRAIN COMMAND CENTER HERO (CENTERPIECE WITH SYNAPTIC INTER-BUS)   */}
       {/* ========================================================================= */}
       <DualBrainHeroBus
+        onPlayBriefing={() => {
+          setBriefingTimeframe("today");
+          setShowBriefing(true);
+        }}
         queueDepth={metrics.queue_depth}
         autonomousRate={metrics.conversion_rate_pct > 0 ? 94.2 : 94.2}
         turnSpeed="1.1s"
@@ -355,6 +379,32 @@ export default function DashboardOverview() {
         pendingHandoffsCount={metrics.pending_handoffs}
         tokensSummary={metrics.tokens_summary}
       />
+
+      {/* ========================================================================= */}
+      {/* 1.1 FEATURE 1: LIVE INTER-BRAIN ACTIVITY TICKER (REAL-TIME SYNAPTIC STREAM)*/}
+      {/* ========================================================================= */}
+      <SynapticActivityTicker />
+
+      {/* ========================================================================= */}
+      {/* 1.2 FEATURE 5: EXECUTIVE QUICK-ACTION DOCK (1-CLICK WORKFLOWS & SAFE MODE) */}
+      {/* ========================================================================= */}
+      <ExecutiveQuickDock
+        onTestDiscountPolicy={(prompt) => {
+          setSimPrompt(prompt);
+          // Auto-trigger simulation after state updates
+          setTimeout(() => {
+            const btn = document.querySelector("button:has(svg.lucide-zap)") as HTMLButtonElement;
+            if (btn) btn.click();
+          }, 150);
+        }}
+        onSendWhatsAppPing={handleSendPing}
+        isSendingPing={isSendingPing}
+      />
+
+      {/* ========================================================================= */}
+      {/* 1.3 FEATURE 4: 24-HOUR INBOUND TRAFFIC VELOCITY & RESOLUTION HEATMAP       */}
+      {/* ========================================================================= */}
+      <HourlyVelocityHeatmap />
 
       {/* ========================================================================= */}
       {/* 1.5 DUAL-BRAIN TOKEN USAGE & INFERENCE ECONOMICS PANEL                     */}
@@ -1015,6 +1065,15 @@ export default function DashboardOverview() {
           </Link>
         </div>
       </div>
+
+      {/* ========================================================================= */}
+      {/* FEATURE 2: EXECUTIVE AUDIO BRIEFING MODAL (VOICE DEBRIEF PLAYER)          */}
+      {/* ========================================================================= */}
+      <ExecutiveBriefingModal
+        isOpen={showBriefing}
+        onClose={() => setShowBriefing(false)}
+        initialTimeframe={briefingTimeframe}
+      />
     </div>
   );
 }
