@@ -58,6 +58,14 @@ class BrainDebriefRequest(BaseModel):
     details: Dict[str, Any] = Field(default_factory=dict, description="Contextual facts, phone, customer message, or topic")
 
 
+class VoiceKnowledgeActionRequest(BaseModel):
+    action: str = Field("create", description="'create', 'update', 'pause', 'activate', or 'delete'")
+    instruction: str = Field(..., description="Natural language voice instruction from operator")
+    category: Optional[str] = Field(None, description="'business_info', 'pricing_rule', 'catalog_product', 'agent_guidance', 'custom'")
+    item_id_or_title: Optional[str] = Field(None, description="Optional target item ID or title substring")
+    fields: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Extracted numerical or categorical parameters")
+
+
 @router.post("/chat", response_model=BrainChatResponse)
 async def chat_with_friday(
     req: BrainChatRequest,
@@ -120,6 +128,28 @@ async def post_edith_debrief(
         "success": True,
         "debrief": result,
     }
+
+
+@router.post("/voice-knowledge-action")
+async def handle_voice_knowledge_action(
+    req: VoiceKnowledgeActionRequest,
+    session: AsyncSession = Depends(get_db),
+):
+    """
+    Voice-driven knowledge hub modification endpoint:
+    Dispatches voice commands from Friday to EDITH to create, edit, pause, activate, or delete knowledge assets.
+    """
+    org_id = settings.DEFAULT_ORG_ID
+    result = await inter_brain_bus.dispatch_voice_knowledge_action(
+        session=session,
+        org_id=org_id,
+        action=req.action,
+        instruction=req.instruction,
+        category=req.category,
+        item_id_or_title=req.item_id_or_title,
+        fields=req.fields,
+    )
+    return result
 
 
 @router.get("/dialogues")

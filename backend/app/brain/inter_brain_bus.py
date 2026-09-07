@@ -13,7 +13,7 @@ import re
 import time
 from typing import Any, Dict, List, Optional, Tuple
 
-from sqlalchemy import desc, select
+from sqlalchemy import desc, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.ai.router import ai_router
@@ -262,14 +262,18 @@ class EdithBrain:
         auto_disc = fields.get("max_autonomous_discount")
         check_disc = disc if disc is not None else auto_disc
 
-        if check_disc is not None and float(check_disc) > max_allowed_discount:
+        is_operator_directive = proposal.get("is_operator_directive", False)
+        # For operator directives (voice or explicit operator chat), allow volume tiers up to 25%
+        effective_max = 25.0 if is_operator_directive else max_allowed_discount
+
+        if check_disc is not None and float(check_disc) > effective_max:
             suggestion = (
                 f"Strategic Counter-Proposal: Propose setting the volume discount to {max_allowed_discount:.1f}% "
                 f"with a 200-unit commitment to protect target gross margins."
             )
             denial_reason = (
                 f"Proposed discount of {float(check_disc):.1f}% exceeds our maximum authorized commercial ceiling "
-                f"of {max_allowed_discount:.1f}%. Modifying volume tiers beyond this ceiling requires board sign-off."
+                f"of {effective_max:.1f}%. Modifying volume tiers beyond this ceiling requires board sign-off."
             )
             logger.info(f"[EDITH Brain] Autonomously DENIED knowledge update: {denial_reason}")
             return {
@@ -277,9 +281,15 @@ class EdithBrain:
                 "reasoning": denial_reason,
                 "policy_checked": "MAX_AUTONOMOUS_DISCOUNT_LIMIT",
                 "requested_discount": float(check_disc),
-                "allowed_threshold": max_allowed_discount,
+                "allowed_threshold": effective_max,
                 "suggestion": suggestion,
             }
+
+        if check_disc is not None and float(check_disc) > max_allowed_discount and is_operator_directive:
+            # Ensure minimum quantity qualification for higher discounts
+            if not fields.get("min_quantity") and not fields.get("min_order_quantity"):
+                fields["min_quantity"] = 100.0
+            logger.info(f"[EDITH Brain] Operator authorized volume discount of {float(check_disc):.1f}% with volume tier qualification.")
 
         # 2. MOQ & Quantity Sanity Check
         moq = fields.get("min_order_quantity") or fields.get("min_quantity")
@@ -1093,6 +1103,352 @@ class InterBrainBus:
                 "friday_reply": reply_text,
             }
         }
+
+    async def dispatch_voice_knowledge_action(
+        self,
+        session: AsyncSession,
+        org_id: str,
+        action: str,
+        instruction: str,
+        category: Optional[str] = None,
+        item_id_or_title: Optional[str] = None,
+        fields: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """
+        Voice-driven Knowledge & RAG action hub:
+        Friday commands partner brain EDITH to create, edit, pause, activate, or delete
+        knowledge assets, pricing rules, catalog items, or guidance.
+        EDITH independently verifies commercial policies and executes changes in the database.
+        """
+        from app.realtime.connection_manager import ws_manager
+        from app.database.models import AgentNotification, KnowledgeItem, KnowledgeCategory
+        from app.knowledge.ingestion import KnowledgeIngestionService
+        from decimal import Decimal
+
+        action = (action or "create").lower().strip()
+        fields = fields or {}
+
+        # 1. Log Friday's voice delegation
+        friday_msg = InterBrainMessage(
+            org_id=org_id,
+            sender_brain="FRIDAY",
+            recipient_brain="EDITH",
+            message_type="VOICE_KNOWLEDGE_DIRECTIVE",
+            content=f"Voice Directive ({action.upper()}): {instruction}",
+            decision="PENDING",
+            reasoning="Voice operator commanded Friday to delegate knowledge action to EDITH.",
+            metadata_payload={
+                "action": action,
+                "instruction": instruction,
+                "category": category,
+                "item_id_or_title": item_id_or_title,
+                "fields": fields,
+            },
+        )
+        session.add(friday_msg)
+        await session.commit()
+        await session.refresh(friday_msg)
+        await self._broadcast(org_id, friday_msg)
+
+        # 2. Process Actions: PAUSE / ACTIVATE / DELETE
+        if action in ("pause", "activate", "delete"):
+            target_term = item_id_or_title or instruction
+            search_stmt = select(KnowledgeItem).where(
+                or_(
+                    KnowledgeItem.org_id == org_id,
+                    KnowledgeItem.org_id == "org_default",
+                    KnowledgeItem.org_id == "org_default_tea",
+                )
+            )
+            if item_id_or_title:
+                search_stmt = search_stmt.where(
+                    or_(
+                        KnowledgeItem.id == item_id_or_title.strip(),
+                        KnowledgeItem.title.ilike(f"%{item_id_or_title.strip()}%"),
+                        KnowledgeItem.sku.ilike(f"%{item_id_or_title.strip()}%"),
+                    )
+                )
+            res = await session.execute(search_stmt)
+            target_item = res.scalars().first()
+
+            if not target_item:
+                err_msg = f"Could not find any knowledge asset matching '{target_term}' to {action}."
+                # Log EDITH capability gap / item not found
+                edith_msg = InterBrainMessage(
+                    org_id=org_id,
+                    conversation_id=friday_msg.id,
+                    sender_brain="EDITH",
+                    recipient_brain="FRIDAY",
+                    message_type="EDITH_CAPABILITY_GAP",
+                    content=f"EDITH could not locate item to {action}: {err_msg}",
+                    decision="DENIED",
+                    reasoning=err_msg,
+                    metadata_payload={"gap_type": "ITEM_NOT_FOUND", "target_term": target_term},
+                    resolved_at=utc_now(),
+                )
+                session.add(edith_msg)
+                friday_msg.decision = "DENIED"
+                friday_msg.resolved_at = utc_now()
+                await session.commit()
+
+                # Notify operator
+                notif = AgentNotification(
+                    org_id=org_id,
+                    sender_brain="EDITH",
+                    title=f"EDITH Action Refused: Item Not Found",
+                    content=err_msg,
+                    category="EDITH_CAPABILITY_GAP",
+                    severity="warning",
+                    action_url="/knowledge",
+                )
+                session.add(notif)
+                await session.commit()
+
+                return {
+                    "success": False,
+                    "decision": "DENIED",
+                    "action": action,
+                    "reasoning": err_msg,
+                    "speak_text": f"EDITH could not find that item in the knowledge hub.",
+                    "reply_text": err_msg,
+                }
+
+            if action == "delete":
+                deleted_id = target_item.id
+                deleted_title = target_item.title
+                await session.delete(target_item)
+                await session.commit()
+
+                # Broadcast live WebSocket deletion
+                await ws_manager.broadcast_to_org(org_id, "knowledge_item_deleted", {"item_id": deleted_id})
+
+                success_reason = f"EDITH confirmed deletion of knowledge asset '{deleted_title}'."
+                edith_msg = InterBrainMessage(
+                    org_id=org_id,
+                    conversation_id=friday_msg.id,
+                    sender_brain="EDITH",
+                    recipient_brain="FRIDAY",
+                    message_type="ACTION_CONFIRMATION",
+                    content=success_reason,
+                    decision="ACCEPTED",
+                    reasoning=success_reason,
+                    resolved_at=utc_now(),
+                )
+                session.add(edith_msg)
+                friday_msg.decision = "ACCEPTED"
+                friday_msg.resolved_at = utc_now()
+
+                notif = AgentNotification(
+                    org_id=org_id,
+                    sender_brain="EDITH",
+                    title=f"Knowledge Asset Deleted: {deleted_title}",
+                    content=success_reason,
+                    category="KNOWLEDGE_UPDATE",
+                    severity="info",
+                    action_url="/knowledge",
+                )
+                session.add(notif)
+                await session.commit()
+
+                return {
+                    "success": True,
+                    "decision": "ACCEPTED",
+                    "action": "delete",
+                    "item_id": deleted_id,
+                    "reasoning": success_reason,
+                    "speak_text": f"EDITH deleted the knowledge file '{deleted_title}'.",
+                    "reply_text": success_reason,
+                }
+
+            # PAUSE / ACTIVATE
+            new_active_state = (action == "activate")
+            target_item.is_active = new_active_state
+            await session.commit()
+
+            status_word = "activated" if new_active_state else "paused"
+            success_reason = f"EDITH {status_word} '{target_item.title}'. RAG retrieval status is now updated."
+
+            # Broadcast live update
+            await ws_manager.broadcast_to_org(org_id, "knowledge_item_updated", {
+                "item_id": target_item.id,
+                "is_active": new_active_state,
+                "title": target_item.title,
+            })
+
+            edith_msg = InterBrainMessage(
+                org_id=org_id,
+                conversation_id=friday_msg.id,
+                sender_brain="EDITH",
+                recipient_brain="FRIDAY",
+                message_type="ACTION_CONFIRMATION",
+                content=success_reason,
+                decision="ACCEPTED",
+                reasoning=success_reason,
+                resolved_at=utc_now(),
+            )
+            session.add(edith_msg)
+            friday_msg.decision = "ACCEPTED"
+            friday_msg.resolved_at = utc_now()
+
+            notif = AgentNotification(
+                org_id=org_id,
+                sender_brain="EDITH",
+                title=f"Knowledge Asset {status_word.title()}: {target_item.title}",
+                content=success_reason,
+                category="KNOWLEDGE_UPDATE",
+                severity="success",
+                action_url=f"/knowledge?tab={target_item.category}",
+            )
+            session.add(notif)
+            await session.commit()
+
+            return {
+                "success": True,
+                "decision": "ACCEPTED",
+                "action": action,
+                "item_id": target_item.id,
+                "is_active": new_active_state,
+                "reasoning": success_reason,
+                "speak_text": f"EDITH has {status_word} the file '{target_item.title}'.",
+                "reply_text": success_reason,
+            }
+
+        # 3. Process Actions: CREATE / UPDATE
+        proposal = await self.friday.formulate_knowledge_update(
+            session=session,
+            org_id=org_id,
+            operator_instruction=instruction,
+            category_hint=category,
+        )
+        if fields:
+            proposal["fields"].update(fields)
+        proposal["is_operator_directive"] = True
+
+        # EDITH evaluates commercial guardrails with operator directive awareness
+        edith_eval = await self.edith.evaluate_knowledge_update(
+            session=session,
+            org_id=org_id,
+            proposal=proposal,
+        )
+
+        decision = edith_eval["decision"]
+        reasoning = edith_eval["reasoning"]
+        suggestion = edith_eval.get("suggestion")
+
+        if decision == "DENIED":
+            # Log EDITH policy refusal
+            edith_msg = InterBrainMessage(
+                org_id=org_id,
+                conversation_id=friday_msg.id,
+                sender_brain="EDITH",
+                recipient_brain="FRIDAY",
+                message_type="EDITH_POLICY_REFUSAL",
+                content=f"EDITH Policy Refusal: {reasoning}",
+                decision="DENIED",
+                reasoning=reasoning,
+                metadata_payload=edith_eval,
+                resolved_at=utc_now(),
+            )
+            session.add(edith_msg)
+            friday_msg.decision = "DENIED"
+            friday_msg.resolved_at = utc_now()
+
+            notif = AgentNotification(
+                org_id=org_id,
+                sender_brain="EDITH",
+                title="EDITH Policy Refusal: Voice Action Denied",
+                content=reasoning,
+                category="EDITH_POLICY_REFUSAL",
+                severity="warning",
+                action_url="/knowledge",
+                metadata_payload=edith_eval,
+            )
+            session.add(notif)
+            await session.commit()
+
+            reply_text = f"EDITH declined the request: {reasoning}" + (f" {suggestion}" if suggestion else "")
+            return {
+                "success": False,
+                "decision": "DENIED",
+                "reasoning": reasoning,
+                "suggestion": suggestion,
+                "speak_text": f"EDITH declined to apply this update: {reasoning[:120]}",
+                "reply_text": reply_text,
+            }
+
+        # ACCEPTED -> Ingest Knowledge Item
+        prop_fields = proposal.get("fields", {})
+        ingest_svc = KnowledgeIngestionService(session, org_id)
+        k_item = await ingest_svc.ingest_knowledge_item(
+            title=proposal["title"],
+            content_text=proposal["content_text"],
+            category=proposal["category"],
+            source_type="voice_agent",
+            created_by_brain="EDITH",
+            structured_data=prop_fields,
+            sku=prop_fields.get("sku"),
+            base_price=Decimal(str(prop_fields["base_price"])) if "base_price" in prop_fields else None,
+            min_order_quantity=Decimal(str(prop_fields["min_order_quantity"])) if "min_order_quantity" in prop_fields else None,
+            min_quantity=Decimal(str(prop_fields["min_quantity"])) if "min_quantity" in prop_fields else None,
+            max_quantity=Decimal(str(prop_fields["max_quantity"])) if "max_quantity" in prop_fields else None,
+            discount_percentage=Decimal(str(prop_fields["discount_percentage"])) if "discount_percentage" in prop_fields else None,
+            max_autonomous_discount=Decimal(str(prop_fields["max_autonomous_discount"])) if "max_autonomous_discount" in prop_fields else None,
+            customer_segment=prop_fields.get("customer_segment"),
+        )
+
+        # Broadcast live WebSocket event
+        await ws_manager.broadcast_to_org(org_id, "knowledge_item_created", {
+            "item_id": k_item.id,
+            "title": k_item.title,
+            "category": k_item.category,
+            "version": k_item.version,
+            "chunk_count": k_item.chunk_count,
+        })
+
+        # Log EDITH verdict & save notification
+        edith_msg = InterBrainMessage(
+            org_id=org_id,
+            conversation_id=friday_msg.id,
+            sender_brain="EDITH",
+            recipient_brain="FRIDAY",
+            message_type="KNOWLEDGE_UPDATE_VERDICT",
+            content=f"Knowledge File Created: {k_item.title} ({k_item.category})",
+            decision="ACCEPTED",
+            reasoning=reasoning,
+            metadata_payload={"item_id": k_item.id, "title": k_item.title, "category": k_item.category},
+            resolved_at=utc_now(),
+        )
+        session.add(edith_msg)
+        friday_msg.decision = "ACCEPTED"
+        friday_msg.resolved_at = utc_now()
+
+        notif = AgentNotification(
+            org_id=org_id,
+            sender_brain="EDITH",
+            title=f"New Knowledge File Created: {k_item.title}",
+            content=f"EDITH verified and created {k_item.category} file: {reasoning}",
+            category="KNOWLEDGE_UPDATE",
+            severity="success",
+            action_url=f"/knowledge?tab={k_item.category}",
+        )
+        session.add(notif)
+        await session.commit()
+
+        speak_text = f"EDITH has created the new knowledge file '{k_item.title}' and activated it in the RAG engine."
+        reply_text = f"EDITH verified and created '{k_item.title}' ({k_item.category}): {reasoning}"
+
+        return {
+            "success": True,
+            "decision": "ACCEPTED",
+            "action": "create",
+            "item_id": k_item.id,
+            "title": k_item.title,
+            "category": k_item.category,
+            "reasoning": reasoning,
+            "speak_text": speak_text,
+            "reply_text": reply_text,
+        }
+
 
     async def get_dialogue_history(
         self,
