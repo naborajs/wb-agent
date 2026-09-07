@@ -1,7 +1,7 @@
-# ☕ EDITH — Autonomous AI Sales Agent Platform (WB-Agent)
+# 🚀 WhatsApp AI Agent by NS (EDITH AI Sales Operating System)
 
-> **Enterprise-grade, human-like autonomous conversational AI sales agent engineered for B2B wholesale conversion, intelligent consultative discovery, persistent memory, and deterministic pricing.**  
-> Reference Tenant: **North Bengal Tea Co.** (Direct estate producer of Darjeeling, Dooars, and Assam CTC teas).
+> **Enterprise-grade, human-like autonomous conversational AI sales agent engineered for B2B commercial conversion, intelligent consultative discovery, persistent memory, and configurable business rules.**  
+> Built for any legitimate business, product, service, industry, pricing model, and sales process. Includes optional sample datasets (such as North Bengal Tea Co. or general commercial commerce).
 
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-blue.svg)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110%2B-009688.svg)](https://fastapi.tiangolo.com/)
@@ -38,8 +38,8 @@ Executive command view featuring real-time KPI metrics, active pipeline valuatio
 
 ---
 
-### 3. Interactive Volume Discount Curve & Deterministic Pricing
-Zero-hallucination pricing engine. EDITH deterministically computes wholesale volume tiers (50kg, 100kg, 500kg) with live rate curve visualization and an interactive quote simulator:
+### 3. Interactive Volume Discount Curve & Configurable Business Rules
+Zero-hallucination pricing engine. Spreadsheet-style business rules editor that computes volume tiers, customer segment rules, and custom formulas with live rate curve visualization and an interactive quote simulator:
 
 ![Deterministic Pricing Rules](docs/screenshots/pricing_rules.png)
 
@@ -66,10 +66,10 @@ Full lifecycle management of B2B purchase orders generated via AI consultative d
 
 ---
 
-### 7. Estate Tea Catalog & Packaging Tiers
-Direct estate product catalog (Darjeeling First Flush, Assam Kadak CTC, Dooars Hotel Blend) with live stock toggling, packaging variants (5kg to 50kg), and Minimum Order Quantities (MOQs):
+### 7. Product & Service Catalog & Packaging Tiers
+Commercial product catalog with live stock toggling, packaging variants, and Minimum Order Quantities (MOQs):
 
-![Wholesale Tea Catalog](docs/screenshots/catalog.png)
+![Product Catalog](docs/screenshots/catalog.png)
 
 ---
 
@@ -185,7 +185,7 @@ What `run.py` does automatically:
 1. **Preflight Diagnostics**: Checks Python 3.11+, Node.js 18+, and npm versions.
 2. **Dependency Resolution**: Automatically installs any missing Python packages, WhatsApp bridge modules, and Next.js dependencies.
 3. **Port Conflict Protection**: Verifies ports `8000` (FastAPI), `3001` (WhatsApp Bridge), and `3000` (Next.js Dashboard), clearing stale locks.
-4. **Database & Catalog Seeding**: Auto-initializes SQLite / PostgreSQL and seeds North Bengal Tea Co. products, volume rules, and leads if empty.
+4. **Database & Catalog Seeding**: Auto-initializes SQLite / PostgreSQL and seeds generic commercial products, volume rules, and leads if empty (or pass `--demo tea` for optional tea sample data).
 5. **Simultaneous Multi-Service Boot**: Launches:
    - ⚡ **FastAPI Backend Service** (`http://localhost:8000`)
    - 🧠 **Durable Background Job Worker** (cadence follow-ups & async reasoning)
@@ -238,12 +238,12 @@ If you prefer to run each service in a separate terminal window:
 
 ### Option A: Send a WhatsApp Message
 Send a message from any phone to your linked bot number (`+91 89187 53100`):
-> *"Bhai mujhe cafe ke liye tea chahiye, around 100kg monthly milk tea ke liye Siliguri me"*
+> *"Bhai mujhe cafe ke liye commercial supplies chahiye, around 100 units monthly Siliguri me"*
 
 Watch EDITH:
-1. **Passively extract** business type (`Cafe`), monthly quantity (`100kg`), use case (`milk_tea`), and destination (`Siliguri`).
+1. **Passively extract** business type (`Cafe`), monthly quantity (`100 units`), and destination (`Siliguri`).
 2. **Never repeat questions** you already answered.
-3. Recommend **Assam Kadak CTC** or **Dooars Hotel Special Blend** with exact wholesale pricing and volume discounts.
+3. Recommend verified commercial product tiers with exact wholesale pricing and volume discounts.
 4. Seamlessly switch between **English**, **Hindi**, and **Hinglish** based on customer dialect.
 5. Stop selling immediately when you say *"I want to order, please send invoice"*, and alert the owner!
 
@@ -313,4 +313,5 @@ All comprehensive architectural design records, operational runbooks, API schema
 
 - **Bot WhatsApp Number:** Configured through linked device bridge (`+91 89187 53100`).
 - **Owner Escalation WhatsApp:** Configured via `OWNER_WHATSAPP_NUMBER` (`+91 89006 53250`).
-- **Demo Reference Business:** North Bengal Tea Co. (Siliguri, West Bengal, India).
+- **Platform Identity:** WhatsApp AI Agent by NS (Industry-Agnostic Operating System).
+- **Optional Demo Dataset:** North Bengal Tea Co. (Siliguri, West Bengal, India).

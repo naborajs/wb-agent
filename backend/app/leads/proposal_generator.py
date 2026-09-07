@@ -30,7 +30,7 @@ class ProposalGenerator:
         """
         Creates custom B2B proposal and 1-2 day zero-cost follow-up tailored to lead details.
         """
-        name = lead.contact_name or lead.company_name or "Partner"
+        name = getattr(lead, "name", None) or getattr(lead, "contact_name", None) or lead.company_name or "Partner"
         company = lead.company_name or "your organization"
         company_type = (lead.company_type or "business").lower()
         city = lead.city or "your city"
