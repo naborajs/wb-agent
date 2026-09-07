@@ -35,6 +35,7 @@ import {
 
 const navigation = [
   { name: "Overview", href: "/", icon: BarChart3 },
+  { name: "Dual Brains", href: "/brain", icon: Cpu },
   { name: "Live Inbox", href: "/conversations", icon: Inbox },
   { name: "Leads", href: "/leads", icon: Users },
   { name: "Campaigns", href: "/campaigns", icon: Send },
