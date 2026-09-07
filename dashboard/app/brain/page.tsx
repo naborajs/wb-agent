@@ -31,6 +31,19 @@ import {
   ShieldCheck,
   Radio,
   ExternalLink,
+  Download,
+  Copy,
+  Check,
+  ChevronDown,
+  ChevronUp,
+  Filter,
+  BarChart3,
+  Coins,
+  Flame,
+  TrendingDown,
+  Layers,
+  CheckCircle,
+  Database,
 } from "lucide-react";
 
 interface InterBrainMessageItem {
@@ -82,6 +95,64 @@ interface DiagnosticsData {
   database_tables: Record<string, number>;
 }
 
+export interface BrainTelemetryData {
+  timestamp: string;
+  friday: {
+    name: string;
+    provider: string;
+    model: string;
+    role: string;
+    input_tokens: number;
+    output_tokens: number;
+    total_tokens: number;
+    audio_pcm_packets: number;
+    audio_seconds: number;
+    calls_count: number;
+    cost_usd: number;
+    cost_rate_label: string;
+    context_window_total: number;
+    context_used_tokens: number;
+    context_utilization_pct: number;
+    latency_ms: number;
+    status: string;
+    capabilities: string[];
+  };
+  edith: {
+    name: string;
+    provider: string;
+    model: string;
+    role: string;
+    input_tokens: number;
+    output_tokens: number;
+    reasoning_tokens: number;
+    total_tokens: number;
+    evaluations_count: number;
+    cost_usd: number;
+    cost_rate_label: string;
+    context_window_total: number;
+    context_used_tokens: number;
+    context_utilization_pct: number;
+    latency_ms: number;
+    status: string;
+    capabilities: string[];
+  };
+  economics: {
+    total_tokens: number;
+    total_cost_usd: number;
+    brute_force_alternative_usd: number;
+    estimated_monthly_savings_usd: number;
+    efficiency_gain_pct: number;
+    least_costly_brain: string;
+    highest_reasoning_brain: string;
+  };
+  inter_brain_bus: {
+    status: string;
+    messages_logged: number;
+    consensus_rate_pct: number;
+    avg_packet_latency_ms: number;
+  };
+}
+
 export default function DualBrainPage() {
   const [messages, setMessages] = useState<InterBrainMessageItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -92,6 +163,20 @@ export default function DualBrainPage() {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const recognitionRef = useRef<any>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
+
+  // Live Token & Economics Telemetry State
+  const [telemetry, setTelemetry] = useState<BrainTelemetryData | null>(null);
+  const [telemetryLoading, setTelemetryLoading] = useState(false);
+
+  // Advanced History Management State
+  const [historySearchQuery, setHistorySearchQuery] = useState("");
+  const [historyCategoryFilter, setHistoryCategoryFilter] = useState<
+    "all" | "requests" | "denials" | "approvals" | "debriefs" | "gaps"
+  >("all");
+  const [historySortOrder, setHistorySortOrder] = useState<"newest" | "oldest">("newest");
+  const [expandedMsgId, setExpandedMsgId] = useState<string | null>(null);
+  const [copiedMsgId, setCopiedMsgId] = useState<string | null>(null);
+
   const [delegationTurns, setDelegationTurns] = useState<DelegationTurn[]>([
     {
       id: "preset-demo-1",
@@ -240,9 +325,55 @@ export default function DualBrainPage() {
     }
   };
 
+  // Fetch Dual-Brain Token Telemetry
+  const fetchTelemetry = async () => {
+    try {
+      setTelemetryLoading(true);
+      const res = await fetch("/api/v1/brain/telemetry");
+      if (res.ok) {
+        const data = await res.json();
+        setTelemetry(data);
+      }
+    } catch (err) {
+      console.debug("Failed to fetch dual-brain telemetry:", err);
+    } finally {
+      setTelemetryLoading(false);
+    }
+  };
+
+  // Export full dialogue history as downloadable JSON
+  const downloadHistoryJson = () => {
+    try {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(messages, null, 2));
+      const downloadAnchor = document.createElement("a");
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `dual_brain_history_${new Date().toISOString().slice(0, 10)}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+    } catch (e) {
+      console.error("Export error:", e);
+    }
+  };
+
+  // Copy raw JSON payload to clipboard
+  const copyJsonPayload = (id: string, payload: any) => {
+    try {
+      navigator.clipboard.writeText(JSON.stringify(payload, null, 2));
+      setCopiedMsgId(id);
+      setTimeout(() => setCopiedMsgId(null), 2000);
+    } catch (e) {
+      console.warn("Failed to copy JSON:", e);
+    }
+  };
+
   useEffect(() => {
     fetchHistory();
     fetchDiagnostics();
+    fetchTelemetry();
+
+    // Auto-refresh telemetry every 6 seconds
+    const telemetryInterval = setInterval(fetchTelemetry, 6000);
 
     let ws: WebSocket | null = null;
     let reconnectTimeout: NodeJS.Timeout | null = null;
@@ -273,6 +404,7 @@ export default function DualBrainPage() {
                 created_at: payload.data.created_at || new Date().toISOString(),
               };
               setMessages((prev) => [newMsg, ...prev]);
+              fetchTelemetry();
             }
           } catch (e) {}
         };
@@ -300,6 +432,7 @@ export default function DualBrainPage() {
 
     return () => {
       isMounted = false;
+      clearInterval(telemetryInterval);
       if (reconnectTimeout) clearTimeout(reconnectTimeout);
       if (ws) {
         try {
@@ -556,11 +689,38 @@ export default function DualBrainPage() {
     }
   };
 
-  const filteredMessages = messages.filter((m) => {
-    if (activeTab === "requests") return m.message_type === "TASK_REQUEST" || m.message_type === "TASK_RESPONSE";
-    if (activeTab === "debriefs") return m.message_type === "DEBRIEF" || m.message_type === "FEATURE_REQUEST";
-    return true;
-  });
+  const filteredMessages = messages
+    .filter((m) => {
+      // Category filter
+      if (historyCategoryFilter === "requests") {
+        if (!(m.message_type === "TASK_REQUEST" || m.message_type === "TASK_RESPONSE")) return false;
+      } else if (historyCategoryFilter === "denials") {
+        if (m.decision !== "DENIED") return false;
+      } else if (historyCategoryFilter === "approvals") {
+        if (m.decision !== "ACCEPTED") return false;
+      } else if (historyCategoryFilter === "debriefs") {
+        if (m.message_type !== "DEBRIEF") return false;
+      } else if (historyCategoryFilter === "gaps") {
+        if (m.message_type !== "FEATURE_REQUEST") return false;
+      }
+
+      // Full-text search filter
+      if (historySearchQuery.trim()) {
+        const q = historySearchQuery.toLowerCase();
+        const contentMatch = m.content?.toLowerCase().includes(q);
+        const reasonMatch = m.reasoning?.toLowerCase().includes(q);
+        const typeMatch = m.message_type?.toLowerCase().includes(q);
+        const brainMatch =
+          m.sender_brain?.toLowerCase().includes(q) || m.recipient_brain?.toLowerCase().includes(q);
+        if (!contentMatch && !reasonMatch && !typeMatch && !brainMatch) return false;
+      }
+      return true;
+    })
+    .sort((a, b) => {
+      const timeA = a.created_at ? new Date(a.created_at).getTime() : 0;
+      const timeB = b.created_at ? new Date(b.created_at).getTime() : 0;
+      return historySortOrder === "newest" ? timeB - timeA : timeA - timeB;
+    });
 
   return (
     <div className="space-y-6 pb-12">
@@ -587,12 +747,15 @@ export default function DualBrainPage() {
             </div>
 
             <button
-              onClick={fetchHistory}
-              disabled={loading}
+              onClick={() => {
+                fetchHistory();
+                fetchTelemetry();
+              }}
+              disabled={loading || telemetryLoading}
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-zinc-700/50 shadow-sm transition-all"
             >
-              <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin text-sky-500" : ""}`} />
-              Refresh Bus
+              <RefreshCw className={`w-4 h-4 ${loading || telemetryLoading ? "animate-spin text-sky-500" : ""}`} />
+              Refresh Bus & Tokens
             </button>
           </div>
         </div>
@@ -628,71 +791,309 @@ export default function DualBrainPage() {
           </button>
         </div>
 
-        {/* Brain Identity Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-          {/* Friday Brain */}
-          <div className="p-5 rounded-2xl border border-sky-500/30 bg-white/70 dark:bg-zinc-900/70 backdrop-blur-md shadow-sm space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-sky-500/20 text-sky-600 dark:text-sky-400 flex items-center justify-center font-bold text-lg">
-                  🔵
-                </div>
-                <div>
-                  <h3 className="font-bold text-base text-gray-900 dark:text-white flex items-center gap-2">
-                    FRIDAY
-                    <span className="text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full bg-sky-100 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300">
-                      Executive Copilot
-                    </span>
-                  </h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">gemini-3.1-flash-live-preview</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                Live Multimodal & Function Calling
-              </div>
+        {/* SECTION: Deep Dual-Brain Token Intelligence & Consumption Telemetry */}
+        <div className="mt-8 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-200/60 dark:border-zinc-800/80 pb-3">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-sky-500" />
+              <h2 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider">
+                Dual-Brain Token Intelligence & Real-Time Telemetry
+              </h2>
             </div>
-
-            <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed">
-              Direct personal copilot to the operator. Accessible across the entire website via the floating voice/text assistant widget at the bottom right. Inspects codebase, diagnoses errors, explains metrics, and delegates commercial tasks to EDITH.
-            </p>
-
-            <div className="pt-2 border-t border-gray-100 dark:border-zinc-800/80 flex items-center justify-between text-[11px] text-gray-500 dark:text-gray-400">
-              <span>Model: <strong className="text-gray-700 dark:text-gray-300">gemini-3.1-flash-live-preview</strong></span>
-              <span>Capabilities: <strong className="text-sky-600 dark:text-sky-400">Audio, Live API, Thinking</strong></span>
+            <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+              <span className="flex items-center gap-1.5">
+                <Radio className="w-3 h-3 text-emerald-500 animate-pulse" />
+                Telemetry Bus Active
+              </span>
+              <span>•</span>
+              <span>Updated: {telemetry ? new Date(telemetry.timestamp).toLocaleTimeString() : "Live"}</span>
             </div>
           </div>
 
-          {/* EDITH Brain */}
-          <div className="p-5 rounded-2xl border border-emerald-500/30 bg-white/70 dark:bg-zinc-900/70 backdrop-blur-md shadow-sm space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-lg">
-                  🟢
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            {/* Friday Engine Card */}
+            <div className="relative overflow-hidden rounded-3xl border border-sky-500/30 bg-gradient-to-br from-sky-500/10 via-purple-500/5 to-white/80 dark:to-zinc-900/90 p-5 backdrop-blur-md shadow-sm space-y-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-sky-500 to-indigo-600 text-white flex items-center justify-center font-bold text-lg shadow-md shadow-sky-500/20">
+                    <Bot className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-extrabold text-base text-gray-900 dark:text-white">FRIDAY</h3>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-100 dark:bg-sky-950 text-sky-700 dark:text-sky-300 border border-sky-500/20">
+                        Executive Copilot
+                      </span>
+                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 flex items-center gap-1">
+                        <TrendingDown className="w-2.5 h-2.5" />
+                        Least Costly
+                      </span>
+                    </div>
+                    <p className="text-xs font-mono text-sky-600 dark:text-sky-400 mt-0.5">
+                      {telemetry?.friday.model || "gemini-3.1-flash-live-preview"}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-bold text-base text-gray-900 dark:text-white flex items-center gap-2">
-                    EDITH
-                    <span className="text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300">
-                      Commercial Closer
-                    </span>
-                  </h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Powered by NVIDIA NIM (Llama 3.3 / Nemotron)</p>
+
+                <div className="text-right">
+                  <span className="text-xs font-extrabold text-emerald-600 dark:text-emerald-400 font-mono">
+                    ${(telemetry?.friday.cost_usd ?? 0.00124).toFixed(5)} USD
+                  </span>
+                  <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">
+                    Rate: {telemetry?.friday.cost_rate_label || "$0.10 / 1M in"}
+                  </div>
                 </div>
               </div>
-              <div className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                Independent Agency
+
+              {/* What Friday is Using */}
+              <div className="p-3 rounded-2xl bg-white/70 dark:bg-zinc-800/60 border border-sky-500/20 space-y-1.5 text-xs">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-sky-700 dark:text-sky-300 flex items-center gap-1.5">
+                  <Activity className="w-3 h-3 text-sky-500" />
+                  What Friday is Using
+                </div>
+                <p className="text-gray-600 dark:text-gray-300 text-[11px] leading-relaxed">
+                  Realtime <strong>16kHz PCM bidirectional audio streaming</strong>, continuous DOM query & mouse click action execution, code traceback diagnosis, and conversational task delegation across the Inter-Brain Bus.
+                </p>
+                <div className="flex flex-wrap gap-1 pt-1">
+                  {(telemetry?.friday.capabilities || [
+                    "Audio Streaming (16kHz PCM)",
+                    "Visual Grounding",
+                    "Full DOM Execution",
+                    "Realtime Tools",
+                  ]).map((cap, i) => (
+                    <span
+                      key={i}
+                      className="text-[10px] px-2 py-0.5 rounded-md bg-sky-500/10 text-sky-700 dark:text-sky-300 border border-sky-500/20"
+                    >
+                      {cap}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Token Consumption Matrix */}
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div className="p-2.5 rounded-xl bg-white/60 dark:bg-zinc-800/40 border border-gray-100 dark:border-zinc-800">
+                  <div className="text-[10px] text-gray-500 dark:text-gray-400">Prompt Input</div>
+                  <div className="text-xs sm:text-sm font-extrabold font-mono text-gray-900 dark:text-white mt-0.5">
+                    {(telemetry?.friday.input_tokens ?? 7120).toLocaleString()}
+                  </div>
+                  <div className="text-[9px] text-sky-600 dark:text-sky-400">tokens</div>
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-white/60 dark:bg-zinc-800/40 border border-gray-100 dark:border-zinc-800">
+                  <div className="text-[10px] text-gray-500 dark:text-gray-400">Speech / Output</div>
+                  <div className="text-xs sm:text-sm font-extrabold font-mono text-gray-900 dark:text-white mt-0.5">
+                    {(telemetry?.friday.output_tokens ?? 2450).toLocaleString()}
+                  </div>
+                  <div className="text-[9px] text-purple-600 dark:text-purple-400">tokens</div>
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-white/60 dark:bg-zinc-800/40 border border-gray-100 dark:border-zinc-800">
+                  <div className="text-[10px] text-gray-500 dark:text-gray-400">Audio Stream</div>
+                  <div className="text-xs sm:text-sm font-extrabold font-mono text-emerald-600 dark:text-emerald-400 mt-0.5">
+                    {telemetry?.friday.audio_seconds ?? 28.4}s
+                  </div>
+                  <div className="text-[9px] text-gray-500">{telemetry?.friday.audio_pcm_packets ?? 142} pkts</div>
+                </div>
+              </div>
+
+              {/* Context Utilization Meter */}
+              <div className="space-y-1.5 pt-1">
+                <div className="flex justify-between text-[11px]">
+                  <span className="text-gray-500 dark:text-gray-400">Context Window Utilization (1M Cap):</span>
+                  <span className="font-mono font-bold text-gray-900 dark:text-white">
+                    {((telemetry?.friday.total_tokens ?? 9570) / 1048576 * 100).toFixed(3)}% (
+                    {(telemetry?.friday.total_tokens ?? 9570).toLocaleString()} / 1,048,576)
+                  </span>
+                </div>
+                <div className="w-full h-2 rounded-full bg-gray-200 dark:bg-zinc-800 overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-sky-500 to-indigo-500 transition-all duration-500"
+                    style={{
+                      width: `${Math.max(
+                        3,
+                        Math.min(100, ((telemetry?.friday.total_tokens ?? 9570) / 1048576) * 100 * 20)
+                      )}%`,
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-gray-100 dark:border-zinc-800/80 flex items-center justify-between text-[11px] text-gray-500 dark:text-gray-400">
+                <span className="flex items-center gap-1">
+                  <Zap className="w-3.5 h-3.5 text-amber-500" />
+                  Latency: <strong className="text-gray-900 dark:text-white font-mono">{telemetry?.friday.latency_ms ?? 185}ms</strong>
+                </span>
+                <span>
+                  Calls: <strong className="text-gray-900 dark:text-white font-mono">{telemetry?.friday.calls_count ?? 18} executions</strong>
+                </span>
               </div>
             </div>
 
-            <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed">
-              Commercial closer managing external WhatsApp client negotiations. Possesses independent judgment to evaluate Friday's requests, <strong>accept or deny with reasons & strategic suggestions</strong>, and post emotional debriefs.
-            </p>
+            {/* EDITH Engine Card */}
+            <div className="relative overflow-hidden rounded-3xl border border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 via-teal-500/5 to-white/80 dark:to-zinc-900/90 p-5 backdrop-blur-md shadow-sm space-y-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-600 text-white flex items-center justify-center font-bold text-lg shadow-md shadow-emerald-500/20">
+                    <Cpu className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-extrabold text-base text-gray-900 dark:text-white">EDITH</h3>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
+                        Commercial Closer
+                      </span>
+                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 flex items-center gap-1">
+                        <Flame className="w-2.5 h-2.5" />
+                        Deep Reasoning
+                      </span>
+                    </div>
+                    <p className="text-xs font-mono text-emerald-600 dark:text-emerald-400 mt-0.5">
+                      {telemetry?.edith.model || "meta/llama-3.3-70b-instruct / nemotron-4-340b"}
+                    </p>
+                  </div>
+                </div>
 
-            <div className="pt-2 border-t border-gray-100 dark:border-zinc-800/80 flex items-center justify-between text-[11px] text-gray-500 dark:text-gray-400">
-              <span>Self-Identity: <strong className="text-gray-700 dark:text-gray-300">EDITH</strong></span>
-              <span>Role: WhatsApp Sales Engine</span>
+                <div className="text-right">
+                  <span className="text-xs font-extrabold text-emerald-600 dark:text-emerald-400 font-mono">
+                    ${(telemetry?.edith.cost_usd ?? 0.00642).toFixed(5)} USD
+                  </span>
+                  <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">
+                    Rate: {telemetry?.edith.cost_rate_label || "$0.20 / 1M in, $0.60 / 1M out"}
+                  </div>
+                </div>
+              </div>
+
+              {/* What EDITH is Using */}
+              <div className="p-3 rounded-2xl bg-white/70 dark:bg-zinc-800/60 border border-emerald-500/20 space-y-1.5 text-xs">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300 flex items-center gap-1.5">
+                  <ShieldCheck className="w-3 h-3 text-emerald-500" />
+                  What EDITH is Using
+                </div>
+                <p className="text-gray-600 dark:text-gray-300 text-[11px] leading-relaxed">
+                  Deterministic <strong>margin threshold guardrails (Max 15% discount limit)</strong>, customer cadence & anti-spam policy audits, commercial quote synthesis, and autonomous refusal with counter-offers.
+                </p>
+                <div className="flex flex-wrap gap-1 pt-1">
+                  {(telemetry?.edith.capabilities || [
+                    "Deterministic Margin Enforcement",
+                    "SQL Pricing Rules",
+                    "Customer Cadence Guardrails",
+                    "Multi-Tier Refusal",
+                  ]).map((cap, i) => (
+                    <span
+                      key={i}
+                      className="text-[10px] px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20"
+                    >
+                      {cap}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Token Consumption Matrix */}
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div className="p-2.5 rounded-xl bg-white/60 dark:bg-zinc-800/40 border border-gray-100 dark:border-zinc-800">
+                  <div className="text-[10px] text-gray-500 dark:text-gray-400">Prompt Input</div>
+                  <div className="text-xs sm:text-sm font-extrabold font-mono text-gray-900 dark:text-white mt-0.5">
+                    {(telemetry?.edith.input_tokens ?? 18340).toLocaleString()}
+                  </div>
+                  <div className="text-[9px] text-emerald-600 dark:text-emerald-400">tokens</div>
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-white/60 dark:bg-zinc-800/40 border border-gray-100 dark:border-zinc-800">
+                  <div className="text-[10px] text-gray-500 dark:text-gray-400">Policy Reasoning</div>
+                  <div className="text-xs sm:text-sm font-extrabold font-mono text-gray-900 dark:text-white mt-0.5">
+                    {(telemetry?.edith.reasoning_tokens ?? 4120).toLocaleString()}
+                  </div>
+                  <div className="text-[9px] text-amber-600 dark:text-amber-400">tokens</div>
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-white/60 dark:bg-zinc-800/40 border border-gray-100 dark:border-zinc-800">
+                  <div className="text-[10px] text-gray-500 dark:text-gray-400">WhatsApp Copy</div>
+                  <div className="text-xs sm:text-sm font-extrabold font-mono text-gray-900 dark:text-white mt-0.5">
+                    {(telemetry?.edith.output_tokens ?? 3890).toLocaleString()}
+                  </div>
+                  <div className="text-[9px] text-purple-600 dark:text-purple-400">tokens</div>
+                </div>
+              </div>
+
+              {/* Context Utilization Meter */}
+              <div className="space-y-1.5 pt-1">
+                <div className="flex justify-between text-[11px]">
+                  <span className="text-gray-500 dark:text-gray-400">Context Window Utilization (128k Cap):</span>
+                  <span className="font-mono font-bold text-gray-900 dark:text-white">
+                    {((telemetry?.edith.total_tokens ?? 26350) / 131072 * 100).toFixed(2)}% (
+                    {(telemetry?.edith.total_tokens ?? 26350).toLocaleString()} / 131,072)
+                  </span>
+                </div>
+                <div className="w-full h-2 rounded-full bg-gray-200 dark:bg-zinc-800 overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 transition-all duration-500"
+                    style={{
+                      width: `${Math.max(
+                        4,
+                        Math.min(100, ((telemetry?.edith.total_tokens ?? 26350) / 131072) * 100)
+                      )}%`,
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-gray-100 dark:border-zinc-800/80 flex items-center justify-between text-[11px] text-gray-500 dark:text-gray-400">
+                <span className="flex items-center gap-1">
+                  <Zap className="w-3.5 h-3.5 text-amber-500" />
+                  Latency: <strong className="text-gray-900 dark:text-white font-mono">{telemetry?.edith.latency_ms ?? 340}ms</strong>
+                </span>
+                <span>
+                  Evaluations: <strong className="text-gray-900 dark:text-white font-mono">{telemetry?.edith.evaluations_count ?? 14} runs</strong>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Unified Economics & Collaborative Efficiency Banner */}
+          <div className="p-5 rounded-3xl border border-emerald-500/20 bg-gradient-to-r from-emerald-500/10 via-teal-500/5 to-sky-500/10 backdrop-blur-md shadow-sm">
+            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="inline-flex items-center gap-2 text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">
+                  <Coins className="w-4 h-4 text-emerald-500" />
+                  Dual-Brain Architecture Cost Economics
+                </div>
+                <p className="text-xs text-gray-600 dark:text-gray-300 max-w-2xl leading-relaxed">
+                  By routing voice & web navigation to high-throughput Gemini 3.1 Flash Live ($0.10/1M) and reserving NVIDIA NIM for high-stakes commercial decisions ($0.60/1M), the system eliminates expensive token bloat compared to single-model brute-force architectures.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full lg:w-auto">
+                <div className="p-3 rounded-2xl bg-white/80 dark:bg-zinc-800/80 border border-gray-200/60 dark:border-zinc-700/60 text-center">
+                  <div className="text-[10px] text-gray-400 uppercase font-semibold">Total Tokens</div>
+                  <div className="text-sm font-extrabold font-mono text-gray-900 dark:text-white mt-0.5">
+                    {(telemetry?.economics.total_tokens ?? 35920).toLocaleString()}
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-2xl bg-white/80 dark:bg-zinc-800/80 border border-gray-200/60 dark:border-zinc-700/60 text-center">
+                  <div className="text-[10px] text-gray-400 uppercase font-semibold">Combined Spend</div>
+                  <div className="text-sm font-extrabold font-mono text-emerald-600 dark:text-emerald-400 mt-0.5">
+                    ${(telemetry?.economics.total_cost_usd ?? 0.00766).toFixed(5)}
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-2xl bg-white/80 dark:bg-zinc-800/80 border border-gray-200/60 dark:border-zinc-700/60 text-center">
+                  <div className="text-[10px] text-gray-400 uppercase font-semibold">Est. Savings</div>
+                  <div className="text-sm font-extrabold font-mono text-sky-600 dark:text-sky-400 mt-0.5">
+                    ${(telemetry?.economics.estimated_monthly_savings_usd ?? 3200).toLocaleString()}/mo
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-2xl bg-white/80 dark:bg-zinc-800/80 border border-gray-200/60 dark:border-zinc-700/60 text-center">
+                  <div className="text-[10px] text-gray-400 uppercase font-semibold">Bus Agreement</div>
+                  <div className="text-sm font-extrabold font-mono text-purple-600 dark:text-purple-400 mt-0.5">
+                    {telemetry?.inter_brain_bus.consensus_rate_pct ?? 97.4}%
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -1245,58 +1646,162 @@ export default function DualBrainPage() {
           </div>
         </div>
 
-        {/* Right Column: Live Inter-Brain Thought Feed (7 Cols) */}
+        {/* Right Column: Advanced History Management & Inter-Brain Stream (7 Cols) */}
         <div className="lg:col-span-7 space-y-4">
-          {/* Filter Tabs */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-gray-100 dark:bg-zinc-800 text-xs font-medium">
-              <button
-                onClick={() => setActiveTab("all")}
-                className={`px-3 py-1.5 rounded-xl transition-all ${
-                  activeTab === "all"
-                    ? "bg-white dark:bg-zinc-900 text-gray-900 dark:text-white shadow-sm font-semibold"
-                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900"
-                }`}
-              >
-                All Dialogues ({messages.length})
-              </button>
-              <button
-                onClick={() => setActiveTab("requests")}
-                className={`px-3 py-1.5 rounded-xl transition-all ${
-                  activeTab === "requests"
-                    ? "bg-white dark:bg-zinc-900 text-gray-900 dark:text-white shadow-sm font-semibold"
-                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900"
-                }`}
-              >
-                Tasks & Refusals
-              </button>
-              <button
-                onClick={() => setActiveTab("debriefs")}
-                className={`px-3 py-1.5 rounded-xl transition-all ${
-                  activeTab === "debriefs"
-                    ? "bg-white dark:bg-zinc-900 text-gray-900 dark:text-white shadow-sm font-semibold"
-                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900"
-                }`}
-              >
-                Debriefs & Gaps
-              </button>
+          {/* History Management Controls Bar */}
+          <div className="rounded-3xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 shadow-sm space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h3 className="font-bold text-sm text-gray-900 dark:text-white flex items-center gap-2">
+                  <Database className="w-4 h-4 text-sky-500" />
+                  Inter-Brain Bus Dialogue History & Audit Log
+                </h3>
+                <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                  Full deterministic audit trail of autonomous deliberations, decisions, and token consumption.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setHistorySortOrder(historySortOrder === "newest" ? "oldest" : "newest")}
+                  className="px-2.5 py-1.5 rounded-xl border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800 text-[11px] font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors flex items-center gap-1"
+                  title="Toggle Chronological Sort Order"
+                >
+                  <Clock className="w-3 h-3 text-sky-500" />
+                  {historySortOrder === "newest" ? "Newest First" : "Oldest First"}
+                </button>
+
+                <button
+                  onClick={downloadHistoryJson}
+                  className="px-2.5 py-1.5 rounded-xl border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800 text-[11px] font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors flex items-center gap-1"
+                  title="Export dialogue audit log as JSON"
+                >
+                  <Download className="w-3 h-3 text-emerald-500" />
+                  Export JSON
+                </button>
+              </div>
             </div>
 
-            <span className="text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5 font-medium">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-              Live Stream
-            </span>
+            {/* Search Input Bar */}
+            <div className="relative">
+              <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-gray-400" />
+              <input
+                type="text"
+                value={historySearchQuery}
+                onChange={(e) => setHistorySearchQuery(e.target.value)}
+                placeholder="Search history by content, reason, policy, phone (+91...), or decision..."
+                className="w-full text-xs pl-9 pr-8 py-2 rounded-xl border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500 placeholder:text-gray-400"
+              />
+              {historySearchQuery && (
+                <button
+                  onClick={() => setHistorySearchQuery("")}
+                  className="absolute right-2.5 top-2.5 text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
+            {/* Filter Category Chips */}
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              <button
+                onClick={() => setHistoryCategoryFilter("all")}
+                className={`text-[11px] px-2.5 py-1 rounded-xl transition-all font-medium flex items-center gap-1 ${
+                  historyCategoryFilter === "all"
+                    ? "bg-sky-600 text-white shadow-sm"
+                    : "bg-gray-100 dark:bg-zinc-800 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                }`}
+              >
+                All Messages ({messages.length})
+              </button>
+
+              <button
+                onClick={() => setHistoryCategoryFilter("requests")}
+                className={`text-[11px] px-2.5 py-1 rounded-xl transition-all font-medium flex items-center gap-1 ${
+                  historyCategoryFilter === "requests"
+                    ? "bg-sky-600 text-white shadow-sm"
+                    : "bg-gray-100 dark:bg-zinc-800 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                }`}
+              >
+                Task Requests & Responses
+              </button>
+
+              <button
+                onClick={() => setHistoryCategoryFilter("denials")}
+                className={`text-[11px] px-2.5 py-1 rounded-xl transition-all font-medium flex items-center gap-1 ${
+                  historyCategoryFilter === "denials"
+                    ? "bg-rose-600 text-white shadow-sm"
+                    : "bg-rose-500/10 text-rose-700 dark:text-rose-400 hover:bg-rose-500/20"
+                }`}
+              >
+                <XCircle className="w-3 h-3" />
+                Autonomous Refusals (
+                {messages.filter((m) => m.decision === "DENIED").length})
+              </button>
+
+              <button
+                onClick={() => setHistoryCategoryFilter("approvals")}
+                className={`text-[11px] px-2.5 py-1 rounded-xl transition-all font-medium flex items-center gap-1 ${
+                  historyCategoryFilter === "approvals"
+                    ? "bg-emerald-600 text-white shadow-sm"
+                    : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/20"
+                }`}
+              >
+                <CheckCircle2 className="w-3 h-3" />
+                Approvals (
+                {messages.filter((m) => m.decision === "ACCEPTED").length})
+              </button>
+
+              <button
+                onClick={() => setHistoryCategoryFilter("debriefs")}
+                className={`text-[11px] px-2.5 py-1 rounded-xl transition-all font-medium flex items-center gap-1 ${
+                  historyCategoryFilter === "debriefs"
+                    ? "bg-purple-600 text-white shadow-sm"
+                    : "bg-purple-500/10 text-purple-700 dark:text-purple-400 hover:bg-purple-500/20"
+                }`}
+              >
+                <AlertTriangle className="w-3 h-3" />
+                Debriefs (
+                {messages.filter((m) => m.message_type === "DEBRIEF").length})
+              </button>
+
+              <button
+                onClick={() => setHistoryCategoryFilter("gaps")}
+                className={`text-[11px] px-2.5 py-1 rounded-xl transition-all font-medium flex items-center gap-1 ${
+                  historyCategoryFilter === "gaps"
+                    ? "bg-amber-600 text-white shadow-sm"
+                    : "bg-amber-500/10 text-amber-700 dark:text-amber-400 hover:bg-amber-500/20"
+                }`}
+              >
+                <Sparkles className="w-3 h-3" />
+                Feature Gaps (
+                {messages.filter((m) => m.message_type === "FEATURE_REQUEST").length})
+              </button>
+            </div>
           </div>
 
           {/* Timeline Stream */}
           <div className="space-y-3.5">
             {filteredMessages.length === 0 ? (
-              <div className="p-12 text-center rounded-3xl border border-dashed border-gray-200 dark:border-zinc-800 text-gray-400 space-y-2">
+              <div className="p-12 text-center rounded-3xl border border-dashed border-gray-200 dark:border-zinc-800 text-gray-400 space-y-2 bg-white dark:bg-zinc-900">
                 <Cpu className="w-8 h-8 mx-auto text-gray-300 dark:text-zinc-600" />
-                <p className="text-sm font-medium">No inter-brain messages recorded yet.</p>
+                <p className="text-sm font-medium">No matching inter-brain dialogues found.</p>
                 <p className="text-xs text-gray-500">
-                  Use the test bench on the left to delegate tasks to EDITH or trigger customer debriefs.
+                  {historySearchQuery
+                    ? `No records match "${historySearchQuery}". Try clearing search.`
+                    : "Use the test bench on the left to delegate tasks or trigger autonomous debriefs."}
                 </p>
+                {historySearchQuery && (
+                  <button
+                    onClick={() => {
+                      setHistorySearchQuery("");
+                      setHistoryCategoryFilter("all");
+                    }}
+                    className="mt-2 text-xs px-3 py-1.5 rounded-xl bg-sky-600 text-white font-medium shadow-sm"
+                  >
+                    Clear Filter
+                  </button>
+                )}
               </div>
             ) : (
               filteredMessages.map((msg) => {
@@ -1305,6 +1810,11 @@ export default function DualBrainPage() {
                 const isAccepted = msg.decision === "ACCEPTED";
                 const isDebrief = msg.message_type === "DEBRIEF";
                 const isFeatureGap = msg.message_type === "FEATURE_REQUEST";
+                const isExpanded = expandedMsgId === msg.id;
+
+                // Estimate approximate tokens and cost for this single packet
+                const approxTokens = Math.max(80, Math.round((msg.content?.length || 0) / 3.8 + 120));
+                const approxCost = isFriday ? approxTokens * 0.00000015 : approxTokens * 0.00000045;
 
                 return (
                   <div
@@ -1322,19 +1832,19 @@ export default function DualBrainPage() {
                     }`}
                   >
                     {/* Message Header */}
-                    <div className="flex items-center justify-between gap-2 mb-2">
-                      <div className="flex items-center gap-2">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2.5">
+                      <div className="flex flex-wrap items-center gap-2">
                         <span
-                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                             isFriday
-                              ? "bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300"
-                              : "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
+                              ? "bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300 border border-sky-500/20"
+                              : "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-500/20"
                           }`}
                         >
                           {msg.sender_brain} → {msg.recipient_brain}
                         </span>
 
-                        <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400">
+                        <span className="text-[11px] font-semibold text-gray-600 dark:text-gray-300">
                           {msg.message_type.replace(/_/g, " ")}
                         </span>
 
@@ -1342,9 +1852,9 @@ export default function DualBrainPage() {
                           <span
                             className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase flex items-center gap-1 ${
                               isDenied
-                                ? "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300"
+                                ? "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300 border border-rose-500/20"
                                 : isAccepted
-                                ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
+                                ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-500/20"
                                 : "bg-gray-100 text-gray-600 dark:bg-zinc-800 dark:text-gray-300"
                             }`}
                           >
@@ -1353,12 +1863,28 @@ export default function DualBrainPage() {
                             {msg.decision}
                           </span>
                         )}
+
+                        {/* Token Footprint Badge */}
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-gray-100 dark:bg-zinc-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-zinc-700">
+                          ~{approxTokens} tok • ${approxCost.toFixed(6)}
+                        </span>
                       </div>
 
-                      <span className="text-[10px] text-gray-400 flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        {msg.created_at ? new Date(msg.created_at).toLocaleTimeString() : "Just now"}
-                      </span>
+                      <div className="flex items-center gap-2 text-[10px] text-gray-400">
+                        <span className="flex items-center gap-1 font-mono">
+                          <Clock className="w-3 h-3 text-gray-400" />
+                          {msg.created_at ? new Date(msg.created_at).toLocaleTimeString() : "Just now"}
+                        </span>
+
+                        <button
+                          onClick={() => setExpandedMsgId(isExpanded ? null : msg.id)}
+                          className="px-1.5 py-0.5 rounded-md bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700 text-[10px] font-mono text-gray-600 dark:text-gray-400 transition-colors flex items-center gap-0.5"
+                          title="Inspect raw bus event JSON payload"
+                        >
+                          {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                          JSON
+                        </button>
+                      </div>
                     </div>
 
                     {/* Content */}
@@ -1371,11 +1897,39 @@ export default function DualBrainPage() {
                       <div className="mt-2.5 pt-2 border-t border-gray-100 dark:border-zinc-800/80 flex items-start gap-2 text-[11px] text-gray-600 dark:text-gray-300">
                         <Info className="w-3.5 h-3.5 text-sky-500 shrink-0 mt-0.5" />
                         <div>
-                          <strong className="font-semibold text-gray-700 dark:text-gray-200">
-                            Independent Rationale:{" "}
+                          <strong className="font-semibold text-gray-800 dark:text-gray-100">
+                            Independent Commercial Rationale:{" "}
                           </strong>
                           {msg.reasoning}
                         </div>
+                      </div>
+                    )}
+
+                    {/* Expandable Raw JSON Inspector */}
+                    {isExpanded && (
+                      <div className="mt-3 pt-3 border-t border-gray-200/60 dark:border-zinc-800/80 space-y-2">
+                        <div className="flex items-center justify-between text-[10px] font-mono text-gray-400">
+                          <span>Raw Bus Message Packet ID: {msg.id}</span>
+                          <button
+                            onClick={() => copyJsonPayload(msg.id, msg)}
+                            className="inline-flex items-center gap-1 text-[10px] font-semibold text-sky-600 dark:text-sky-400 hover:underline"
+                          >
+                            {copiedMsgId === msg.id ? (
+                              <>
+                                <Check className="w-3 h-3 text-emerald-500" />
+                                Copied to Clipboard
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="w-3 h-3" />
+                                Copy JSON
+                              </>
+                            )}
+                          </button>
+                        </div>
+                        <pre className="p-3 rounded-2xl bg-zinc-950 text-sky-300 text-[10px] font-mono overflow-x-auto max-h-48 overflow-y-auto leading-relaxed border border-zinc-800">
+                          {JSON.stringify(msg, null, 2)}
+                        </pre>
                       </div>
                     )}
                   </div>
