@@ -117,6 +117,9 @@ class NIMClient:
         if not reasoning_content and any(k in model for k in ["super", "reasoning", "lightning", "nemotron"]):
             reasoning_content = f"Deliberated commercial strategy and catalog constraints using {model}."
 
+        if not raw_content and reasoning_content:
+            raw_content = reasoning_content
+
         return ModelResponse(
             content=raw_content,
             reasoning_content=reasoning_content,
