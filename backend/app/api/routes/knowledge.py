@@ -228,6 +228,17 @@ async def list_knowledge_items(
     res = await session.execute(stmt)
     items = res.scalars().all()
 
+    if not items and not category and not search:
+        # Self-heal on fresh / unmigrated database
+        try:
+            await run_knowledge_hub_migration(session, settings.DEFAULT_ORG_ID)
+            await run_knowledge_hub_migration(session, "org_default")
+            await run_knowledge_hub_migration(session, "org_default_tea")
+            res = await session.execute(stmt)
+            items = res.scalars().all()
+        except Exception as e:
+            logger.warning(f"Auto-migration in list_knowledge_items fallback: {e}")
+
     return [
         {
             "id": i.id,
@@ -300,7 +311,14 @@ async def update_knowledge_item(
     session: AsyncSession = Depends(get_db),
 ):
     """Updates an existing KnowledgeItem and refreshes its chunks and relational sync."""
-    stmt = select(KnowledgeItem).where(KnowledgeItem.id == item_id, KnowledgeItem.org_id == settings.DEFAULT_ORG_ID)
+    stmt = select(KnowledgeItem).where(
+        KnowledgeItem.id == item_id,
+        or_(
+            KnowledgeItem.org_id == settings.DEFAULT_ORG_ID,
+            KnowledgeItem.org_id == "org_default",
+            KnowledgeItem.org_id == "org_default_tea",
+        ),
+    )
     item = (await session.execute(stmt)).scalar_one_or_none()
     if not item:
         raise HTTPException(status_code=404, detail=f"KnowledgeItem '{item_id}' not found.")
@@ -310,7 +328,7 @@ async def update_knowledge_item(
     new_category = payload.category or item.category
     new_sku = payload.sku or item.sku
 
-    svc = KnowledgeIngestionService(session, settings.DEFAULT_ORG_ID)
+    svc = KnowledgeIngestionService(session, item.org_id or settings.DEFAULT_ORG_ID)
     updated_item = await svc.ingest_knowledge_item(
         title=new_title,
         content_text=new_content,
@@ -346,7 +364,14 @@ async def toggle_item_active(
     session: AsyncSession = Depends(get_db),
 ):
     """Toggles active status of a KnowledgeItem."""
-    stmt = select(KnowledgeItem).where(KnowledgeItem.id == item_id, KnowledgeItem.org_id == settings.DEFAULT_ORG_ID)
+    stmt = select(KnowledgeItem).where(
+        KnowledgeItem.id == item_id,
+        or_(
+            KnowledgeItem.org_id == settings.DEFAULT_ORG_ID,
+            KnowledgeItem.org_id == "org_default",
+            KnowledgeItem.org_id == "org_default_tea",
+        ),
+    )
     item = (await session.execute(stmt)).scalar_one_or_none()
     if not item:
         raise HTTPException(status_code=404, detail="Item not found.")
@@ -367,13 +392,21 @@ async def delete_knowledge_item(
     session: AsyncSession = Depends(get_db),
 ):
     """Cascading deletion of a KnowledgeItem and all associated chunks."""
-    stmt = select(KnowledgeItem).where(KnowledgeItem.id == item_id, KnowledgeItem.org_id == settings.DEFAULT_ORG_ID)
+    stmt = select(KnowledgeItem).where(
+        KnowledgeItem.id == item_id,
+        or_(
+            KnowledgeItem.org_id == settings.DEFAULT_ORG_ID,
+            KnowledgeItem.org_id == "org_default",
+            KnowledgeItem.org_id == "org_default_tea",
+        ),
+    )
     item = (await session.execute(stmt)).scalar_one_or_none()
     if not item:
         raise HTTPException(status_code=404, detail="Item not found.")
 
     await session.delete(item)
     await session.commit()
+
 
     await ws_manager.broadcast_to_org(settings.DEFAULT_ORG_ID, "knowledge_item_deleted", {
         "item_id": item_id,

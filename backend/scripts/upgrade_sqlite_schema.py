@@ -42,10 +42,22 @@ def fix_sqlite_db(db_path: Path):
         # Backfill if _kg columns exist
         if "min_quantity_kg" in pr_cols:
             cur.execute("UPDATE pricing_rules SET min_quantity = min_quantity_kg WHERE (min_quantity IS NULL OR min_quantity = 0) AND min_quantity_kg IS NOT NULL")
+            try:
+                cur.execute("ALTER TABLE pricing_rules DROP COLUMN min_quantity_kg")
+            except Exception:
+                pass
         if "max_quantity_kg" in pr_cols:
             cur.execute("UPDATE pricing_rules SET max_quantity = max_quantity_kg WHERE max_quantity IS NULL AND max_quantity_kg IS NOT NULL")
+            try:
+                cur.execute("ALTER TABLE pricing_rules DROP COLUMN max_quantity_kg")
+            except Exception:
+                pass
         if "fixed_price_per_kg" in pr_cols:
             cur.execute("UPDATE pricing_rules SET fixed_price = fixed_price_per_kg WHERE fixed_price IS NULL AND fixed_price_per_kg IS NOT NULL")
+            try:
+                cur.execute("ALTER TABLE pricing_rules DROP COLUMN fixed_price_per_kg")
+            except Exception:
+                pass
 
     # 3. Products columns
     prod_cols = get_cols("products")
