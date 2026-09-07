@@ -32,57 +32,159 @@ router = APIRouter(tags=["Products & Pricing"])
 
 class VariantInput(BaseModel):
     name: str
-    packaging_type: str = "sack"
-    weight_kg: float = Field(..., gt=0)
-    base_price_per_kg: float = Field(..., gt=0)
+    packaging_type: str = "standard"
+    unit_quantity: Optional[float] = None
+    weight_kg: Optional[float] = None
+    base_price_per_unit: Optional[float] = None
+    base_price_per_kg: Optional[float] = None
     sku: Optional[str] = None
+
+    def resolved_unit_quantity(self) -> float:
+        if self.unit_quantity is not None and self.unit_quantity > 0:
+            return self.unit_quantity
+        if self.weight_kg is not None and self.weight_kg > 0:
+            return self.weight_kg
+        return 1.0
+
+    def resolved_base_price(self) -> float:
+        if self.base_price_per_unit is not None and self.base_price_per_unit > 0:
+            return self.base_price_per_unit
+        if self.base_price_per_kg is not None and self.base_price_per_kg > 0:
+            return self.base_price_per_kg
+        return 100.0
 
 
 class ProductCreateInput(BaseModel):
     name: str
     category: str
     sku: Optional[str] = None
-    tea_grade: Optional[str] = "BP"
-    origin: str = "North Bengal, India"
+    grade: Optional[str] = None
+    tea_grade: Optional[str] = None
+    origin: Optional[str] = None
     description: Optional[str] = None
-    min_order_quantity_kg: float = 10.0
-    base_price_per_kg: float = Field(..., gt=0)
+    min_order_quantity: Optional[float] = None
+    min_order_quantity_kg: Optional[float] = None
+    base_price_per_unit: Optional[float] = None
+    base_price_per_kg: Optional[float] = None
     in_stock: bool = True
-    packaging_type: str = "sack"
-    weight_kg: float = 20.0
+    packaging_type: str = "standard"
+    unit_quantity: Optional[float] = None
+    weight_kg: Optional[float] = None
+
+    def resolved_grade(self) -> Optional[str]:
+        return self.grade or self.tea_grade
+
+    def resolved_moq(self) -> float:
+        if self.min_order_quantity is not None and self.min_order_quantity > 0:
+            return self.min_order_quantity
+        if self.min_order_quantity_kg is not None and self.min_order_quantity_kg > 0:
+            return self.min_order_quantity_kg
+        return 1.0
+
+    def resolved_base_price(self) -> float:
+        if self.base_price_per_unit is not None and self.base_price_per_unit > 0:
+            return self.base_price_per_unit
+        if self.base_price_per_kg is not None and self.base_price_per_kg > 0:
+            return self.base_price_per_kg
+        return 100.0
+
+    def resolved_unit_quantity(self) -> float:
+        if self.unit_quantity is not None and self.unit_quantity > 0:
+            return self.unit_quantity
+        if self.weight_kg is not None and self.weight_kg > 0:
+            return self.weight_kg
+        return 1.0
 
 
 class ProductUpdateInput(BaseModel):
     name: Optional[str] = None
     category: Optional[str] = None
+    grade: Optional[str] = None
     tea_grade: Optional[str] = None
     origin: Optional[str] = None
     description: Optional[str] = None
+    min_order_quantity: Optional[float] = None
     min_order_quantity_kg: Optional[float] = None
     in_stock: Optional[bool] = None
+    base_price_per_unit: Optional[float] = None
     base_price_per_kg: Optional[float] = None
+
+    def resolved_grade(self) -> Optional[str]:
+        return self.grade if self.grade is not None else self.tea_grade
+
+    def resolved_moq(self) -> Optional[float]:
+        if self.min_order_quantity is not None:
+            return self.min_order_quantity
+        return self.min_order_quantity_kg
+
+    def resolved_base_price(self) -> Optional[float]:
+        if self.base_price_per_unit is not None:
+            return self.base_price_per_unit
+        return self.base_price_per_kg
 
 
 class PricingRuleCreateInput(BaseModel):
     product_id: Optional[str] = None
     rule_name: str
-    rule_type: str = "volume_tier"  # volume_tier, customer_segment, promotional
-    min_quantity_kg: float = 0.0
+    rule_type: str = "volume_tier"  # volume_tier, customer_segment, promotional, custom_matrix
+    min_quantity: Optional[float] = None
+    min_quantity_kg: Optional[float] = None
+    max_quantity: Optional[float] = None
     max_quantity_kg: Optional[float] = None
     discount_percentage: float = Field(..., ge=0, le=100)
+    fixed_price: Optional[float] = None
+    fixed_price_per_kg: Optional[float] = None
     max_autonomous_discount_percentage: float = 5.0
     customer_segment: Optional[str] = None
     requires_human_approval: bool = False
+    rule_metadata: Dict[str, Any] = Field(default_factory=dict)
+
+    def resolved_min_quantity(self) -> float:
+        if self.min_quantity is not None:
+            return self.min_quantity
+        if self.min_quantity_kg is not None:
+            return self.min_quantity_kg
+        return 0.0
+
+    def resolved_max_quantity(self) -> Optional[float]:
+        if self.max_quantity is not None:
+            return self.max_quantity
+        return self.max_quantity_kg
+
+    def resolved_fixed_price(self) -> Optional[float]:
+        if self.fixed_price is not None:
+            return self.fixed_price
+        return self.fixed_price_per_kg
 
 
 class PricingRuleUpdateInput(BaseModel):
     rule_name: Optional[str] = None
+    min_quantity: Optional[float] = None
     min_quantity_kg: Optional[float] = None
+    max_quantity: Optional[float] = None
     max_quantity_kg: Optional[float] = None
     discount_percentage: Optional[float] = None
+    fixed_price: Optional[float] = None
+    fixed_price_per_kg: Optional[float] = None
     max_autonomous_discount_percentage: Optional[float] = None
     requires_human_approval: Optional[bool] = None
     is_active: Optional[bool] = None
+    rule_metadata: Optional[Dict[str, Any]] = None
+
+    def resolved_min_quantity(self) -> Optional[float]:
+        if self.min_quantity is not None:
+            return self.min_quantity
+        return self.min_quantity_kg
+
+    def resolved_max_quantity(self) -> Optional[float]:
+        if self.max_quantity is not None:
+            return self.max_quantity
+        return self.max_quantity_kg
+
+    def resolved_fixed_price(self) -> Optional[float]:
+        if self.fixed_price is not None:
+            return self.fixed_price
+        return self.fixed_price_per_kg
 
 
 # ==============================================================================
@@ -108,17 +210,21 @@ async def create_product(
 ):
     """Creates a new product with an initial packaging variant."""
     import random
-    clean_sku = payload.sku or f"NBT-{payload.category[:4].upper()}-{random.randint(100, 999)}"
+    clean_sku = payload.sku or f"SKU-{payload.category[:4].upper()}-{random.randint(100, 999)}"
+    moq = payload.resolved_moq()
+    base_price = payload.resolved_base_price()
+    unit_qty = payload.resolved_unit_quantity()
+    grade_val = payload.resolved_grade()
 
     prod = Product(
         org_id=settings.DEFAULT_ORG_ID,
         sku=clean_sku,
         name=payload.name,
         category=payload.category,
-        tea_grade=payload.tea_grade,
+        grade=grade_val,
         origin=payload.origin,
-        description=payload.description or f"Direct estate wholesale {payload.name}.",
-        min_order_quantity_kg=Decimal(str(payload.min_order_quantity_kg)),
+        description=payload.description or f"Commercial offering {payload.name}.",
+        min_order_quantity=Decimal(str(moq)),
         in_stock=payload.in_stock,
         is_active=True,
     )
@@ -127,14 +233,14 @@ async def create_product(
     await session.refresh(prod)
 
     # Add initial packaging variant
-    variant_sku = f"{clean_sku}-{int(payload.weight_kg)}KG"
+    variant_sku = f"{clean_sku}-V1"
     variant = ProductVariant(
         product_id=prod.id,
         sku=variant_sku,
-        name=f"{int(payload.weight_kg)}kg {payload.packaging_type.title()}",
+        name=f"{int(unit_qty)} {payload.packaging_type.title()}",
         packaging_type=payload.packaging_type,
-        weight_kg=Decimal(str(payload.weight_kg)),
-        base_price_per_kg=Decimal(str(payload.base_price_per_kg)),
+        unit_quantity=Decimal(str(unit_qty)),
+        base_price_per_unit=Decimal(str(base_price)),
         in_stock=payload.in_stock,
         is_active=True,
     )
@@ -166,23 +272,26 @@ async def update_product(
         prod.name = payload.name
     if payload.category is not None:
         prod.category = payload.category
-    if payload.tea_grade is not None:
-        prod.tea_grade = payload.tea_grade
+    grade_val = payload.resolved_grade()
+    if grade_val is not None:
+        prod.grade = grade_val
     if payload.origin is not None:
         prod.origin = payload.origin
     if payload.description is not None:
         prod.description = payload.description
-    if payload.min_order_quantity_kg is not None:
-        prod.min_order_quantity_kg = Decimal(str(payload.min_order_quantity_kg))
+    moq_val = payload.resolved_moq()
+    if moq_val is not None:
+        prod.min_order_quantity = Decimal(str(moq_val))
     if payload.in_stock is not None:
         prod.in_stock = payload.in_stock
         # Sync variants in_stock status
         for v in prod.variants:
             v.in_stock = payload.in_stock
 
-    if payload.base_price_per_kg is not None and prod.variants:
+    base_price_val = payload.resolved_base_price()
+    if base_price_val is not None and prod.variants:
         for v in prod.variants:
-            v.base_price_per_kg = Decimal(str(payload.base_price_per_kg))
+            v.base_price_per_unit = Decimal(str(base_price_val))
 
     await session.commit()
     return {"status": "updated", "product_id": prod.id, "in_stock": prod.in_stock}
@@ -213,7 +322,7 @@ async def list_pricing_rules(session: AsyncSession = Depends(get_db)):
     stmt = (
         select(PricingRule)
         .where(PricingRule.org_id == settings.DEFAULT_ORG_ID, PricingRule.is_active == True)
-        .order_by(PricingRule.min_quantity_kg.asc())
+        .order_by(PricingRule.min_quantity.asc())
     )
     res = await session.execute(stmt)
     return list(res.scalars().all())
@@ -225,17 +334,23 @@ async def create_pricing_rule(
     session: AsyncSession = Depends(get_db),
 ):
     """Creates a new volume tier or discount rule."""
+    min_q = payload.resolved_min_quantity()
+    max_q = payload.resolved_max_quantity()
+    fp = payload.resolved_fixed_price()
+
     rule = PricingRule(
         org_id=settings.DEFAULT_ORG_ID,
         product_id=payload.product_id,
         rule_name=payload.rule_name,
         rule_type=payload.rule_type,
-        min_quantity_kg=Decimal(str(payload.min_quantity_kg)),
-        max_quantity_kg=Decimal(str(payload.max_quantity_kg)) if payload.max_quantity_kg else None,
+        min_quantity=Decimal(str(min_q)),
+        max_quantity=Decimal(str(max_q)) if max_q is not None else None,
         discount_percentage=Decimal(str(payload.discount_percentage)),
+        fixed_price=Decimal(str(fp)) if fp is not None else None,
         max_autonomous_discount_percentage=Decimal(str(payload.max_autonomous_discount_percentage)),
         customer_segment=payload.customer_segment,
         requires_human_approval=payload.requires_human_approval,
+        rule_metadata=payload.rule_metadata or {},
         is_active=True,
     )
     session.add(rule)
@@ -257,18 +372,25 @@ async def update_pricing_rule(
 
     if payload.rule_name is not None:
         rule.rule_name = payload.rule_name
-    if payload.min_quantity_kg is not None:
-        rule.min_quantity_kg = Decimal(str(payload.min_quantity_kg))
-    if payload.max_quantity_kg is not None:
-        rule.max_quantity_kg = Decimal(str(payload.max_quantity_kg))
+    min_q = payload.resolved_min_quantity()
+    if min_q is not None:
+        rule.min_quantity = Decimal(str(min_q))
+    max_q = payload.resolved_max_quantity()
+    if max_q is not None:
+        rule.max_quantity = Decimal(str(max_q))
     if payload.discount_percentage is not None:
         rule.discount_percentage = Decimal(str(payload.discount_percentage))
+    fp = payload.resolved_fixed_price()
+    if fp is not None:
+        rule.fixed_price = Decimal(str(fp))
     if payload.max_autonomous_discount_percentage is not None:
         rule.max_autonomous_discount_percentage = Decimal(str(payload.max_autonomous_discount_percentage))
     if payload.requires_human_approval is not None:
         rule.requires_human_approval = payload.requires_human_approval
     if payload.is_active is not None:
         rule.is_active = payload.is_active
+    if payload.rule_metadata is not None:
+        rule.rule_metadata = payload.rule_metadata
 
     await session.commit()
     await session.refresh(rule)

@@ -50,14 +50,14 @@ async def get_system_settings():
         "worker_count": settings.WORKER_COUNT,
         "message_debounce_seconds": settings.MESSAGE_DEBOUNCE_WINDOW_SECONDS,
         # Domain & Business Profile
-        "business_name": getattr(settings, "BUSINESS_NAME", "North Bengal Tea Co."),
-        "business_industry": getattr(settings, "BUSINESS_INDUSTRY", "Wholesale Tea & Agro Produce"),
-        "business_tagline": getattr(settings, "BUSINESS_TAGLINE", "Direct Commercial Estate Wholesale"),
-        "business_description": getattr(settings, "BUSINESS_DESCRIPTION", "Commercial B2B supplier supplying fresh wholesale products directly to cafes, restaurants, hotels, and businesses."),
+        "business_name": getattr(settings, "BUSINESS_NAME", "My Business"),
+        "business_industry": getattr(settings, "BUSINESS_INDUSTRY", "General Business"),
+        "business_tagline": getattr(settings, "BUSINESS_TAGLINE", "AI-Powered Business Operations"),
+        "business_description": getattr(settings, "BUSINESS_DESCRIPTION", "AI-powered business operations platform for managing sales, customer interactions, and order processing."),
         "agent_name": getattr(settings, "AGENT_NAME", "EDITH"),
-        "agent_role": getattr(settings, "AGENT_ROLE", "Principal Commercial Sales Consultant"),
+        "agent_role": getattr(settings, "AGENT_ROLE", "AI Sales & Support Agent"),
         "currency_symbol": getattr(settings, "CURRENCY_SYMBOL", "₹"),
-        "catalog_unit": getattr(settings, "CATALOG_UNIT", "kg"),
+        "catalog_unit": getattr(settings, "CATALOG_UNIT", "unit"),
     }
 
 

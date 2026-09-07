@@ -27,11 +27,23 @@ router = APIRouter(prefix="/invoices", tags=["Invoices"])
 
 class InvoiceItemInput(BaseModel):
     product_name: str
+    grade: Optional[str] = None
     tea_grade: Optional[str] = None
     packaging_type: Optional[str] = None
-    quantity_kg: float = Field(..., gt=0)
+    quantity: Optional[float] = None
+    quantity_kg: Optional[float] = None
     unit_price: Optional[float] = None
     discount_pct: Optional[float] = None
+
+    def resolved_grade(self) -> Optional[str]:
+        return self.grade or self.tea_grade
+
+    def resolved_quantity(self) -> float:
+        if self.quantity is not None and self.quantity > 0:
+            return self.quantity
+        if self.quantity_kg is not None and self.quantity_kg > 0:
+            return self.quantity_kg
+        return 1.0
 
 
 class GenerateInvoiceRequest(BaseModel):
@@ -39,7 +51,7 @@ class GenerateInvoiceRequest(BaseModel):
     customer_phone: Optional[str] = None
     company_name: Optional[str] = None
     delivery_city: Optional[str] = None
-    delivery_state: Optional[str] = "West Bengal"
+    delivery_state: Optional[str] = None
     delivery_address: Optional[str] = None
     buyer_gstin: Optional[str] = None
     items: List[InvoiceItemInput] = []
@@ -51,17 +63,26 @@ async def generate_proforma_invoice(
     req: GenerateInvoiceRequest,
 ):
     """
-    Compiles a North Bengal Tea Co. branded pro-forma invoice PDF deterministically.
+    Compiles a commercial pro-forma invoice PDF deterministically.
     """
     order_data: Dict[str, Any] = {
         "buyer_name": req.customer_name or "Commercial Buyer",
         "buyer_phone": req.customer_phone or "+91 98000 00000",
         "buyer_company": req.company_name or "Commercial Partner",
-        "delivery_city": req.delivery_city or "Siliguri",
-        "delivery_state": req.delivery_state or "West Bengal",
+        "delivery_city": req.delivery_city or "Metro",
+        "delivery_state": req.delivery_state or "",
         "delivery_address": req.delivery_address,
         "buyer_gstin": req.buyer_gstin,
-        "items": [item.model_dump() for item in req.items],
+        "items": [
+            {
+                **item.model_dump(),
+                "grade": item.resolved_grade(),
+                "tea_grade": item.resolved_grade(),
+                "quantity": item.resolved_quantity(),
+                "quantity_kg": item.resolved_quantity(),
+            }
+            for item in req.items
+        ],
         "notes": req.notes,
     }
 

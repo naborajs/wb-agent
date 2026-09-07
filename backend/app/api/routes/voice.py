@@ -125,7 +125,7 @@ async def update_prompt_via_nemotron(
             section = "business_policy"
         elif any(w in text for w in ["safety", "jailbreak", "hallucination", "injection"]):
             section = "core_safety"
-        elif any(w in text for w in ["catalog", "tea", "darjeeling", "assam", "profile"]):
+        elif any(w in text for w in ["catalog", "product", "service", "item", "offering", "profile", "spec"]):
             section = "business_profile"
         else:
             section = "sales_style"
@@ -212,12 +212,12 @@ async def generate_promo_message(
             ModelMessage(
                 role="system",
                 content=(
-                    "You are the senior B2B wholesale sales copywriter for North Bengal Tea Co. "
-                    "(direct estate producer of Darjeeling, Dooars, and Assam CTC teas).\n"
-                    "Your task: Write an irresistible, personalized WhatsApp promotional message for a wholesale buyer.\n"
+                    f"You are the senior commercial sales copywriter for {settings.BUSINESS_NAME} "
+                    f"({settings.BUSINESS_INDUSTRY} - {settings.BUSINESS_TAGLINE}).\n"
+                    "Your task: Write an irresistible, personalized WhatsApp promotional message for a commercial buyer or client.\n"
                     "Rules:\n"
                     "1. Tone: Respectful, professional, warm, commercial presence.\n"
-                    "2. Highlights: Fresh estate direct batch, tasting sample dispatch, volume tier discounts.\n"
+                    "2. Highlights: Direct commercial supply, premium quality, sample evaluation, volume tier pricing.\n"
                     "3. Format: Clean WhatsApp formatted message (use *bold* for key terms). No preamble, no quotes."
                 ),
             ),

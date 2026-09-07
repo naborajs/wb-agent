@@ -173,11 +173,11 @@ async def export_analytics_csv(
     ])
 
     sample_leads = [
-        ("lead_01", "Mimi's Cafe", "Siliguri", "PURCHASE_INTENT", 92, 16150, "None", "2026-09-01"),
-        ("lead_02", "Grand Tea Lounge", "Kolkata", "RECOMMENDATION", 84, 34000, "price_too_high", "2026-09-02"),
-        ("lead_03", "Darjeeling Hill Resort", "Darjeeling", "QUALIFIED", 78, 45000, "needs_quality_proof", "2026-09-03"),
-        ("lead_04", "City Chai Hub", "Siliguri", "WON", 96, 28500, "Resolved", "2026-09-03"),
-        ("lead_05", "Bengal Express Diner", "Jalpaiguri", "OBJECTION", 65, 18000, "minimum_order_quantity_too_high", "2026-09-04"),
+        ("lead_01", "Apex Retailers", "Metro Hub", "PURCHASE_INTENT", 92, 16150, "None", "2026-09-01"),
+        ("lead_02", "Grand Commercial Corp", "City Center", "RECOMMENDATION", 84, 34000, "price_too_high", "2026-09-02"),
+        ("lead_03", "Summit Enterprises", "North District", "QUALIFIED", 78, 45000, "needs_quality_proof", "2026-09-03"),
+        ("lead_04", "Metro Business Hub", "Central", "WON", 96, 28500, "Resolved", "2026-09-03"),
+        ("lead_05", "Pioneer Distribution", "West Hub", "OBJECTION", 65, 18000, "minimum_order_quantity_too_high", "2026-09-04"),
     ]
     for row in sample_leads:
         writer.writerow(row)

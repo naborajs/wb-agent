@@ -19,15 +19,35 @@ router = APIRouter(prefix="/orders", tags=["Orders"])
 
 
 class OrderItemInput(BaseModel):
-    product_id: Optional[str] = "prod_assam_ctc"
+    product_id: Optional[str] = None
     variant_id: Optional[str] = None
     product_name: str
-    tea_grade: Optional[str] = "BP"
-    packaging_type: str = "Jute Bag"
-    quantity_kg: float = Field(..., gt=0)
-    unit_price_per_kg: float = Field(..., gt=0)
+    grade: Optional[str] = None
+    tea_grade: Optional[str] = None
+    packaging_type: str = "Standard Package"
+    quantity: Optional[float] = None
+    quantity_kg: Optional[float] = None
+    unit_price: Optional[float] = None
+    unit_price_per_kg: Optional[float] = None
     discount_pct: float = Field(0.0, ge=0, le=100)
     discount_percentage: Optional[float] = None
+
+    def resolved_grade(self) -> Optional[str]:
+        return self.grade or self.tea_grade
+
+    def resolved_quantity(self) -> float:
+        if self.quantity is not None and self.quantity > 0:
+            return self.quantity
+        if self.quantity_kg is not None and self.quantity_kg > 0:
+            return self.quantity_kg
+        return 1.0
+
+    def resolved_unit_price(self) -> float:
+        if self.unit_price is not None and self.unit_price > 0:
+            return self.unit_price
+        if self.unit_price_per_kg is not None and self.unit_price_per_kg > 0:
+            return self.unit_price_per_kg
+        return 0.0
 
 
 class OrderCreateInput(BaseModel):
@@ -41,7 +61,7 @@ class OrderCreateInput(BaseModel):
     shipping_city: Optional[str] = None
     shipping_state: Optional[str] = None
     shipping_postal_code: Optional[str] = None
-    payment_terms: str = "Standard Wholesale (100% on Dispatch)"
+    payment_terms: str = "Standard Commercial Terms (100% on Dispatch)"
     notes: Optional[str] = None
     items: List[OrderItemInput]
 
@@ -94,9 +114,12 @@ async def list_orders(
             "items": [
                 {
                     "product_name": item.product_name,
-                    "tea_grade": item.tea_grade,
-                    "quantity_kg": float(item.quantity_kg),
-                    "unit_price_per_kg": float(item.unit_price_per_kg),
+                    "grade": item.grade or item.tea_grade,
+                    "tea_grade": item.grade or item.tea_grade,
+                    "quantity": float(item.quantity if item.quantity is not None else item.quantity_kg),
+                    "quantity_kg": float(item.quantity if item.quantity is not None else item.quantity_kg),
+                    "unit_price": float(item.unit_price if item.unit_price is not None else item.unit_price_per_kg),
+                    "unit_price_per_kg": float(item.unit_price if item.unit_price is not None else item.unit_price_per_kg),
                     "subtotal": float(item.subtotal),
                     "packaging_type": item.packaging_type,
                 }
@@ -150,20 +173,22 @@ async def create_order(
 
     for item in payload.items:
         eff_discount = item.discount_percentage if (item.discount_pct == 0.0 and item.discount_percentage is not None) else item.discount_pct
-        raw_subtotal = item.quantity_kg * item.unit_price_per_kg
+        qty = item.resolved_quantity()
+        uprice = item.resolved_unit_price()
+        raw_subtotal = qty * uprice
         discount = raw_subtotal * (eff_discount / 100.0)
         final_subtotal = raw_subtotal - discount
         total_amount += final_subtotal
         total_discount += discount
 
         order_item = OrderItem(
-            product_id=item.product_id or "prod_assam_ctc",
+            product_id=item.product_id or "prod_generic",
             variant_id=item.variant_id,
             product_name=item.product_name,
-            tea_grade=item.tea_grade,
+            grade=item.resolved_grade(),
             packaging_type=item.packaging_type,
-            quantity_kg=item.quantity_kg,
-            unit_price_per_kg=item.unit_price_per_kg,
+            quantity=qty,
+            unit_price=uprice,
             discount_pct=eff_discount,
             subtotal=final_subtotal,
         )
@@ -193,10 +218,10 @@ async def create_order(
     await session.commit()
     await session.refresh(order)
 
-    # WhatsApp Alert to Business Owner (+91 89006 53250)
+    # WhatsApp Alert to Business Owner
     owner_phone = settings.OWNER_WHATSAPP_NUMBER or "+918900653250"
     alert_msg = (
-        f"📦 *NEW WHOLESALE ORDER CREATED!*\n\n"
+        f"📦 *NEW COMMERCIAL SALES ORDER CREATED!*\n\n"
         f"• *Order #:* {order.order_number}\n"
         f"• *Customer:* {order.shipping_name} ({customer.company_name or 'Business'})\n"
         f"• *Phone:* {order.shipping_phone}\n"
