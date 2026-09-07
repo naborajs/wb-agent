@@ -18,7 +18,8 @@ import {
 
 interface OrderItem {
   product_name: string;
-  tea_grade: string;
+  tea_grade?: string;
+  grade?: string;
   quantity_kg: number;
   unit_price_per_kg: number;
   subtotal: number;
@@ -54,11 +55,11 @@ interface CustomerOption {
 }
 
 const DEFAULT_PRODUCTS = [
-  { id: "prod_assam_ctc", name: "Assam Kadak CTC", grade: "BP", basePrice: 340 },
-  { id: "prod_dooars_blend", name: "Dooars Hotel Blend", grade: "BOP", basePrice: 230 },
-  { id: "prod_darjeeling_ff", name: "Darjeeling First Flush", grade: "FTGFOP1", basePrice: 1450 },
-  { id: "prod_green_tea", name: "Siliguri Green Tea Leaf", grade: "Whole Leaf", basePrice: 480 },
-  { id: "prod_white_peony", name: "Premium White Peony", grade: "Silver Needle", basePrice: 2800 },
+  { id: "prod_std_001", name: "Standard Commercial Package", grade: "Commercial Grade A", basePrice: 350 },
+  { id: "prod_prem_002", name: "Premium Commercial Package", grade: "Enterprise Select", basePrice: 850 },
+  { id: "prod_ent_003", name: "Enterprise Bulk Package", grade: "Industrial Grade 1", basePrice: 1200 },
+  { id: "prod_serv_004", name: "Custom Managed Service Unit", grade: "Service Tier 1", basePrice: 480 },
+  { id: "prod_dist_005", name: "Distributor Logistics Pack", grade: "Wholesale Tier", basePrice: 2800 },
 ];
 
 export default function OrdersPage() {
@@ -81,12 +82,12 @@ export default function OrdersPage() {
   // Line items state
   const [orderItems, setOrderItems] = useState([
     {
-      product_id: "prod_assam_ctc",
-      product_name: "Assam Kadak CTC",
-      tea_grade: "BP",
-      packaging_type: "Jute Bag (20kg)",
+      product_id: "prod_std_001",
+      product_name: "Standard Commercial Package",
+      tea_grade: "Commercial Grade A",
+      packaging_type: "Box (10 Units)",
       quantity_kg: 50,
-      unit_price_per_kg: 323,
+      unit_price_per_kg: 350,
       discount_pct: 5,
     },
   ]);
@@ -148,12 +149,12 @@ export default function OrdersPage() {
     setOrderItems([
       ...orderItems,
       {
-        product_id: "prod_assam_ctc",
-        product_name: "Assam Kadak CTC",
-        tea_grade: "BP",
-        packaging_type: "Jute Bag (20kg)",
+        product_id: "prod_std_001",
+        product_name: "Standard Commercial Package",
+        tea_grade: "Commercial Grade A",
+        packaging_type: "Box (10 Units)",
         quantity_kg: 50,
-        unit_price_per_kg: 323,
+        unit_price_per_kg: 350,
         discount_pct: 5,
       },
     ]);
@@ -196,7 +197,7 @@ export default function OrdersPage() {
       payment_terms: paymentTerms,
       notes: orderNotes || undefined,
       items: orderItems.map((item) => ({
-        product_id: item.product_id || "prod_assam_ctc",
+        product_id: item.product_id || "prod_std_001",
         product_name: item.product_name,
         tea_grade: item.tea_grade,
         quantity_kg: Number(item.quantity_kg),
@@ -261,7 +262,7 @@ export default function OrdersPage() {
             Wholesale Commercial Orders
           </h1>
           <p className="text-xs text-[var(--ed-text-muted)] mt-1">
-            Direct estate wholesale orders placed via AI consultation or operator desk.
+            Direct commercial orders placed via AI consultation or operator desk.
           </p>
         </div>
 
@@ -336,7 +337,7 @@ export default function OrdersPage() {
               <th className="py-3.5 px-4">Order #</th>
               <th className="py-3.5 px-4">Customer</th>
               <th className="py-3.5 px-4">Destination</th>
-              <th className="py-3.5 px-4">Items & Grades</th>
+              <th className="py-3.5 px-4">Items & Specs</th>
               <th className="py-3.5 px-4">Total Value</th>
               <th className="py-3.5 px-4">Payment</th>
               <th className="py-3.5 px-4">Status</th>
@@ -369,7 +370,7 @@ export default function OrdersPage() {
                   </td>
                   <td className="py-3.5 px-4">
                     <div className="text-[var(--ed-text-primary)] flex items-center gap-1 font-medium">
-                      <MapPin className="w-3 h-3 text-[var(--ed-accent)]" /> {order.shipping_city || "Siliguri Hub"}
+                      <MapPin className="w-3 h-3 text-[var(--ed-accent)]" /> {order.shipping_city || "Main Hub"}
                     </div>
                     {order.shipping_address && (
                       <div className="text-[10px] text-[var(--ed-text-muted)] truncate max-w-xs">{order.shipping_address}</div>
@@ -378,7 +379,7 @@ export default function OrdersPage() {
                   <td className="py-3.5 px-4">
                     <div className="font-medium text-[var(--ed-text-primary)]">
                       {order.items && order.items.length > 0
-                        ? order.items.map((i) => `${i.product_name} (${i.quantity_kg}kg)`).join(", ")
+                        ? order.items.map((i) => `${i.product_name} (${i.quantity_kg} units)`).join(", ")
                         : `${order.items_count || 1} line item(s)`}
                     </div>
                   </td>
@@ -505,7 +506,7 @@ export default function OrdersPage() {
                   </label>
                   <input
                     type="text"
-                    placeholder="e.g. Siliguri, Kolkata, Delhi"
+                    placeholder="e.g. Mumbai, Bangalore, Delhi"
                     value={shippingCity}
                     onChange={(e) => setShippingCity(e.target.value)}
                     className="w-full p-2.5 rounded-lg border border-[var(--ed-border)] bg-[var(--ed-bg)] text-[var(--ed-text-primary)] ed-focus-ring"
@@ -537,7 +538,7 @@ export default function OrdersPage() {
                     onClick={handleAddItem}
                     className="ed-press text-[var(--ed-accent)] hover:underline font-semibold flex items-center gap-1"
                   >
-                    <Plus className="w-3.5 h-3.5" /> Add Tea
+                    <Plus className="w-3.5 h-3.5" /> Add Item
                   </button>
                 </div>
 
@@ -549,7 +550,7 @@ export default function OrdersPage() {
                       style={{ background: "var(--ed-bg)" }}
                     >
                       <div className="col-span-2 sm:col-span-4">
-                        <span className="text-[10px] font-semibold text-[var(--ed-text-muted)] block mb-1">Tea Blend</span>
+                        <span className="text-[10px] font-semibold text-[var(--ed-text-muted)] block mb-1">Product / Service</span>
                         <select
                           value={item.product_name}
                           onChange={(e) => handleProductSelect(index, e.target.value)}
@@ -564,7 +565,7 @@ export default function OrdersPage() {
                       </div>
 
                       <div className="col-span-1 sm:col-span-2">
-                        <span className="text-[10px] font-semibold text-[var(--ed-text-muted)] block mb-1">Qty (kg)</span>
+                        <span className="text-[10px] font-semibold text-[var(--ed-text-muted)] block mb-1">Qty (Units)</span>
                         <input
                           type="number"
                           min={1}
@@ -579,7 +580,7 @@ export default function OrdersPage() {
                       </div>
 
                       <div className="col-span-1 sm:col-span-2">
-                        <span className="text-[10px] font-semibold text-[var(--ed-text-muted)] block mb-1">Rate (₹/kg)</span>
+                        <span className="text-[10px] font-semibold text-[var(--ed-text-muted)] block mb-1">Rate (₹)</span>
                         <input
                           type="number"
                           value={item.unit_price_per_kg}
@@ -610,7 +611,7 @@ export default function OrdersPage() {
 
                       <div className="col-span-1 sm:col-span-2 flex items-center justify-between pt-1 sm:pt-3">
                         <span className="text-xs font-bold font-data text-[var(--ed-text-primary)] block">
-                          ₹{(item.quantity_kg * item.unit_price_per_kg * (1 - item.discount_pct / 100)).toLocaleString("en-IN")}
+                           ₹{(item.quantity_kg * item.unit_price_per_kg * (1 - item.discount_pct / 100)).toLocaleString("en-IN")}
                         </span>
                         {orderItems.length > 1 && (
                           <button
@@ -634,7 +635,7 @@ export default function OrdersPage() {
                     Calculated Wholesale Total
                   </div>
                   <div className="text-xs text-[var(--ed-text-muted)] mt-0.5">
-                    Includes garden volume discounts & food-grade packaging
+                    Includes automated volume discounts & standard packaging
                   </div>
                 </div>
                 <div className="text-2xl font-black font-data text-[var(--ed-accent)]">
