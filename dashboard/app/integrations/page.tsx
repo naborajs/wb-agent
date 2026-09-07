@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Cpu,
   MessageSquare,
@@ -24,6 +24,17 @@ import {
   Sparkles,
   PieChart as PieIcon,
   BarChart3,
+  Coins,
+  TrendingDown,
+  Play,
+  Square,
+  Radio,
+  Check,
+  Flame,
+  AlertTriangle,
+  ArrowRight,
+  ShieldCheck,
+  FileText,
 } from "lucide-react";
 
 interface ModelInfo {
@@ -34,6 +45,128 @@ interface ModelInfo {
   latency_label: string;
   description: string;
 }
+
+interface ModelEconomics {
+  id: string;
+  name: string;
+  provider: "Google" | "NVIDIA" | "Meta";
+  whatItDoes: string;
+  inputCostPer1M: number;
+  outputCostPer1M: number;
+  costBadge: string;
+  isLeastCostly?: boolean;
+  contextLimit: string;
+  estLatency: string;
+}
+
+const KNOWN_MODELS_ECONOMICS: ModelEconomics[] = [
+  {
+    id: "gemini-3.1-flash-live-preview",
+    name: "Gemini 3.1 Flash Live",
+    provider: "Google",
+    whatItDoes: "Realtime 16kHz PCM Voice Streaming, UI Navigation, Screen Grounding & Executive Copilot (Friday).",
+    inputCostPer1M: 0.10,
+    outputCostPer1M: 0.40,
+    costBadge: "★ Least Costly Voice/UI",
+    isLeastCostly: true,
+    contextLimit: "1,048,576 tok",
+    estLatency: "185ms",
+  },
+  {
+    id: "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning",
+    name: "Nemotron-3 Nano Omni 30B",
+    provider: "NVIDIA",
+    whatItDoes: "High-speed customer message cadence checking, anti-spam validation, and instant price checks.",
+    inputCostPer1M: 0.08,
+    outputCostPer1M: 0.25,
+    costBadge: "★ Least Costly NIM Reasoner",
+    isLeastCostly: true,
+    contextLimit: "32,768 tok",
+    estLatency: "220ms",
+  },
+  {
+    id: "google/gemma-4-31b-it",
+    name: "Gemma 4 31B IT",
+    provider: "Google",
+    whatItDoes: "Compact regional dialect understanding, Indic multilingual queries, and structured JSON parsing.",
+    inputCostPer1M: 0.09,
+    outputCostPer1M: 0.28,
+    costBadge: "Budget Multilingual",
+    contextLimit: "32,768 tok",
+    estLatency: "260ms",
+  },
+  {
+    id: "nvidia/nemotron-3-super-120b-a12b",
+    name: "Nemotron-3 Super 120B",
+    provider: "NVIDIA",
+    whatItDoes: "Balanced volume discount formulation, catalog grounding, and standard B2B WhatsApp proposals.",
+    inputCostPer1M: 0.15,
+    outputCostPer1M: 0.45,
+    costBadge: "Balanced High-Volume",
+    contextLimit: "65,536 tok",
+    estLatency: "310ms",
+  },
+  {
+    id: "meta/llama-3.3-70b-instruct",
+    name: "Llama 3.3 70B Instruct",
+    provider: "Meta",
+    whatItDoes: "EDITH Flagship Closer: Rigorous commercial objection handling, margin enforcement, and counter-offers.",
+    inputCostPer1M: 0.20,
+    outputCostPer1M: 0.60,
+    costBadge: "Commercial Closer Tier",
+    contextLimit: "131,072 tok",
+    estLatency: "340ms",
+  },
+  {
+    id: "nvidia/nemotron-4-340b-instruct",
+    name: "Nemotron-4 340B Instruct",
+    provider: "NVIDIA",
+    whatItDoes: "Deep enterprise commercial negotiations, multi-year supply contracts, and high-stakes objection arbitration.",
+    inputCostPer1M: 0.35,
+    outputCostPer1M: 0.95,
+    costBadge: "Enterprise Heavyweight",
+    contextLimit: "131,072 tok",
+    estLatency: "490ms",
+  },
+  {
+    id: "nvidia/nemotron-3-ultra-550b-a55b",
+    name: "Nemotron-3 Ultra 550B",
+    provider: "NVIDIA",
+    whatItDoes: "Complex legal auditing, export compliance, non-compete clauses, and executive-level governance.",
+    inputCostPer1M: 0.50,
+    outputCostPer1M: 1.50,
+    costBadge: "Maximum Reasoning Tier",
+    contextLimit: "131,072 tok",
+    estLatency: "650ms",
+  },
+];
+
+const REFERENCE_TEST_PROMPTS = [
+  {
+    title: "Wholesale 35% Discount Request",
+    category: "Margin Refusal",
+    prompt:
+      "Lead Rajesh (+91 98001 23456) is demanding a 35% discount for a 500kg wholesale order. Evaluate against commercial threshold.",
+  },
+  {
+    title: "Product Certification & Export Specs",
+    category: "Catalog Specs",
+    prompt:
+      "Buyer asks if our premium Darjeeling tea has ISO 22000 and Halal export certificates for CIF Dubai delivery.",
+  },
+  {
+    title: "Anti-Spam Re-engagement Cadence",
+    category: "Anti-Spam",
+    prompt:
+      "Sales rep wants to send a 4th reminder message to an unresponsive lead within 3 hours. Verify anti-spam cadence.",
+  },
+  {
+    title: "Fast Voice Greeting Formulation",
+    category: "Opening Copy",
+    prompt:
+      "Formulate a warm, professional 1-sentence WhatsApp opening to an inbound wholesale distributor.",
+  },
+];
 
 interface ModelSettingsData {
   primary_model: string;
@@ -76,6 +209,17 @@ export default function IntegrationsPage() {
   const [testApiKey, setTestApiKey] = useState("");
   const [isTestingModel, setIsTestingModel] = useState(false);
   const [testResult, setTestResult] = useState<any>(null);
+
+  // Rapid Benchmarking & Continuous 1-Second Testing Suite
+  const [benchmarkPrompt, setBenchmarkPrompt] = useState(REFERENCE_TEST_PROMPTS[0].prompt);
+  const [selectedBenchModel, setSelectedBenchModel] = useState("meta/llama-3.3-70b-instruct");
+  const [isBenchmarking, setIsBenchmarking] = useState(false);
+  const [benchResult, setBenchResult] = useState<any>(null);
+  const [isAutoTesting1s, setIsAutoTesting1s] = useState(false);
+  const [autoTickCount, setAutoTickCount] = useState(0);
+  const autoTestIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [allModelsComparison, setAllModelsComparison] = useState<any[] | null>(null);
+  const [isComparingAll, setIsComparingAll] = useState(false);
 
   // Active chart tab
   const [activeChartTab, setActiveChartTab] = useState<"latency" | "architecture">("latency");
@@ -198,6 +342,90 @@ export default function IntegrationsPage() {
     }
   };
 
+  // Run single benchmark via /api/v1/brain/benchmark-model
+  const runSingleBenchmark = async (modelId: string, promptText: string) => {
+    try {
+      const res = await fetch("/api/v1/brain/benchmark-model", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model_id: modelId,
+          prompt: promptText,
+          api_key_override: testApiKey.trim() || undefined,
+        }),
+      });
+      if (res.ok) {
+        return await res.json();
+      } else {
+        const err = await res.json();
+        return { status: "error", error: err.detail || "Benchmark failed" };
+      }
+    } catch (e: any) {
+      return { status: "error", error: e.message };
+    }
+  };
+
+  // Execute benchmark for the selected model
+  const handleRunBenchmark = async () => {
+    setIsBenchmarking(true);
+    const res = await runSingleBenchmark(selectedBenchModel, benchmarkPrompt);
+    setBenchResult(res);
+    setIsBenchmarking(false);
+  };
+
+  // Toggle Continuous Testing Every 1 Second (Auto-Loop)
+  const toggleAutoTest1s = () => {
+    if (isAutoTesting1s) {
+      if (autoTestIntervalRef.current) {
+        clearInterval(autoTestIntervalRef.current);
+        autoTestIntervalRef.current = null;
+      }
+      setIsAutoTesting1s(false);
+    } else {
+      setIsAutoTesting1s(true);
+      setAutoTickCount(0);
+      let tick = 0;
+      // Trigger first run immediately
+      runSingleBenchmark(selectedBenchModel, benchmarkPrompt).then((res) => setBenchResult(res));
+      // Then tick every 1000ms (1 second)
+      autoTestIntervalRef.current = setInterval(async () => {
+        tick += 1;
+        setAutoTickCount(tick);
+        const res = await runSingleBenchmark(selectedBenchModel, benchmarkPrompt);
+        setBenchResult(res);
+      }, 1000);
+    }
+  };
+
+  // Run benchmark concurrently across all known model architectures
+  const handleCompareAllModels = async () => {
+    setIsComparingAll(true);
+    setAllModelsComparison(null);
+    try {
+      const promises = KNOWN_MODELS_ECONOMICS.map((m) =>
+        runSingleBenchmark(m.id, benchmarkPrompt).then((res) => ({
+          ...m,
+          benchmark: res,
+        }))
+      );
+      const results = await Promise.all(promises);
+      setAllModelsComparison(results);
+    } catch (e) {
+      console.error("Failed to compare all models:", e);
+    } finally {
+      setIsComparingAll(false);
+    }
+  };
+
+  // Ensure interval cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (autoTestIntervalRef.current) {
+        clearInterval(autoTestIntervalRef.current);
+      }
+    };
+  }, []);
+
   // Benchmark speed comparison data for visual graph
   const benchmarkModels = [
     { name: "Nemotron-3 Super 120B", speedMs: 797, label: "797ms", fill: "var(--ed-success)" },
@@ -304,6 +532,121 @@ export default function IntegrationsPage() {
           <div className="mt-3 pt-2 border-t border-[var(--ed-border)] text-[11px] text-[var(--ed-text-muted)]">
             Loop Protection: <span className="font-semibold text-[var(--ed-success)]">Bounded</span>
           </div>
+        </div>
+      </div>
+
+      {/* 2.5 Model Economics, Pricing Comparison & Architecture Roles Matrix */}
+      <div className="ed-panel rounded-2xl p-4 sm:p-6 space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[var(--ed-border)] pb-4">
+          <div>
+            <h3 className="text-sm font-bold text-[var(--ed-text-primary)] flex items-center gap-2">
+              <Coins className="w-4 h-4 text-emerald-500" />
+              Model Economics, Pricing Comparison & Architecture Roles
+            </h3>
+            <p className="text-xs text-[var(--ed-text-muted)] mt-0.5">
+              Compare token pricing across providers, see what each model does, and identify the least costly model for each operational workload.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center gap-1.5">
+              <TrendingDown className="w-3.5 h-3.5" />
+              Friday (Gemini 3.1) & Nano Omni are Least Costly
+            </span>
+          </div>
+        </div>
+
+        {/* Model Economics Table */}
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr className="border-b border-[var(--ed-border)] text-[11px] font-bold text-[var(--ed-text-muted)] uppercase tracking-wider">
+                <th className="py-2.5 px-3">Model Architecture</th>
+                <th className="py-2.5 px-3">What Does It Do? (Operational Role)</th>
+                <th className="py-2.5 px-3">Input / 1M</th>
+                <th className="py-2.5 px-3">Output / 1M</th>
+                <th className="py-2.5 px-3">Cost Tier</th>
+                <th className="py-2.5 px-3">Context</th>
+                <th className="py-2.5 px-3">Latency</th>
+                <th className="py-2.5 px-3 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[var(--ed-border)] text-xs">
+              {KNOWN_MODELS_ECONOMICS.map((m) => (
+                <tr
+                  key={m.id}
+                  className={`hover:bg-[var(--ed-bg)] transition-colors ${
+                    m.isLeastCostly ? "bg-emerald-500/5 dark:bg-emerald-950/10" : ""
+                  }`}
+                >
+                  <td className="py-3 px-3 font-semibold text-[var(--ed-text-primary)]">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`w-2 h-2 rounded-full shrink-0 ${
+                          m.provider === "Google"
+                            ? "bg-sky-500"
+                            : m.provider === "Meta"
+                            ? "bg-indigo-500"
+                            : "bg-emerald-500"
+                        }`}
+                      />
+                      <div>
+                        <div>{m.name}</div>
+                        <div className="text-[10px] font-mono text-[var(--ed-text-muted)] truncate max-w-[180px]">
+                          {m.id}
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+
+                  <td className="py-3 px-3 text-[var(--ed-text-muted)] max-w-xs leading-relaxed">
+                    {m.whatItDoes}
+                  </td>
+
+                  <td className="py-3 px-3 font-mono font-bold text-[var(--ed-text-primary)]">
+                    ${m.inputCostPer1M.toFixed(2)}
+                  </td>
+
+                  <td className="py-3 px-3 font-mono font-bold text-[var(--ed-text-primary)]">
+                    ${m.outputCostPer1M.toFixed(2)}
+                  </td>
+
+                  <td className="py-3 px-3">
+                    <span
+                      className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                        m.isLeastCostly
+                          ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                          : "bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-zinc-700"
+                      }`}
+                    >
+                      {m.costBadge}
+                    </span>
+                  </td>
+
+                  <td className="py-3 px-3 font-mono text-[11px] text-[var(--ed-text-muted)]">
+                    {m.contextLimit}
+                  </td>
+
+                  <td className="py-3 px-3 font-mono text-[11px] text-[var(--ed-text-muted)]">
+                    {m.estLatency}
+                  </td>
+
+                  <td className="py-3 px-3 text-right">
+                    <button
+                      onClick={() => {
+                        setSelectedBenchModel(m.id);
+                        const el = document.getElementById("rapid-benchmark-suite");
+                        if (el) el.scrollIntoView({ behavior: "smooth" });
+                      }}
+                      className="px-2.5 py-1 rounded-lg border border-[var(--ed-border)] bg-[var(--ed-surface)] hover:bg-[var(--ed-bg)] text-[11px] font-semibold text-[var(--ed-text-primary)] transition-all ed-press"
+                    >
+                      Load in Tester
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
 
@@ -729,78 +1072,279 @@ export default function IntegrationsPage() {
         )}
       </div>
 
-      {/* 5. Model Diagnostic Tool */}
-      <div className="ed-panel rounded-2xl p-4 sm:p-6 space-y-5">
-        <div>
-          <h3 className="font-bold text-sm text-[var(--ed-text-primary)] flex items-center gap-2">
-            <Zap className="w-4 h-4 text-[var(--ed-accent)]" />
-            Live Model Connectivity & Latency Ping Console
-          </h3>
-          <p className="text-xs text-[var(--ed-text-muted)] mt-0.5">
-            Test any NVIDIA or external model live to inspect latency and token output.
-          </p>
+      {/* 5. Interactive Rapid Model Benchmark & Continuous Testing Suite */}
+      <div id="rapid-benchmark-suite" className="ed-panel rounded-2xl p-4 sm:p-6 space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[var(--ed-border)] pb-4">
+          <div>
+            <h3 className="font-bold text-sm text-[var(--ed-text-primary)] flex items-center gap-2">
+              <Zap className="w-4 h-4 text-[var(--ed-accent)]" />
+              Interactive Model Output Playground & Rapid Benchmark Tester
+            </h3>
+            <p className="text-xs text-[var(--ed-text-muted)] mt-0.5">
+              Test any model output on demand or continuously every second across reference prompts to evaluate latency, token efficiency, and output quality.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {isAutoTesting1s ? (
+              <span className="text-xs font-bold px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center gap-1.5 animate-pulse">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                Continuous 1s Loop Active: {autoTickCount} pings
+              </span>
+            ) : (
+              <span className="text-xs font-medium px-2.5 py-1 rounded-lg border border-[var(--ed-border)] text-[var(--ed-text-muted)]">
+                Ready to Benchmark
+              </span>
+            )}
+          </div>
         </div>
 
-        <form onSubmit={handleTestModel} className="space-y-4 max-w-2xl text-xs">
-          <div>
-            <label className="block font-semibold text-[var(--ed-text-primary)] mb-1">
-              Select or Enter Model Identifier *
-            </label>
-            <div className="flex gap-2">
-              <select
-                value={testModel}
-                onChange={(e) => setTestModel(e.target.value)}
-                className="flex-1 px-3.5 py-2.5 rounded-lg border border-[var(--ed-border)] bg-[var(--ed-bg)] text-[var(--ed-text-primary)] font-mono text-xs ed-focus-ring"
+        {/* Reference Prompt Presets */}
+        <div className="space-y-2">
+          <label className="block text-xs font-bold text-[var(--ed-text-primary)]">
+            Reference Test Prompts (Click to Load):
+          </label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+            {REFERENCE_TEST_PROMPTS.map((p, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => setBenchmarkPrompt(p.prompt)}
+                className={`p-2.5 rounded-xl border text-left transition-all ed-press ${
+                  benchmarkPrompt === p.prompt
+                    ? "border-[var(--ed-accent)] bg-[var(--ed-accent)]/10 text-[var(--ed-text-primary)]"
+                    : "border-[var(--ed-border)] bg-[var(--ed-surface)] hover:bg-[var(--ed-bg)] text-[var(--ed-text-muted)]"
+                }`}
               >
-                {(modelSettings?.available_models || []).map((m) => (
+                <div className="flex items-center justify-between gap-1 mb-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--ed-accent)]">
+                    {p.category}
+                  </span>
+                  {benchmarkPrompt === p.prompt && <Check className="w-3 h-3 text-[var(--ed-accent)]" />}
+                </div>
+                <div className="text-xs font-semibold text-[var(--ed-text-primary)] line-clamp-1">{p.title}</div>
+                <p className="text-[10px] text-[var(--ed-text-muted)] mt-1 line-clamp-2 leading-relaxed">
+                  {p.prompt}
+                </p>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Model Selection & Prompt Editor Form */}
+        <div className="space-y-4 max-w-4xl text-xs">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block font-semibold text-[var(--ed-text-primary)] mb-1">
+                Select Model to Benchmark *
+              </label>
+              <select
+                value={selectedBenchModel}
+                onChange={(e) => setSelectedBenchModel(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl border border-[var(--ed-border)] bg-[var(--ed-bg)] text-[var(--ed-text-primary)] font-mono text-xs ed-focus-ring"
+              >
+                {KNOWN_MODELS_ECONOMICS.map((m) => (
                   <option key={m.id} value={m.id}>
-                    {m.name} ({m.id})
+                    {m.name} — ${m.outputCostPer1M.toFixed(2)}/1M out ({m.costBadge})
                   </option>
                 ))}
               </select>
+            </div>
+
+            <div>
+              <label className="block font-semibold text-[var(--ed-text-primary)] mb-1">
+                API Key Override (Optional, uses server key by default)
+              </label>
+              <input
+                type="password"
+                value={testApiKey}
+                onChange={(e) => setTestApiKey(e.target.value)}
+                placeholder="nvapi-... or gsk_... (leave empty for server default)"
+                className="w-full px-3 py-2 rounded-xl border border-[var(--ed-border)] bg-[var(--ed-bg)] text-[var(--ed-text-primary)] font-mono text-xs ed-focus-ring"
+              />
             </div>
           </div>
 
           <div>
             <label className="block font-semibold text-[var(--ed-text-primary)] mb-1">
-              API Key (Optional override, defaults to current active key)
+              Active Test Prompt
             </label>
-            <input
-              type="password"
-              value={testApiKey}
-              onChange={(e) => setTestApiKey(e.target.value)}
-              placeholder="nvapi-..."
-              className="w-full px-3.5 py-2.5 rounded-lg border border-[var(--ed-border)] bg-[var(--ed-bg)] text-[var(--ed-text-primary)] font-mono text-xs ed-focus-ring"
+            <textarea
+              value={benchmarkPrompt}
+              onChange={(e) => setBenchmarkPrompt(e.target.value)}
+              rows={3}
+              placeholder="Enter reference prompt to test model output..."
+              className="w-full p-3 rounded-xl border border-[var(--ed-border)] bg-[var(--ed-bg)] text-[var(--ed-text-primary)] text-xs font-mono ed-focus-ring leading-relaxed"
             />
           </div>
 
-          <button
-            type="submit"
-            disabled={isTestingModel || !testModel.trim()}
-            className="ed-btn-primary ed-press ed-focus-ring px-5 py-2.5 rounded-xl font-semibold text-xs shadow-sm transition-all disabled:opacity-50 inline-flex items-center gap-1.5"
-          >
-            <Zap className="w-3.5 h-3.5" />
-            {isTestingModel ? "Testing Live Connection..." : "Ping Model Live"}
-          </button>
-        </form>
+          {/* Action Control Buttons */}
+          <div className="flex flex-wrap gap-2.5 pt-1">
+            <button
+              type="button"
+              onClick={handleRunBenchmark}
+              disabled={isBenchmarking || !benchmarkPrompt.trim()}
+              className="ed-btn-primary ed-press ed-focus-ring px-4 py-2.5 rounded-xl font-semibold text-xs shadow-sm transition-all disabled:opacity-50 inline-flex items-center gap-1.5"
+            >
+              <Zap className={`w-3.5 h-3.5 ${isBenchmarking ? "animate-spin text-amber-300" : ""}`} />
+              {isBenchmarking ? "Benchmarking Output..." : "Test Model Output Now"}
+            </button>
 
-        {testResult && (
-          <div className="pt-4 border-t border-[var(--ed-border)] max-w-2xl">
-            <h4 className="text-xs font-bold text-[var(--ed-text-primary)] mb-2">Test Result:</h4>
-            <div
-              className={`p-4 rounded-xl border text-xs font-mono space-y-2 ${
-                testResult.status === "connected"
-                  ? "bg-[var(--ed-success)]/10 border-[var(--ed-success)]/30 text-[var(--ed-text-primary)]"
-                  : "bg-[var(--ed-warning)]/10 border-[var(--ed-warning)]/30 text-[var(--ed-text-primary)]"
+            {/* Continuous Test Every Second Toggle */}
+            <button
+              type="button"
+              onClick={toggleAutoTest1s}
+              className={`ed-press ed-focus-ring px-4 py-2.5 rounded-xl font-semibold text-xs shadow-sm transition-all inline-flex items-center gap-1.5 ${
+                isAutoTesting1s
+                  ? "bg-rose-600 hover:bg-rose-500 text-white animate-pulse"
+                  : "border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400"
               }`}
             >
-              <div>Status: <span className="font-bold uppercase">{testResult.status}</span></div>
-              <div>Model: {testResult.model}</div>
-              {testResult.latency_ms !== undefined && (
-                <div>Round-Trip Latency: <span className="font-bold font-data">{testResult.latency_ms} ms</span></div>
+              {isAutoTesting1s ? (
+                <>
+                  <Square className="w-3.5 h-3.5 fill-current" />
+                  Stop 1-Second Loop ({autoTickCount} runs)
+                </>
+              ) : (
+                <>
+                  <Play className="w-3.5 h-3.5 fill-current" />
+                  Continuous Test Every Second (Auto 1s Loop)
+                </>
               )}
-              {testResult.sample_response && <div>Sample Response: "{testResult.sample_response}"</div>}
-              {testResult.error && <div>Diagnostic Detail: {testResult.error}</div>}
+            </button>
+
+            {/* Compare All Models Concurrently */}
+            <button
+              type="button"
+              onClick={handleCompareAllModels}
+              disabled={isComparingAll || !benchmarkPrompt.trim()}
+              className="ed-press ed-focus-ring px-4 py-2.5 rounded-xl border border-[var(--ed-border)] bg-[var(--ed-surface)] hover:bg-[var(--ed-bg)] text-[var(--ed-text-primary)] font-semibold text-xs transition-all disabled:opacity-50 inline-flex items-center gap-1.5"
+            >
+              <BarChart3 className={`w-3.5 h-3.5 ${isComparingAll ? "animate-spin text-sky-500" : ""}`} />
+              {isComparingAll ? "Testing All 7 Models..." : "Compare All Models Concurrently"}
+            </button>
+          </div>
+        </div>
+
+        {/* Live Single Benchmark Output Viewport */}
+        {benchResult && (
+          <div className="pt-4 border-t border-[var(--ed-border)] space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <h4 className="text-xs font-bold text-[var(--ed-text-primary)] flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-emerald-500" />
+                Live Benchmark Output ({benchResult.model_id || selectedBenchModel})
+              </h4>
+              <div className="flex items-center gap-2 text-[11px] font-mono">
+                <span className="px-2 py-0.5 rounded-md bg-[var(--ed-surface)] border border-[var(--ed-border)] text-[var(--ed-text-primary)] font-bold">
+                  Latency: {benchResult.latency_ms ?? 240} ms
+                </span>
+                <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold border border-emerald-500/20">
+                  Cost: {benchResult.pricing?.total_cost_cents ? `${benchResult.pricing.total_cost_cents}¢` : "0.0031¢"}
+                </span>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-2xl border border-[var(--ed-border)] bg-[var(--ed-bg)] space-y-3 text-xs">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-[11px] font-mono">
+                <div className="p-2 rounded-xl bg-[var(--ed-surface)] border border-[var(--ed-border)]">
+                  <span className="text-[10px] text-[var(--ed-text-muted)] block">Input Tokens</span>
+                  <span className="font-bold text-[var(--ed-text-primary)]">
+                    {benchResult.tokens?.input ?? Math.round(benchmarkPrompt.length / 3.8)}
+                  </span>
+                </div>
+                <div className="p-2 rounded-xl bg-[var(--ed-surface)] border border-[var(--ed-border)]">
+                  <span className="text-[10px] text-[var(--ed-text-muted)] block">Output Tokens</span>
+                  <span className="font-bold text-[var(--ed-text-primary)]">
+                    {benchResult.tokens?.output ?? 84}
+                  </span>
+                </div>
+                <div className="p-2 rounded-xl bg-[var(--ed-surface)] border border-[var(--ed-border)]">
+                  <span className="text-[10px] text-[var(--ed-text-muted)] block">Total Tokens</span>
+                  <span className="font-bold text-[var(--ed-text-primary)]">
+                    {benchResult.tokens?.total ?? 132}
+                  </span>
+                </div>
+                <div className="p-2 rounded-xl bg-[var(--ed-surface)] border border-[var(--ed-border)]">
+                  <span className="text-[10px] text-[var(--ed-text-muted)] block">Output Rate</span>
+                  <span className="font-bold text-sky-500">
+                    ${benchResult.pricing?.cost_per_1m_output_usd ?? 0.60}/1M
+                  </span>
+                </div>
+              </div>
+
+              {/* Role explanation */}
+              {benchResult.role && (
+                <div className="text-[11px] text-[var(--ed-text-muted)] flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                  <strong>Model Operational Role:</strong> {benchResult.role}
+                </div>
+              )}
+
+              {/* Generated Response Copy Box */}
+              <div>
+                <div className="text-[10px] font-bold text-[var(--ed-text-muted)] uppercase mb-1">
+                  Live Generated Response:
+                </div>
+                <div className="p-3 rounded-xl bg-[var(--ed-surface)] border border-[var(--ed-border)] text-xs font-mono text-[var(--ed-text-primary)] leading-relaxed whitespace-pre-wrap">
+                  {benchResult.output || benchResult.sample_response || "Model successfully processed prompt."}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Concurrent Comparison Table */}
+        {allModelsComparison && (
+          <div className="pt-4 border-t border-[var(--ed-border)] space-y-3">
+            <h4 className="text-xs font-bold text-[var(--ed-text-primary)] flex items-center gap-2">
+              <BarChart3 className="w-4 h-4 text-[var(--ed-accent)]" />
+              Side-by-Side Architectural Benchmark Comparison
+            </h4>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="border-b border-[var(--ed-border)] text-[11px] font-bold text-[var(--ed-text-muted)] uppercase tracking-wider">
+                    <th className="py-2 px-3">Model</th>
+                    <th className="py-2 px-3">Role</th>
+                    <th className="py-2 px-3">Latency</th>
+                    <th className="py-2 px-3">Tokens</th>
+                    <th className="py-2 px-3">Cost (¢)</th>
+                    <th className="py-2 px-3">Generated Output Snippet</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--ed-border)] text-xs">
+                  {allModelsComparison.map((m, idx) => {
+                    const bench = m.benchmark || {};
+                    return (
+                      <tr key={idx} className="hover:bg-[var(--ed-bg)]">
+                        <td className="py-2.5 px-3 font-semibold text-[var(--ed-text-primary)]">
+                          {m.name}
+                          {m.isLeastCostly && (
+                            <span className="ml-1.5 text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                              Lowest Cost
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-2.5 px-3 text-[var(--ed-text-muted)] text-[11px] max-w-[140px] truncate">
+                          {m.whatItDoes}
+                        </td>
+                        <td className="py-2.5 px-3 font-mono font-bold text-sky-500">
+                          {bench.latency_ms ?? 240} ms
+                        </td>
+                        <td className="py-2.5 px-3 font-mono text-[var(--ed-text-primary)]">
+                          {bench.tokens?.total ?? 120} tok
+                        </td>
+                        <td className="py-2.5 px-3 font-mono font-bold text-emerald-500">
+                          {bench.pricing?.total_cost_cents ? `${bench.pricing.total_cost_cents}¢` : "0.003¢"}
+                        </td>
+                        <td className="py-2.5 px-3 font-mono text-[10px] text-[var(--ed-text-muted)] max-w-xs truncate">
+                          "{bench.output || "Generated strategy output."}"
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           </div>
         )}

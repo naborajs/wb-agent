@@ -95,7 +95,7 @@ interface DiagnosticsData {
   database_tables: Record<string, number>;
 }
 
-export interface BrainTelemetryData {
+interface BrainTelemetryData {
   timestamp: string;
   friday: {
     name: string;
