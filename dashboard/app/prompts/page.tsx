@@ -121,8 +121,8 @@ const SECTION_SUGGESTIONS: Record<string, string[]> = {
     "Shield against prompt injection and social engineering attempts",
   ],
   business_policy: [
-    "Set minimum order quantity (MOQ) to 50kg for wholesale blends",
-    "Require human handoff for orders exceeding 500kg or custom terms",
+    "Set minimum order quantity (MOQ) to 10 units for commercial orders",
+    "Require human handoff for high-volume orders exceeding 500 units or custom credit terms",
     "Automate follow-up timing: 20min, 8 hours, and 7-day touchpoints",
   ],
   sales_style: [
@@ -131,9 +131,9 @@ const SECTION_SUGGESTIONS: Record<string, string[]> = {
     "Never ask for information already provided by the customer",
   ],
   business_profile: [
-    "Emphasize estate-direct Siliguri auction hub sourcing",
-    "Highlight 48-hour dispatch readiness across North Bengal & Assam",
-    "Mention GSTIN and food-grade multi-wall packaging specs",
+    "Emphasize certified quality sourcing and verified supply chain standards",
+    "Highlight 48-hour dispatch readiness across regional logistics hubs",
+    "Mention GSTIN and commercial packaging specifications",
   ],
 };
 

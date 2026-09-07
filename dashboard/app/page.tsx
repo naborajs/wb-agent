@@ -65,7 +65,7 @@ export default function DashboardOverview() {
       fetch("/api/v1/settings")
         .then((r) => (r.ok ? r.json() : null))
         .then((data) => {
-          if (data?.business_name && data.business_name !== "North Bengal Tea Co.") {
+          if (data?.business_name) {
             setBusinessName(data.business_name);
           }
           if (data?.agent_name) setAgentName(data.agent_name);

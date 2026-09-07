@@ -16,7 +16,7 @@ export default function FollowupsPage() {
     },
     {
       id: "f_2",
-      customer: "Amit Roy (Roy Tea Corner)",
+      customer: "Amit Roy (Roy Commercial Retail)",
       phone: "+919832011111",
       step: "Step 2: Value Proposition",
       scheduled_for: "Tomorrow at 11:00 AM",
@@ -25,7 +25,7 @@ export default function FollowupsPage() {
     },
     {
       id: "f_3",
-      customer: "Siliguri Food Services",
+      customer: "Metro Food Services",
       phone: "+919832099999",
       step: "Step 1: Day 0 Nudge",
       scheduled_for: "Yesterday at 3:00 PM",

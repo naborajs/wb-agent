@@ -67,7 +67,7 @@ export default function HandoffsPage() {
           </div>
           <h3 className="font-bold text-base text-[var(--ed-text-primary)]">All Conversations Autonomous</h3>
           <p className="text-xs text-[var(--ed-text-muted)] max-w-md mx-auto">
-            No active escalations in queue. The autonomous AI agent is currently managing wholesale tea inquiries within authorized pricing and discount limits.
+            No active escalations in queue. The autonomous AI agent is currently managing commercial inquiries within authorized pricing and discount limits.
           </p>
         </div>
       ) : (
