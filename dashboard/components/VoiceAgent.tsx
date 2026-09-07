@@ -333,6 +333,89 @@ export default function VoiceAgent() {
         } catch (e: any) {
           result = { success: false, error: e?.message || "Failed to communicate with EDITH over Inter-Brain Bus." };
         }
+      } else if (name === "manage_knowledge_asset" || name === "order_edith_knowledge_update") {
+        const action = (args.action || "create").toLowerCase();
+        const instruction = args.instruction || args.task || "";
+        const category = args.category || undefined;
+        const itemIdOrTitle = args.item_id_or_title || args.title || undefined;
+        const fields = args.fields || {};
+
+        setTranscripts((prev) => [
+          ...prev,
+          {
+            id: Math.random().toString(),
+            speaker: "system",
+            text: `Friday commanding EDITH to ${action.toUpperCase()} knowledge asset: "${instruction || itemIdOrTitle}"...`,
+            timestamp: new Date().toLocaleTimeString(),
+          },
+        ]);
+
+        try {
+          const res = await fetch("/api/v1/brain/voice-knowledge-action", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              action,
+              instruction,
+              category,
+              item_id_or_title: itemIdOrTitle,
+              fields,
+            }),
+          });
+          const data = await res.json();
+          result = {
+            success: data.success,
+            decision: data.decision,
+            action: data.action,
+            reasoning: data.reasoning,
+            speak_text: data.speak_text,
+            message: data.reply_text,
+          };
+
+          setTranscripts((prev) => [
+            ...prev,
+            {
+              id: Math.random().toString(),
+              speaker: "system",
+              text: `EDITH Verdict [${data.decision}]: ${data.reasoning}`,
+              timestamp: new Date().toLocaleTimeString(),
+            },
+          ]);
+
+          // Broadcast custom event so active Knowledge page re-fetches immediately
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(new CustomEvent("knowledge-hub-updated", { detail: data }));
+          }
+
+          // Differentiated audit logging for Friday vs EDITH
+          if (!data.success) {
+            recordVoiceAuditLog(
+              instruction,
+              "manage_knowledge_asset",
+              "failed",
+              { action, edith_verdict: data.decision, category },
+              data.reasoning,
+              data.suggestion || "Review commercial boundaries with operator"
+            );
+          } else {
+            recordVoiceAuditLog(
+              instruction,
+              "manage_knowledge_asset",
+              "success",
+              { action, item_id: data.item_id, title: data.title }
+            );
+          }
+        } catch (e: any) {
+          result = { success: false, error: e?.message || "Failed to execute voice knowledge action with EDITH." };
+          recordVoiceAuditLog(
+            instruction,
+            "manage_knowledge_asset",
+            "failed",
+            { error: e?.message },
+            "Inter-brain connection error",
+            "Check backend connectivity"
+          );
+        }
       } else if (name === "send_whatsapp_message") {
         const target = args.target || "customer";
         const message = args.message || "";
@@ -821,6 +904,37 @@ export default function VoiceAgent() {
                         },
                       },
                       required: ["task"],
+                    },
+                  },
+                  {
+                    name: "manage_knowledge_asset",
+                    description:
+                      "Commands partner AI brain EDITH to create, edit, pause, activate, or delete knowledge assets, volume pricing rules, catalog products, or business policies in the central Knowledge Hub (e.g. 'tell EDITH to add this in the knowledge base', 'create a new file that we can give discount to up to 20% to any of our products', 'pause Darjeeling tea', 'delete volume tier').",
+                    parameters: {
+                      type: "OBJECT",
+                      properties: {
+                        action: {
+                          type: "STRING",
+                          description:
+                            "The action to perform: 'create', 'update', 'pause', 'activate', or 'delete'.",
+                        },
+                        instruction: {
+                          type: "STRING",
+                          description:
+                            "Natural language instruction detailing the business policy, discount percentage, quantity thresholds, or product specification to create or modify.",
+                        },
+                        category: {
+                          type: "STRING",
+                          description:
+                            "Optional category: 'business_info', 'pricing_rule', 'catalog_product', 'agent_guidance', 'custom'.",
+                        },
+                        item_id_or_title: {
+                          type: "STRING",
+                          description:
+                            "Optional identifier or title of the knowledge asset to pause, activate, or delete.",
+                        },
+                      },
+                      required: ["action", "instruction"],
                     },
                   },
                   {
