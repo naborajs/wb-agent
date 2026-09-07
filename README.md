@@ -366,6 +366,7 @@ All comprehensive architectural design records, operational runbooks, API schema
   - [ADR-0012: Operator Correction Learning](docs/decisions/0012-operator-correction-learning.md)
   - [ADR-0013: Modular Prompt Versioning & Rollback](docs/decisions/0013-modular-prompt-versioning.md)
   - [ADR-0014: Auditable Commercial Quotes](docs/decisions/0014-auditable-commercial-quotes.md)
+  - [ADR-0015: Dual-Brain Bidirectional Agency, Refusal Rights & Autonomous Fallback](docs/decisions/0015-dual-brain-bidirectional-agency-and-refusal.md)
 
 ### 🛠️ Setup & Operations Runbooks
 - **[Prerequisites & System Requirements](docs/setup/01-prerequisites-and-system-requirements.md)**
