@@ -11,6 +11,7 @@ from app.api.routes import (
     brain,
     campaigns,
     conversations,
+    edith_activity,
     friday_actions,
     handoffs,
     health,
@@ -121,6 +122,7 @@ app.include_router(quotes.router, prefix=api_v1)
 app.include_router(invoices.router, prefix=api_v1)
 app.include_router(audio.router, prefix=api_v1)
 app.include_router(conversations.router, prefix=api_v1)
+app.include_router(edith_activity.router, prefix=api_v1)
 app.include_router(friday_actions.router, prefix=api_v1)
 app.include_router(products.router, prefix=api_v1)
 app.include_router(prompts.router, prefix=api_v1)
