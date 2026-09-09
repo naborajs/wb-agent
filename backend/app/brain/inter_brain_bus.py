@@ -21,6 +21,8 @@ from app.ai.types import Capability, ModelMessage, ModelRequest
 from app.config import settings
 from app.database.base import utc_now
 from app.database.models import (
+    Campaign,
+    CampaignLead,
     Conversation,
     Customer,
     InterBrainMessage,
@@ -582,6 +584,157 @@ class FridayBrain:
                 "reply": reply,
                 "consulted_edith": False,
             }
+
+        # EDITH Activity & Observability Inquiry
+        is_edith_activity = any(w in user_lower for w in [
+            "messages did edith send", "what did edith do", "edith activity",
+            "who replied", "edith sent", "edith stats", "how many did edith",
+            "edith dispatch", "who responded", "edith response"
+        ])
+        if is_edith_activity:
+            from app.services import campaign_engine
+            now = utc_now()
+            start_of_today = datetime(now.year, now.month, now.day, tzinfo=now.tzinfo)
+
+            # Messages sent today
+            sent_today_stmt = select(func.count(CampaignLead.id)).where(
+                CampaignLead.delivery_status.in_(["sent", "delivered", "replied"]),
+                CampaignLead.sent_at >= start_of_today,
+            )
+            sent_today = (await session.execute(sent_today_stmt)).scalar() or 0
+
+            # All-time sent
+            total_sent_stmt = select(func.count(CampaignLead.id)).where(
+                CampaignLead.delivery_status.in_(["sent", "delivered", "replied"]),
+            )
+            total_sent = (await session.execute(total_sent_stmt)).scalar() or 0
+
+            # Total replies & who replied
+            replies_stmt = (
+                select(CampaignLead, Lead, Campaign)
+                .outerjoin(Lead, CampaignLead.lead_id == Lead.id)
+                .outerjoin(Campaign, CampaignLead.campaign_id == Campaign.id)
+                .where(CampaignLead.delivery_status == "replied")
+                .order_by(desc(CampaignLead.replied_at))
+                .limit(5)
+            )
+            replies_res = (await session.execute(replies_stmt)).all()
+            total_replies_stmt = select(func.count(CampaignLead.id)).where(
+                CampaignLead.delivery_status == "replied"
+            )
+            total_replies = (await session.execute(total_replies_stmt)).scalar() or 0
+            response_rate = round((total_replies / total_sent * 100), 1) if total_sent > 0 else 0.0
+
+            reply_lines = []
+            for cl, lead, camp in replies_res:
+                lname = lead.name if lead else "Lead"
+                lcomp = f" ({lead.company_name})" if lead and lead.company_name else ""
+                cname = f" [{camp.name}]" if camp else ""
+                reply_lines.append(f"• **{lname}{lcomp}** — status: `{cl.delivery_status}`{cname}")
+
+            reply_details = (
+                f"\n\n**Recent Inbound Replies:**\n" + "\n".join(reply_lines)
+                if reply_lines
+                else "\n\nNo inbound customer replies recorded yet."
+            )
+
+            reply = (
+                f"Here is EDITH's real-time outreach & dispatch telemetry (sourced directly from real CRM records):\n\n"
+                f"• **Messages Dispatched Today:** {sent_today}\n"
+                f"• **All-Time Dispatched:** {total_sent} messages\n"
+                f"• **Total Replies Received:** {total_replies}\n"
+                f"• **Aggregate Response Rate:** {response_rate}%"
+                f"{reply_details}\n\n"
+                f"Every number is verified against actual lead records in our database. Would you like me to inspect a specific campaign?"
+            )
+            return {
+                "speaker": "Friday",
+                "model": "gemini-3.1-flash-live-preview",
+                "reply": reply,
+                "consulted_edith": True,
+            }
+
+        # Friday Action / Button Inquiries & Operations
+        is_action_inquiry = any(w in user_lower for w in [
+            "what does button", "what does the button", "what actions can you",
+            "list actions", "what buttons", "explain action", "explain button",
+            "what does pause campaign do", "what does launch campaign do",
+            "what does resume campaign do", "what does create campaign do"
+        ])
+        if is_action_inquiry:
+            from app.services import friday_actions
+            matched_action = None
+            for act_name in friday_actions.FRIDAY_ACTION_REGISTRY.keys():
+                if act_name.replace("_", " ") in user_lower or act_name in user_lower:
+                    matched_action = act_name
+                    break
+
+            if matched_action:
+                info = friday_actions.FRIDAY_ACTION_REGISTRY[matched_action]
+                reply = (
+                    f"Here is what the **{matched_action.replace('_', ' ').title()}** operation does:\n\n"
+                    f"• **Description:** {info['description']}\n"
+                    f"• **System Effect:** {info['effect']}\n"
+                    f"• **Required Parameters:** {', '.join([f'`{k}` ({v})' for k, v in info['params'].items()])}\n\n"
+                    f"I have direct operational access to invoke this action on your command!"
+                )
+            else:
+                actions = friday_actions.list_all_actions()
+                lines = [f"• **`{a['action']}`**: {a['description']}" for a in actions]
+                reply = (
+                    f"I have full operational access to execute these UI actions on your behalf:\n\n"
+                    + "\n".join(lines) +
+                    f"\n\nYou can ask me what any specific action does, or tell me to run it directly (e.g. 'pause campaign <id>')."
+                )
+            return {
+                "speaker": "Friday",
+                "model": "gemini-3.1-flash-live-preview",
+                "reply": reply,
+                "consulted_edith": False,
+            }
+
+        # Operational Command Execution (pause/resume campaign, safe mode)
+        is_op_command = any(user_lower.startswith(p) for p in [
+            "pause campaign", "resume campaign", "toggle safe mode", "launch campaign"
+        ])
+        if is_op_command:
+            from app.services import friday_actions
+            action_name = ""
+            params: Dict[str, Any] = {}
+            if "pause campaign" in user_lower:
+                action_name = "pause_campaign"
+                cid_match = re.search(r"pause campaign\s+([a-zA-Z0-9_\-]+)", user_lower)
+                if cid_match:
+                    target = cid_match.group(1).strip()
+                    c_stmt = select(Campaign).where(or_(Campaign.id == target, Campaign.name.ilike(f"%{target}%")))
+                    c_found = (await session.execute(c_stmt)).scalar_one_or_none()
+                    params["campaign_id"] = c_found.id if c_found else target
+            elif "resume campaign" in user_lower:
+                action_name = "resume_campaign"
+                cid_match = re.search(r"resume campaign\s+([a-zA-Z0-9_\-]+)", user_lower)
+                if cid_match:
+                    target = cid_match.group(1).strip()
+                    c_stmt = select(Campaign).where(or_(Campaign.id == target, Campaign.name.ilike(f"%{target}%")))
+                    c_found = (await session.execute(c_stmt)).scalar_one_or_none()
+                    params["campaign_id"] = c_found.id if c_found else target
+            elif "toggle safe mode" in user_lower:
+                action_name = "toggle_safe_mode"
+                params["enabled"] = "on" in user_lower or "enable" in user_lower or "true" in user_lower
+
+            if action_name and params:
+                res = await friday_actions.execute_action(
+                    session=session,
+                    org_id=org_id,
+                    action_name=action_name,
+                    params=params,
+                )
+                return {
+                    "speaker": "Friday",
+                    "model": "gemini-3.1-flash-live-preview",
+                    "reply": res.get("message", "Action executed."),
+                    "consulted_edith": False,
+                    "action_result": res,
+                }
 
         # Collaborative Deliberation with EDITH
         is_deliberation = any(w in user_lower for w in [
