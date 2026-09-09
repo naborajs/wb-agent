@@ -593,60 +593,68 @@ class FridayBrain:
         ])
         if is_edith_activity:
             from app.services import campaign_engine
-            now = utc_now()
-            start_of_today = datetime(now.year, now.month, now.day, tzinfo=now.tzinfo)
+            try:
+                now = utc_now()
+                start_of_today = datetime(now.year, now.month, now.day, tzinfo=now.tzinfo)
 
-            # Messages sent today
-            sent_today_stmt = select(func.count(CampaignLead.id)).where(
-                CampaignLead.delivery_status.in_(["sent", "delivered", "replied"]),
-                CampaignLead.sent_at >= start_of_today,
-            )
-            sent_today = (await session.execute(sent_today_stmt)).scalar() or 0
+                # Messages sent today
+                sent_today_stmt = select(func.count(CampaignLead.id)).where(
+                    CampaignLead.delivery_status.in_(["sent", "delivered", "replied"]),
+                    CampaignLead.sent_at >= start_of_today,
+                )
+                sent_today = (await session.execute(sent_today_stmt)).scalar() or 0
 
-            # All-time sent
-            total_sent_stmt = select(func.count(CampaignLead.id)).where(
-                CampaignLead.delivery_status.in_(["sent", "delivered", "replied"]),
-            )
-            total_sent = (await session.execute(total_sent_stmt)).scalar() or 0
+                # All-time sent
+                total_sent_stmt = select(func.count(CampaignLead.id)).where(
+                    CampaignLead.delivery_status.in_(["sent", "delivered", "replied"]),
+                )
+                total_sent = (await session.execute(total_sent_stmt)).scalar() or 0
 
-            # Total replies & who replied
-            replies_stmt = (
-                select(CampaignLead, Lead, Campaign)
-                .outerjoin(Lead, CampaignLead.lead_id == Lead.id)
-                .outerjoin(Campaign, CampaignLead.campaign_id == Campaign.id)
-                .where(CampaignLead.delivery_status == "replied")
-                .order_by(desc(CampaignLead.replied_at))
-                .limit(5)
-            )
-            replies_res = (await session.execute(replies_stmt)).all()
-            total_replies_stmt = select(func.count(CampaignLead.id)).where(
-                CampaignLead.delivery_status == "replied"
-            )
-            total_replies = (await session.execute(total_replies_stmt)).scalar() or 0
-            response_rate = round((total_replies / total_sent * 100), 1) if total_sent > 0 else 0.0
+                # Total replies & who replied
+                replies_stmt = (
+                    select(CampaignLead, Lead, Campaign)
+                    .outerjoin(Lead, CampaignLead.lead_id == Lead.id)
+                    .outerjoin(Campaign, CampaignLead.campaign_id == Campaign.id)
+                    .where(CampaignLead.delivery_status == "replied")
+                    .order_by(desc(CampaignLead.replied_at))
+                    .limit(5)
+                )
+                replies_res = (await session.execute(replies_stmt)).all()
+                total_replies_stmt = select(func.count(CampaignLead.id)).where(
+                    CampaignLead.delivery_status == "replied"
+                )
+                total_replies = (await session.execute(total_replies_stmt)).scalar() or 0
+                response_rate = round((total_replies / total_sent * 100), 1) if total_sent > 0 else 0.0
 
-            reply_lines = []
-            for cl, lead, camp in replies_res:
-                lname = lead.name if lead else "Lead"
-                lcomp = f" ({lead.company_name})" if lead and lead.company_name else ""
-                cname = f" [{camp.name}]" if camp else ""
-                reply_lines.append(f"• **{lname}{lcomp}** — status: `{cl.delivery_status}`{cname}")
+                reply_lines = []
+                for cl, lead, camp in replies_res:
+                    lname = lead.name if lead else "Lead"
+                    lcomp = f" ({lead.company_name})" if lead and lead.company_name else ""
+                    cname = f" [{camp.name}]" if camp else ""
+                    reply_lines.append(f"• **{lname}{lcomp}** — status: `{cl.delivery_status}`{cname}")
 
-            reply_details = (
-                f"\n\n**Recent Inbound Replies:**\n" + "\n".join(reply_lines)
-                if reply_lines
-                else "\n\nNo inbound customer replies recorded yet."
-            )
+                reply_details = (
+                    f"\n\n**Recent Inbound Replies:**\n" + "\n".join(reply_lines)
+                    if reply_lines
+                    else "\n\nNo inbound customer replies recorded yet."
+                )
 
-            reply = (
-                f"Here is EDITH's real-time outreach & dispatch telemetry (sourced directly from real CRM records):\n\n"
-                f"• **Messages Dispatched Today:** {sent_today}\n"
-                f"• **All-Time Dispatched:** {total_sent} messages\n"
-                f"• **Total Replies Received:** {total_replies}\n"
-                f"• **Aggregate Response Rate:** {response_rate}%"
-                f"{reply_details}\n\n"
-                f"Every number is verified against actual lead records in our database. Would you like me to inspect a specific campaign?"
-            )
+                reply = (
+                    f"Here is EDITH's real-time outreach & dispatch telemetry (sourced directly from real CRM records):\n\n"
+                    f"• **Messages Dispatched Today:** {sent_today}\n"
+                    f"• **All-Time Dispatched:** {total_sent} messages\n"
+                    f"• **Total Replies Received:** {total_replies}\n"
+                    f"• **Aggregate Response Rate:** {response_rate}%"
+                    f"{reply_details}\n\n"
+                    f"Every number is verified against actual lead records in our database. Would you like me to inspect a specific campaign?"
+                )
+            except Exception as e:
+                logger.error(f"[Friday Chat] Error querying EDITH telemetry: {e}")
+                reply = (
+                    "I am currently unable to query live outreach records from the database. "
+                    "However, our automated anti-ban protection remains active with jitter pacing (25s–45s) across all campaigns."
+                )
+
             return {
                 "speaker": "Friday",
                 "model": "gemini-3.1-flash-live-preview",
