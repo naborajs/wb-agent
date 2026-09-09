@@ -458,10 +458,10 @@ async def log_campaign_notification(
 def _get_segment_to_company_types() -> Dict[str, List[str]]:
     """Maps human-readable segment labels to lists of company_type values."""
     return {
-        "B2B Commercial Accounts": ["Cafe", "Café", "Restaurant", "Hotel", "Catering", "Bakery", "Food Service"],
-        "Enterprise & Corporate": ["Corporate", "Enterprise", "MNC", "Conglomerate"],
-        "Distributors & Retail": ["Distributor", "Retailer", "Wholesale", "Retail", "Supermarket"],
-        "Specialty & Boutique": ["Boutique", "Specialty", "Artisan", "Premium"],
+        "B2B Commercial Accounts": ["Cafe", "Café", "Restaurant", "Hotel", "Catering", "Bakery", "Food Service", "B2B Commercial Accounts", "Commercial"],
+        "Enterprise & Corporate": ["Corporate", "Enterprise", "MNC", "Conglomerate", "Enterprise & Corporate"],
+        "Distributors & Retail": ["Distributor", "Retailer", "Wholesale", "Retail", "Supermarket", "Distributors & Retail"],
+        "Specialty & Boutique": ["Boutique", "Specialty", "Artisan", "Premium", "Specialty & Boutique"],
     }
 
 
