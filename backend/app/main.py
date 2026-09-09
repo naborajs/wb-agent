@@ -9,6 +9,7 @@ from app.api.routes import (
     audio,
     auth,
     brain,
+    campaigns,
     conversations,
     handoffs,
     health,
@@ -113,6 +114,7 @@ api_v1 = settings.API_V1_STR
 app.include_router(health.router, prefix=api_v1)
 app.include_router(auth.router, prefix=api_v1)
 app.include_router(leads.router, prefix=api_v1)
+app.include_router(campaigns.router, prefix=api_v1)
 app.include_router(orders.router, prefix=api_v1)
 app.include_router(quotes.router, prefix=api_v1)
 app.include_router(invoices.router, prefix=api_v1)
