@@ -543,3 +543,120 @@ async def get_system_diagnostics(session: AsyncSession = Depends(get_db)):
         session=session,
         org_id=settings.DEFAULT_ORG_ID,
     )
+
+
+# ---------------------------------------------------------------------------
+# Chat-Driven Agentic Campaign Creation (Section 6)
+# ---------------------------------------------------------------------------
+
+class CampaignDraftLaunchRequest(BaseModel):
+    draft: Dict[str, Any] = Field(..., description="The validated campaign draft spec")
+    launch: bool = Field(True, description="Whether to enroll leads and launch immediately")
+
+
+@router.post("/campaign-draft", summary="Draft a campaign via Friday and validate with EDITH")
+async def draft_campaign(
+    payload: Dict[str, Any],
+    session: AsyncSession = Depends(get_db),
+):
+    """
+    Agentic campaign drafting flow:
+    1. Operator describes campaign intent in natural language.
+    2. Friday drafts a structured campaign specification.
+    3. Friday submits draft to EDITH over the Inter-Brain Bus for guardrail validation.
+    4. Returns structured draft + EDITH verdict + reasoning + live matching lead count.
+    """
+    from app.services import campaign_drafting
+    import uuid
+
+    message = payload.get("message", "")
+    if not message or len(message.strip()) < 3:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Please provide a descriptive prompt for the campaign you wish to create.",
+        )
+
+    history = payload.get("history", [])
+
+    try:
+        # Step 1: Friday drafts campaign specification from prompt
+        draft = await campaign_drafting.draft_campaign_from_text(
+            session=session,
+            org_id=settings.DEFAULT_ORG_ID,
+            operator_message=message,
+            history=history,
+        )
+
+        # Step 2: EDITH validates against commercial & operational guardrails
+        validation = await campaign_drafting.validate_draft_with_edith(
+            session=session,
+            org_id=settings.DEFAULT_ORG_ID,
+            draft=draft,
+        )
+
+        draft_id = f"draft_{uuid.uuid4().hex[:8]}"
+
+        friday_explanation = (
+            f"I have drafted campaign '{draft['name']}' targeting segment '{draft['target_segment']}' "
+            f"with a daily volume of {draft['daily_limit']} messages. "
+            f"EDITH has completed validation: verdict is **{validation['verdict']}**."
+        )
+
+        return {
+            "draft_id": draft_id,
+            "draft": draft,
+            "validation": validation,
+            "friday_explanation": friday_explanation,
+            "edith_verdict": validation["verdict"],
+            "edith_reasoning": validation["reasoning"],
+            "matched_lead_count": validation["matched_lead_count"],
+            "ready_to_launch": validation["is_valid"],
+        }
+    except Exception as e:
+        logger.error(f"[Brain] Error drafting campaign: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to draft campaign: {str(e)}",
+        )
+
+
+@router.post("/campaign-draft/launch", summary="Approve and launch a drafted campaign")
+async def launch_drafted_campaign(
+    payload: CampaignDraftLaunchRequest,
+    session: AsyncSession = Depends(get_db),
+):
+    """
+    Approves and launches a campaign drafted through the Friday chat flow.
+    Creates Campaign row and enrolls matching leads as CampaignLead records.
+    """
+    from app.services import campaign_drafting
+
+    draft = payload.draft
+    if not draft or "name" not in draft or "initial_message_template" not in draft:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid draft payload: missing required fields 'name' or 'initial_message_template'.",
+        )
+
+    success, message, campaign = await campaign_drafting.create_and_launch_from_draft(
+        session=session,
+        org_id=settings.DEFAULT_ORG_ID,
+        draft=draft,
+        launch=payload.launch,
+    )
+
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=message,
+        )
+
+    return {
+        "success": True,
+        "message": message,
+        "campaign_id": campaign.id if campaign else None,
+        "campaign_name": campaign.name if campaign else None,
+        "status": campaign.status if campaign else "draft",
+        "total_leads": campaign.total_leads if campaign else 0,
+    }
+
