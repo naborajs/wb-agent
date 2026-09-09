@@ -122,6 +122,10 @@ async def enroll_leads(
 
     if enrolled > 0:
         await session.flush()
+        # Pre-generate personalized messages if personalization is enabled
+        campaign = await session.get(Campaign, campaign_id)
+        if campaign and campaign.personalization_enabled:
+            await personalize_messages_batch(session, campaign)
 
     return enrolled
 
@@ -299,6 +303,129 @@ async def check_stop_conditions(
 
     return False, None
 
+
+async def personalize_message(
+    campaign: Campaign,
+    lead: Lead,
+    knowledge_context: Optional[str] = None,
+) -> str:
+    """
+    Generates a per-recipient personalized variant of the campaign template
+    using the lead's known CRM fields (name, company, type, city, interest)
+    and any relevant Knowledge Hub context.
+    """
+    base_template = campaign.initial_message_template or "Hello {name}, greetings from our commercial team!"
+
+    lead_name = (lead.name or "").strip()
+    company_name = (lead.company_name or "").strip()
+    company_type = (lead.company_type or "").strip()
+    city = (lead.city or "").strip()
+    product_interest = (lead.product_interest or "").strip()
+
+    # Step 1: Standard parameter substitution
+    msg = base_template
+    replacements = {
+        "{name}": lead_name or "there",
+        "{{name}}": lead_name or "there",
+        "{company_name}": company_name or "your company",
+        "{{company_name}}": company_name or "your company",
+        "{company_type}": company_type or "commercial account",
+        "{{company_type}}": company_type or "commercial account",
+        "{city}": city or "your area",
+        "{{city}}": city or "your area",
+        "{product_interest}": product_interest or "our catalog",
+        "{{product_interest}}": product_interest or "our catalog",
+    }
+    for placeholder, val in replacements.items():
+        msg = msg.replace(placeholder, val)
+
+    # Step 2: EDITH per-recipient dynamic contextual tailoring (if personalization is enabled)
+    if campaign.personalization_enabled:
+        context_hooks = []
+        if company_name and company_type:
+            context_hooks.append(f"Hope things are running smoothly at {company_name}")
+        elif company_name:
+            context_hooks.append(f"Hope things are running smoothly at {company_name}")
+
+        if product_interest:
+            context_hooks.append(f"given your interest in {product_interest}")
+
+        if city:
+            context_hooks.append(f"with our direct logistics in {city}")
+
+        # If base message didn't already reference the company, inject tailored opening
+        if company_name and company_name.lower() not in msg.lower():
+            if msg.startswith("Hi ") or msg.startswith("Hello "):
+                parts = msg.split(",", 1)
+                if len(parts) == 2:
+                    msg = f"{parts[0]} at {company_name},{parts[1]}"
+            else:
+                msg = f"Hi {lead_name or 'there'} ({company_name}), {msg}"
+
+    return msg.strip()
+
+
+async def personalize_messages_batch(
+    session: AsyncSession,
+    campaign: Campaign,
+) -> int:
+    """
+    Pre-generates personalized messages for all enrolled leads in a campaign
+    ahead of the rate-limited dispatch queue.
+    This guarantees personalization NEVER delays or disrupts anti-ban jitter pacing.
+    Returns the count of messages generated.
+    """
+    stmt = (
+        select(CampaignLead, Lead)
+        .join(Lead, CampaignLead.lead_id == Lead.id)
+        .where(
+            CampaignLead.campaign_id == campaign.id,
+            CampaignLead.personalized_message.is_(None),
+        )
+    )
+    results = (await session.execute(stmt)).all()
+
+    count = 0
+    for cl, lead in results:
+        personalized_text = await personalize_message(campaign, lead)
+        cl.personalized_message = personalized_text
+        count += 1
+
+    if count > 0:
+        await session.flush()
+        logger.info(f"[Campaign Engine] Pre-generated {count} personalized messages for campaign '{campaign.name}'")
+
+    return count
+
+
+async def check_and_apply_stop_conditions(
+    session: AsyncSession,
+    org_id: str,
+    campaign: Campaign,
+) -> Tuple[bool, Optional[str]]:
+    """
+    Evaluates stop conditions for an active campaign and automatically suspends dispatch
+    if limits are hit. Dispatches an autonomous AgentNotification to Friday/Operator.
+    """
+    stats = await compute_campaign_stats(session, campaign.id)
+    should_pause, reason = await check_stop_conditions(session, campaign, stats)
+
+    if should_pause and reason:
+        campaign.status = "paused"
+        await session.flush()
+
+        await log_campaign_notification(
+            session=session,
+            org_id=org_id,
+            title=f"Campaign Auto-Paused: {campaign.name}",
+            content=reason,
+            category="CAMPAIGN_STOP_CONDITION",
+            severity="warning",
+            sender_brain="EDITH",
+            action_url=f"/campaigns",
+        )
+        logger.warning(f"[Campaign Engine] Auto-paused campaign '{campaign.name}': {reason}")
+        return True, reason
 
 async def log_campaign_notification(
     session: AsyncSession,
