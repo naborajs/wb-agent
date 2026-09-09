@@ -387,9 +387,14 @@ async def personalize_messages_batch(
 
     count = 0
     for cl, lead in results:
-        personalized_text = await personalize_message(campaign, lead)
-        cl.personalized_message = personalized_text
-        count += 1
+        try:
+            personalized_text = await personalize_message(campaign, lead)
+            cl.personalized_message = personalized_text
+            count += 1
+        except Exception as e:
+            logger.warning(f"[Campaign Engine] Personalization failed for lead {cl.lead_id}: {e}. Falling back to base template.")
+            cl.personalized_message = campaign.initial_message_template or "Hello, greetings from our commercial team!"
+            count += 1
 
     if count > 0:
         await session.flush()
