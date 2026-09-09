@@ -48,4 +48,40 @@ All endpoints are versioned under `/api/v1`. Interactive OpenAPI documentation i
 - `GET /api/v1/brain/telemetry`: Real-time token usage, model telemetry, context utilization, and comparative economics.
 - `POST /api/v1/brain/benchmark-model`: Live benchmark test calculating real latency, tokens, and cost.
 - `GET /api/v1/brain/dialogues`: Chronological audit log of thoughts, requests, refusals, and debriefs across the Inter-Brain bus.
+- `POST /api/v1/brain/campaign-draft`: Natural language campaign drafting by Friday with EDITH guardrail validation and live CRM lead resolution.
+- `POST /api/v1/brain/campaign-draft/launch`: Approves and launches a drafted campaign spec.
+
+---
+
+## 9. Campaign Management & Anti-Ban Cold Outreach
+- `GET /api/v1/campaigns`: List all outreach campaigns with real-time computed stats (total leads, sent, delivered, replies, response rate) from real `CampaignLead` rows.
+- `GET /api/v1/campaigns/{id}`: Single campaign detail with lead dispatch progress.
+- `POST /api/v1/campaigns`: Creates a new campaign in draft status with scheduling windows, jitter bounds (15s–90s), stop conditions, and personalization settings.
+- `POST /api/v1/campaigns/{id}/launch`: Enrolls matching CRM leads as `CampaignLead` rows and activates dispatch. Blocks if matching leads = 0.
+- `POST /api/v1/campaigns/{id}/pause`: Suspends campaign dispatch.
+- `POST /api/v1/campaigns/{id}/resume`: Resumes suspended campaign dispatch.
+- `GET /api/v1/campaigns/{id}/leads`: Detailed per-lead dispatch roster with personalized messages and delivery receipts.
+- `GET /api/v1/campaigns/segments`: Returns distinct company types and lead counts from the database for targeting.
+- `DELETE /api/v1/campaigns/{id}`: Removes or archives campaign.
+
+---
+
+## 10. Friday Operational Action Registry
+- `GET /api/v1/friday/actions`: Returns the full registry of UI and backend operations Friday can invoke on operator command.
+- `GET /api/v1/friday/actions/{action_name}/describe`: Returns what a specific action does, its parameters, and system state modifications.
+- `POST /api/v1/friday/actions/{action_name}`: Executes an operational action with `actor: friday_agent`, logged to `AuditLog` and `AgentNotification`.
+
+---
+
+## 11. EDITH Dispatch Observability & Telemetry
+- `GET /api/v1/edith/activity/summary`: Aggregate outreach telemetry: total messages dispatched (all-time and today), distinct leads contacted, replies received, overall response rate, and active campaign counts. Sourced from real CRM records.
+- `GET /api/v1/edith/activity/campaigns/{campaign_id}`: Detailed dispatch breakdown for a single campaign with lead-by-lead timestamps.
+- `GET /api/v1/edith/activity/contacted-leads`: Paginated list of all leads contacted by EDITH with exact delivery statuses.
+
+---
+
+## 12. Chat-Driven Agentic Campaign Creation
+- `POST /api/v1/brain/campaign-draft`: Operator describes campaign intent; Friday drafts structured campaign spec (name, target segment, quota, template, scheduling, jitter, stop conditions, personalization) and EDITH evaluates against commercial and anti-ban guardrails (`ACCEPTED`, `FLAGGED`, or `DENIED` with reasoning).
+- `POST /api/v1/brain/campaign-draft/launch`: Approves and launches the validated draft into the live campaign engine.
+
 
