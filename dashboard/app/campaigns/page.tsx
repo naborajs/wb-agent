@@ -107,9 +107,17 @@ interface DraftResult {
   ready_to_launch: boolean;
 }
 
+const DEFAULT_SEGMENTS: SegmentInfo[] = [
+  { segment_value: "all", lead_count: 0, field: "all" },
+  { segment_value: "B2B Commercial Accounts", lead_count: 0, field: "company_type" },
+  { segment_value: "Enterprise & Corporate", lead_count: 0, field: "company_type" },
+  { segment_value: "Distributors & Retail", lead_count: 0, field: "company_type" },
+  { segment_value: "Specialty & Boutique", lead_count: 0, field: "company_type" },
+];
+
 export default function CampaignsPage() {
   const [campaigns, setCampaigns] = useState<CampaignItem[]>([]);
-  const [segments, setSegments] = useState<SegmentInfo[]>([]);
+  const [segments, setSegments] = useState<SegmentInfo[]>(DEFAULT_SEGMENTS);
   const [edithSummary, setEdithSummary] = useState<EdithSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -165,9 +173,8 @@ export default function CampaignsPage() {
       }
       if (sRes.ok) {
         const sData = await sRes.json();
-        setSegments(sData);
-        if (sData.length > 0 && newSegment === "all") {
-          // Keep "all" or pick first
+        if (Array.isArray(sData) && sData.length > 0) {
+          setSegments(sData);
         }
       }
       if (eRes.ok) {
