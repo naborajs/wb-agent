@@ -78,6 +78,7 @@ class WatchdogService:
         alert.resolved_at = utc_now()
         alert.resolved_by = resolved_by
         await self.session.commit()
+        logger.info(f"Watchdog alert {alert_id} ({alert.severity}: '{alert.title}') resolved by {resolved_by}")
 
         # Broadcast real-time resolution to dashboard
         try:
