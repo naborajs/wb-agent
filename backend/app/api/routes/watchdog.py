@@ -20,12 +20,13 @@ class ResolveAlertRequest(BaseModel):
 @router.get("/alerts")
 async def list_alerts(
     limit: int = Query(50, ge=1, le=200),
+    category: Optional[str] = Query(None, description="Filter by alert category"),
     org_id: str = "org_default",
     session: AsyncSession = Depends(get_db),
 ):
-    """Returns active, unresolved watchdog diagnostic alerts."""
+    """Returns active, unresolved watchdog diagnostic alerts with optional category filter."""
     service = WatchdogService(session, org_id)
-    alerts = await service.get_active_alerts(limit=limit)
+    alerts = await service.get_active_alerts(limit=limit, category=category)
     return {
         "count": len(alerts),
         "alerts": [
