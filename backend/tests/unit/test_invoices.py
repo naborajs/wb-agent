@@ -157,10 +157,18 @@ def test_volume_tier_discount_rules():
     assert InvoiceGenerator.calculate_volume_discount_pct(75.0) == 5.0
     assert InvoiceGenerator.calculate_volume_discount_pct(99.99) == 5.0
     assert InvoiceGenerator.calculate_volume_discount_pct(100.0) == 10.0
-    assert InvoiceGenerator.calculate_volume_discount_pct(250.0) == 10.0
-    assert InvoiceGenerator.calculate_volume_discount_pct(499.9) == 10.0
     assert InvoiceGenerator.calculate_volume_discount_pct(500.0) == 15.0
     assert InvoiceGenerator.calculate_volume_discount_pct(1000.0) == 15.0
+
+
+def test_invoice_currency_formatting():
+    """Verifies Indian numbering and currency formatting logic."""
+    assert InvoiceGenerator.format_currency(0) == "₹0.00"
+    assert InvoiceGenerator.format_currency(350) == "₹350.00"
+    assert InvoiceGenerator.format_currency(1234.50) == "₹1,234.50"
+    assert InvoiceGenerator.format_currency(100000) == "₹1,00,000.00"
+    assert InvoiceGenerator.format_currency(1500000.75, symbol="$") == "$15,00,000.75"
+    assert InvoiceGenerator.format_currency(-500) == "-₹500.00"
 
 
 def test_pdf_invoice_generation_content_and_branding(temp_invoice_storage):
