@@ -153,5 +153,7 @@ async def root():
     return {
         "platform": settings.PROJECT_NAME,
         "status": "online",
+        "version": app.version,
+        "environment": settings.APP_ENV,
         "documentation": f"{settings.API_V1_STR}/docs",
     }
