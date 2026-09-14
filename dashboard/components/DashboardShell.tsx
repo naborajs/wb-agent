@@ -7,8 +7,6 @@ import VoiceAgent from "./VoiceAgent";
 import {
   Inbox,
   Users,
-  Package,
-  DollarSign,
   BookOpen,
   Calendar,
   AlertTriangle,
@@ -20,8 +18,8 @@ import {
   Sun,
   Moon,
   LogOut,
-  User,
   Smartphone,
+  User,
   Cpu,
   Menu,
   X,
