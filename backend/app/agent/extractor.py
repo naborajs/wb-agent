@@ -59,7 +59,10 @@ class PassiveInformationExtractor:
                 unit = "pallets"
             facts.quantity_numeric = val
             facts.quantity_numeric_kg = val  # backward compatibility alias
-            facts.quantity = f"{int(val) if val.is_integer() else val} {unit}"
+            if unit == "kg":
+                facts.quantity = f"{int(val) if val.is_integer() else val}kg"
+            else:
+                facts.quantity = f"{int(val) if val.is_integer() else val} {unit}"
 
         # 2. Extract Frequency
         if any(w in lower for w in ["monthly", "every month", "per month", "har mahine", "mahine ka"]):
@@ -71,7 +74,7 @@ class PassiveInformationExtractor:
 
         # 3. Extract Business Type
         if any(w in lower for w in ["cafe", "café", "coffee shop"]):
-            facts.business_type = "Cafe & F&B"
+            facts.business_type = "Cafe"
         elif any(w in lower for w in ["restaurant", "hotel", "resort", "dhaba"]):
             facts.business_type = "Restaurant & Hospitality"
         elif any(w in lower for w in ["distributor", "wholesaler", "dealer", "reseller", "trader"]):
@@ -150,6 +153,8 @@ class PassiveInformationExtractor:
                 facts.budget_raw = f"₹{int(val):,}"
 
         # 9. Extract Preferences
+        if any(w in lower for w in ["strong", "kadak", "karak", "hard"]):
+            facts.preferences.append("strong_kadak")
         if any(w in lower for w in ["strong", "kadak", "karak", "hard", "premium", "top quality"]):
             facts.preferences.append("premium_grade")
         if any(w in lower for w in ["aroma", "aromatic", "khushboo", "flavor"]):
