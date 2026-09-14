@@ -37,6 +37,11 @@ class PricingService:
         """
         Calculates verified pricing, applying volume tiers and checking negotiation boundaries.
         """
+        if quantity_kg <= Decimal("0.0"):
+            raise ValueError("Requested quantity must be greater than zero.")
+        if requested_discount is not None and requested_discount < Decimal("0.0"):
+            raise ValueError("Requested discount cannot be negative.")
+
         # 1. Fetch product with variants
         stmt = (
             select(Product)
