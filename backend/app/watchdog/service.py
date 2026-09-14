@@ -51,17 +51,20 @@ class WatchdogService:
         self.session = session
         self.org_id = org_id
 
-    async def get_active_alerts(self, limit: int = 50) -> List[WatchdogAlert]:
-        """Fetches all unresolved watchdog diagnostic alerts."""
+    async def get_active_alerts(
+        self, limit: int = 50, category: Optional[str] = None
+    ) -> List[WatchdogAlert]:
+        """Fetches all unresolved watchdog diagnostic alerts with optional category filtering."""
         stmt = (
             select(WatchdogAlert)
             .where(
                 WatchdogAlert.org_id == self.org_id,
                 WatchdogAlert.is_resolved.is_(False),
             )
-            .order_by(desc(WatchdogAlert.created_at))
-            .limit(limit)
         )
+        if category:
+            stmt = stmt.where(WatchdogAlert.category == category)
+        stmt = stmt.order_by(desc(WatchdogAlert.created_at)).limit(limit)
         res = await self.session.execute(stmt)
         return list(res.scalars().all())
 
