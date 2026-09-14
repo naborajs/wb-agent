@@ -24,6 +24,17 @@ from app.schemas.agent import (
     AgentTurnResponse,
     AgentRunResponse,
 )
+from app.schemas.campaigns import (
+    CampaignCreate,
+    CampaignUpdate,
+    CampaignResponse,
+    CampaignStats,
+    CampaignLeadDetail,
+    LeadFilter,
+    SchedulingWindow,
+    StopConditions,
+    RetryConfig,
+)
 
 __all__ = [
     "BaseResponse",
@@ -48,4 +59,13 @@ __all__ = [
     "AgentTurnRequest",
     "AgentTurnResponse",
     "AgentRunResponse",
+    "CampaignCreate",
+    "CampaignUpdate",
+    "CampaignResponse",
+    "CampaignStats",
+    "CampaignLeadDetail",
+    "LeadFilter",
+    "SchedulingWindow",
+    "StopConditions",
+    "RetryConfig",
 ]
