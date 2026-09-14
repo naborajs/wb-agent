@@ -24,5 +24,7 @@ class OutboundWhatsAppResult(BaseModel):
     """Result of an outbound WhatsApp dispatch."""
     success: bool
     provider_message_id: Optional[str] = None
+    to_phone: Optional[str] = None
     error_message: Optional[str] = None
+    latency_ms: Optional[int] = None
     raw_response: Dict[str, Any] = Field(default_factory=dict)
