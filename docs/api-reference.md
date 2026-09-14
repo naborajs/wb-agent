@@ -84,4 +84,42 @@ All endpoints are versioned under `/api/v1`. Interactive OpenAPI documentation i
 - `POST /api/v1/brain/campaign-draft`: Operator describes campaign intent; Friday drafts structured campaign spec (name, target segment, quota, template, scheduling, jitter, stop conditions, personalization) and EDITH evaluates against commercial and anti-ban guardrails (`ACCEPTED`, `FLAGGED`, or `DENIED` with reasoning).
 - `POST /api/v1/brain/campaign-draft/launch`: Approves and launches the validated draft into the live campaign engine.
 
+---
+
+## 13. Pro-Forma Invoices & PDF Generation
+- `POST /api/v1/invoices/generate`: Compiles a commercial pro-forma invoice PDF deterministically with itemized pricing, discounts, taxes, and bank details.
+- `GET /api/v1/invoices/download?file={filename}`: Safely serves generated invoice PDF documents with path sanitization.
+- `POST /api/v1/invoices/quotes/{quote_id}/pdf`: Renders a pro-forma invoice PDF from an existing auditable database `Quote` record.
+- `POST /api/v1/invoices/quotes/{quote_id}/send-whatsapp`: Generates and immediately dispatches the invoice PDF to the customer's WhatsApp with an itemized breakdown and rate-lock caption.
+
+---
+
+## 14. Commercial Quotes & Lifecycle Management
+- `GET /api/v1/quotes`: Lists commercial quotes with optional filtering by `customer_id` and `status` (`draft`, `sent`, `accepted`, `expired`, `rejected`).
+- `POST /api/v1/quotes`: Creates a new auditable commercial quote with automatic pricing calculation, MOQ checks, and validity window.
+- `GET /api/v1/quotes/{id}`: Detailed quote view with line items, applied discount tiers, and customer profile.
+- `PATCH /api/v1/quotes/{id}/status`: Transitions quote status through the commercial sales lifecycle.
+
+---
+
+## 15. Autonomous Watchdog AI Supervisor & Telemetry
+- `GET /api/v1/watchdog/alerts`: Returns active, unresolved diagnostic anomalies categorized by severity (`low`, `medium`, `high`, `critical`).
+- `POST /api/v1/watchdog/alerts/{id}/resolve`: Marks a watchdog diagnostic alert as resolved with operator notes.
+- `POST /api/v1/watchdog/run-audit`: Manually triggers an immediate comprehensive diagnostic pass covering stalled conversations, unapproved discounts, and guardrail holds.
+
+---
+
+## 16. Agent Notifications & System Alerts
+- `GET /api/v1/notifications`: Paginated feed of system and agent alerts with unread counter.
+- `POST /api/v1/notifications/{id}/read`: Marks a specific notification as read.
+- `POST /api/v1/notifications/read-all`: Bulk-dismisses all unread notifications for the active organization.
+
+---
+
+## 17. Voice Agent & Speech Processing
+- `POST /api/v1/voice/session-token`: Mints ephemeral WebSocket session tokens for browser-based real-time voice streaming with Gemini Live.
+- `POST /api/v1/audio/transcribe`: Ingests inbound WhatsApp voice notes (OGG/Opus, MP3, WAV) and returns normalized text transcripts.
+- `POST /api/v1/audio/synthesize`: Synthesizes outbound audio voice responses for hands-free audio debriefs.
+
+
 
