@@ -234,6 +234,15 @@ async def test_watchdog_api_endpoints():
         assert data["count"] >= 1
         assert data["alerts"][0]["id"] == "alert_api_test_1"
 
+        # 1b. Filter alerts by category
+        res_cat = await client.get("/api/v1/watchdog/alerts?category=pricing_discrepancy")
+        assert res_cat.status_code == 200
+        assert res_cat.json()["count"] >= 1
+
+        res_none = await client.get("/api/v1/watchdog/alerts?category=non_existent_category")
+        assert res_none.status_code == 200
+        assert res_none.json()["count"] == 0
+
         # 2. System health summary
         h_res = await client.get("/api/v1/watchdog/system-health")
         assert h_res.status_code == 200
