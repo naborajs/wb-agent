@@ -24,6 +24,14 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
     PROJECT_NAME: str = "WB-Agent Platform"
 
+    @property
+    def is_production(self) -> bool:
+        return self.APP_ENV.lower() in ("production", "prod")
+
+    @property
+    def is_development(self) -> bool:
+        return self.APP_ENV.lower() in ("development", "dev", "test")
+
     # Primary Database (PostgreSQL + pgvector)
     # Allows fallback to SQLite for lightweight test environments
     DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/wb_agent"
