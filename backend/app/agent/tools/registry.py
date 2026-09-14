@@ -35,6 +35,76 @@ class ToolRegistry:
         self.knowledge_svc = KnowledgeRetrievalService(session, org_id)
         self.memory_svc = CustomerMemoryService(session, org_id)
 
+    @classmethod
+    def get_tool_definitions(cls) -> List[Dict[str, Any]]:
+        """Returns JSON schema definitions for all authorized agent tools."""
+        return [
+            {
+                "type": "function",
+                "function": {
+                    "name": "search_products",
+                    "description": "Searches verified commercial product catalog by query or category.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "query": {"type": "string", "description": "Search keyword or product name"},
+                            "category": {"type": "string", "description": "Optional category filter"},
+                        },
+                    },
+                },
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "calculate_price",
+                    "description": "Computes verified deterministic wholesale price with volume discounts and MOQ bounds.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "product_id": {"type": "string", "description": "Target product ID"},
+                            "quantity_kg": {"type": "number", "description": "Order quantity in kg or units"},
+                            "customer_segment": {"type": "string", "description": "Optional customer segment"},
+                            "requested_discount": {"type": "number", "description": "Optional requested discount percentage"},
+                        },
+                        "required": ["product_id", "quantity_kg"],
+                    },
+                },
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "search_knowledge",
+                    "description": "Searches verified company knowledge base, operational runbooks, and policies.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "query": {"type": "string", "description": "Semantic query or question"},
+                        },
+                        "required": ["query"],
+                    },
+                },
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "save_customer_memory",
+                    "description": "Stores verified customer facts, operational requirements, or preferences into long-term memory.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "customer_id": {"type": "string", "description": "Customer UUID"},
+                            "category": {"type": "string", "description": "Fact category e.g. preference, requirement"},
+                            "key": {"type": "string", "description": "Fact key identifier"},
+                            "value": {"type": "string", "description": "Fact value text"},
+                            "confidence": {"type": "number", "description": "Confidence score 0.0 to 1.0"},
+                            "verification_status": {"type": "string", "description": "Provenance verification state"},
+                        },
+                        "required": ["customer_id", "category", "key", "value"],
+                    },
+                },
+            },
+        ]
+
     async def execute(self, tool_name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
         """
         Executes a named tool, enforcing permission checks and recording audit metrics.
