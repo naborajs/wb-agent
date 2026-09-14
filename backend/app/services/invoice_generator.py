@@ -450,6 +450,8 @@ class InvoiceGenerator:
             item_grade = itm.get("grade") or itm.get("tea_grade") or defaults.get("grade") or defaults.get("tea_grade", "Standard")
 
             qty_kg = float(itm.get("quantity_kg") or itm.get("quantity") or 25.0)
+            if qty_kg <= 0.0:
+                qty_kg = 1.0
 
             # Packaging spec: default to 25kg/50kg multi-wall paper sack with food-grade liner
             pkg_spec = (
@@ -469,13 +471,15 @@ class InvoiceGenerator:
                 or itm.get("base_price_per_kg")
                 or defaults["base_price_per_kg"]
             )
+            if base_rate < 0.0:
+                base_rate = 0.0
 
             # Calculate volume discount if not explicitly provided
             explicit_disc = itm.get("discount_pct")
             if explicit_disc is not None:
-                disc_pct = float(explicit_disc)
+                disc_pct = max(0.0, min(100.0, float(explicit_disc)))
             else:
-                disc_pct = cls.calculate_volume_discount_pct(qty_kg)
+                disc_pct = max(0.0, min(100.0, cls.calculate_volume_discount_pct(qty_kg)))
 
             item_gross = Decimal(str(base_rate)) * Decimal(str(qty_kg))
             item_disc_amt = (
