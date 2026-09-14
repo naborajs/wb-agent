@@ -31,3 +31,7 @@ class AgentNotification(Base):
         Index("idx_agent_notifications_org_created", "org_id", "created_at"),
         Index("idx_agent_notifications_read", "org_id", "is_read"),
     )
+
+    def __repr__(self) -> str:
+        return f"<AgentNotification(id='{self.id}', sender='{self.sender_brain}', severity='{self.severity}', read={self.is_read}, title='{self.title}')>"
+
