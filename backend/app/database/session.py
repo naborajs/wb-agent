@@ -2,6 +2,7 @@
 Database session management, async connection pooling, and lifecycle helpers.
 """
 
+import asyncio
 from typing import AsyncGenerator
 from contextlib import asynccontextmanager
 from sqlalchemy.ext.asyncio import (
@@ -124,15 +125,36 @@ async def get_db_context() -> AsyncGenerator[AsyncSession, None]:
             await session.close()
 
 
-async def check_database_health() -> bool:
+async def check_database_health(timeout_seconds: float = 5.0) -> bool:
     """
     Executes a SELECT 1 query to verify active connectivity with the database engine.
+    Guarded by a strict timeout to prevent blocking health probes on frozen connections.
     """
-    try:
+    async def _ping() -> bool:
         engine = get_engine()
         async with engine.connect() as conn:
             result = await conn.execute(text("SELECT 1"))
             return result.scalar() == 1
+
+    try:
+        return await asyncio.wait_for(_ping(), timeout=timeout_seconds)
     except Exception as e:
         logger.error(f"Database health check failed: {e}")
         return False
+
+
+async def dispose_engine() -> None:
+    """
+    Gracefully closes and disposes the global AsyncEngine singleton and connection pool.
+    """
+    global _async_engine, _async_session_factory
+    if _async_engine is not None:
+        try:
+            await _async_engine.dispose()
+            logger.info("Database engine disposed gracefully.")
+        except Exception as e:
+            logger.warning(f"Database engine dispose warning: {e}")
+        finally:
+            _async_engine = None
+            _async_session_factory = None
+
