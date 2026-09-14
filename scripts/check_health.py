@@ -1,4 +1,4 @@
-﻿"""
+"""
 Autonomous System Health & Readiness Verification CLI.
 Runs non-destructive health checks across database, AI routing, WhatsApp provider, and background queues.
 """
@@ -15,7 +15,7 @@ from app.config import settings
 from app.database.session import check_database_health, get_db_context
 from app.whatsapp.service import WhatsAppService
 from sqlalchemy import func, select
-from app.database.models import Customer, Lead, Conversation, Job, AgentNotification
+from app.database.models import Customer, Lead, Conversation, Job, AgentNotification, Campaign, WatchdogAlert
 
 
 async def main():
@@ -39,6 +39,7 @@ async def main():
             lead_count = (await session.execute(select(func.count(Lead.id)))).scalar_one()
             cust_count = (await session.execute(select(func.count(Customer.id)))).scalar_one()
             conv_count = (await session.execute(select(func.count(Conversation.id)))).scalar_one()
+            campaign_count = (await session.execute(select(func.count(Campaign.id)))).scalar_one()
             pending_jobs = (
                 await session.execute(
                     select(func.count(Job.id)).where(Job.status == "pending")
@@ -51,12 +52,21 @@ async def main():
                     )
                 )
             ).scalar_one()
+            active_alerts = (
+                await session.execute(
+                    select(func.count(WatchdogAlert.id)).where(
+                        WatchdogAlert.is_resolved == False
+                    )
+                )
+            ).scalar_one()
 
             print(f"  -> Total Leads: {lead_count}")
             print(f"  -> Total Customers: {cust_count}")
             print(f"  -> Active Conversations: {conv_count}")
+            print(f"  -> Total Campaigns: {campaign_count}")
             print(f"  -> Pending Background Jobs: {pending_jobs}")
             print(f"  -> Unread Agent Notifications: {unread_notifs}")
+            print(f"  -> Active Watchdog Alerts: {active_alerts}")
     except Exception as e:
         print(f"  -> Database metrics query notice: {e}")
 
