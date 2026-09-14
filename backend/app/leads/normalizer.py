@@ -52,9 +52,17 @@ def normalize_lead_data(raw_data: Dict[str, Any], default_country_code: str = "+
     # 3. Email normalization
     email = normalized.get("email")
     if email and isinstance(email, str):
-        normalized["email"] = email.strip().lower()
+        normalized["email"] = email.strip().lower() or None
+    elif email == "":
+        normalized["email"] = None
 
-    # 4. Defaults
+    # 4. Company normalization
+    if normalized.get("company_name"):
+        normalized["company_name"] = str(normalized["company_name"]).strip() or None
+    if normalized.get("company_type"):
+        normalized["company_type"] = str(normalized["company_type"]).strip() or None
+
+    # 5. Defaults
     if not normalized.get("country"):
         normalized["country"] = "India"
     if not normalized.get("preferred_language"):
