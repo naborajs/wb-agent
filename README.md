@@ -367,6 +367,7 @@ All comprehensive architectural design records, operational runbooks, API schema
   - [ADR-0013: Modular Prompt Versioning & Rollback](docs/decisions/0013-modular-prompt-versioning.md)
   - [ADR-0014: Auditable Commercial Quotes](docs/decisions/0014-auditable-commercial-quotes.md)
   - [ADR-0015: Dual-Brain Bidirectional Agency, Refusal Rights & Autonomous Fallback](docs/decisions/0015-dual-brain-bidirectional-agency-and-refusal.md)
+  - [ADR-0016: Campaign Orchestration, Rate-Limiting Jitter & Anti-Ban Cold Outreach Guards](docs/decisions/0016-campaign-orchestration-and-anti-ban-guards.md)
 
 ### 🛠️ Setup & Operations Runbooks
 - **[Prerequisites & System Requirements](docs/setup/01-prerequisites-and-system-requirements.md)**
