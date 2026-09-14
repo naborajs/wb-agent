@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
-from app.database.models import Conversation, Deal, Handoff, Job, Lead, Message
+from app.database.models import Campaign, Conversation, Deal, Handoff, Job, Lead, Message
 from app.database.session import get_db
 from app.brain.inter_brain_bus import inter_brain_bus
 
@@ -18,6 +18,11 @@ router = APIRouter(prefix="/analytics", tags=["Analytics"])
 async def get_analytics_overview(session: AsyncSession = Depends(get_db)):
     """Computes live sales operational metrics."""
     org_id = settings.DEFAULT_ORG_ID
+
+    # Active campaigns count
+    active_campaigns = (await session.execute(
+        select(func.count()).select_from(Campaign).where(Campaign.org_id == org_id, Campaign.status == "active")
+    )).scalar() or 0
 
     # Leads count
     total_leads = (await session.execute(
@@ -62,6 +67,7 @@ async def get_analytics_overview(session: AsyncSession = Depends(get_db)):
     return {
         "leads_total": total_leads,
         "conversations_total": total_convs,
+        "active_campaigns": active_campaigns,
         "hot_leads": hot_leads,
         "pending_handoffs": pending_handoffs,
         "won_deals": won_deals,
