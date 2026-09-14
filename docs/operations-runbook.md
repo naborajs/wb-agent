@@ -123,3 +123,31 @@ WHATSAPP_WEBHOOK_SECRET=your_app_secret
 curl -X GET "http://localhost:8000/api/v1/health"
 curl -X GET "http://localhost:8000/api/v1/readiness"
 ```
+
+---
+
+## 7. Outbound Campaign Operations & Anti-Ban Safeguards
+
+### 1. Launch Verification Checklist
+Before activating any cold outreach campaign:
+1. Verify targeting segments (`/api/v1/campaigns/segments`) have non-zero verified leads.
+2. Confirm the campaign template contains dynamic variables (`{name}`, `{company}`, `{city}`).
+3. Ensure inter-message jitter is configured between `15s` and `90s` to prevent carrier burst detection.
+4. Set realistic daily limits (maximum `50–100` messages/day for warm accounts, `20–30` for fresh numbers).
+
+### 2. Auto-Pause Triggers & Stop Conditions
+The campaign engine automatically suspends dispatch when:
+- Maximum reply quota is met (`max_replies`).
+- Campaign response rate drops below safety floor (`min_response_rate`).
+- Lead replies or sends an explicit opt-out keyword (`STOP`, `UNSUBSCRIBE`).
+
+### 3. Emergency Cooldown Procedure
+If carrier delivery receipts (`status: delivered`) drop below 70%:
+1. Immediately pause all active campaigns via dashboard or:
+   ```bash
+   curl -X POST "http://localhost:8000/api/v1/campaigns/{id}/pause"
+   ```
+2. Enable 24-hour cooling window.
+3. Review message templates for high-friction promotional wording.
+4. Switch to verified conversational warm-up messages before resuming.
+
