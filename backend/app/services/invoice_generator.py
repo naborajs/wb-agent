@@ -76,6 +76,39 @@ class InvoiceGenerator:
             return 5.0
         return 0.0
 
+    @staticmethod
+    def format_currency(amount: Any, symbol: Optional[str] = None) -> str:
+        """
+        Formats a monetary amount according to standard currency and numbering format.
+        Handles Indian comma groupings (e.g. ₹1,50,000.00).
+        """
+        sym = symbol if symbol is not None else getattr(settings, "CURRENCY_SYMBOL", "₹")
+        try:
+            val = float(amount)
+            is_negative = val < 0
+            val = abs(val)
+            parts = f"{val:.2f}".split(".")
+            integer_part = parts[0]
+            decimal_part = parts[1]
+
+            if len(integer_part) > 3:
+                last_three = integer_part[-3:]
+                remaining = integer_part[:-3]
+                groups = []
+                while len(remaining) > 2:
+                    groups.insert(0, remaining[-2:])
+                    remaining = remaining[:-2]
+                if remaining:
+                    groups.insert(0, remaining)
+                formatted_int = ",".join(groups) + "," + last_three
+            else:
+                formatted_int = integer_part
+
+            prefix = "-" if is_negative else ""
+            return f"{prefix}{sym}{formatted_int}.{decimal_part}"
+        except Exception:
+            return f"{sym}{amount}"
+
     @classmethod
     def get_catalog_product_defaults(cls, product_name_or_sku: str) -> Dict[str, Any]:
         """
