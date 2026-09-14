@@ -42,6 +42,9 @@ class Order(Base, OrgScopedMixin, TimestampMixin):
     conversation = relationship("Conversation", backref="orders")
     items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
 
+    def __repr__(self) -> str:
+        return f"<Order(id='{self.id}', number='{self.order_number}', status='{self.status}', total={self.total_amount})>"
+
     __table_args__ = (
         Index("ix_orders_org_status", "org_id", "status"),
     )
@@ -120,6 +123,9 @@ class Quote(Base, OrgScopedMixin, TimestampMixin):
     customer = relationship("Customer", backref="quotes")
     conversation = relationship("Conversation", backref="quotes")
     items = relationship("QuoteItem", back_populates="quote", cascade="all, delete-orphan")
+
+    def __repr__(self) -> str:
+        return f"<Quote(id='{self.id}', number='{self.quote_number}', status='{self.status}', total={self.total_amount})>"
 
     __table_args__ = (
         Index("ix_quotes_org_status", "org_id", "status"),
