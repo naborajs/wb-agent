@@ -114,14 +114,18 @@ class ConsultativeSalesEngine:
         # 3. Unknown Business Information Detection (Section 19 & 21)
         # Questions asking for things outside normal catalog/services
         unsupported_topics = [
+            "tea seeds", "gardening seeds", "plant seeds", "seeds", "seed", "beej", "bij",
+            "nursery plants", "nursery", "plants", "sapling", "saplings", "trees", "gardening",
+            "farming", "khet", "zameen", "acres", "horticulture",
             "machinery", "real estate", "land", "fertilizer", "investments", "stock equity",
             "crypto", "bitcoin", "loan", "mortgage"
         ]
-        if any(topic in lower for topic in unsupported_topics) and not knowledge_available:
+        matched_topic = next((topic for topic in unsupported_topics if topic in lower), None)
+        if matched_topic and not knowledge_available:
             return SalesDecision(
                 action="ANSWER",
-                reason="Customer inquired about topics outside verified business offerings.",
-                customer_goal="Inquire about out-of-scope services or products",
+                reason=f"Customer inquired about {matched_topic} which is outside verified business offerings.",
+                customer_goal=f"Inquire about {matched_topic}",
                 target_stage=current_stage,
                 score_delta=0,
                 is_unknown_question=True,
