@@ -32,3 +32,7 @@ class InterBrainMessage(Base, OrgScopedMixin, TimestampMixin):
         Index("ix_inter_brain_created", "created_at"),
         Index("ix_inter_brain_org_sender", "org_id", "sender_brain"),
     )
+
+    def __repr__(self) -> str:
+        return f"<InterBrainMessage(id='{self.id}', sender='{self.sender_brain}', recipient='{self.recipient_brain}', type='{self.message_type}', decision='{self.decision}')>"
+
