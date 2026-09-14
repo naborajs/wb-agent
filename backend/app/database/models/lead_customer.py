@@ -56,6 +56,13 @@ class Lead(Base, OrgScopedMixin, TimestampMixin):
     customer = relationship("Customer", back_populates="leads")
     events = relationship("LeadEvent", back_populates="lead", cascade="all, delete-orphan")
 
+    @property
+    def display_name(self) -> str:
+        return self.name or self.company_name or self.phone
+
+    def __repr__(self) -> str:
+        return f"<Lead(id='{self.id}', phone='{self.phone}', status='{self.status}', score={self.score})>"
+
     __table_args__ = (
         Index("ix_leads_org_phone", "org_id", "phone"),
         Index("ix_leads_org_status_score", "org_id", "status", "score"),
@@ -96,6 +103,20 @@ class Customer(Base, OrgScopedMixin, TimestampMixin):
     conversations = relationship("Conversation", back_populates="customer", cascade="all, delete-orphan")
     memories = relationship("CustomerMemory", back_populates="customer", cascade="all, delete-orphan")
     deals = relationship("Deal", back_populates="customer", cascade="all, delete-orphan")
+
+    @property
+    def display_name(self) -> str:
+        """Returns customer personal name or fallback company name."""
+        return self.name or self.company_name or "Valued Client"
+
+    @property
+    def full_address(self) -> str:
+        """Constructs formatted delivery address from city, state, country."""
+        parts = [p for p in [self.city, self.state, self.country] if p]
+        return ", ".join(parts) if parts else "India"
+
+    def __repr__(self) -> str:
+        return f"<Customer(id='{self.id}', phone='{self.primary_phone}', name='{self.name}', company='{self.company_name}')>"
 
     __table_args__ = (
         Index("ix_customers_org_phone", "org_id", "primary_phone", unique=True),
