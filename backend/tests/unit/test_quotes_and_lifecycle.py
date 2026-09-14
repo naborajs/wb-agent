@@ -124,6 +124,16 @@ async def test_quote_creation_calculation_and_status(quote_test_client):
     assert items[0]["id"] == quote_id
     assert items[0]["items_count"] == 1
 
+    # 3b. Get Single Quote by ID
+    get_res = await client.get(f"/api/v1/quotes/{quote_id}")
+    assert get_res.status_code == 200
+    single_quote = get_res.json()
+    assert single_quote["id"] == quote_id
+    assert single_quote["quote_number"] == data["quote_number"]
+    assert single_quote["customer_name"] == "Rohan Singhania"
+    assert len(single_quote["items"]) == 1
+    assert single_quote["items"][0]["product_name"] == "Assam Super Kadak CTC"
+
     # 4. Update Status to accepted
     patch_res = await client.patch(
         f"/api/v1/quotes/{quote_id}",

@@ -177,6 +177,52 @@ async def create_quote(
     }
 
 
+@router.get("/{quote_id}")
+async def get_quote(
+    quote_id: str,
+    session: AsyncSession = Depends(get_db),
+):
+    """Retrieves a single commercial quote by ID with line items and customer info."""
+    stmt = (
+        select(Quote)
+        .options(selectinload(Quote.items), selectinload(Quote.customer))
+        .where(Quote.id == quote_id)
+    )
+    res = await session.execute(stmt)
+    quote = res.scalar_one_or_none()
+    if not quote:
+        raise HTTPException(status_code=404, detail="Quote not found")
+
+    customer = quote.customer
+    return {
+        "id": quote.id,
+        "quote_number": quote.quote_number,
+        "customer_id": quote.customer_id,
+        "customer_name": customer.name if customer else None,
+        "customer_company": customer.company_name if customer else None,
+        "customer_phone": customer.primary_phone if customer else None,
+        "status": quote.status,
+        "total_amount": float(quote.total_amount),
+        "discount_amount": float(quote.discount_amount),
+        "valid_until": quote.valid_until.isoformat() if quote.valid_until else None,
+        "created_at": quote.created_at.isoformat() if quote.created_at else None,
+        "notes": quote.notes,
+        "items_count": len(quote.items),
+        "items": [
+            {
+                "id": it.id,
+                "product_id": it.product_id,
+                "product_name": it.product_name,
+                "quantity": float(it.quantity),
+                "unit_price": float(it.unit_price),
+                "discount_pct": float(it.discount_pct),
+                "subtotal": float(it.subtotal),
+            }
+            for it in quote.items
+        ],
+    }
+
+
 @router.patch("/{quote_id}")
 async def update_quote_status(
     quote_id: str,
