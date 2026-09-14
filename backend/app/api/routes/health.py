@@ -4,6 +4,7 @@ Health and readiness probes (Section 113).
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.config import settings
 from app.database.session import check_database_health, get_db
 from app.whatsapp.service import WhatsAppService
 
@@ -13,7 +14,7 @@ router = APIRouter(tags=["Health"])
 @router.get("/health")
 async def get_health():
     """Basic service liveness check."""
-    return {"status": "ok", "service": "wb-agent", "version": "0.1.0"}
+    return {"status": "ok", "service": "wb-agent", "version": "0.1.0", "environment": settings.APP_ENV}
 
 
 @router.get("/readiness")
