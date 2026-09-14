@@ -154,6 +154,7 @@ async def mark_as_read(
 
 
 @router.post("/mark-all-read")
+@router.post("/read-all")
 async def mark_all_as_read(
     session: AsyncSession = Depends(get_db),
 ):
