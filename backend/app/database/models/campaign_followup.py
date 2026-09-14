@@ -58,6 +58,9 @@ class Campaign(Base, OrgScopedMixin, TimestampMixin):
 
     campaign_leads = relationship("CampaignLead", back_populates="campaign", cascade="all, delete-orphan")
 
+    def __repr__(self) -> str:
+        return f"<Campaign(id='{self.id}', name='{self.name}', status='{self.status}')>"
+
 
 class CampaignLead(Base, TimestampMixin):
     """
@@ -80,6 +83,9 @@ class CampaignLead(Base, TimestampMixin):
     replied_at = Column(DateTime(timezone=True), nullable=True)
 
     campaign = relationship("Campaign", back_populates="campaign_leads")
+
+    def __repr__(self) -> str:
+        return f"<CampaignLead(id='{self.id}', campaign_id='{self.campaign_id}', status='{self.status}', delivery='{self.delivery_status}')>"
 
     __table_args__ = (
         Index("ix_campaign_leads_delivery", "campaign_id", "delivery_status"),
