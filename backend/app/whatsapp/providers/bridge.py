@@ -4,6 +4,7 @@ Connects the Python backend to the local Baileys Node.js bridge service.
 """
 
 from typing import Any, Dict, List, Optional
+import time
 import httpx
 from app.utils.logging import logger
 from app.utils.phone import normalize_phone_number
@@ -20,6 +21,7 @@ class BridgeWhatsAppProvider(WhatsAppProvider):
         self.bridge_url = bridge_url.rstrip("/")
 
     async def send_message(self, to_phone: str, text: str) -> OutboundWhatsAppResult:
+        start_t = time.perf_counter()
         norm_phone = normalize_phone_number(to_phone)
         url = f"{self.bridge_url}/send"
         payload = {"to": norm_phone, "text": text}
@@ -28,21 +30,29 @@ class BridgeWhatsAppProvider(WhatsAppProvider):
             async with httpx.AsyncClient(timeout=15.0) as client:
                 resp = await client.post(url, json=payload)
                 data = resp.json()
+                latency_ms = int((time.perf_counter() - start_t) * 1000)
                 if resp.status_code == 200 and data.get("success"):
                     return OutboundWhatsAppResult(
                         success=True,
                         provider_message_id=data.get("messageId"),
+                        to_phone=norm_phone,
+                        latency_ms=latency_ms,
                         raw_response=data,
                     )
                 return OutboundWhatsAppResult(
                     success=False,
+                    to_phone=norm_phone,
+                    latency_ms=latency_ms,
                     error_message=data.get("error", f"HTTP {resp.status_code}"),
                     raw_response=data,
                 )
         except Exception as e:
+            latency_ms = int((time.perf_counter() - start_t) * 1000)
             logger.error(f"Failed to dispatch message via WhatsApp bridge ({e})")
             return OutboundWhatsAppResult(
                 success=False,
+                to_phone=norm_phone,
+                latency_ms=latency_ms,
                 error_message=str(e),
             )
 
@@ -63,6 +73,7 @@ class BridgeWhatsAppProvider(WhatsAppProvider):
         caption: Optional[str] = None,
         filename: Optional[str] = None,
     ) -> OutboundWhatsAppResult:
+        start_t = time.perf_counter()
         norm_phone = normalize_phone_number(to_phone)
         url = f"{self.bridge_url}/send-document"
         doc_name = filename or (file_path.split("/")[-1].split("\\")[-1] if file_path else "proforma_invoice.pdf")
@@ -77,21 +88,29 @@ class BridgeWhatsAppProvider(WhatsAppProvider):
             async with httpx.AsyncClient(timeout=30.0) as client:
                 resp = await client.post(url, json=payload)
                 data = resp.json()
+                latency_ms = int((time.perf_counter() - start_t) * 1000)
                 if resp.status_code == 200 and data.get("success"):
                     return OutboundWhatsAppResult(
                         success=True,
                         provider_message_id=data.get("messageId"),
+                        to_phone=norm_phone,
+                        latency_ms=latency_ms,
                         raw_response=data,
                     )
                 return OutboundWhatsAppResult(
                     success=False,
+                    to_phone=norm_phone,
+                    latency_ms=latency_ms,
                     error_message=data.get("error", f"HTTP {resp.status_code}"),
                     raw_response=data,
                 )
         except Exception as e:
+            latency_ms = int((time.perf_counter() - start_t) * 1000)
             logger.error(f"Failed to dispatch document via WhatsApp bridge ({e})")
             return OutboundWhatsAppResult(
                 success=False,
+                to_phone=norm_phone,
+                latency_ms=latency_ms,
                 error_message=str(e),
             )
 
