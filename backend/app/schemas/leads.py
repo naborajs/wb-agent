@@ -48,8 +48,12 @@ class LeadUpdate(BaseModel):
     """Payload for updating lead details."""
     name: Optional[str] = None
     email: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    postal_code: Optional[str] = None
     company_name: Optional[str] = None
     company_type: Optional[str] = None
+    job_title: Optional[str] = None
     product_interest: Optional[str] = None
     estimated_quantity: Optional[str] = None
     estimated_budget: Optional[str] = None
