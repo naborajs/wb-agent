@@ -143,3 +143,18 @@ def mask_phone_number(phone: str) -> str:
         if len(phone) > 4:
             return phone[:3] + "..." + phone[-2:]
         return "***"
+
+
+def is_valid_phone_number(raw_phone: str, default_country_code: str = "+91") -> bool:
+    """
+    Returns True if the string can be normalized into a valid E.164 phone number,
+    False otherwise without raising exceptions.
+    """
+    if not raw_phone or not isinstance(raw_phone, str):
+        return False
+    try:
+        normalize_phone_number(raw_phone, default_country_code=default_country_code)
+        return True
+    except (ValueError, TypeError):
+        return False
+
