@@ -94,8 +94,9 @@ class SalesStageManager:
         if target_stage in ("PURCHASE_INTENT", "QUALIFIED") or conversation.lead_score >= 80:
             conversation.is_hot = True
 
+        effective_org_id = getattr(conversation, "org_id", None) or org_id
         event = SalesEvent(
-            org_id=org_id,
+            org_id=effective_org_id,
             conversation_id=conversation.id,
             customer_id=conversation.customer_id,
             from_stage=current,
