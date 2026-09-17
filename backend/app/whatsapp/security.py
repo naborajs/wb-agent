@@ -43,3 +43,32 @@ def generate_meta_signature(payload_bytes: bytes, app_secret: str) -> str:
         digestmod=hashlib.sha256,
     ).hexdigest()
     return f"sha256={computed_sig}"
+
+
+def validate_whatsapp_template(
+    template_name: str,
+    language_code: str,
+    components: Optional[list] = None,
+) -> tuple[bool, Optional[str]]:
+    """
+    Validates WhatsApp Cloud API message template structure before dispatch.
+    Returns (is_valid, error_message).
+    """
+    import re
+    if not template_name or not re.match(r"^[a-z0-9_]{1,512}$", template_name):
+        return False, "Template name must contain only lowercase alphanumeric characters and underscores (max 512 chars)."
+
+    if not language_code or not re.match(r"^[a-z]{2}(_[A-Z]{2})?$", language_code):
+        return False, "Language code must be a valid ISO format (e.g., 'en', 'en_US', 'hi')."
+
+    if components is not None:
+        if not isinstance(components, list):
+            return False, "Components must be a list."
+        for comp in components:
+            if not isinstance(comp, dict) or "type" not in comp:
+                return False, "Each component must be a dictionary with a 'type' field."
+            if comp["type"].upper() not in ("HEADER", "BODY", "FOOTER", "BUTTON"):
+                return False, f"Invalid component type '{comp['type']}'."
+
+    return True, None
+
