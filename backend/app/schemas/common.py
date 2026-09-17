@@ -17,6 +17,22 @@ class BaseResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class PageParams(BaseModel):
+    """
+    Standard pagination query parameters.
+    """
+    page: int = Field(default=1, ge=1, description="1-indexed page number")
+    page_size: int = Field(default=20, ge=1, le=100, description="Items per page (1-100)")
+
+    @property
+    def offset(self) -> int:
+        return (self.page - 1) * self.page_size
+
+    @property
+    def limit(self) -> int:
+        return self.page_size
+
+
 class PaginatedResponse(BaseModel, Generic[T]):
     """Standard paginated collection response."""
     items: List[T]

@@ -2,7 +2,7 @@
 Schema exports for all request and response models.
 """
 
-from app.schemas.common import BaseResponse, PaginatedResponse, ErrorResponse, ErrorDetail
+from app.schemas.common import BaseResponse, PageParams, PaginatedResponse, ErrorResponse, ErrorDetail
 from app.schemas.leads import LeadCreate, LeadUpdate, LeadResponse, LeadImportSummary
 from app.schemas.conversations import (
     MessageBase,
@@ -38,6 +38,7 @@ from app.schemas.campaigns import (
 
 __all__ = [
     "BaseResponse",
+    "PageParams",
     "PaginatedResponse",
     "ErrorResponse",
     "ErrorDetail",
