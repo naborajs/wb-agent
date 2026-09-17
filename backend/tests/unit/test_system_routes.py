@@ -38,3 +38,16 @@ def test_system_database_stats_endpoint():
     assert "orders" in data["counts"]
     assert "quotes" in data["counts"]
     assert "conversations" in data["counts"]
+
+
+def test_system_vacuum_endpoint():
+    client = TestClient(app)
+    response = client.post("/api/v1/system/vacuum")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] in ("success", "skipped")
+    if data["status"] == "success":
+        assert "integrity" in data
+        assert "before_size_kb" in data
+        assert "after_size_kb" in data

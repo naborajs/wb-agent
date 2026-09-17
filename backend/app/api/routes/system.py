@@ -78,3 +78,43 @@ async def get_database_stats(session: AsyncSession = Depends(get_db)):
             "conversations": conv_count,
         },
     }
+
+
+@router.post("/vacuum")
+async def trigger_database_vacuum():
+    """
+    Triggers an asynchronous database vacuum, integrity check, and index optimization.
+    """
+    import asyncio
+    import sqlite3
+
+    if "sqlite" not in settings.DATABASE_URL.lower():
+        return {"status": "skipped", "message": "Vacuum optimization endpoint currently configured for SQLite"}
+
+    db_path = Path("wb_agent.db")
+    if not db_path.exists():
+        return {"status": "error", "message": "Primary SQLite database file not found"}
+
+    def _sync_vacuum(path: Path):
+        before = path.stat().st_size
+        conn = sqlite3.connect(str(path))
+        integrity = conn.execute("PRAGMA quick_check").fetchone()[0]
+        conn.execute("PRAGMA optimize")
+        conn.close()
+
+        conn_vac = sqlite3.connect(str(path), isolation_level=None)
+        conn_vac.execute("VACUUM")
+        conn_vac.close()
+        after = path.stat().st_size
+        return before, after, integrity
+
+    before, after, integrity = await asyncio.to_thread(_sync_vacuum, db_path)
+
+    return {
+        "status": "success",
+        "integrity": integrity,
+        "before_size_kb": round(before / 1024, 2),
+        "after_size_kb": round(after / 1024, 2),
+        "reclaimed_kb": round((before - after) / 1024, 2),
+    }
+
