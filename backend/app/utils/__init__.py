@@ -10,6 +10,7 @@ from app.utils.phone import (
     mask_phone_number,
     extract_country_code,
 )
+from app.utils.rate_limiter import SlidingWindowRateLimiter
 
 __all__ = [
     "logger",
@@ -18,4 +19,5 @@ __all__ = [
     "is_valid_phone_number",
     "mask_phone_number",
     "extract_country_code",
+    "SlidingWindowRateLimiter",
 ]
