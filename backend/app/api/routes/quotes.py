@@ -240,3 +240,65 @@ async def update_quote_status(
         quote.approved_by = req.approved_by
     await session.commit()
     return {"id": quote.id, "status": quote.status}
+
+
+@router.post("/{quote_id}/convert")
+async def convert_quote_to_order(
+    quote_id: str,
+    session: AsyncSession = Depends(get_db),
+):
+    """
+    Converts an active quote into a confirmed commercial order.
+    Transfers line items and marks quote as accepted.
+    """
+    from app.database.models import Order, OrderItem
+    stmt = (
+        select(Quote)
+        .options(selectinload(Quote.items))
+        .where(Quote.id == quote_id)
+    )
+    res = await session.execute(stmt)
+    quote = res.scalar_one_or_none()
+    if not quote:
+        raise HTTPException(status_code=404, detail="Quote not found")
+
+    if quote.status in ("rejected", "expired"):
+        raise HTTPException(status_code=400, detail=f"Cannot convert quote in '{quote.status}' status")
+
+    now = datetime.now(timezone.utc)
+    order = Order(
+        org_id=quote.org_id,
+        customer_id=quote.customer_id,
+        conversation_id=quote.conversation_id,
+        order_number=f"ORD-{now.strftime('%y%m%d')}-{random.randint(100, 999)}",
+        status="pending",
+        total_amount=quote.total_amount,
+        shipping_address="Delivery location as per commercial quote",
+    )
+    session.add(order)
+    await session.flush()
+
+    for item in quote.items:
+        order_item = OrderItem(
+            order_id=order.id,
+            product_id=item.product_id,
+            variant_id=item.variant_id,
+            product_name=item.product_name,
+            quantity=item.quantity,
+            unit_price=item.unit_price,
+            discount_pct=item.discount_pct,
+            subtotal=item.subtotal,
+        )
+        session.add(order_item)
+
+    quote.status = "accepted"
+    await session.commit()
+
+    return {
+        "success": True,
+        "order_id": order.id,
+        "order_number": order.order_number,
+        "quote_id": quote.id,
+        "status": "converted",
+    }
+
