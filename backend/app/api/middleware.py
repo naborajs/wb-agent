@@ -25,6 +25,13 @@ class CorrelationIdMiddleware(BaseHTTPMiddleware):
             process_time = (time.time() - start_time) * 1000
             response.headers["X-Request-ID"] = req_id
             response.headers["X-Response-Time-Ms"] = f"{process_time:.2f}"
+
+            if process_time > 1000:
+                from app.utils.logging import logger
+                logger.warning(
+                    f"Slow Request Detected: {request.method} {request.url.path} took {process_time:.1f}ms (ID: {req_id})"
+                )
+
             return response
         finally:
             request_id_ctx.reset(token)
@@ -42,4 +49,5 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["X-XSS-Protection"] = "1; mode=block"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
         return response
