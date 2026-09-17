@@ -109,6 +109,42 @@ class InvoiceGenerator:
         except Exception:
             return f"{sym}{amount}"
 
+    @staticmethod
+    def calculate_gst_breakdown(
+        subtotal: float,
+        is_interstate: bool = False,
+        gst_rate_pct: float = 5.0,
+    ) -> Dict[str, float]:
+        """
+        Calculates statutory GST tax breakdown:
+        - Intrastate: 50% CGST + 50% SGST
+        - Interstate: 100% IGST
+        """
+        base = max(0.0, float(subtotal))
+        rate = max(0.0, float(gst_rate_pct))
+        total_tax = round((base * rate) / 100.0, 2)
+
+        if is_interstate:
+            cgst = 0.0
+            sgst = 0.0
+            igst = total_tax
+        else:
+            cgst = round(total_tax / 2.0, 2)
+            sgst = round(total_tax - cgst, 2)
+            igst = 0.0
+
+        return {
+            "subtotal": round(base, 2),
+            "gst_rate_pct": rate,
+            "is_interstate": is_interstate,
+            "cgst_amount": cgst,
+            "sgst_amount": sgst,
+            "igst_amount": igst,
+            "total_tax": total_tax,
+            "total_with_tax": round(base + total_tax, 2),
+        }
+
+
     @classmethod
     def get_catalog_product_defaults(cls, product_name_or_sku: str) -> Dict[str, Any]:
         """

@@ -168,6 +168,26 @@ def test_invoice_currency_formatting():
     assert InvoiceGenerator.format_currency(1234.50) == "₹1,234.50"
     assert InvoiceGenerator.format_currency(100000) == "₹1,00,000.00"
     assert InvoiceGenerator.format_currency(1500000.75, symbol="$") == "$15,00,000.75"
+
+
+def test_invoice_gst_breakdown():
+    """Verifies statutory GST breakdown for intrastate (CGST+SGST) and interstate (IGST)."""
+    intra = InvoiceGenerator.calculate_gst_breakdown(subtotal=10000.0, is_interstate=False, gst_rate_pct=5.0)
+    assert intra["subtotal"] == 10000.0
+    assert intra["cgst_amount"] == 250.0
+    assert intra["sgst_amount"] == 250.0
+    assert intra["igst_amount"] == 0.0
+    assert intra["total_tax"] == 500.0
+    assert intra["total_with_tax"] == 10500.0
+
+    inter = InvoiceGenerator.calculate_gst_breakdown(subtotal=20000.0, is_interstate=True, gst_rate_pct=5.0)
+    assert inter["subtotal"] == 20000.0
+    assert inter["cgst_amount"] == 0.0
+    assert inter["sgst_amount"] == 0.0
+    assert inter["igst_amount"] == 1000.0
+    assert inter["total_tax"] == 1000.0
+    assert inter["total_with_tax"] == 21000.0
+
     assert InvoiceGenerator.format_currency(-500) == "-₹500.00"
 
 
