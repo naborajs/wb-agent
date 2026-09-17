@@ -9,6 +9,8 @@ from app.agent.tools.registry import ToolRegistry
 from app.agent.providers.base import LLMProvider, LLMMessage, LLMResponse
 from app.agent.providers.router import LLMRouter
 
+from app.agent.sentiment import analyze_sentiment, SentimentScore, SentimentAnalysisResult
+
 __all__ = [
     "AgentOrchestrator",
     "detect_intent_and_objection",
@@ -19,4 +21,7 @@ __all__ = [
     "LLMMessage",
     "LLMResponse",
     "LLMRouter",
+    "analyze_sentiment",
+    "SentimentScore",
+    "SentimentAnalysisResult",
 ]
