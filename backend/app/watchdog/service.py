@@ -322,6 +322,47 @@ class WatchdogService:
                             alerts.append(alert)
         return alerts
 
+    async def audit_customer_sentiment(self) -> List[WatchdogAlert]:
+        """
+        Scans recent customer inbound messages for negative sentiment or urgent distress.
+        """
+        from app.agent.sentiment import analyze_sentiment, SentimentScore
+        alerts = []
+        recent_cutoff = utc_now() - timedelta(hours=24)
+        stmt = (
+            select(Message)
+            .join(Conversation, Message.conversation_id == Conversation.id)
+            .where(
+                Conversation.org_id == self.org_id,
+                Message.sender_type == "customer",
+                Message.created_at >= recent_cutoff,
+            )
+            .order_by(desc(Message.created_at))
+            .limit(25)
+        )
+        messages = (await self.session.execute(stmt)).scalars().all()
+
+        for msg in messages:
+            if not msg.content:
+                continue
+            analysis = analyze_sentiment(msg.content)
+            if analysis.requires_human_escalation or analysis.sentiment in (SentimentScore.NEGATIVE, SentimentScore.URGENT):
+                alert = await self.create_alert(
+                    severity="warning" if analysis.sentiment == SentimentScore.NEGATIVE else "critical",
+                    category="sentiment_risk",
+                    title=f"Customer Distress Detected in Conv {msg.conversation_id[:8]}",
+                    description=f"Message: \"{msg.content[:100]}\" flagged as {analysis.sentiment.value.upper()}.",
+                    conversation_id=msg.conversation_id,
+                    metadata_payload={
+                        "sentiment": analysis.sentiment.value,
+                        "urgency": analysis.urgency_level,
+                        "keywords": analysis.detected_keywords,
+                    },
+                    suggested_action="Review conversation and intervene with high-touch human support.",
+                )
+                alerts.append(alert)
+        return alerts
+
     async def run_full_diagnostic_audit(self) -> WatchdogAuditReport:
         """
         Runs complete automated diagnostic suite:
@@ -349,6 +390,10 @@ class WatchdogService:
         # Step 4: Pricing integrity
         pricing = await self.audit_pricing_integrity()
         alerts.extend(pricing)
+
+        # Step 5: Customer Sentiment Risk
+        sentiment_alerts = await self.audit_customer_sentiment()
+        alerts.extend(sentiment_alerts)
 
         # Step 5: Autonomous AI Supervisor Model (openai/gpt-oss-20b)
         diag_summary = {
