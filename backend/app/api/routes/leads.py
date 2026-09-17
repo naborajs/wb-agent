@@ -59,6 +59,51 @@ async def list_leads(
     )
 
 
+@router.get("/export/csv")
+async def export_leads_csv(
+    status: Optional[str] = None,
+    session: AsyncSession = Depends(get_db),
+):
+    """
+    Exports leads to a downloadable CSV file.
+    """
+    import csv
+    import io
+    from fastapi.responses import Response
+
+    stmt = select(Lead).where(Lead.org_id == settings.DEFAULT_ORG_ID)
+    if status:
+        stmt = stmt.where(Lead.status == status)
+    stmt = stmt.order_by(Lead.created_at.desc())
+    res = await session.execute(stmt)
+    leads = res.scalars().all()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["ID", "Name", "Phone", "Email", "Company", "Company Type", "Status", "Score", "City", "State", "Created At"])
+    for l in leads:
+        writer.writerow([
+            l.id,
+            l.name or "",
+            l.phone or "",
+            l.email or "",
+            l.company_name or "",
+            l.company_type or "",
+            l.status or "",
+            getattr(l, "qualification_score", 0),
+            getattr(l, "city", "") or "",
+            getattr(l, "state", "") or "",
+            l.created_at.isoformat() if l.created_at else "",
+        ])
+
+    csv_bytes = output.getvalue().encode("utf-8")
+    return Response(
+        content=csv_bytes,
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=leads_export.csv"},
+    )
+
+
 @router.get("/{lead_id}", response_model=LeadResponse)
 async def get_lead(lead_id: str, session: AsyncSession = Depends(get_db)):
     """Fetches single lead details."""
