@@ -144,6 +144,23 @@ class InvoiceGenerator:
             "total_with_tax": round(base + total_tax, 2),
         }
 
+    @staticmethod
+    def sanitize_invoice_filename(filename_stem: str, extension: str = "pdf") -> str:
+        """
+        Sanitizes invoice numbers or client names for safe, cross-platform filesystem filenames.
+        Replaces path separators and invalid characters with safe hyphens.
+        """
+        import re
+        clean = re.sub(r'[\\/*?:"<>|]', "-", str(filename_stem)).strip()
+        clean = re.sub(r'[\s_]+', "_", clean)
+        clean = re.sub(r'-+', "-", clean)
+        clean = clean.strip(".-_")
+        if not clean:
+            clean = "invoice"
+        ext = extension.lstrip(".")
+        return f"{clean}.{ext}"
+
+
 
     @classmethod
     def get_catalog_product_defaults(cls, product_name_or_sku: str) -> Dict[str, Any]:

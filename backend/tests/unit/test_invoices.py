@@ -191,6 +191,15 @@ def test_invoice_gst_breakdown():
     assert InvoiceGenerator.format_currency(-500) == "-₹500.00"
 
 
+def test_sanitize_invoice_filename():
+    """Verifies safe cross-platform filename generation without invalid filesystem characters."""
+    assert InvoiceGenerator.sanitize_invoice_filename("PI/2026/001") == "PI-2026-001.pdf"
+    assert InvoiceGenerator.sanitize_invoice_filename("INV: 2026*09?15", "pdf") == "INV-_2026-09-15.pdf"
+    assert InvoiceGenerator.sanitize_invoice_filename("../../etc/passwd") == "etc-passwd.pdf"
+    assert InvoiceGenerator.sanitize_invoice_filename("   ", "pdf") == "invoice.pdf"
+
+
+
 def test_pdf_invoice_generation_content_and_branding(temp_invoice_storage):
     """
     Verifies that generated vector PDF has all statutory, branding,
