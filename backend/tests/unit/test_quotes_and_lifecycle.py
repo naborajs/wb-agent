@@ -141,3 +141,12 @@ async def test_quote_creation_calculation_and_status(quote_test_client):
     )
     assert patch_res.status_code == 200
     assert patch_res.json()["status"] == "accepted"
+
+    # 5. Convert Quote to Commercial Order
+    convert_res = await client.post(f"/api/v1/quotes/{quote_id}/convert")
+    assert convert_res.status_code == 200
+    conv_data = convert_res.json()
+    assert conv_data["success"] is True
+    assert conv_data["status"] == "converted"
+    assert "ORD-" in conv_data["order_number"]
+
