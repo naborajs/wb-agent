@@ -25,6 +25,7 @@ from app.api.routes import (
     proposals,
     quotes,
     settings as settings_router,
+    system,
     voice,
     watchdog,
     webhooks,
@@ -138,6 +139,7 @@ app.include_router(voice.router, prefix=api_v1)
 app.include_router(brain.router, prefix=api_v1)
 app.include_router(notifications.router, prefix=api_v1)
 app.include_router(watchdog.router, prefix=api_v1)
+app.include_router(system.router, prefix=api_v1)
 app.include_router(ws.router, prefix=api_v1)
 
 
