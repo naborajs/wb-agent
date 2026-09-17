@@ -89,6 +89,26 @@ def fix_sqlite_db(db_path: Path):
         if "base_price_per_kg" in pv_cols:
             cur.execute("UPDATE product_variants SET base_price_per_unit = base_price_per_kg WHERE base_price_per_unit IS NULL AND base_price_per_kg IS NOT NULL")
 
+    # 5. Order items columns
+    oi_cols = get_cols("order_items")
+    if oi_cols:
+        if "grade" not in oi_cols:
+            print(f"Adding grade to order_items in {db_path.name}...")
+            cur.execute("ALTER TABLE order_items ADD COLUMN grade VARCHAR(64)")
+        if "quantity" not in oi_cols:
+            print(f"Adding quantity to order_items in {db_path.name}...")
+            cur.execute("ALTER TABLE order_items ADD COLUMN quantity NUMERIC(10, 2) DEFAULT 1.0")
+        if "unit_price" not in oi_cols:
+            print(f"Adding unit_price to order_items in {db_path.name}...")
+            cur.execute("ALTER TABLE order_items ADD COLUMN unit_price NUMERIC(10, 2) DEFAULT 0.0")
+
+        if "tea_grade" in oi_cols:
+            cur.execute("UPDATE order_items SET grade = tea_grade WHERE grade IS NULL AND tea_grade IS NOT NULL")
+        if "quantity_kg" in oi_cols:
+            cur.execute("UPDATE order_items SET quantity = quantity_kg WHERE (quantity IS NULL OR quantity = 1.0) AND quantity_kg IS NOT NULL")
+        if "unit_price_per_kg" in oi_cols:
+            cur.execute("UPDATE order_items SET unit_price = unit_price_per_kg WHERE (unit_price IS NULL OR unit_price = 0.0) AND unit_price_per_kg IS NOT NULL")
+
     conn.commit()
     conn.close()
     print(f"Schema upgrade finished for {db_path.name}.")
