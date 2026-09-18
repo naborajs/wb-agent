@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import VoiceAgent from "./VoiceAgent";
+import { SystemHealthBadge } from "./SystemHealthBadge";
 import {
   Inbox,
   Users,
@@ -472,6 +473,9 @@ export default function DashboardShell({ children }: { children: React.ReactNode
               <Radio className={`w-3 h-3 ${wsConnected ? "animate-pulse" : ""}`} />
               {wsConnected ? (wsLatency !== null ? `${wsLatency}ms` : "Live") : "Reconnecting"}
             </span>
+
+            {/* Live System & Diagnostics Status Badge */}
+            <SystemHealthBadge />
 
             {/* Autonomous Agent Notifications Bell (EDITH & Friday) */}
             <div className="relative" ref={agentNotifRef}>
