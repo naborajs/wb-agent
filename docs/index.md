@@ -75,11 +75,15 @@ Explore the core algorithms, design principles, and guardrails:
 
 ### 4. ⚙️ Operations & Reference
 - [[operations-runbook|Operations Runbook & Kill-Switch]]: Emergency kill-switch trigger, queue scaling, worker daemon management, and unified `python run.py` launcher.
+- [Production Deployment Runbook](runbooks/production-deployment.md): Zero-downtime production deployment, container orchestration, and automated snapshot backup scheduling.
+- [Incident Response Runbook](runbooks/incident-response.md): Production playbooks for bridge disconnects, database locks, customer distress, and quota failover.
+- [WhatsApp Bridge Connectivity Guide](guides/whatsapp-bridge-guide.md): Meta Cloud API vs. Self-Hosted Baileys Bridge architecture and setup.
+- [Developer Onboarding Guide](guides/developer-onboarding.md): Fast 3-minute local setup, test execution, and simulation workflows.
 - [[visual-tour|Dashboard Visual Operations Tour]]: Complete visual UI tour across desktop and mobile responsive views with dual themes.
 - [[api-reference|REST API & WebSocket Reference]]: Complete endpoint specifications, query schemas, and live WebSocket streaming protocol.
-- [[decisions/0001-postgresql-primary-storage|Architectural Decision Records (ADRs 0001 to 0016)]]: Technical decisions, dual-brain protocol, and campaign engine architectural rationales.
+- [[decisions/0001-postgresql-primary-storage|Architectural Decision Records (ADRs 0001 to 0020)]]: Technical decisions including SQLite migrations (0017), WhatsApp ban guards (0018), GST invoicing (0019), and UI observability (0020).
 
 ---
 
 > [!TIP]
-> **New to WB-Agent?** Start by reading [[01-prerequisites-and-system-requirements|01. Prerequisites & System Requirements]] and then proceed through the numbered setup guides in sequential order.
+> **New to WB-Agent?** Start by reading [Developer Onboarding Guide](guides/developer-onboarding.md) or [[01-prerequisites-and-system-requirements|01. Prerequisites & System Requirements]].
