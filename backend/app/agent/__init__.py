@@ -10,6 +10,7 @@ from app.agent.providers.base import LLMProvider, LLMMessage, LLMResponse
 from app.agent.providers.router import LLMRouter
 
 from app.agent.sentiment import analyze_sentiment, SentimentScore, SentimentAnalysisResult
+from app.agent.greetings import get_time_of_day_greeting, generate_personalized_salutation
 
 __all__ = [
     "AgentOrchestrator",
@@ -24,4 +25,6 @@ __all__ = [
     "analyze_sentiment",
     "SentimentScore",
     "SentimentAnalysisResult",
+    "get_time_of_day_greeting",
+    "generate_personalized_salutation",
 ]
