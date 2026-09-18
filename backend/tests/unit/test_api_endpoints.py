@@ -117,6 +117,14 @@ async def test_products_and_pricing_api(app_client):
     assert float(data["discount_percentage"]) == 5.0
     assert float(data["total"]) == 71250.0  # 50 * 1500 = 75,000 - 5% (3750) = 71,250
 
+    # 3. Supported currencies
+    curr_res = await app_client.get("/api/v1/pricing/currencies")
+    assert curr_res.status_code == 200
+    curr_data = curr_res.json()
+    assert curr_data["base_currency"] == "INR"
+    assert len(curr_data["currencies"]) >= 5
+
+
 
 @pytest.mark.asyncio
 async def test_agent_simulate_api(app_client):

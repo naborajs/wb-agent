@@ -316,6 +316,26 @@ async def delete_product(
 # PRICING RULES ENDPOINTS
 # ==============================================================================
 
+@router.get("/pricing/currencies")
+async def get_supported_currencies():
+    """
+    Returns supported international trade currencies, symbols, and base exchange rates.
+    """
+    from app.pricing.currency import SUPPORTED_CURRENCIES, _BASE_INR_EXCHANGE_RATES
+    return {
+        "base_currency": "INR",
+        "currencies": [
+            {
+                "code": code,
+                "name": meta["name"],
+                "symbol": meta["symbol"],
+                "exchange_rate_relative_to_inr": _BASE_INR_EXCHANGE_RATES.get(code, 1.0),
+            }
+            for code, meta in SUPPORTED_CURRENCIES.items()
+        ],
+    }
+
+
 @router.get("/pricing/rules", response_model=List[PricingRuleResponse])
 async def list_pricing_rules(session: AsyncSession = Depends(get_db)):
     """Lists deterministic pricing rules and volume tiers."""
