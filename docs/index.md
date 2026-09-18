@@ -81,7 +81,7 @@ Explore the core algorithms, design principles, and guardrails:
 - [Developer Onboarding Guide](guides/developer-onboarding.md): Fast 3-minute local setup, test execution, and simulation workflows.
 - [[visual-tour|Dashboard Visual Operations Tour]]: Complete visual UI tour across desktop and mobile responsive views with dual themes.
 - [[api-reference|REST API & WebSocket Reference]]: Complete endpoint specifications, query schemas, and live WebSocket streaming protocol.
-- [[decisions/0001-postgresql-primary-storage|Architectural Decision Records (ADRs 0001 to 0020)]]: Technical decisions including SQLite migrations (0017), WhatsApp ban guards (0018), GST invoicing (0019), and UI observability (0020).
+- [[decisions/0001-postgresql-primary-storage|Architectural Decision Records (ADRs 0001 to 0021)]]: Technical decisions including SQLite migrations (0017), WhatsApp ban guards (0018), GST invoicing (0019), UI observability (0020), and multi-currency pricing (0021).
 
 ---
 

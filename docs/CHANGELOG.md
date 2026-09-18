@@ -34,11 +34,18 @@ All notable changes to the WB-Agent platform are documented in this file in acco
   - `CopyToClipboard.tsx`: one-click copy with tooltip and checkmark feedback.
   - `EmptyState.tsx`: reusable table empty-state placeholder.
   - `ExportCsvButton.tsx`: streaming CSV table downloader.
+  - `CurrencySelector.tsx`: multi-currency selector component with localStorage persistence.
+- **Internationalization & Multi-Currency**:
+  - Currency conversion engine (`convert_currency`) and international notation formatter (`format_international_currency`) supporting INR, USD, EUR, GBP, AED, SGD.
+  - `GET /api/v1/pricing/currencies` endpoint returning live exchange rates relative to INR.
+  - Timezone-aware greetings generator (`get_time_of_day_greeting`, `generate_personalized_salutation`) for global commercial outreach.
+  - Sample domestic and international lead generator script (`scripts/generate_sample_leads.py`).
 - **Documentation & Architecture**:
   - `ADR 0017`: Resilient SQLite Connection Management, Vacuuming and Schema Migrations.
   - `ADR 0018`: WhatsApp Outbound Rate Limiting, Dead Letter Queues and Ban Prevention.
   - `ADR 0019`: Automated Invoicing, GST Compliance, and Quote Lifecycle State Machine.
   - `ADR 0020`: Frontend Architecture, Real-Time Polling and Dashboard Observability.
+  - `ADR 0021`: Multi-Currency Pricing Architecture and Internationalization Strategy.
   - Production Deployment Runbook (`docs/runbooks/production-deployment.md`).
   - Incident Response Runbook (`docs/runbooks/incident-response.md`).
   - WhatsApp Bridge Connectivity Guide (`docs/guides/whatsapp-bridge-guide.md`).
