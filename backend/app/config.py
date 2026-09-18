@@ -140,6 +140,10 @@ class Settings(BaseSettings):
     STORAGE_BASE_PATH: str = "./storage"
     UPLOAD_MAX_BYTES: int = 10485760  # 10 MB
 
+    # Rate Limiting & Channel Anti-Flood
+    RATE_LIMIT_WINDOW_SECONDS: int = 60
+    RATE_LIMIT_MAX_REQUESTS: int = 20
+
     @field_validator("OWNER_WHATSAPP_NUMBER")
     @classmethod
     def validate_owner_number(cls, v: str) -> str:
