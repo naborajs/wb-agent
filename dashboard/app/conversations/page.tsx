@@ -49,6 +49,8 @@ interface ConversationItem {
   last_message_at: string;
   customer_name?: string;
   company_name?: string;
+  metadata_json?: Record<string, any>;
+  is_simulation?: boolean;
 }
 
 interface Message {
@@ -61,6 +63,7 @@ interface Message {
   correction_category?: string;
   corrected_text?: string;
   reasoning_content?: string;
+  is_simulation?: boolean;
   created_at: string;
 }
 
@@ -69,7 +72,7 @@ export default function LiveInboxPage() {
   const [activeConvId, setActiveConvId] = useState<string>("");
   const [activeConvDetail, setActiveConvDetail] = useState<any>(null);
   const [inputText, setInputText] = useState("");
-  const [filterMode, setFilterMode] = useState<string>("all");
+  const [filterMode, setFilterMode] = useState<string>("whatsapp");
   const [searchTerm, setSearchTerm] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [isSimulatingCustomer, setIsSimulatingCustomer] = useState(false);
@@ -640,6 +643,9 @@ export default function LiveInboxPage() {
   };
 
   const filteredConversations = conversations.filter((c) => {
+    const isSim = c.channel === "simulation" || Boolean(c.metadata_json?.is_simulation);
+    if (filterMode === "whatsapp" && (c.channel !== "whatsapp" || isSim)) return false;
+    if (filterMode === "simulation" && !isSim) return false;
     if (filterMode === "hot" && !c.is_hot) return false;
     if (filterMode === "human" && c.mode !== "HUMAN") return false;
     if (searchTerm) {
@@ -678,10 +684,31 @@ export default function LiveInboxPage() {
             </button>
           </div>
 
-          <div className="flex gap-1 text-[11px] font-medium text-[var(--ed-text-muted)]">
+          <div className="flex gap-1 text-[11px] font-medium text-[var(--ed-text-muted)] flex-wrap">
+            <button
+              onClick={() => setFilterMode("whatsapp")}
+              className={`px-2 py-1 rounded-md transition-colors flex items-center gap-1 ${
+                filterMode === "whatsapp"
+                  ? "bg-emerald-500/15 text-emerald-500 font-bold border border-emerald-500/30"
+                  : "hover:bg-[var(--ed-bg)]"
+              }`}
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              WA Live ({conversations.filter((c) => c.channel === "whatsapp" && !c.metadata_json?.is_simulation).length})
+            </button>
+            <button
+              onClick={() => setFilterMode("simulation")}
+              className={`px-2 py-1 rounded-md transition-colors flex items-center gap-1 ${
+                filterMode === "simulation"
+                  ? "bg-purple-500/15 text-purple-400 font-bold border border-purple-500/30"
+                  : "hover:bg-[var(--ed-bg)]"
+              }`}
+            >
+              🧪 Sim ({conversations.filter((c) => c.channel === "simulation" || c.metadata_json?.is_simulation).length})
+            </button>
             <button
               onClick={() => setFilterMode("all")}
-              className={`px-2.5 py-1 rounded-md transition-colors ${
+              className={`px-2 py-1 rounded-md transition-colors ${
                 filterMode === "all"
                   ? "bg-[var(--ed-bg)] text-[var(--ed-text-primary)] font-bold"
                   : "hover:bg-[var(--ed-bg)]"
@@ -691,7 +718,7 @@ export default function LiveInboxPage() {
             </button>
             <button
               onClick={() => setFilterMode("hot")}
-              className={`px-2.5 py-1 rounded-md flex items-center gap-1 transition-colors ${
+              className={`px-2 py-1 rounded-md flex items-center gap-1 transition-colors ${
                 filterMode === "hot"
                   ? "bg-[var(--ed-danger)]/8 text-[var(--ed-danger)] font-bold"
                   : "hover:bg-[var(--ed-bg)]"
@@ -701,7 +728,7 @@ export default function LiveInboxPage() {
             </button>
             <button
               onClick={() => setFilterMode("human")}
-              className={`px-2.5 py-1 rounded-md transition-colors ${
+              className={`px-2 py-1 rounded-md transition-colors ${
                 filterMode === "human"
                   ? "bg-[var(--ed-accent)]/8 text-[var(--ed-accent)] font-bold"
                   : "hover:bg-[var(--ed-bg)]"
@@ -721,6 +748,7 @@ export default function LiveInboxPage() {
           ) : (
             filteredConversations.map((c) => {
               const isSelected = c.id === activeConvId;
+              const isConvSim = c.channel === "simulation" || Boolean(c.metadata_json?.is_simulation);
               return (
                 <div
                   key={c.id}
@@ -732,8 +760,13 @@ export default function LiveInboxPage() {
                   }`}
                 >
                   <div className="flex items-start justify-between gap-1 mb-1">
-                    <span className="font-bold text-xs text-[var(--ed-text-primary)] truncate">
+                    <span className="font-bold text-xs text-[var(--ed-text-primary)] truncate flex items-center gap-1">
                       {c.customer_name || c.company_name || c.channel_id}
+                      {isConvSim && (
+                        <span className="px-1 py-0.2 rounded text-[8px] font-mono font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                          SIM
+                        </span>
+                      )}
                     </span>
                     {c.is_hot && (
                       <span className="shrink-0 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-[var(--ed-danger)]/10 text-[var(--ed-danger)] ed-glow-badge">
@@ -743,6 +776,7 @@ export default function LiveInboxPage() {
                   </div>
 
                   <div className="text-[11px] text-[var(--ed-text-muted)] truncate mb-2">
+                    {isConvSim ? "Sandbox: " : ""}
                     {c.company_name ? `${c.company_name} • ` : ""}
                     {c.channel_id}
                   </div>
@@ -829,14 +863,23 @@ export default function LiveInboxPage() {
                     )}
                   </h3>
                   <div className="text-[10px] sm:text-xs text-[var(--ed-text-muted)] truncate">
-                    WhatsApp: {activeConv.channel_id}
+                    {activeConv.channel === "simulation" || activeConvDetail?.conversation?.is_simulation ? "Sandbox: " : "WhatsApp: "}
+                    {activeConv.channel_id}
                   </div>
                 </div>
               </div>
 
               <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap sm:flex-nowrap shrink-0">
-                {/* Real-Time WhatsApp Bot Connection Badge */}
-                {waStatus?.connected ? (
+                {/* Real-Time WhatsApp Bot Connection Badge OR Sandbox Simulation Badge */}
+                {(activeConv?.channel === "simulation" || activeConvDetail?.conversation?.is_simulation) ? (
+                  <span
+                    title="This is an isolated sandbox simulation thread. Outbound WhatsApp messages are disabled."
+                    className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 rounded-lg border border-purple-500/30 bg-purple-500/10 text-purple-400 text-[10px] font-semibold"
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" />
+                    <span>🧪 Sandbox Simulation</span>
+                  </span>
+                ) : waStatus?.connected ? (
                   <button
                     type="button"
                     onClick={() => setIsWaModalOpen(true)}
@@ -969,11 +1012,24 @@ export default function LiveInboxPage() {
               </div>
             )}
 
+            {/* Simulation Warning Banner */}
+            {(activeConv?.channel === "simulation" || activeConvDetail?.conversation?.is_simulation) && (
+              <div className="bg-purple-500/10 border-b border-purple-500/20 px-4 py-2 text-xs flex items-center justify-between text-purple-400 shrink-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm">🧪</span>
+                  <span>
+                    <strong>Simulated Conversation Sandbox:</strong> This inquiry was generated for AI testing. Operator replies are stored locally and will <strong>NOT</strong> dispatch to real WhatsApp.
+                  </span>
+                </div>
+              </div>
+            )}
+
             {/* Message Thread */}
             <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-3 sm:space-y-4">
               {(activeConvDetail?.messages || []).map((msg: Message) => {
                 const isInbound = msg.direction === "inbound";
                 const isAI = !isInbound && msg.sender_type !== "human";
+                const isMsgSim = msg.is_simulation || activeConv?.channel === "simulation" || activeConvDetail?.conversation?.is_simulation;
                 return (
                   <div
                     key={msg.id}
@@ -993,10 +1049,16 @@ export default function LiveInboxPage() {
                       <div className="flex items-center justify-between gap-3 mb-1 opacity-80 text-[10px]">
                         <div className="flex items-center gap-1.5">
                           {isInbound ? (
-                            <>
-                              <User className="w-3 h-3" />
-                              <span>Customer</span>
-                            </>
+                            isMsgSim ? (
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-500/15 text-purple-300 border border-purple-500/30">
+                                🧪 Simulated Customer
+                              </span>
+                            ) : (
+                              <>
+                                <User className="w-3 h-3" />
+                                <span>Customer</span>
+                              </>
+                            )
                           ) : msg.sender_type === "human" ? (
                             <>
                               <User className="w-3 h-3 text-[var(--ed-text-primary)]" />
@@ -1121,10 +1183,16 @@ export default function LiveInboxPage() {
                   </button>
                 </div>
                 {isSimulatingCustomer ? (
-                  <span className="text-[9px] sm:text-[10px] text-purple-500 font-semibold flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse" />
+                  <span className="text-[9px] sm:text-[10px] text-purple-400 font-semibold flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" />
                     <span className="hidden sm:inline">Safe Simulation (No WhatsApp sent to {activeConv.channel_id})</span>
                     <span className="sm:hidden">Safe Simulation (Internal)</span>
+                  </span>
+                ) : (activeConv.channel === "simulation" || activeConvDetail?.conversation?.is_simulation) ? (
+                  <span className="text-[9px] sm:text-[10px] text-purple-400 font-semibold flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-purple-400" />
+                    <span className="hidden sm:inline">Sandbox Mode (Local Simulation only — No WhatsApp sent to {activeConv.channel_id})</span>
+                    <span className="sm:hidden">Sandbox (No WhatsApp sent)</span>
                   </span>
                 ) : (
                   <span className="text-[9px] sm:text-[10px] text-emerald-500 font-medium flex items-center gap-1">
