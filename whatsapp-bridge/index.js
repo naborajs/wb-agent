@@ -289,30 +289,35 @@ app.post("/send", async (req, res) => {
   }
 
   try {
-    const cleanTo = to.replace(/[^0-9]/g, "");
     let jid = to;
-    if (phoneToLidMap.has(cleanTo)) {
-      jid = phoneToLidMap.get(cleanTo);
-    } else if (jidMap.has(cleanTo)) {
-      jid = jidMap.get(cleanTo);
-    } else if (!jid.includes("@")) {
-      try {
-        const [waCheck] = await sock.onWhatsApp(cleanTo);
-        if (waCheck && waCheck.exists) {
-          jid = waCheck.jid;
-          phoneToLidMap.set(cleanTo, jid);
-          jidMap.set(cleanTo, jid);
-          console.log(`[RESOLVED JID] Verified WhatsApp account for +${cleanTo} -> ${jid}`);
-        } else {
+    if (to.includes("@g.us")) {
+      jid = to.trim();
+      console.log(`[OUTBOUND GROUP] Addressing WhatsApp group JID: ${jid}`);
+    } else {
+      const cleanTo = to.replace(/[^0-9]/g, "");
+      if (phoneToLidMap.has(cleanTo)) {
+        jid = phoneToLidMap.get(cleanTo);
+      } else if (jidMap.has(cleanTo)) {
+        jid = jidMap.get(cleanTo);
+      } else if (!jid.includes("@")) {
+        try {
+          const [waCheck] = await sock.onWhatsApp(cleanTo);
+          if (waCheck && waCheck.exists) {
+            jid = waCheck.jid;
+            phoneToLidMap.set(cleanTo, jid);
+            jidMap.set(cleanTo, jid);
+            console.log(`[RESOLVED JID] Verified WhatsApp account for +${cleanTo} -> ${jid}`);
+          } else {
+            jid = `${cleanTo}@s.whatsapp.net`;
+          }
+        } catch (checkErr) {
           jid = `${cleanTo}@s.whatsapp.net`;
         }
-      } catch (checkErr) {
-        jid = `${cleanTo}@s.whatsapp.net`;
       }
+      recentOutbounds.set(cleanTo, Date.now());
     }
 
     console.log(`[OUTBOUND] Sending to ${jid}: "${text.slice(0, 80)}"`);
-    recentOutbounds.set(cleanTo, Date.now());
     const result = await sock.sendMessage(jid, { text });
     console.log(`[OUTBOUND] Delivered message to ${jid} (Msg ID: ${result.key.id})`);
     return res.json({
@@ -341,31 +346,36 @@ app.post("/send-document", async (req, res) => {
   }
 
   try {
-    const cleanTo = to.replace(/[^0-9]/g, "");
     let jid = to;
-    if (phoneToLidMap.has(cleanTo)) {
-      jid = phoneToLidMap.get(cleanTo);
-    } else if (jidMap.has(cleanTo)) {
-      jid = jidMap.get(cleanTo);
-    } else if (!jid.includes("@")) {
-      try {
-        const [waCheck] = await sock.onWhatsApp(cleanTo);
-        if (waCheck && waCheck.exists) {
-          jid = waCheck.jid;
-          phoneToLidMap.set(cleanTo, jid);
-          jidMap.set(cleanTo, jid);
-        } else {
+    if (to.includes("@g.us")) {
+      jid = to.trim();
+      console.log(`[OUTBOUND GROUP] Addressing document to WhatsApp group JID: ${jid}`);
+    } else {
+      const cleanTo = to.replace(/[^0-9]/g, "");
+      if (phoneToLidMap.has(cleanTo)) {
+        jid = phoneToLidMap.get(cleanTo);
+      } else if (jidMap.has(cleanTo)) {
+        jid = jidMap.get(cleanTo);
+      } else if (!jid.includes("@")) {
+        try {
+          const [waCheck] = await sock.onWhatsApp(cleanTo);
+          if (waCheck && waCheck.exists) {
+            jid = waCheck.jid;
+            phoneToLidMap.set(cleanTo, jid);
+            jidMap.set(cleanTo, jid);
+          } else {
+            jid = `${cleanTo}@s.whatsapp.net`;
+          }
+        } catch (checkErr) {
           jid = `${cleanTo}@s.whatsapp.net`;
         }
-      } catch (checkErr) {
-        jid = `${cleanTo}@s.whatsapp.net`;
       }
+      recentOutbounds.set(cleanTo, Date.now());
     }
 
     const fileBuffer = fs.readFileSync(filePath);
     const resolvedName = fileName || filePath.split(/[\/\\]/).pop() || "document.pdf";
     console.log(`[OUTBOUND] Sending document ${resolvedName} to ${jid}`);
-    recentOutbounds.set(cleanTo, Date.now());
 
     const result = await sock.sendMessage(jid, {
       document: fileBuffer,
@@ -446,7 +456,7 @@ async function startSocket() {
     for (const msg of messages) {
       if (msg.key.fromMe) continue;
       const remoteJid = msg.key.remoteJid;
-      if (!remoteJid || remoteJid.includes("@g.us")) continue;
+      if (!remoteJid) continue;
 
       // Historical message guard: Do not process old messages buffered from before bridge started
       const msgTimestamp = Number(msg.messageTimestamp || 0);
@@ -455,36 +465,66 @@ async function startSocket() {
         continue;
       }
 
-      let senderPhone = remoteJid.split("@")[0].replace(/[^0-9]/g, "");
-      // CRITICAL SELF-CHAT GUARD: Never forward messages originating from or addressed to the bot's own number!
-      if (senderPhone === BOT_PHONE || senderPhone.endsWith(BOT_PHONE) || BOT_PHONE.endsWith(senderPhone)) {
-        console.log(`[IGNORE] Suppressed self-message loop from bot phone ${senderPhone}`);
-        continue;
-      }
+      const isGroup = remoteJid.includes("@g.us");
+      let senderPhone = "";
+      let groupName = null;
+      let participantPhone = null;
 
-      // Resolve WhatsApp Multi-Device LID to real phone number safely without guessing
-      const rawJidPhone = senderPhone;
-      if (lidToPhoneMap.has(rawJidPhone)) {
-        senderPhone = lidToPhoneMap.get(rawJidPhone);
-        console.log(`[LID RESOLVE] Mapped incoming LID ${rawJidPhone} -> Real Phone +${senderPhone}`);
-      } else if (remoteJid.endsWith("@lid")) {
-        // Try to resolve from participant metadata
+      if (isGroup) {
         if (msg.key.participant) {
-          const partPhone = msg.key.participant.split("@")[0].replace(/[^0-9]/g, "");
-          if (partPhone && !partPhone.includes("lid") && partPhone.length >= 10) {
-            senderPhone = partPhone;
-            lidToPhoneMap.set(rawJidPhone, senderPhone);
-            phoneToLidMap.set(senderPhone, remoteJid);
-            console.log(`[LID RESOLVE] Registered participant LID mapping ${rawJidPhone} -> +${senderPhone}`);
+          const rawPart = msg.key.participant.split("@")[0].replace(/[^0-9]/g, "");
+          if (rawPart) {
+            participantPhone = `+${rawPart}`;
+            // If the participant in group is the bot itself, ignore
+            if (rawPart === BOT_PHONE || rawPart.endsWith(BOT_PHONE) || BOT_PHONE.endsWith(rawPart)) {
+              console.log(`[IGNORE GROUP BOT] Suppressed message sent by bot in group ${remoteJid}`);
+              continue;
+            }
           }
+        }
+        try {
+          if (sock.groupMetadata) {
+            const groupMeta = await sock.groupMetadata(remoteJid).catch(() => null);
+            if (groupMeta && groupMeta.subject) {
+              groupName = groupMeta.subject;
+            }
+          }
+        } catch (e) {
+          // ignore group metadata fetch failure
+        }
+      } else {
+        senderPhone = remoteJid.split("@")[0].replace(/[^0-9]/g, "");
+        // CRITICAL SELF-CHAT GUARD: Never forward messages originating from or addressed to the bot's own number!
+        if (senderPhone === BOT_PHONE || senderPhone.endsWith(BOT_PHONE) || BOT_PHONE.endsWith(senderPhone)) {
+          console.log(`[IGNORE] Suppressed self-message loop from bot phone ${senderPhone}`);
+          continue;
+        }
+
+        // Resolve WhatsApp Multi-Device LID to real phone number safely without guessing
+        const rawJidPhone = senderPhone;
+        if (lidToPhoneMap.has(rawJidPhone)) {
+          senderPhone = lidToPhoneMap.get(rawJidPhone);
+          console.log(`[LID RESOLVE] Mapped incoming LID ${rawJidPhone} -> Real Phone +${senderPhone}`);
+        } else if (remoteJid.endsWith("@lid")) {
+          // Try to resolve from participant metadata
+          if (msg.key.participant) {
+            const partPhone = msg.key.participant.split("@")[0].replace(/[^0-9]/g, "");
+            if (partPhone && !partPhone.includes("lid") && partPhone.length >= 10) {
+              senderPhone = partPhone;
+              lidToPhoneMap.set(rawJidPhone, senderPhone);
+              phoneToLidMap.set(senderPhone, remoteJid);
+              console.log(`[LID RESOLVE] Registered participant LID mapping ${rawJidPhone} -> +${senderPhone}`);
+            }
+          }
+        }
+
+        jidMap.set(senderPhone, remoteJid);
+        jidMap.set(rawJidPhone, remoteJid);
+        if (senderPhone !== rawJidPhone) {
+          phoneToLidMap.set(senderPhone, remoteJid);
         }
       }
 
-      jidMap.set(senderPhone, remoteJid);
-      jidMap.set(rawJidPhone, remoteJid);
-      if (senderPhone !== rawJidPhone) {
-        phoneToLidMap.set(senderPhone, remoteJid);
-      }
       const textBody =
         msg.message?.conversation ||
         msg.message?.extendedTextMessage?.text ||
@@ -493,24 +533,34 @@ async function startSocket() {
 
       if (!textBody) continue;
 
-      console.log(`[INBOUND] From +${senderPhone}: "${textBody}"`);
+      const displaySender = isGroup
+        ? `[Group: ${groupName || remoteJid}${participantPhone ? ` | ${participantPhone}` : ""}]`
+        : `+${senderPhone}`;
+      console.log(`[INBOUND] From ${displaySender}: "${textBody}"`);
 
       try {
+        const messageObj = {
+          from: isGroup ? remoteJid : senderPhone,
+          id: msg.key.id || `baileys_${Date.now()}`,
+          timestamp: String(msg.messageTimestamp || Math.floor(Date.now() / 1000)),
+          type: "text",
+          text: { body: textBody },
+        };
+
+        if (isGroup) {
+          messageObj.is_group = true;
+          messageObj.group_id = remoteJid;
+          messageObj.group_name = groupName || "WhatsApp Group";
+          messageObj.participant = participantPhone;
+        }
+
         const webhookPayload = {
           entry: [
             {
               changes: [
                 {
                   value: {
-                    messages: [
-                      {
-                        from: senderPhone,
-                        id: msg.key.id || `baileys_${Date.now()}`,
-                        timestamp: String(msg.messageTimestamp || Math.floor(Date.now() / 1000)),
-                        type: "text",
-                        text: { body: textBody },
-                      },
-                    ],
+                    messages: [messageObj],
                   },
                 },
               ],
