@@ -165,20 +165,27 @@ async def simulate_inbound_message(
         cust = Customer(
             org_id=org_id,
             primary_phone=norm_phone,
-            name=req.name or "Prospect",
+            name=req.name or "Prospect (Simulation)",
             company_name=req.company or "Wholesale Buyer",
+            company_type="simulation",
             preferred_language="English",
             opt_in_status=True,
         )
         session.add(cust)
         await session.commit()
 
-    # 2. Get or create conversation
+    # 2. Get or create conversation on isolated 'simulation' channel
     conv = await conv_svc.get_or_create_conversation(
         customer_id=cust.id,
-        channel="whatsapp",
+        channel="simulation",
         channel_id=norm_phone,
     )
+    # Ensure simulation metadata tag is persisted
+    meta = dict(conv.metadata_json or {})
+    meta["is_simulation"] = True
+    meta["source"] = "simulate-inbound"
+    conv.metadata_json = meta
+    await session.commit()
 
     # 3. Synchronous Orchestration Turn
     orchestrator = AgentOrchestrator(session, org_id)
@@ -192,6 +199,8 @@ async def simulate_inbound_message(
     return {
         "success": True,
         "conversation_id": conv.id,
+        "channel": "simulation",
+        "is_simulation": True,
         "sales_stage": result.sales_stage_after,
         "lead_score": result.lead_score_after,
         "agent_reply": result.reply_text,
