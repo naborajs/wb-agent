@@ -31,7 +31,8 @@ class VoiceSessionTokenResponse(BaseModel):
 
 class VoicePromptUpdateRequest(BaseModel):
     section: Optional[str] = "core_identity"
-    instruction: str = Field(..., min_length=2, description="Instruction for Nemotron to revise the prompt")
+    instruction: str = Field(..., min_length=2, description="Instruction for Nemotron or Friday action")
+    confirmed: Optional[bool] = Field(False, description="Confirmation flag for destructive voice actions")
 
 
 class VoicePromoMessageRequest(BaseModel):
@@ -107,36 +108,135 @@ async def update_prompt_via_nemotron(
     session: AsyncSession = Depends(get_db),
 ):
     """
-    Agentic Workflow: Transfers voice request to NVIDIA Nemotron model to rewrite
-    and optimize a system prompt section (e.g. changing persona name from EDITH to Rakesh).
-    Activates the new version in DB and broadcasts WebSocket update live.
+    Agentic Workflow: Transfers voice request to Friday prompt section actions or NVIDIA Nemotron.
+    Supports rollback, reset-to-default, archive, compare, toggle, and AI rewrite with confirmation loops.
+    Activates versions in DB with author='friday-voice' and broadcasts WebSocket updates live.
     """
+    import re
     from app.agent.prompts import DEFAULT_PROMPT_SECTIONS, PromptService
     from app.ai.router import ai_router
     from app.realtime.connection_manager import ws_manager
+    from app.services import friday_actions
 
-    # Determine target section (inferred if needed)
-    section = (req.section or "").lower().strip()
-    if section not in DEFAULT_PROMPT_SECTIONS:
-        text = req.instruction.lower()
-        if any(w in text for w in ["name", "persona", "rakesh", "edith", "identity", "tone"]):
-            section = "core_identity"
-        elif any(w in text for w in ["discount", "moq", "price", "cadence", "sample", "policy"]):
-            section = "business_policy"
-        elif any(w in text for w in ["safety", "jailbreak", "hallucination", "injection"]):
-            section = "core_safety"
-        elif any(w in text for w in ["catalog", "product", "service", "item", "offering", "profile", "spec"]):
-            section = "business_profile"
-        else:
-            section = "sales_style"
-
+    text = req.instruction.lower().strip()
     prompt_svc = PromptService(session, org_id=settings.DEFAULT_ORG_ID)
-    current_prompt = await prompt_svc.get_active_section(section)
+    all_sections = await prompt_svc.list_sections(include_archived=False)
 
-    logger.info(f"[Voice Agent] Delegating prompt update for section '{section}' to NVIDIA Nemotron...")
+    # Determine target section if mentioned
+    target_section = (req.section or "").lower().strip()
+    for s in all_sections:
+        if s.key in text or s.display_name.lower() in text:
+            target_section = s.key
+            break
+
+    if not target_section or target_section not in [s.key for s in all_sections]:
+        if any(w in text for w in ["name", "persona", "rakesh", "edith", "identity", "tone"]):
+            target_section = "core_identity"
+        elif any(w in text for w in ["discount", "moq", "price", "cadence", "sample", "policy"]):
+            target_section = "business_policy"
+        elif any(w in text for w in ["safety", "jailbreak", "hallucination", "injection"]):
+            target_section = "core_safety"
+        elif any(w in text for w in ["catalog", "product", "service", "item", "offering", "profile", "spec"]):
+            target_section = "business_profile"
+        else:
+            target_section = "sales_style"
+
+    # 1. Check for Rollback intent
+    rollback_match = re.search(r"(?:roll\s*back|restore|revert).*?(?:to\s+)?(?:version\s+|v)?(\d+)", text)
+    if rollback_match:
+        target_version = int(rollback_match.group(1))
+        sec_obj = await prompt_svc.get_section(target_section)
+        sec_name = sec_obj.display_name if sec_obj else target_section
+
+        if not req.confirmed and "confirm" not in text and "yes" not in text:
+            return {
+                "success": False,
+                "requires_confirmation": True,
+                "confirmation_prompt": f"You want me to roll {sec_name} back to version {target_version} — confirm?",
+                "action": "rollback_prompt_section",
+                "pending_section": target_section,
+                "pending_version": target_version,
+            }
+        
+        act_res = await friday_actions.execute_action(
+            session, settings.DEFAULT_ORG_ID, "rollback_prompt_section",
+            {"section": target_section, "version": target_version, "confirmed": True, "reason": f"Voice: {req.instruction}"}
+        )
+        return act_res
+
+    # 2. Check for Reset to Default intent
+    if any(k in text for k in ["reset to default", "factory default", "restore default", "reset default"]):
+        sec_obj = await prompt_svc.get_section(target_section)
+        sec_name = sec_obj.display_name if sec_obj else target_section
+
+        if not req.confirmed and "confirm" not in text and "yes" not in text:
+            return {
+                "success": False,
+                "requires_confirmation": True,
+                "confirmation_prompt": f"You want me to reset {sec_name} to factory default — confirm?",
+                "action": "reset_prompt_section_default",
+                "pending_section": target_section,
+            }
+
+        return await friday_actions.execute_action(
+            session, settings.DEFAULT_ORG_ID, "reset_prompt_section_default",
+            {"section": target_section, "confirmed": True}
+        )
+
+    # 3. Check for Archive intent
+    if any(k in text for k in ["archive section", "delete section", "remove section"]):
+        sec_obj = await prompt_svc.get_section(target_section)
+        sec_name = sec_obj.display_name if sec_obj else target_section
+
+        if not req.confirmed and "confirm" not in text and "yes" not in text:
+            return {
+                "success": False,
+                "requires_confirmation": True,
+                "confirmation_prompt": f"You want me to archive section '{sec_name}' — confirm?",
+                "action": "archive_prompt_section",
+                "pending_section": target_section,
+            }
+
+        return await friday_actions.execute_action(
+            session, settings.DEFAULT_ORG_ID, "archive_prompt_section",
+            {"section": target_section, "confirmed": True}
+        )
+
+    # 4. Check for Compare / Diff intent
+    comp_match = re.search(r"(?:compare|diff).*?(?:version\s+|v)?(\d+).*?(?:and|to|with).*?(?:version\s+|v)?(\d+)", text)
+    if comp_match:
+        v1 = int(comp_match.group(1))
+        v2 = int(comp_match.group(2))
+        return await friday_actions.execute_action(
+            session, settings.DEFAULT_ORG_ID, "compare_prompt_versions",
+            {"section": target_section, "from_version": v1, "to_version": v2}
+        )
+
+    # 5. Check for Toggle / Disable / Enable intent
+    if any(k in text for k in ["disable section", "turn off section", "deactivate section"]):
+        return await friday_actions.execute_action(
+            session, settings.DEFAULT_ORG_ID, "toggle_prompt_section",
+            {"section": target_section, "is_active": False}
+        )
+    if any(k in text for k in ["enable section", "turn on section", "activate section"]):
+        return await friday_actions.execute_action(
+            session, settings.DEFAULT_ORG_ID, "toggle_prompt_section",
+            {"section": target_section, "is_active": True}
+        )
+
+    # 6. Default: AI Rewrite with other active sections as read-only context
+    current_prompt = await prompt_svc.get_active_section(target_section)
+    other_sections = {}
+    for s in all_sections:
+        if s.key != target_section:
+            c = await prompt_svc.get_active_section(s.key)
+            if c:
+                other_sections[s.key] = c
+
+    logger.info(f"[Voice Agent] Delegating prompt update for section '{target_section}' to NVIDIA Nemotron...")
 
     result = await ai_router.optimize_system_prompt(
-        section_name=section,
+        section_name=target_section,
         user_intent=req.instruction,
         current_prompt=current_prompt,
         business_context={
@@ -144,6 +244,7 @@ async def update_prompt_via_nemotron(
             "business_industry": settings.BUSINESS_INDUSTRY,
             "agent_name": settings.AGENT_NAME,
         },
+        other_sections=other_sections,
     )
 
     if not result.optimized_prompt or not result.optimized_prompt.strip():
@@ -152,11 +253,11 @@ async def update_prompt_via_nemotron(
             detail="NVIDIA Nemotron returned an empty prompt response.",
         )
 
-    # Persist and activate version in DB
+    # Persist and activate version in DB with author 'friday-voice'
     new_ver = await prompt_svc.create_version(
-        section_name=section,
+        section_name=target_section,
         content=result.optimized_prompt,
-        author=f"Nemotron-VoiceAgent ({result.model_used})",
+        author="friday-voice",
         change_summary=f"Voice instruction: {req.instruction}",
         activate=True,
         test_results={
@@ -165,30 +266,36 @@ async def update_prompt_via_nemotron(
             "rating_breakdown": result.rating_breakdown.model_dump(),
             "model_used": result.model_used,
         },
+        quality_score=result.rating_score,
+        quality_grade=result.rating_grade,
     )
 
     # Broadcast live real-time update to dashboard
-    await ws_manager.broadcast_to_org(
-        settings.DEFAULT_ORG_ID,
-        "prompt_updated",
-        {
-            "section": section,
-            "version": new_ver.version,
-            "content": new_ver.content,
-            "author": new_ver.author,
-            "change_summary": new_ver.change_summary,
-            "rating_score": result.rating_score,
-        },
-    )
+    try:
+        await ws_manager.broadcast_to_org(
+            settings.DEFAULT_ORG_ID,
+            "prompt_updated",
+            {
+                "section": target_section,
+                "version": new_ver.version,
+                "content": new_ver.content,
+                "author": "friday-voice",
+                "change_summary": new_ver.change_summary,
+                "rating_score": result.rating_score,
+            },
+        )
+    except Exception:
+        pass
 
     return {
         "success": True,
-        "section": section,
+        "section": target_section,
         "version": new_ver.version,
+        "author": "friday-voice",
         "model_used": result.model_used,
         "summary_of_changes": result.summary_of_changes,
         "preview": new_ver.content[:200],
-        "message": f"NVIDIA Nemotron updated {section} to version {new_ver.version} successfully.",
+        "message": f"NVIDIA Nemotron updated {target_section} to version {new_ver.version} successfully.",
     }
 
 
