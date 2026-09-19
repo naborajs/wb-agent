@@ -2,6 +2,8 @@
 Conversations and live inbox API endpoints (Section 48 & 58).
 """
 
+import time
+import sys
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
@@ -33,9 +35,10 @@ async def list_conversations(
     mode: Optional[str] = None,
     stage: Optional[str] = None,
     is_hot: Optional[bool] = None,
+    channel: Optional[str] = None,
     session: AsyncSession = Depends(get_db),
 ):
-    """Lists conversations for the live inbox."""
+    """Lists conversations for the live inbox, optionally filtered by mode, stage, or channel."""
     org_id = settings.DEFAULT_ORG_ID
     stmt = select(Conversation).where(Conversation.org_id == org_id)
 
@@ -45,6 +48,8 @@ async def list_conversations(
         stmt = stmt.where(Conversation.sales_stage == stage)
     if is_hot is not None:
         stmt = stmt.where(Conversation.is_hot == is_hot)
+    if channel and channel != "all":
+        stmt = stmt.where(Conversation.channel == channel)
 
     count_stmt = select(func.count()).select_from(stmt.subquery())
     total = (await session.execute(count_stmt)).scalar() or 0
@@ -106,6 +111,8 @@ async def get_conversation_detail(conversation_id: str, session: AsyncSession = 
     if not customer_goals and facts:
         customer_goals = f"Procure {facts.get('quantity', 'bulk volume')} for {facts.get('business_type', 'commercial operations')}."
 
+    is_conv_sim = bool(conv.channel == "simulation" or (conv.metadata_json or {}).get("is_simulation", False))
+
     return {
         "conversation": {
             "id": conv.id,
@@ -118,6 +125,8 @@ async def get_conversation_detail(conversation_id: str, session: AsyncSession = 
             "unread_count": conv.unread_count,
             "last_message_at": conv.last_message_at,
             "created_at": conv.created_at,
+            "is_simulation": is_conv_sim,
+            "metadata_json": conv.metadata_json or {},
         },
         "customer": {
             "id": conv.customer.id if conv.customer else None,
@@ -146,6 +155,7 @@ async def get_conversation_detail(conversation_id: str, session: AsyncSession = 
                 "correction_category": (m.raw_payload or {}).get("correction_category"),
                 "corrected_text": (m.raw_payload or {}).get("corrected_text"),
                 "reasoning_content": (m.raw_payload or {}).get("reasoning_content"),
+                "is_simulation": bool((m.raw_payload or {}).get("is_simulation", False) or is_conv_sim),
                 "created_at": m.created_at,
             }
             for m in conv.messages
@@ -181,17 +191,35 @@ async def send_manual_operator_message(
     if conv.mode != "HUMAN":
         await svc.update_mode(conversation_id, "HUMAN", reason="operator_manual_reply")
 
-    # Dispatch via active WhatsApp provider
-    wa = WhatsAppService.get_provider()
-    wa_res = await wa.send_message(to_phone=conv.channel_id, text=msg_in.content)
+    # Isolation Guard: Never dispatch external WhatsApp messages for simulated/sandbox conversations
+    from app.utils.phone import is_sandbox_test_phone
+    is_sim = (
+        conv.channel != "whatsapp"
+        or bool((conv.metadata_json or {}).get("is_simulation"))
+        or is_sandbox_test_phone(conv.channel_id)
+    )
+
+    if is_sim:
+        logger.info(
+            f"[SIMULATION PROTECTED] Operator manual reply recorded for simulated conversation {conversation_id} ({conv.channel_id}). External WhatsApp network dispatch bypassed."
+        )
+        provider_msg_id = f"sim_operator_{int(time.time() * 1000)}"
+        delivery_status = "delivered"
+    else:
+        # Dispatch via active WhatsApp provider
+        wa = WhatsAppService.get_provider()
+        wa_res = await wa.send_message(to_phone=conv.channel_id, text=msg_in.content)
+        provider_msg_id = wa_res.provider_message_id
+        delivery_status = "sent" if wa_res.success else "failed"
 
     msg = await svc.add_message(
         conversation_id=conversation_id,
         direction="outbound",
         sender_type="human",
         content=msg_in.content,
-        provider_message_id=wa_res.provider_message_id,
-        delivery_status="sent" if wa_res.success else "failed",
+        provider_message_id=provider_msg_id,
+        delivery_status=delivery_status,
+        raw_payload={"is_simulation": is_sim} if is_sim else {},
     )
 
     # Real-time WebSocket event broadcast to all connected operators
@@ -208,6 +236,7 @@ async def send_manual_operator_message(
                 "content": msg.content,
                 "channel_id": conv.channel_id,
                 "status": msg.delivery_status,
+                "is_simulation": is_sim,
                 "created_at": str(msg.created_at),
             },
         )
@@ -223,6 +252,7 @@ class InitiateConversationRequest(BaseModel):
     company_name: Optional[str] = None
     company_type: Optional[str] = None
     initial_message: Optional[str] = None
+    is_simulation: bool = False
 
 
 @router.post("/initiate")
@@ -231,11 +261,11 @@ async def initiate_conversation(
     session: AsyncSession = Depends(get_db),
 ):
     """
-    Initiates a new WhatsApp conversation to an arbitrary phone number (Section 55).
+    Initiates a new WhatsApp or sandbox conversation to an arbitrary phone number (Section 55).
     Reuses existing customer records or provisions a new customer cleanly.
     """
     org_id = settings.DEFAULT_ORG_ID
-    from app.utils.phone import normalize_phone_number
+    from app.utils.phone import normalize_phone_number, is_sandbox_test_phone
     try:
         clean_phone = normalize_phone_number(req.phone)
     except Exception:
@@ -245,6 +275,10 @@ async def initiate_conversation(
                 clean_phone = "+" + clean_phone
             else:
                 clean_phone = "+91" + clean_phone.lstrip("0")
+
+    # Determine simulation vs real WhatsApp channel
+    is_sim = req.is_simulation or is_sandbox_test_phone(clean_phone)
+    conv_channel = "simulation" if is_sim else "whatsapp"
 
     # 1. Lookup or create customer
     stmt = select(Customer).where(Customer.org_id == org_id, Customer.primary_phone == clean_phone)
@@ -257,7 +291,7 @@ async def initiate_conversation(
             primary_phone=clean_phone,
             name=req.name or f"Contact {clean_phone[-4:]}",
             company_name=req.company_name,
-            company_type=req.company_type or "buyer",
+            company_type=req.company_type or ("simulation" if is_sim else "buyer"),
         )
         session.add(customer)
         await session.commit()
@@ -267,24 +301,30 @@ async def initiate_conversation(
     svc = ConversationService(session, org_id)
     conv = await svc.get_or_create_conversation(
         customer_id=customer.id,
-        channel="whatsapp",
+        channel=conv_channel,
         channel_id=clean_phone,
     )
+    if is_sim and conv.metadata_json is not None:
+        meta = dict(conv.metadata_json or {})
+        meta["is_simulation"] = True
+        conv.metadata_json = meta
+        await session.commit()
 
     # 3. If initial message provided, dispatch it immediately
     initial_msg_id = None
     if req.initial_message:
         provider_msg_id = None
         delivery_status = "sent"
-        import sys
-        if not getattr(settings, "DRY_RUN_MODE", False) and "pytest" not in sys.modules:
+        if is_sim or getattr(settings, "DRY_RUN_MODE", False) or "pytest" in sys.modules:
+            logger.info(f"Initiate conversation dispatch to {clean_phone} simulated (sandbox/test mode active).")
+            provider_msg_id = f"sim_init_{int(time.time() * 1000)}"
+            delivery_status = "delivered"
+        else:
             wa = WhatsAppService.get_provider()
             wa_res = await wa.send_message(to_phone=clean_phone, text=req.initial_message)
             if wa_res:
                 provider_msg_id = wa_res.provider_message_id
                 delivery_status = "sent" if wa_res.success else "failed"
-        else:
-            logger.info(f"Initiate conversation dispatch to {clean_phone} simulated (test/dry-run mode).")
 
         msg = await svc.add_message(
             conversation_id=conv.id,
@@ -293,6 +333,7 @@ async def initiate_conversation(
             content=req.initial_message,
             provider_message_id=provider_msg_id,
             delivery_status=delivery_status,
+            raw_payload={"is_simulation": is_sim} if is_sim else {},
         )
         initial_msg_id = msg.id
 
@@ -302,6 +343,8 @@ async def initiate_conversation(
         "customer_id": customer.id,
         "customer_name": customer.name,
         "phone": clean_phone,
+        "channel": conv_channel,
+        "is_simulation": is_sim,
         "initial_message_id": initial_msg_id,
     }
 
