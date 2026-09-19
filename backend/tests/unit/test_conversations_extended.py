@@ -139,3 +139,105 @@ async def test_report_message_response(conv_test_client):
     assert msg_data["reported"] is True
     assert msg_data["correction_category"] == "wrong_price"
     assert "₹350/kg" in msg_data["corrected_text"]
+
+
+@pytest.mark.asyncio
+async def test_database_stats_and_deletion(conv_test_client):
+    client, session_factory = conv_test_client
+
+    # 1. Check stats endpoint
+    stats_res = await client.get("/api/v1/conversations/database/stats")
+    assert stats_res.status_code == 200
+    data = stats_res.json()
+    assert "total_conversations" in data
+    assert "total_messages" in data
+
+    # 2. Create a conversation to delete
+    async with session_factory() as session:
+        cust = Customer(
+            id="cust_del_test",
+            org_id=settings.DEFAULT_ORG_ID,
+            primary_phone="+919800011223",
+            name="Delete Target",
+        )
+        session.add(cust)
+        await session.flush()
+        conv = Conversation(
+            id="conv_del_test",
+            org_id=settings.DEFAULT_ORG_ID,
+            customer_id=cust.id,
+            channel="whatsapp",
+            channel_id="+919800011223",
+            mode="AI",
+        )
+        session.add(conv)
+        await session.flush()
+        msg = Message(
+            org_id=settings.DEFAULT_ORG_ID,
+            conversation_id=conv.id,
+            direction="inbound",
+            sender_type="customer",
+            content="Temporary message",
+            delivery_status="received",
+        )
+        session.add(msg)
+        await session.commit()
+
+    # 3. Delete the conversation
+    del_res = await client.delete("/api/v1/conversations/conv_del_test")
+    assert del_res.status_code == 200
+    del_data = del_res.json()
+    assert del_data["success"] is True
+    assert del_data["deleted_id"] == "conv_del_test"
+
+    # 4. Verify conversation is gone
+    get_res = await client.get("/api/v1/conversations/conv_del_test")
+    assert get_res.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_purge_simulations_endpoint(conv_test_client):
+    client, session_factory = conv_test_client
+
+    # 1. Create a simulated conversation
+    async with session_factory() as session:
+        cust = Customer(
+            id="cust_sim_purge",
+            org_id=settings.DEFAULT_ORG_ID,
+            primary_phone="+919876543210",
+            name="Simulation Prospect",
+        )
+        session.add(cust)
+        await session.flush()
+        conv = Conversation(
+            id="conv_sim_purge",
+            org_id=settings.DEFAULT_ORG_ID,
+            customer_id=cust.id,
+            channel="simulation",
+            channel_id="+919876543210",
+            mode="AI",
+        )
+        session.add(conv)
+        await session.flush()
+        msg = Message(
+            org_id=settings.DEFAULT_ORG_ID,
+            conversation_id=conv.id,
+            direction="inbound",
+            sender_type="customer",
+            content="Purge me",
+            delivery_status="received",
+        )
+        session.add(msg)
+        await session.commit()
+
+    # 2. Call purge simulations
+    purge_res = await client.post("/api/v1/conversations/simulations/purge")
+    assert purge_res.status_code == 200
+    p_data = purge_res.json()
+    assert p_data["success"] is True
+    assert p_data["deleted_conversations"] >= 1
+
+    # 3. Verify simulated conversation is deleted
+    get_res = await client.get("/api/v1/conversations/conv_sim_purge")
+    assert get_res.status_code == 404
+

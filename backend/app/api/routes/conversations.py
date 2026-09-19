@@ -68,6 +68,28 @@ async def list_conversations(
     )
 
 
+@router.get("/database/stats")
+async def get_database_stats(session: AsyncSession = Depends(get_db)):
+    """Returns database summary counts and channel distribution."""
+    org_id = settings.DEFAULT_ORG_ID
+    svc = ConversationService(session, org_id)
+    return await svc.get_database_summary()
+
+
+@router.delete("/simulations/purge")
+@router.post("/simulations/purge")
+async def purge_simulations(session: AsyncSession = Depends(get_db)):
+    """Purges all simulated test conversations and associated messages."""
+    org_id = settings.DEFAULT_ORG_ID
+    svc = ConversationService(session, org_id)
+    res = await svc.purge_simulations()
+    return {
+        "success": True,
+        "message": f"Successfully purged {res['deleted_conversations']} simulated conversations and {res['deleted_messages']} messages.",
+        **res,
+    }
+
+
 @router.get("/{conversation_id}")
 async def get_conversation_detail(conversation_id: str, session: AsyncSession = Depends(get_db)):
     """Fetches complete conversation thread, timeline, customer profile, and memory."""
@@ -161,6 +183,20 @@ async def get_conversation_detail(conversation_id: str, session: AsyncSession = 
             for m in conv.messages
         ],
     }
+
+
+@router.delete("/{conversation_id}")
+async def delete_conversation(
+    conversation_id: str,
+    session: AsyncSession = Depends(get_db),
+):
+    """Permanently deletes a conversation and all its cascade-related records."""
+    org_id = settings.DEFAULT_ORG_ID
+    svc = ConversationService(session, org_id)
+    success = await svc.delete_conversation(conversation_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Conversation not found.")
+    return {"success": True, "deleted_id": conversation_id, "message": "Conversation permanently deleted."}
 
 
 @router.post("/{conversation_id}/takeover")

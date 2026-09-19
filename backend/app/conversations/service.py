@@ -4,7 +4,7 @@ Conversation management service: lifecycle, message logging, and human takeover 
 
 from datetime import datetime
 from typing import Any, Dict, List, Optional
-from sqlalchemy import select, update
+from sqlalchemy import delete, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from app.database.base import utc_now
@@ -192,3 +192,107 @@ class ConversationService:
         self.session.add(event)
         await self.session.commit()
         return conv
+
+    async def delete_conversation(self, conversation_id: str) -> bool:
+        """
+        Permanently deletes a conversation and all its cascade-related records
+        (messages, sales events, handoffs, summaries).
+        """
+        conv = await self.get_by_id(conversation_id)
+        if not conv:
+            return False
+
+        # Explicitly delete sales events (not defined as a cascade relationship on Conversation)
+        await self.session.execute(
+            delete(SalesEvent).where(SalesEvent.conversation_id == conversation_id)
+        )
+
+        await self.session.delete(conv)
+        await self.session.commit()
+        logger.info(f"[ConversationService] Permanently deleted conversation '{conversation_id}' for org '{self.org_id}'.")
+        return True
+
+    async def clear_conversation_messages(self, conversation_id: str) -> int:
+        """
+        Clears all message history in a conversation while preserving customer and thread metadata.
+        """
+        conv = await self.get_by_id(conversation_id)
+        if not conv:
+            raise ValueError(f"Conversation '{conversation_id}' not found.")
+
+        del_res = await self.session.execute(
+            delete(Message).where(Message.conversation_id == conversation_id)
+        )
+        deleted_count = del_res.rowcount if hasattr(del_res, "rowcount") else 0
+        conv.unread_count = 0
+        conv.last_message_at = utc_now()
+        await self.session.commit()
+        logger.info(f"[ConversationService] Cleared {deleted_count} messages from conversation '{conversation_id}'.")
+        return deleted_count
+
+    async def purge_simulations(self) -> Dict[str, int]:
+        """
+        Purges all simulated test conversations and their associated messages.
+        """
+        stmt = select(Conversation).where(
+            Conversation.org_id == self.org_id,
+            or_(
+                Conversation.channel == "simulation",
+                Conversation.channel_id.in_([
+                    "+919876543210", "+919999988888", "+919999911111", "+919876543298", "+919876543299"
+                ])
+            )
+        )
+        res = await self.session.execute(stmt)
+        sim_convs = res.scalars().all()
+        conv_ids = [c.id for c in sim_convs]
+
+        if not conv_ids:
+            return {"deleted_conversations": 0, "deleted_messages": 0}
+
+        # Delete messages first
+        del_msgs = await self.session.execute(
+            delete(Message).where(Message.conversation_id.in_(conv_ids))
+        )
+        msg_count = del_msgs.rowcount if hasattr(del_msgs, "rowcount") else 0
+
+        for c in sim_convs:
+            await self.session.delete(c)
+
+        await self.session.commit()
+        logger.info(f"[ConversationService] Purged {len(conv_ids)} simulated conversations and {msg_count} messages.")
+        return {"deleted_conversations": len(conv_ids), "deleted_messages": msg_count}
+
+    async def get_database_summary(self) -> Dict[str, Any]:
+        """
+        Returns structured database statistics and conversation breakdown.
+        """
+        total_convs = (await self.session.execute(
+            select(func.count(Conversation.id)).where(Conversation.org_id == self.org_id)
+        )).scalar() or 0
+
+        total_msgs = (await self.session.execute(
+            select(func.count(Message.id)).where(Message.org_id == self.org_id)
+        )).scalar() or 0
+
+        live_convs = (await self.session.execute(
+            select(func.count(Conversation.id)).where(
+                Conversation.org_id == self.org_id,
+                Conversation.channel == "whatsapp"
+            )
+        )).scalar() or 0
+
+        sim_convs = (await self.session.execute(
+            select(func.count(Conversation.id)).where(
+                Conversation.org_id == self.org_id,
+                Conversation.channel == "simulation"
+            )
+        )).scalar() or 0
+
+        return {
+            "total_conversations": total_convs,
+            "total_messages": total_msgs,
+            "live_whatsapp_conversations": live_convs,
+            "simulated_conversations": sim_convs,
+        }
+
