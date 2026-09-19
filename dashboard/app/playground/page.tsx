@@ -906,30 +906,36 @@ function PlaygroundInner() {
               </span>
             </h1>
 
-            {/* Centered AI Mascot with Floating Speech Bubbles */}
+            {/* Centered 3D AI Mascot with Floating Speech Bubbles */}
             <div className="relative my-4 flex items-center justify-center">
               {/* Left Speech Bubble */}
-              <div className="hidden sm:flex absolute -left-40 -top-4 items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-white/[0.06] border border-white/10 text-[11px] text-zinc-300 shadow-xl animate-pulse">
+              <div className="hidden sm:flex absolute -left-36 md:-left-44 top-2 items-center gap-1.5 px-3.5 py-1.5 rounded-2xl bg-white/[0.08] backdrop-blur-md border border-white/10 text-xs text-zinc-200 shadow-2xl animate-pulse">
                 <span>🤖</span>
                 <span>Hey there! Need a boost?</span>
               </div>
 
-              {/* Center Robot / Sphere Mascot */}
-              <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-gradient-to-b from-sky-500/20 via-indigo-600/20 to-transparent p-1 shadow-[0_0_50px_rgba(56,189,248,0.25)] flex items-center justify-center">
-                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-[#0d0d16] border border-white/20 flex flex-col items-center justify-center relative group">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="w-2 h-2 rounded-full bg-sky-400 animate-ping" />
-                    <span className="w-2 h-2 rounded-full bg-sky-400" />
-                  </div>
-                  <div className="w-8 h-1 rounded-full bg-white/30" />
-                  <div className="absolute -bottom-2 text-[10px] font-bold text-sky-400 bg-sky-950/80 px-2 py-0.5 rounded-full border border-sky-500/30">
-                    ONLINE
-                  </div>
+              {/* 3D Mascot Model with Radial Glow */}
+              <div className="relative group cursor-pointer">
+                {/* Radial Glow */}
+                <div className="absolute -inset-4 rounded-full bg-gradient-to-r from-sky-500/25 via-indigo-500/20 to-emerald-500/25 blur-2xl opacity-80 group-hover:opacity-100 transition-opacity pointer-events-none" />
+
+                <div className="relative w-36 h-36 sm:w-44 sm:h-44 md:w-52 md:h-52 rounded-3xl overflow-hidden flex items-center justify-center transition-transform duration-500 hover:scale-105">
+                  <img
+                    src="/ai-mascot-3d.png"
+                    alt="3D Dual-Brain AI Mascot"
+                    className="w-full h-full object-contain filter drop-shadow-[0_20px_40px_rgba(0,0,0,0.85)]"
+                  />
+                </div>
+
+                {/* Status Badge */}
+                <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-[#0d0d16]/95 border border-sky-500/40 text-[10px] font-extrabold text-sky-300 shadow-xl whitespace-nowrap">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                  <span>3D DUAL-BRAIN ACTIVE</span>
                 </div>
               </div>
 
               {/* Right Speech Bubble */}
-              <div className="hidden sm:flex absolute -right-44 -bottom-2 items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-white/[0.06] border border-white/10 text-[11px] text-zinc-300 shadow-xl">
+              <div className="hidden sm:flex absolute -right-36 md:-right-48 bottom-4 items-center gap-1.5 px-3.5 py-1.5 rounded-2xl bg-white/[0.08] backdrop-blur-md border border-white/10 text-xs text-zinc-200 shadow-2xl">
                 <span>⚡</span>
                 <span>NVIDIA Zero-Cost Ready</span>
               </div>
