@@ -144,6 +144,23 @@ HTTP/1.1 403 Forbidden - {"detail": "Webhook verification failed."}
 
 ---
 
+### 2.4 Phantom Inbound Customer Messages & Accidental Outbound Dispatch to Real Numbers (Simulation Leaks)
+- **Symptom**:
+  - The Dashboard Live Inbox displays an incoming customer query (e.g. *"We need 250 units for next week shipment..."* from `+919876543210`), but in the actual WhatsApp Web / phone app, the customer never messaged that.
+  - When an operator replied manually in the dashboard, the system dispatched an unexpected message to that real subscriber.
+- **Root Cause**:
+  1. **Simulation Channel Pollution**: Running in-browser simulations (e.g., `/api/v1/whatsapp/simulate-inbound` or Overview simulator) previously created threads on `channel="whatsapp"` in the primary database, placing fake customer inquiries directly in the live WhatsApp queue.
+  2. **Un-isolated Operator Dispatch**: When operators responded in the Live Inbox, `send_manual_operator_message` dispatched the reply to the phone number over the live WhatsApp bridge without checking if the thread was simulated.
+  3. **Test Leakage**: Tests using test numbers (like `+919876543210`) previously executed un-mocked send calls.
+- **Fix & Architectural Safeguards (ADR 0022)**:
+  1. **Sandbox Phone Interceptor**: `is_sandbox_test_phone()` checks phone numbers at the provider level (`BridgeWhatsAppProvider` and `MetaCloudWhatsAppProvider`). Calls to test sequences (`+919876543210`, `+919999988888`, etc.) are intercepted with synthetic confirmations and never transmitted over Baileys or Meta Cloud.
+  2. **Strict Channel Segregation**: Inbound simulations exclusively assign `channel="simulation"`, tag `metadata_json={"is_simulation": True}`, and mark customers with `company_type="simulation"`.
+  3. **Live Inbox Segmentation**: The dashboard defaults to the **WhatsApp Live** filter tab, ensuring only genuine customer messages appear. Simulated threads reside under the **🧪 Simulated** tab with distinct `[SIM]` tags and `[🧪 Sandbox Simulation]` header badges.
+  4. **Outbound Manual Reply Protection**: Operator replies within simulated or sandbox conversations are persisted locally with `delivery_status="delivered"` and never dispatched to real WhatsApp.
+  5. **Database Sanitization**: Execute `python scripts/sanitize_simulation_conversations.py` to isolate legacy test records.
+
+---
+
 ## 🧠 3. LLM & Embedding Errors
 
 ### 3.1 `httpx.HTTPStatusError: 404 Not Found on /chat/completions`
