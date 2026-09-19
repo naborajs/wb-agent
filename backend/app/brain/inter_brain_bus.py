@@ -25,6 +25,7 @@ from app.database.models import (
     CampaignLead,
     Conversation,
     Customer,
+    Deal,
     InterBrainMessage,
     KnowledgeCategory,
     KnowledgeItem,
