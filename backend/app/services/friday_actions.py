@@ -195,6 +195,58 @@ FRIDAY_ACTION_REGISTRY: Dict[str, Dict[str, Any]] = {
         },
         "effect": "Creates a persistent FridayProblemReport in SQLite & JSONL audit trail, and broadcasts an alert to the operator dashboard.",
     },
+    "create_prompt_section": {
+        "description": "Creates a new dynamic system prompt section with name, description, and initial instructions.",
+        "params": {
+            "name": "str — Section display name",
+            "description": "str (optional) — Summary of the section's rule domain",
+            "starter_instructions": "str (optional) — Initial instructions",
+        },
+        "effect": "Adds a new section to the prompt architecture and emits a real-time event.",
+    },
+    "toggle_prompt_section": {
+        "description": "Enables or disables a system prompt section without deleting its history.",
+        "params": {
+            "section": "str — Section slug key or name (e.g. 'returns_policy', 'sales_style')",
+            "is_active": "bool — True to enable, False to disable",
+        },
+        "effect": "Toggles section active state; disabled sections are omitted from live prompt assembly.",
+    },
+    "archive_prompt_section": {
+        "description": "Archives (soft-deletes) a custom prompt section. System sections are protected from deletion.",
+        "params": {
+            "section": "str — Section slug key or name to archive",
+            "confirmed": "bool (optional) — Confirmation flag for destructive action",
+        },
+        "effect": "Soft-deletes the section; requires verbal confirmation loop.",
+    },
+    "rollback_prompt_section": {
+        "description": "Rolls back a prompt section to a specified prior version with an audit trail.",
+        "params": {
+            "section": "str — Section slug key or name",
+            "version": "int — Target version number to restore",
+            "confirmed": "bool (optional) — Confirmation flag for rollback",
+            "reason": "str (optional) — Reason for rollback",
+        },
+        "effect": "Activates the historical version; requires verbal confirmation loop.",
+    },
+    "compare_prompt_versions": {
+        "description": "Computes a line-level diff between two prompt versions and returns a verbal summary.",
+        "params": {
+            "section": "str — Section slug key or name",
+            "from_version": "int — Base version number",
+            "to_version": "int — Comparison version number",
+        },
+        "effect": "Returns addition, deletion, and unchanged line counts for spoken briefing.",
+    },
+    "reset_prompt_section_default": {
+        "description": "Resets a system prompt section to its original factory-shipped seed instructions.",
+        "params": {
+            "section": "str — Section slug key or name",
+            "confirmed": "bool (optional) — Confirmation flag",
+        },
+        "effect": "Restores factory default instructions; requires verbal confirmation loop.",
+    },
 }
 
 
@@ -373,6 +425,18 @@ async def _dispatch_action(
         return await _action_configure_playground(session, org_id, params)
     elif action_name == "report_problem":
         return await _action_report_problem(session, org_id, params)
+    elif action_name == "create_prompt_section":
+        return await _action_create_prompt_section(session, org_id, params)
+    elif action_name == "toggle_prompt_section":
+        return await _action_toggle_prompt_section(session, org_id, params)
+    elif action_name == "archive_prompt_section":
+        return await _action_archive_prompt_section(session, org_id, params)
+    elif action_name == "rollback_prompt_section":
+        return await _action_rollback_prompt_section(session, org_id, params)
+    elif action_name == "compare_prompt_versions":
+        return await _action_compare_prompt_versions(session, org_id, params)
+    elif action_name == "reset_prompt_section_default":
+        return await _action_reset_prompt_section_default(session, org_id, params)
     else:
         return {"success": False, "message": f"Action '{action_name}' not implemented."}
 
@@ -970,4 +1034,176 @@ async def _action_report_problem(session: AsyncSession, org_id: str, params: Dic
         "report": rep,
         "report_code": rep["report_code"],
     }
+
+
+# -------------------------------------------------------------
+# Modular Prompt Section Actions
+# -------------------------------------------------------------
+async def _action_create_prompt_section(session: AsyncSession, org_id: str, params: Dict) -> Dict:
+    from app.agent.prompts import PromptService
+    from app.realtime.connection_manager import ws_manager
+    name = params.get("name") or params.get("title") or "New Section"
+    key = params.get("key") or name.lower().replace(" ", "_").replace("-", "_")
+    desc = params.get("description") or f"System instructions for {name}"
+    instructions = params.get("starter_instructions") or params.get("instructions") or ""
+
+    svc = PromptService(session, org_id)
+    sec = await svc.create_section(
+        key=key,
+        display_name=name,
+        description=desc,
+        starter_instructions=instructions,
+        created_by="friday-voice",
+    )
+    try:
+        await ws_manager.broadcast_to_org(org_id, "section_created", {"id": sec.id, "key": sec.key, "display_name": sec.display_name})
+    except Exception:
+        pass
+    return {"success": True, "message": f"Created new prompt section '{sec.display_name}'.", "section_id": sec.id, "key": sec.key}
+
+
+async def _action_toggle_prompt_section(session: AsyncSession, org_id: str, params: Dict) -> Dict:
+    from app.agent.prompts import PromptService
+    from app.realtime.connection_manager import ws_manager
+    target = params.get("section") or params.get("key") or ""
+    is_active = params.get("is_active", True)
+    svc = PromptService(session, org_id)
+    sec = await svc.get_section(target)
+    if not sec:
+        return {"success": False, "message": f"Section '{target}' not found."}
+    updated = await svc.update_section(sec.id, is_active=is_active)
+    try:
+        await ws_manager.broadcast_to_org(org_id, "section_toggled", {"id": updated.id, "key": updated.key, "is_active": updated.is_active})
+    except Exception:
+        pass
+    status_str = "enabled" if is_active else "disabled"
+    return {"success": True, "message": f"Prompt section '{updated.display_name}' is now {status_str}.", "is_active": is_active}
+
+
+async def _action_archive_prompt_section(session: AsyncSession, org_id: str, params: Dict) -> Dict:
+    from app.agent.prompts import PromptService
+    from app.realtime.connection_manager import ws_manager
+    target = params.get("section") or params.get("key") or ""
+    confirmed = params.get("confirmed", False)
+    svc = PromptService(session, org_id)
+    sec = await svc.get_section(target)
+    if not sec:
+        return {"success": False, "message": f"Section '{target}' not found."}
+    if sec.is_system:
+        return {"success": False, "message": f"System section '{sec.display_name}' cannot be archived or deleted."}
+
+    if not confirmed:
+        return {
+            "success": False,
+            "requires_confirmation": True,
+            "confirmation_prompt": f"You want me to archive section '{sec.display_name}' — confirm?",
+            "action": "archive_prompt_section",
+            "pending_params": params,
+        }
+
+    success, msg = await svc.archive_section(sec.id)
+    if success:
+        try:
+            await ws_manager.broadcast_to_org(org_id, "section_archived", {"id": sec.id, "key": sec.key, "display_name": sec.display_name})
+        except Exception:
+            pass
+    return {"success": success, "message": msg}
+
+
+async def _action_rollback_prompt_section(session: AsyncSession, org_id: str, params: Dict) -> Dict:
+    from app.agent.prompts import PromptService
+    from app.realtime.connection_manager import ws_manager
+    target = params.get("section") or params.get("key") or ""
+    version = int(params.get("version") or 1)
+    confirmed = params.get("confirmed", False)
+    reason = params.get("reason") or "Voice command rollback"
+
+    svc = PromptService(session, org_id)
+    sec = await svc.get_section(target)
+    target_name = sec.display_name if sec else target
+
+    if not confirmed:
+        return {
+            "success": False,
+            "requires_confirmation": True,
+            "confirmation_prompt": f"You want me to roll {target_name} back to version {version} — confirm?",
+            "action": "rollback_prompt_section",
+            "pending_params": params,
+        }
+
+    ver = await svc.activate_version(target, version, author="friday-voice", reason=reason)
+    if not ver:
+        return {"success": False, "message": f"Version {version} not found for '{target_name}'."}
+
+    try:
+        await ws_manager.broadcast_to_org(org_id, "version_rolled_back", {"section": ver.section_name, "version": ver.version, "author": "friday-voice", "change_summary": ver.change_summary})
+    except Exception:
+        pass
+    return {"success": True, "message": f"Rolled {target_name} back to Version {ver.version}.", "version": ver.version}
+
+
+async def _action_compare_prompt_versions(session: AsyncSession, org_id: str, params: Dict) -> Dict:
+    from app.agent.prompts import PromptService, compute_line_diff
+    from sqlalchemy import select
+    from app.database.models import PromptVersion
+    target = params.get("section") or params.get("key") or ""
+    from_v = int(params.get("from_version") or 1)
+    to_v = int(params.get("to_version") or 2)
+
+    svc = PromptService(session, org_id)
+    sec = await svc.get_section(target)
+    sec_id = sec.id if sec else None
+    slug_key = sec.key if sec else target
+
+    v1_stmt = select(PromptVersion).where(PromptVersion.org_id == org_id, (PromptVersion.section_id == sec_id) if sec_id else (PromptVersion.section_name == slug_key), PromptVersion.version == from_v)
+    v1 = (await session.execute(v1_stmt)).scalar_one_or_none()
+    v2_stmt = select(PromptVersion).where(PromptVersion.org_id == org_id, (PromptVersion.section_id == sec_id) if sec_id else (PromptVersion.section_name == slug_key), PromptVersion.version == to_v)
+    v2 = (await session.execute(v2_stmt)).scalar_one_or_none()
+
+    if not v1 or not v2:
+        return {"success": False, "message": f"Could not find versions v{from_v} and v{to_v} to compare."}
+
+    diff_data = compute_line_diff(v1.content, v2.content)
+    spoken_summary = (
+        f"Comparing {sec.display_name if sec else slug_key} version {from_v} to version {to_v}: "
+        f"{diff_data['added_count']} lines added, {diff_data['removed_count']} lines removed, "
+        f"and {diff_data['unchanged_count']} lines unchanged."
+    )
+    return {
+        "success": True,
+        "message": spoken_summary,
+        "summary": spoken_summary,
+        "added_count": diff_data["added_count"],
+        "removed_count": diff_data["removed_count"],
+    }
+
+
+async def _action_reset_prompt_section_default(session: AsyncSession, org_id: str, params: Dict) -> Dict:
+    from app.agent.prompts import PromptService
+    from app.realtime.connection_manager import ws_manager
+    target = params.get("section") or params.get("key") or ""
+    confirmed = params.get("confirmed", False)
+
+    svc = PromptService(session, org_id)
+    sec = await svc.get_section(target)
+    target_name = sec.display_name if sec else target
+
+    if not confirmed:
+        return {
+            "success": False,
+            "requires_confirmation": True,
+            "confirmation_prompt": f"You want me to reset {target_name} to factory default — confirm?",
+            "action": "reset_prompt_section_default",
+            "pending_params": params,
+        }
+
+    success, msg, new_ver = await svc.reset_to_default(target, author="friday-voice")
+    if not success:
+        return {"success": False, "message": msg}
+
+    try:
+        await ws_manager.broadcast_to_org(org_id, "prompt_updated", {"section": new_ver.section_name, "version": new_ver.version, "author": "friday-voice", "change_summary": new_ver.change_summary})
+    except Exception:
+        pass
+    return {"success": True, "message": f"Reset {target_name} to factory default.", "version": new_ver.version}
 
