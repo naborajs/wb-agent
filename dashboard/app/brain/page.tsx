@@ -1164,7 +1164,23 @@ export default function DualBrainPage() {
                 config={brainRadarConfig}
                 className="mx-auto aspect-square max-h-[320px] w-full"
               >
-                <RadarChart data={brainCapabilitiesData}>
+                <RadarChart
+                  data={(() => {
+                    const fridayLat = telemetry?.friday.latency_ms ?? 185;
+                    const edithLat = telemetry?.edith.latency_ms ?? 340;
+                    const fridaySpeed = Math.min(99, Math.max(75, Math.round(100 - fridayLat / 25)));
+                    const edithSpeed = Math.min(92, Math.max(60, Math.round(100 - edithLat / 20)));
+
+                    return [
+                      { dimension: "Latency Velocity", friday: fridaySpeed, edith: edithSpeed },
+                      { dimension: "Policy Reasoning", friday: 68, edith: 98 },
+                      { dimension: "Context Depth", friday: 96, edith: 78 },
+                      { dimension: "Guardrail Rigor", friday: 72, edith: 99 },
+                      { dimension: "Voice & Tools", friday: 95, edith: 74 },
+                      { dimension: "Cost Efficiency", friday: 94, edith: 82 },
+                    ];
+                  })()}
+                >
                   <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
                   <PolarAngleAxis dataKey="dimension" />
                   <PolarGrid strokeDasharray="3 3" />
