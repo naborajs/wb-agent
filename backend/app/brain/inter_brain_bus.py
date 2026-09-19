@@ -480,7 +480,8 @@ class FridayBrain:
             "2. You can navigate the operator to any page, click elements, change theme, and switch models.\n"
             "3. When the operator asks about Nemotron or any model, you confirm they are active in our NVIDIA NIM suite.\n"
             "4. When the operator asks to test a model or switch to a model in the playground, you open /playground?model=<id>.\n"
-            "5. Warm, concise, and proactive tone. Keep spoken replies to 1-3 sentences unless detailed analysis is requested."
+            "5. PROBLEM & ISSUE REPORTING: You have an integrated issue and gap reporting system. When the operator asks to 'report this problem' or 'report bug: ...', you file a formal issue ticket with code REP-YYYYMMDD-XXXX. If an action is unhandled, you log a capability gap for engineering triage.\n"
+            "6. Warm, concise, and proactive tone. Keep spoken replies to 1-3 sentences unless detailed analysis is requested."
         )
 
     async def chat(
@@ -492,9 +493,58 @@ class FridayBrain:
     ) -> Dict[str, Any]:
         """
         Executes a conversational turn with Friday.
-        If user asks about identity, answers as Friday.
-        If user instructs a task for WhatsApp/EDITH, routes through InterBrainBus.
+        Catches any unexpected internal exceptions and records them as problem reports.
         """
+        try:
+            return await self._chat_impl(user_message, session, org_id, history)
+        except Exception as exc:
+            import traceback
+            tb = traceback.format_exc()
+            logger.error(f"[FridayBrain.chat] Unhandled exception: {exc}\n{tb}")
+            try:
+                from app.services.friday_report_service import FridayReportService
+                rep = await FridayReportService.record_problem(
+                    session=session,
+                    org_id=org_id,
+                    category="INTERNAL_ERROR",
+                    title=f"Internal Friday Exception: {str(exc)[:60]}",
+                    description=f"Friday encountered an unexpected error while processing user prompt: {str(exc)}",
+                    user_instruction=user_message,
+                    error_trace=tb,
+                    severity="high",
+                )
+                report_code = rep.get("report_code", "REP-INTERNAL")
+                reply = (
+                    f"⚠️ **I encountered an unexpected internal issue while processing your request.**\n\n"
+                    f"• **Report Code:** `{report_code}`\n"
+                    f"• **Category:** Internal Error\n"
+                    f"• **Diagnostics:** The full traceback has been saved to our issue registry.\n\n"
+                    f"Our engineering team has been notified so this can be inspected and fixed promptly."
+                )
+                return {
+                    "speaker": "Friday",
+                    "model": "gemini-3.1-flash-live-preview",
+                    "reply": reply,
+                    "consulted_edith": False,
+                    "problem_report": rep,
+                }
+            except Exception as log_err:
+                logger.error(f"Failed to record problem report: {log_err}")
+                return {
+                    "speaker": "Friday",
+                    "model": "gemini-3.1-flash-live-preview",
+                    "reply": f"I encountered an unexpected error: {str(exc)}",
+                    "consulted_edith": False,
+                    "error": str(exc),
+                }
+
+    async def _chat_impl(
+        self,
+        user_message: str,
+        session: AsyncSession,
+        org_id: str,
+        history: Optional[List[Dict[str, str]]] = None,
+    ) -> Dict[str, Any]:
         history = history or []
         user_lower = user_message.lower().strip()
 
@@ -737,6 +787,103 @@ class FridayBrain:
                 "model": "gemini-3.1-flash-live-preview",
                 "reply": reply,
                 "consulted_edith": True,
+            }
+
+        # Explicit User Problem / Bug Reporting ("report this", "report this problem", "file report", etc.)
+        is_report_cmd = any(user_lower.startswith(p) for p in [
+            "report this", "report problem", "report issue", "file a report", "file report",
+            "report that", "log issue", "record bug", "report bug", "report error", "submit report",
+            "report a problem", "log a bug", "log problem", "friday report", "please report"
+        ]) or any(kw in user_lower for kw in [
+            "report this problem", "report this issue", "report this thing", "report this bug",
+            "file a bug report", "file an issue report", "report the problem"
+        ])
+        if is_report_cmd:
+            from app.services.friday_report_service import FridayReportService
+            cleaned_issue = re.sub(
+                r"^(?:friday[,\s]+)?(?:please\s+)?(?:report\s+(?:this\s+problem|this\s+issue|this\s+thing|this\s+bug|this|that|problem|issue|bug|error)?(?::|\s+)?|file\s+(?:a\s+)?report(?::|\s+)?|log\s+(?:an?\s+)?(?:issue|bug|problem)(?::|\s+)?|submit\s+(?:a\s+)?report(?::|\s+)?)",
+                "",
+                user_message,
+                flags=re.IGNORECASE,
+            ).strip()
+
+            if not cleaned_issue or len(cleaned_issue) < 3:
+                last_turn = ""
+                if history and isinstance(history, list):
+                    for turn in reversed(history):
+                        if isinstance(turn, dict) and turn.get("parts"):
+                            last_turn = turn["parts"][0].get("text", "")
+                            if last_turn and last_turn != user_message:
+                                break
+                cleaned_issue = f"Operator reported an issue following dialogue: '{last_turn}'" if last_turn else "Operator reported an issue with recent Friday interaction."
+
+            title = cleaned_issue[:60].strip()
+            if len(cleaned_issue) > 60:
+                title += "..."
+
+            rep = await FridayReportService.record_problem(
+                session=session,
+                org_id=org_id,
+                category="USER_REPORTED",
+                title=title,
+                description=cleaned_issue,
+                user_instruction=user_message,
+                context_data={"history_snippet": history[-4:] if (history and isinstance(history, list)) else []},
+                severity="medium",
+            )
+            reply = FridayReportService.format_chat_confirmation(rep)
+            return {
+                "speaker": "Friday",
+                "model": "gemini-3.1-flash-live-preview",
+                "reply": reply,
+                "consulted_edith": False,
+                "problem_report": rep,
+            }
+
+        # Inquiry on Reported Problems & Open Issues
+        is_reports_inquiry = any(w in user_lower for w in [
+            "what problems are reported", "show reported issues", "show problem reports",
+            "list reports", "list reported issues", "check reported issues", "show issues",
+            "view reported problems", "show problem tickets", "list open issues", "check reports"
+        ])
+        if is_reports_inquiry:
+            from app.services.friday_report_service import FridayReportService
+            reports = await FridayReportService.list_reports(session=session, org_id=org_id, limit=10)
+            reply = FridayReportService.format_chat_report_list(reports)
+            return {
+                "speaker": "Friday",
+                "model": "gemini-3.1-flash-live-preview",
+                "reply": reply,
+                "consulted_edith": False,
+                "reports_count": len(reports),
+            }
+
+        # Resolve Problem Report
+        is_resolve_cmd = any(w in user_lower for w in ["resolve report", "close report", "mark report resolved", "fix report"])
+        if is_resolve_cmd:
+            from app.services.friday_report_service import FridayReportService
+            code_match = re.search(r"(REP-[0-9]{8}-[A-F0-9]+|[a-f0-9\-]{32,36})", user_message, re.IGNORECASE)
+            if code_match:
+                target_code = code_match.group(1).upper()
+                res = await FridayReportService.resolve_report(
+                    session=session,
+                    org_id=org_id,
+                    report_id_or_code=target_code,
+                    resolved_by="operator",
+                    resolution_notes="Resolved via Friday conversational directive.",
+                )
+                if res:
+                    reply = f"✅ **Report `{res['report_code']}` Resolved!**\n\nThe issue status has been updated to `RESOLVED` in the system registry."
+                else:
+                    reply = f"I couldn't find a problem report with code `{target_code}` in our registry."
+            else:
+                reply = "Please specify the report code you would like to resolve (e.g. 'resolve report REP-20260919-XXXX')."
+
+            return {
+                "speaker": "Friday",
+                "model": "gemini-3.1-flash-live-preview",
+                "reply": reply,
+                "consulted_edith": False,
             }
 
         # Friday Action / Button Inquiries & Operations
@@ -1454,6 +1601,39 @@ class FridayBrain:
                     }
             except Exception as e:
                 logger.warning(f"[Friday Brain] Gemini call fallback: {e}")
+
+        # Check if user requested an unhandled action / capability gap
+        is_action_request = any(user_lower.startswith(prefix) for prefix in [
+            "can you ", "could you ", "please ", "i want you to ", "i need you to ", "friday, ", "friday "
+        ]) or any(user_lower.startswith(verb) for verb in [
+            "integrate ", "connect ", "export ", "import ", "sync ", "download ", "upload ", "install ", "deploy ",
+            "build ", "generate ", "write ", "run ", "do ", "make "
+        ])
+
+        if is_action_request:
+            from app.services.friday_report_service import FridayReportService
+            rep = await FridayReportService.record_problem(
+                session=session,
+                org_id=org_id,
+                category="CAPABILITY_GAP",
+                title=f"Unsupported Request: {user_message[:50]}",
+                description=f"Operator requested an action or capability that Friday does not yet autonomously support: '{user_message}'",
+                user_instruction=user_message,
+                suggested_fix="Implement autonomous handler or tool in FridayBrain/friday_actions.",
+                severity="medium",
+            )
+            reply = (
+                f"I understand your request: *\"{user_message}\"*, but I don't have autonomous capabilities for this operation yet.\n\n"
+                f"I have automatically recorded this as a **Capability Gap** (`{rep['report_code']}`) in our system registry "
+                f"so our engineering team can review the requirements and build this feature for you!"
+            )
+            return {
+                "speaker": "Friday",
+                "model": f"{gemini_model} (local)",
+                "reply": reply,
+                "consulted_edith": False,
+                "problem_report": rep,
+            }
 
         # Intelligent local persona fallback
         if "edith" in user_lower or "partner" in user_lower:

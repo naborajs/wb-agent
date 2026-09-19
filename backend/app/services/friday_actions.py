@@ -183,6 +183,18 @@ FRIDAY_ACTION_REGISTRY: Dict[str, Dict[str, Any]] = {
         },
         "effect": "Broadcasts live playground configuration event to all open playground views.",
     },
+    "report_problem": {
+        "description": "Records an issue, capability gap, or bug report into Friday's persistent issue tracking system with full telemetry and developer diagnostics.",
+        "params": {
+            "title": "str — Short summary of the problem or missing capability",
+            "description": "str — Detailed description of what failed or was requested",
+            "category": "str (optional) — 'CAPABILITY_GAP', 'INTERNAL_ERROR', 'TOOL_FAILURE', or 'USER_REPORTED'",
+            "severity": "str (optional) — 'low', 'medium', 'high', or 'critical'",
+            "user_instruction": "str (optional) — Original user prompt",
+            "suggested_fix": "str (optional) — Developer guidance or suggestion",
+        },
+        "effect": "Creates a persistent FridayProblemReport in SQLite & JSONL audit trail, and broadcasts an alert to the operator dashboard.",
+    },
 }
 
 
@@ -201,9 +213,22 @@ async def execute_action(
     Returns a result dict with 'success', 'message', and any action-specific data.
     """
     if action_name not in FRIDAY_ACTION_REGISTRY:
+        from app.services.friday_report_service import FridayReportService
+        rep = await FridayReportService.record_problem(
+            session=session,
+            org_id=org_id,
+            category="CAPABILITY_GAP",
+            title=f"Unregistered Action: {action_name}",
+            description=f"Friday or user attempted to invoke action '{action_name}' which is not in the action registry.",
+            user_instruction=params.get("user_instruction"),
+            context_data={"action_name": action_name, "params": params},
+            suggested_fix=f"Register '{action_name}' in FRIDAY_ACTION_REGISTRY or create corresponding handler.",
+            severity="medium",
+        )
         return {
             "success": False,
-            "message": f"Unknown action '{action_name}'. Available actions: {', '.join(FRIDAY_ACTION_REGISTRY.keys())}",
+            "message": f"Unknown action '{action_name}'. Logged to Friday issue registry as `{rep['report_code']}`.",
+            "report_code": rep["report_code"],
         }
 
     try:
@@ -237,10 +262,26 @@ async def execute_action(
         return result
 
     except Exception as e:
+        import traceback
+        tb = traceback.format_exc()
         logger.error(f"[Friday Action] Error executing '{action_name}': {e}")
+        from app.services.friday_report_service import FridayReportService
+        rep = await FridayReportService.record_problem(
+            session=session,
+            org_id=org_id,
+            category="TOOL_FAILURE",
+            title=f"Action Failure: {action_name}",
+            description=f"Action '{action_name}' encountered an unhandled exception: {str(e)}",
+            user_instruction=params.get("user_instruction"),
+            error_trace=tb,
+            context_data={"action_name": action_name, "params": params},
+            suggested_fix=f"Inspect execution handler for '{action_name}' in backend/app/services/friday_actions.py",
+            severity="high",
+        )
         return {
             "success": False,
-            "message": f"Action '{action_name}' failed: {str(e)}",
+            "message": f"Action '{action_name}' failed: {str(e)} (Issue recorded as `{rep['report_code']}`)",
+            "report_code": rep["report_code"],
         }
 
 
@@ -330,6 +371,8 @@ async def _dispatch_action(
         return await _action_open_playground(session, org_id, params)
     elif action_name == "configure_playground":
         return await _action_configure_playground(session, org_id, params)
+    elif action_name == "report_problem":
+        return await _action_report_problem(session, org_id, params)
     else:
         return {"success": False, "message": f"Action '{action_name}' not implemented."}
 
@@ -899,5 +942,32 @@ async def _action_configure_playground(session: AsyncSession, org_id: str, param
         "success": True,
         "message": "Playground studio parameters updated live on screen.",
         "payload": payload,
+    }
+
+
+async def _action_report_problem(session: AsyncSession, org_id: str, params: Dict) -> Dict:
+    from app.services.friday_report_service import FridayReportService
+    title = params.get("title") or "Reported Problem"
+    description = params.get("description") or title
+    category = params.get("category") or "USER_REPORTED"
+    severity = params.get("severity") or "medium"
+    user_instruction = params.get("user_instruction")
+    suggested_fix = params.get("suggested_fix")
+
+    rep = await FridayReportService.record_problem(
+        session=session,
+        org_id=org_id,
+        category=category,
+        title=title,
+        description=description,
+        user_instruction=user_instruction,
+        suggested_fix=suggested_fix,
+        severity=severity,
+    )
+    return {
+        "success": True,
+        "message": f"Problem report '{rep['report_code']}' filed successfully: {title}",
+        "report": rep,
+        "report_code": rep["report_code"],
     }
 

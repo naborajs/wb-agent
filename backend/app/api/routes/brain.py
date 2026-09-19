@@ -40,6 +40,7 @@ class BrainChatResponse(BaseModel):
     conversation_id: Optional[str] = None
     ui_action: Optional[Dict[str, Any]] = None
     action_result: Optional[Dict[str, Any]] = None
+    problem_report: Optional[Dict[str, Any]] = None
 
 
 class BrainTaskRequest(BaseModel):
@@ -85,6 +86,21 @@ class BrainDeliberationResponse(BaseModel):
     consensus: str
     deliberation_id: str
     resolved_at: Optional[str] = None
+
+
+class ProblemReportCreateRequest(BaseModel):
+    title: str = Field(..., min_length=2, description="Short summary of the issue or missing capability")
+    description: str = Field(..., min_length=2, description="Detailed explanation of the problem or error")
+    category: Optional[str] = Field("USER_REPORTED", description="'CAPABILITY_GAP', 'INTERNAL_ERROR', 'TOOL_FAILURE', 'USER_REPORTED', 'NAVIGATION_FAILURE'")
+    severity: Optional[str] = Field("medium", description="'low', 'medium', 'high', 'critical'")
+    user_instruction: Optional[str] = Field(None, description="Original operator command or prompt")
+    suggested_fix: Optional[str] = Field(None, description="Optional engineering guidance or suggestion")
+    current_path: Optional[str] = Field("/", description="Current dashboard route path")
+
+
+class ProblemReportResolveRequest(BaseModel):
+    resolved_by: Optional[str] = Field("operator", description="Name or identifier of developer or operator resolving the issue")
+    resolution_notes: Optional[str] = Field(None, description="Notes on how the issue was fixed or addressed")
 
 
 @router.post("/chat", response_model=BrainChatResponse)
@@ -1139,5 +1155,85 @@ async def launch_drafted_campaign(
         "campaign_name": campaign.name if campaign else None,
         "status": campaign.status if campaign else "draft",
         "total_leads": campaign.total_leads if campaign else 0,
+    }
+
+
+@router.post("/reports")
+async def create_problem_report(
+    payload: ProblemReportCreateRequest,
+    session: AsyncSession = Depends(get_db),
+):
+    """
+    Submits a structured problem report into Friday's issue registry.
+    Dual-persisted to SQLite and JSONL audit logs, emitting real-time notifications.
+    """
+    from app.services.friday_report_service import FridayReportService
+    report = await FridayReportService.record_problem(
+        session=session,
+        org_id=settings.DEFAULT_ORG_ID,
+        category=payload.category or "USER_REPORTED",
+        title=payload.title,
+        description=payload.description,
+        user_instruction=payload.user_instruction,
+        suggested_fix=payload.suggested_fix,
+        severity=payload.severity or "medium",
+        current_path=payload.current_path or "/",
+    )
+    return {
+        "success": True,
+        "report": report,
+    }
+
+
+@router.get("/reports")
+async def list_problem_reports(
+    status: Optional[str] = Query(None, description="Filter by status ('open', 'in_review', 'resolved')"),
+    category: Optional[str] = Query(None, description="Filter by category ('CAPABILITY_GAP', 'INTERNAL_ERROR', 'USER_REPORTED', etc.)"),
+    limit: int = Query(50, ge=1, le=200),
+    session: AsyncSession = Depends(get_db),
+):
+    """
+    Retrieves recorded Friday problem and capability gap reports for engineering inspection.
+    """
+    from app.services.friday_report_service import FridayReportService
+    reports = await FridayReportService.list_reports(
+        session=session,
+        org_id=settings.DEFAULT_ORG_ID,
+        status=status,
+        category=category,
+        limit=limit,
+    )
+    return {
+        "success": True,
+        "total": len(reports),
+        "reports": reports,
+    }
+
+
+@router.patch("/reports/{report_id}/resolve")
+async def resolve_problem_report(
+    report_id: str,
+    payload: ProblemReportResolveRequest,
+    session: AsyncSession = Depends(get_db),
+):
+    """
+    Marks a problem report as resolved with developer resolution notes.
+    """
+    from app.services.friday_report_service import FridayReportService
+    resolved = await FridayReportService.resolve_report(
+        session=session,
+        org_id=settings.DEFAULT_ORG_ID,
+        report_id_or_code=report_id,
+        resolved_by=payload.resolved_by or "operator",
+        resolution_notes=payload.resolution_notes,
+    )
+    if not resolved:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Report '{report_id}' not found.",
+        )
+    return {
+        "success": True,
+        "report": resolved,
     }
 

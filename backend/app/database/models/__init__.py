@@ -33,6 +33,7 @@ from app.database.models.agent_audit import (
     AgentSetting,
     AuditLog,
     VoiceAuditLog,
+    FridayProblemReport,
 )
 from app.database.models.knowledge_request import (
     HumanKnowledgeRequest,
@@ -86,6 +87,7 @@ __all__ = [
     "AgentSetting",
     "AuditLog",
     "VoiceAuditLog",
+    "FridayProblemReport",
     "HumanKnowledgeRequest",
     "KnowledgeCandidate",
     "CustomerProfileVersion",

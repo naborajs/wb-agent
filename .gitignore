@@ -81,6 +81,8 @@ storage/logs/*
 !storage/logs/.gitkeep
 storage/*.csv
 backend/storage/
+backend/data/*.jsonl
+!backend/data/.gitkeep
 
 # IDEs
 .idea/
