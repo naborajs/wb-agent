@@ -161,6 +161,27 @@ HTTP/1.1 403 Forbidden - {"detail": "Webhook verification failed."}
 
 ---
 
+### 2.5 Managing Conversation History, Pruning Storage, and Contact Visibility (ADR 0023)
+- **Symptom**:
+  - Operators need to view all conversation history (both genuine WhatsApp and test numbers like personal owner tests) or delete obsolete threads to prevent database bloat.
+  - An operator asks: *"Can we delete conversation history or wipe simulation test data without losing real client chats?"*
+- **Solution & Controls**:
+  1. **Dashboard UI Controls**:
+     - Switch between **WA Live**, **🧪 Sim**, or **All** tabs in `/conversations` to view all contacts or segment live vs test threads.
+     - Click the red **Delete** button in the chat header to permanently delete a thread and all its messages.
+     - In the **🧪 Sim** tab, click **Purge All** to wipe all simulation test threads and messages in a single click.
+     - Click **Reset** to clear all messages and reset customer state while keeping the contact record.
+  2. **API Endpoints**:
+     - `DELETE /api/v1/conversations/{id}`: Permanently deletes the conversation and cascades to messages, events, and summaries.
+     - `POST /api/v1/conversations/simulations/purge`: Purges all test data atomically.
+     - `GET /api/v1/conversations/database/stats`: Returns live counts of total conversations, stored messages, and channel distribution.
+  3. **FRIDAY & EDITH Dual-Brain Commands**:
+     - You can ask Friday: *"Check the full database stats"*, and Friday will report live storage metrics.
+     - You can command Friday: *"Purge simulation history"*, which coordinates with EDITH over the Inter-Brain Bus and executes safe pruning.
+     - If you instruct Friday to delete a **Hot** lead with active commercial negotiations, EDITH exercises autonomous refusal to prevent accidental revenue loss, requiring manual dashboard confirmation.
+
+---
+
 ## 🧠 3. LLM & Embedding Errors
 
 ### 3.1 `httpx.HTTPStatusError: 404 Not Found on /chat/completions`
