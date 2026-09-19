@@ -80,6 +80,13 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: str = ""
     GEMINI_MODEL: str = "gemini-3.1-flash-live-preview"
 
+    # Dynamic Dual-Brain Model Role Assignments
+    FRIDAY_WEB_MODEL: str = "gemini-3.1-flash-live-preview"
+    EDITH_SALES_MODEL: str = "meta/llama-3.3-70b-instruct"
+    FRIDAY_VOICE_MODEL: str = "gemini-3.1-flash-live-preview"
+    EDITH_POLICY_MODEL: str = "nvidia/nemotron-3-super-120b-a12b"
+    SYSTEM_WATCHDOG_MODEL: str = "openai/gpt-oss-20b"
+
     @property
     def nvidia_primary_key(self) -> str:
         return self.NVIDIA_NIM_API_KEY_PRIMARY or self.NVIDIA_API_KEY or ""

@@ -84,8 +84,24 @@ CAPABILITY_CHAINS: Dict[Capability, List[str]] = {
 
 
 def get_capability_chain(capability: Capability) -> List[str]:
-    """Returns the ordered model fallback chain for the specified capability."""
+    """Returns the ordered model fallback chain for the specified capability, respecting configured model roles."""
     chain = list(CAPABILITY_CHAINS.get(capability, []))
+
+    if capability == Capability.CORE_BRAIN:
+        sales_model = getattr(settings, "EDITH_SALES_MODEL", "meta/llama-3.3-70b-instruct")
+        if sales_model and sales_model not in chain:
+            chain.insert(0, sales_model)
+        elif sales_model and chain and chain[0] != sales_model:
+            chain.remove(sales_model)
+            chain.insert(0, sales_model)
+    elif capability == Capability.SYSTEM_WATCHDOG:
+        watchdog_model = getattr(settings, "SYSTEM_WATCHDOG_MODEL", "openai/gpt-oss-20b")
+        if watchdog_model and watchdog_model not in chain:
+            chain.insert(0, watchdog_model)
+        elif watchdog_model and chain and chain[0] != watchdog_model:
+            chain.remove(watchdog_model)
+            chain.insert(0, watchdog_model)
+
     if AT_RISK_MODELS and capability in (Capability.VISION_DOCUMENT, Capability.CORE_BRAIN):
         # Insert at-risk model at the tail only if explicitly enabled
         chain.extend(AT_RISK_MODELS)
