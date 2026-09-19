@@ -4,17 +4,22 @@ import * as React from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
-interface CircuitNode {
+export interface CircuitNode {
   id: string;
   x: number;
   y: number;
   label?: string;
+  sublabel?: string;
+  badge?: string;
   icon?: React.ReactNode;
   status?: "active" | "inactive" | "processing" | "error";
-  size?: "sm" | "md" | "lg";
+  size?: "sm" | "md" | "lg" | "xl";
+  color?: string;
+  pulseColor?: string;
+  onClick?: () => void;
 }
 
-interface CircuitConnection {
+export interface CircuitConnection {
   from: string;
   to: string;
   animated?: boolean;
@@ -23,7 +28,7 @@ interface CircuitConnection {
   pulseColor?: string;
 }
 
-interface CircuitBoardProps extends React.HTMLAttributes<HTMLDivElement> {
+export interface CircuitBoardProps extends React.HTMLAttributes<HTMLDivElement> {
   nodes: CircuitNode[];
   connections: CircuitConnection[];
   width?: number;
@@ -38,6 +43,8 @@ interface CircuitBoardProps extends React.HTMLAttributes<HTMLDivElement> {
   traceWidth?: number;
   /** Force a specific theme variant. Defaults to auto-detect from system. */
   variant?: "light" | "dark" | "auto";
+  selectedNodeId?: string;
+  onNodeClick?: (node: CircuitNode) => void;
 }
 
 function CircuitBoard({
@@ -54,6 +61,8 @@ function CircuitBoard({
   pulseSpeed = 2,
   traceWidth = 2,
   variant = "auto",
+  selectedNodeId,
+  onNodeClick,
   className,
   ...props
 }: CircuitBoardProps) {
@@ -116,11 +125,13 @@ function CircuitBoard({
   const getNodeSize = React.useCallback((size?: CircuitNode["size"]) => {
     switch (size) {
       case "sm":
-        return 24;
+        return 28;
       case "lg":
-        return 48;
+        return 50;
+      case "xl":
+        return 64;
       default:
-        return 36;
+        return 38;
     }
   }, []);
 
@@ -156,26 +167,27 @@ function CircuitBoard({
     [getNodeSize],
   );
 
-  const getStatusColor = (status?: CircuitNode["status"]) => {
+  const getStatusColor = (node: CircuitNode) => {
+    if (node.color) return node.color;
     if (isDark) {
-      switch (status) {
+      switch (node.status) {
         case "active":
-          return "rgba(163, 163, 163, 0.7)";
+          return "rgba(0, 210, 254, 0.9)";
         case "processing":
-          return "rgba(163, 163, 163, 0.5)";
+          return "rgba(168, 85, 247, 0.9)";
         case "error":
-          return "rgba(120, 113, 108, 0.6)";
+          return "rgba(239, 68, 68, 0.9)";
         default:
           return computedNodeColor;
       }
     } else {
-      switch (status) {
+      switch (node.status) {
         case "active":
-          return "rgba(64, 64, 64, 0.8)";
+          return "rgba(2, 132, 199, 0.95)";
         case "processing":
-          return "rgba(64, 64, 64, 0.6)";
+          return "rgba(124, 58, 237, 0.95)";
         case "error":
-          return "rgba(180, 83, 83, 0.7)";
+          return "rgba(220, 38, 38, 0.95)";
         default:
           return computedNodeColor;
       }
@@ -191,6 +203,7 @@ function CircuitBoard({
       <svg
         width={width}
         height={height}
+        viewBox={`0 0 ${width} ${height}`}
         className="absolute inset-0"
         style={{ overflow: "visible" }}
       >
@@ -320,12 +333,16 @@ function CircuitBoard({
       {/* Nodes */}
       {nodes.map((node, i) => {
         const size = getNodeSize(node.size);
-        const statusColor = getStatusColor(node.status);
+        const statusColor = getStatusColor(node);
+        const isSelected = selectedNodeId === node.id;
 
         return (
           <motion.div
             key={node.id}
-            className="absolute flex items-center justify-center"
+            className={cn(
+              "absolute flex items-center justify-center cursor-pointer select-none group",
+              isSelected && "z-30"
+            )}
             style={{
               left: node.x - size / 2,
               top: node.y - size / 2,
@@ -334,16 +351,29 @@ function CircuitBoard({
             }}
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: i * 0.1 + 0.5, type: "spring" }}
+            whileHover={{ scale: 1.12 }}
+            whileTap={{ scale: 0.94 }}
+            transition={{ delay: i * 0.08 + 0.3, type: "spring" }}
+            onClick={() => {
+              node.onClick?.();
+              onNodeClick?.(node);
+            }}
           >
             {/* Node background with pulse */}
             <motion.div
-              className="absolute inset-0 rounded-lg"
-              style={{ backgroundColor: statusColor }}
+              className={cn(
+                "absolute inset-0 rounded-xl transition-all",
+                isDark ? "bg-[#0f172a]/95 backdrop-blur-md" : "bg-white/95 shadow-md"
+              )}
+              style={{
+                boxShadow: isSelected
+                  ? `0 0 24px ${statusColor}80, 0 0 40px ${statusColor}40`
+                  : undefined,
+              }}
               animate={
                 node.status === "processing"
-                  ? { opacity: [0.2, 0.5, 0.2] }
-                  : { opacity: 0.2 }
+                  ? { opacity: [0.3, 0.8, 0.3] }
+                  : { opacity: 0.85 }
               }
               transition={
                 node.status === "processing"
@@ -352,38 +382,81 @@ function CircuitBoard({
               }
             />
 
-            {/* Node border */}
+            {/* Node border with glowing selection ring */}
             <div
-              className="absolute inset-0 rounded-lg border-2"
+              className={cn(
+                "absolute inset-0 rounded-xl transition-all",
+                isSelected ? "border-[2.5px] scale-105" : "border-2 group-hover:border-[2.5px]"
+              )}
               style={{ borderColor: statusColor }}
             />
+
+            {/* Selected ring pulse */}
+            {isSelected && (
+              <motion.div
+                className="absolute -inset-1.5 rounded-2xl border border-dashed pointer-events-none"
+                style={{ borderColor: statusColor }}
+                animate={{ rotate: 360 }}
+                transition={{ duration: 12, repeat: Infinity, ease: "linear" }}
+              />
+            )}
 
             {/* Inner glow for active nodes */}
             {node.status === "active" && (
               <motion.div
-                className="absolute inset-0 rounded-lg"
+                className="absolute inset-0 rounded-xl pointer-events-none"
                 style={{
-                  boxShadow: `0 0 20px ${statusColor}40, inset 0 0 10px ${statusColor}20`,
+                  boxShadow: `0 0 16px ${statusColor}50, inset 0 0 10px ${statusColor}25`,
                 }}
                 animate={{ opacity: [0.5, 1, 0.5] }}
                 transition={{ duration: 2, repeat: Infinity }}
               />
             )}
 
-            {/* Node content */}
-            <div className="relative z-10 flex flex-col items-center justify-center">
+            {/* Badge pill */}
+            {node.badge && (
+              <span
+                className="absolute -top-2.5 -right-2 px-1.5 py-0.2 rounded-full text-[9px] font-mono font-bold border shadow-sm pointer-events-none z-20"
+                style={{
+                  backgroundColor: isDark ? "rgba(15, 23, 42, 0.95)" : "rgba(255, 255, 255, 0.95)",
+                  borderColor: statusColor,
+                  color: statusColor,
+                }}
+              >
+                {node.badge}
+              </span>
+            )}
+
+            {/* Node content / Icon */}
+            <div className="relative z-10 flex flex-col items-center justify-center pointer-events-none">
               {node.icon && (
                 <div style={{ color: statusColor }}>{node.icon}</div>
               )}
             </div>
 
-            {/* Label */}
-            {node.label && (
+            {/* Label and Sublabel */}
+            {(node.label || node.sublabel) && (
               <div
-                className="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap text-xs font-medium"
-                style={{ color: statusColor }}
+                className="absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap text-center pointer-events-none z-20"
               >
-                {node.label}
+                {node.label && (
+                  <div
+                    className={cn(
+                      "text-xs font-mono font-semibold tracking-tight transition-colors",
+                      isSelected
+                        ? "text-slate-900 dark:text-white underline underline-offset-4 decoration-2"
+                        : "text-slate-700 dark:text-slate-300"
+                    )}
+                    style={isSelected ? { textDecorationColor: statusColor } : undefined}
+                  >
+                    {node.label}
+                  </div>
+                )}
+                {node.sublabel && (
+                  <div className="text-[10px] font-mono text-slate-500 dark:text-slate-400 font-medium">
+                    {node.sublabel}
+                  </div>
+                )}
               </div>
             )}
           </motion.div>
@@ -850,8 +923,6 @@ export {
   CircuitNode,
   CircuitTrace,
   type CircuitNode as CircuitNodeType,
-  type CircuitConnection,
-  type CircuitBoardProps,
 };
 
 export default CircuitBoard;
