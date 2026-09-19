@@ -36,7 +36,7 @@ const DEFAULT_EVENTS: SynapticEvent[] = [
     content: "EDITH held 15% margin boundary: Denied 35% discount for lead +91 9800123456",
     decision: "DENIED",
     reasoning: "Requested discount exceeds 15.0% autonomous ceiling. Proposing Tier 2 volume discount with 100-unit MOQ.",
-    created_at: new Date(Date.now() - 35000).toLocaleTimeString(),
+    created_at: "Just now",
   },
   {
     id: "evt-2",
@@ -45,7 +45,7 @@ const DEFAULT_EVENTS: SynapticEvent[] = [
     content: "FRIDAY voice query: Executed DOM inspection on Knowledge Hub (185ms)",
     decision: "ACCEPTED",
     reasoning: "Operator screen grounded; verified 8 knowledge asset nodes and pricing tiers.",
-    created_at: new Date(Date.now() - 95000).toLocaleTimeString(),
+    created_at: "1m ago",
   },
   {
     id: "evt-3",
@@ -54,7 +54,7 @@ const DEFAULT_EVENTS: SynapticEvent[] = [
     content: "EDITH outbound: Qualified bulk Darjeeling buyer, quote sent via WhatsApp",
     decision: "ACCEPTED",
     reasoning: "Buyer qualified for Tier 2 wholesale pricing at ₹1,850/kg with 50kg MOQ commitment.",
-    created_at: new Date(Date.now() - 175000).toLocaleTimeString(),
+    created_at: "2m ago",
   },
   {
     id: "evt-4",
@@ -63,7 +63,7 @@ const DEFAULT_EVENTS: SynapticEvent[] = [
     content: "EDITH fallback: Dispatched direct system alert to operator after Friday focus-protection refusal",
     decision: "FALLBACK_RESOLVED",
     reasoning: "Direct agent notification queued in Notification Center.",
-    created_at: new Date(Date.now() - 240000).toLocaleTimeString(),
+    created_at: "4m ago",
   },
   {
     id: "evt-5",
@@ -72,16 +72,21 @@ const DEFAULT_EVENTS: SynapticEvent[] = [
     content: "FRIDAY synthesized executive morning audio briefing for operator (1.1s turn latency)",
     decision: "SYNCHRONIZED",
     reasoning: "Real-time pipeline metrics and margin defense stats prepared for audio synthesis.",
-    created_at: new Date(Date.now() - 320000).toLocaleTimeString(),
+    created_at: "5m ago",
   },
 ];
 
 export default function SynapticActivityTicker() {
+  const [mounted, setMounted] = useState(false);
   const [events, setEvents] = useState<SynapticEvent[]>(DEFAULT_EVENTS);
   const [filter, setFilter] = useState<"ALL" | "EDITH" | "FRIDAY">("ALL");
   const [isPaused, setIsPaused] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<SynapticEvent | null>(null);
   const tickerRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Load live dialogue logs from backend
   useEffect(() => {
@@ -255,7 +260,7 @@ export default function SynapticActivityTicker() {
                   </span>
 
                   {/* Timestamp */}
-                  <span className="text-[11px] text-slate-400 dark:text-slate-500 shrink-0 font-medium">
+                  <span suppressHydrationWarning className="text-[11px] text-slate-400 dark:text-slate-500 shrink-0 font-medium">
                     [{evt.created_at}]
                   </span>
 
