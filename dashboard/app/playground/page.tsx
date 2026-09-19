@@ -39,6 +39,7 @@ import {
   Briefcase,
   History,
   Info,
+  Plus,
 } from "lucide-react";
 
 interface PlaygroundModel {
@@ -395,7 +396,7 @@ function RenderMarkdown({ content }: { content: string }) {
               if (p.trim().startsWith("- ") || p.trim().startsWith("* ")) {
                 return (
                   <div key={pIdx} className="flex items-start gap-2 pl-2">
-                    <span className="text-sky-400 font-bold">•</span>
+                    <span className="text-orange-400 font-bold">•</span>
                     <span>{formatted}</span>
                   </div>
                 );
@@ -415,8 +416,8 @@ function FloatingRobotMascot() {
 
   return (
     <div className="relative group cursor-pointer select-none">
-      {/* Soft ambient radial glow */}
-      <div className="absolute -inset-6 rounded-full bg-gradient-to-r from-sky-500/25 via-indigo-500/20 to-purple-500/25 blur-2xl opacity-60 group-hover:opacity-100 transition-opacity pointer-events-none" />
+      {/* Soft warm ambient radial glow (Amber / Orange & Emerald) */}
+      <div className="absolute -inset-6 rounded-full bg-gradient-to-r from-orange-500/20 via-amber-500/15 to-emerald-500/15 blur-2xl opacity-60 group-hover:opacity-100 transition-opacity pointer-events-none" />
 
       {/* Mascot Container: Loads transparent PNG with instant SVG backup */}
       <div className="relative w-28 h-36 sm:w-32 sm:h-40 md:w-36 md:h-44 flex items-center justify-center transition-transform duration-300 group-hover:scale-105">
@@ -434,36 +435,36 @@ function FloatingRobotMascot() {
         {!imgLoaded && (
           <svg
             viewBox="0 0 160 180"
-            className="w-full h-full filter drop-shadow-[0_12px_24px_rgba(79,107,255,0.3)]"
+            className="w-full h-full filter drop-shadow-[0_12px_24px_rgba(255,107,0,0.3)]"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
           >
             <defs>
               <linearGradient id="robotBodyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
                 <stop offset="0%" stopColor="#FFFFFF" />
-                <stop offset="60%" stopColor="#EDF2FF" />
-                <stop offset="100%" stopColor="#D2DCFF" />
+                <stop offset="60%" stopColor="#F5F5F7" />
+                <stop offset="100%" stopColor="#E2E3E8" />
               </linearGradient>
-              <linearGradient id="robotBlueGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#687BFE" />
-                <stop offset="100%" stopColor="#485AE8" />
+              <linearGradient id="robotTitaniumGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#555866" />
+                <stop offset="100%" stopColor="#2A2C35" />
               </linearGradient>
               <linearGradient id="headBezelGrad" x1="0%" y1="0%" x2="0%" y2="100%">
                 <stop offset="0%" stopColor="#FFFFFF" />
-                <stop offset="100%" stopColor="#D5DEFF" />
+                <stop offset="100%" stopColor="#E0E2EC" />
               </linearGradient>
             </defs>
 
             {/* Left Wing / Arm */}
             <path
               d="M 44 88 C 28 92 18 116 20 138 C 22 148 30 152 38 144 C 48 132 54 112 52 94 Z"
-              fill="url(#robotBlueGrad)"
+              fill="url(#robotTitaniumGrad)"
             />
 
             {/* Right Wing / Arm */}
             <path
               d="M 116 88 C 132 92 142 116 140 138 C 138 148 130 152 122 144 C 112 132 106 112 108 94 Z"
-              fill="url(#robotBlueGrad)"
+              fill="url(#robotTitaniumGrad)"
             />
 
             {/* White Torso / Shield Body */}
@@ -473,21 +474,21 @@ function FloatingRobotMascot() {
             />
 
             {/* Body 3 Dots (...) */}
-            <circle cx="68" cy="116" r="3.5" fill="#252F48" />
-            <circle cx="80" cy="116" r="3.5" fill="#252F48" />
-            <circle cx="92" cy="116" r="3.5" fill="#252F48" />
+            <circle cx="68" cy="116" r="3.5" fill="#20222A" />
+            <circle cx="80" cy="116" r="3.5" fill="#20222A" />
+            <circle cx="92" cy="116" r="3.5" fill="#20222A" />
 
             {/* Vent bar */}
-            <rect x="70" y="130" width="20" height="4" rx="2" fill="#252F48" />
+            <rect x="70" y="130" width="20" height="4" rx="2" fill="#20222A" />
 
             {/* Left Ear / Headphone */}
-            <rect x="30" y="44" width="16" height="26" rx="8" fill="url(#robotBlueGrad)" />
+            <rect x="30" y="44" width="16" height="26" rx="8" fill="url(#robotTitaniumGrad)" />
 
             {/* Right Ear / Headphone */}
-            <rect x="114" y="44" width="16" height="26" rx="8" fill="url(#robotBlueGrad)" />
+            <rect x="114" y="44" width="16" height="26" rx="8" fill="url(#robotTitaniumGrad)" />
 
             {/* Neck */}
-            <rect x="71" y="78" width="18" height="12" rx="3" fill="#9BA8C4" />
+            <rect x="71" y="78" width="18" height="12" rx="3" fill="#A0A5B5" />
 
             {/* Head Bezel */}
             <rect
@@ -497,7 +498,7 @@ function FloatingRobotMascot() {
               height="58"
               rx="18"
               fill="url(#headBezelGrad)"
-              stroke="#BCC8E8"
+              stroke="#D2D6E2"
               strokeWidth="1.5"
             />
 
@@ -524,7 +525,7 @@ function FloatingRobotMascot() {
       </div>
 
       {/* Online indicator */}
-      <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#0d0d16]/95 border border-sky-500/30 text-[9px] font-bold text-sky-300 shadow-lg whitespace-nowrap">
+      <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#0d0d12]/95 border border-orange-500/30 text-[9px] font-bold text-orange-300 shadow-lg whitespace-nowrap">
         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
         <span>ONLINE</span>
       </div>
@@ -560,6 +561,9 @@ function PlaygroundInner() {
   const [isUpgradingPrompt, setIsUpgradingPrompt] = useState<boolean>(false);
   const [upgradeNotice, setUpgradeNotice] = useState<string>("");
 
+  // Quick Action Menu (from + button)
+  const [isQuickMenuOpen, setIsQuickMenuOpen] = useState<boolean>(false);
+
   // Side Panel & UI Controls
   const [isSidePanelOpen, setIsSidePanelOpen] = useState<boolean>(false);
   const [activeSideTab, setActiveSideTab] = useState<"params" | "history">("params");
@@ -568,6 +572,7 @@ function PlaygroundInner() {
   // Chat conversation state
   const [inputMessage, setInputMessage] = useState<string>("");
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
+  const [isComposerFocused, setIsComposerFocused] = useState<boolean>(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [chatHistoryList, setChatHistoryList] = useState<{ id: string; title: string; model: string; time: string }[]>([
     {
@@ -603,82 +608,91 @@ function PlaygroundInner() {
     }
   }, [searchParams]);
 
-  // Close model dropdown on outside click
+  // Auto-scroll messages
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  // Close dropdowns on outside click
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsModelDropdownOpen(false);
       }
-    };
+    }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  // Auto-scroll on new message
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, isGenerating]);
-
-  // Listen for Friday AI live configuration actions over WebSocket
-  useEffect(() => {
-    const handleFridayUiAction = (e: Event) => {
-      const customEvent = e as CustomEvent;
-      const detail = customEvent.detail;
-      if (!detail) return;
-
-      if (detail.action === "playground_configure") {
-        if (detail.model_id && PLAYGROUND_MODELS.some((m) => m.id === detail.model_id)) {
-          setSelectedModelId(detail.model_id);
-        }
-        if (typeof detail.temperature === "number") {
-          setTemperature(detail.temperature);
-        }
-        if (typeof detail.max_tokens === "number") {
-          setMaxTokens(detail.max_tokens);
-        }
-        if (typeof detail.system_prompt === "string" && detail.system_prompt) {
-          setSystemPrompt(detail.system_prompt);
-        }
-      }
-    };
-
-    window.addEventListener("friday_ui_action", handleFridayUiAction);
-    return () => {
-      window.removeEventListener("friday_ui_action", handleFridayUiAction);
-    };
   }, []);
 
   const currentModel =
     PLAYGROUND_MODELS.find((m) => m.id === selectedModelId) || PLAYGROUND_MODELS[0];
 
-  const handleSelectPersona = (persona: PersonaPreset) => {
-    setSelectedPersona(persona);
-    setSystemPrompt(persona.systemPrompt);
-  };
-
+  // Copy helper
   const handleCopyMessage = (id: string, text: string) => {
     navigator.clipboard.writeText(text);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
   };
 
+  // Clear Chat History
   const handleClearHistory = () => {
     setMessages([]);
-    setInputMessage("");
+    setIsQuickMenuOpen(false);
   };
 
-  // AI Prompt Upgrade Handler (Powered by NVIDIA NIM)
-  const handleUpgradePrompt = async () => {
-    setIsUpgradingPrompt(true);
-    setUpgradeNotice("");
+  // Update Persona & System Prompt
+  const handleSelectPersona = (p: PersonaPreset) => {
+    setSelectedPersona(p);
+    setSystemPrompt(p.systemPrompt);
+  };
+
+  // 1-Click Operational Role Assignment
+  const handleAssignToRole = async () => {
+    setIsAssigningRole(true);
+    setAssignRoleMsg("");
     try {
-      const textToUpgrade = inputMessage.trim() || "What discount can we give for wholesale tea commitment?";
+      const res = await fetch("/api/v1/brain/assign-role", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          role: targetRole,
+          model_id: currentModel.id,
+        }),
+      });
+
+      if (res.ok) {
+        setAssignRoleMsg(`✅ Assigned ${currentModel.name} to ${targetRole}!`);
+        setTimeout(() => setAssignRoleMsg(""), 4000);
+      } else {
+        setAssignRoleMsg("❌ Failed to update model role mapping");
+      }
+    } catch {
+      setAssignRoleMsg("❌ Network error assigning role");
+    } finally {
+      setIsAssigningRole(false);
+    }
+  };
+
+  // Upgrade Prompt with AI (using fast NVIDIA NIM endpoint)
+  const handleUpgradePrompt = async () => {
+    const raw = inputMessage.trim();
+    if (!raw) {
+      setUpgradeNotice("Please write a draft prompt to upgrade!");
+      setTimeout(() => setUpgradeNotice(""), 3000);
+      return;
+    }
+
+    setIsUpgradingPrompt(true);
+    setUpgradeNotice("✨ Upgrading prompt via NVIDIA AI...");
+
+    try {
       const res = await fetch("/api/v1/brain/upgrade-prompt", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          prompt: textToUpgrade,
-          model_id: "meta/llama-3.3-70b-instruct",
+          prompt: raw,
+          model_id: currentModel.id,
+          target_category: activeFeature,
         }),
       });
 
@@ -686,64 +700,25 @@ function PlaygroundInner() {
         const data = await res.json();
         if (data.upgraded_prompt) {
           setInputMessage(data.upgraded_prompt);
-          setUpgradeNotice("✨ Prompt upgraded with NVIDIA AI!");
+          setUpgradeNotice(`✨ Prompt upgraded by ${data.model_used.split("/").pop()}!`);
           setTimeout(() => setUpgradeNotice(""), 3500);
-          if (textareaRef.current) {
-            textareaRef.current.focus();
-          }
         }
       } else {
-        setUpgradeNotice("⚠️ Could not upgrade prompt. Try again.");
+        setUpgradeNotice("⚠️ Could not upgrade prompt with AI.");
         setTimeout(() => setUpgradeNotice(""), 3000);
       }
     } catch {
-      setUpgradeNotice("⚠️ Network error upgrading prompt.");
+      setUpgradeNotice("⚠️ Network error while upgrading prompt.");
       setTimeout(() => setUpgradeNotice(""), 3000);
     } finally {
       setIsUpgradingPrompt(false);
-    }
-  };
-
-  // 1-Click Assign Current Model to Operational Role
-  const handleAssignToRole = async () => {
-    setIsAssigningRole(true);
-    setAssignRoleMsg("");
-    try {
-      const activeRoles = await fetch("/api/v1/brain/model-roles").then((r) =>
-        r.ok ? r.json() : {}
-      );
-      const updatedRoles = {
-        ...activeRoles,
-        [targetRole]: selectedModelId,
-      };
-
-      const res = await fetch("/api/v1/brain/model-roles", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updatedRoles),
-      });
-
-      if (res.ok) {
-        const roleNames: Record<string, string> = {
-          friday_web_model: "Friday Web Copilot",
-          edith_sales_model: "EDITH WhatsApp Sales",
-          friday_voice_model: "Friday Voice Agent",
-          edith_policy_model: "Policy & Margin Auditor",
-          system_watchdog_model: "Watchdog Supervisor",
-        };
-        setAssignRoleMsg(`✅ Assigned to ${roleNames[targetRole] || targetRole}`);
-        setTimeout(() => setAssignRoleMsg(""), 3000);
-      } else {
-        setAssignRoleMsg("❌ Failed to assign role");
+      if (textareaRef.current) {
+        textareaRef.current.focus();
       }
-    } catch {
-      setAssignRoleMsg("❌ Connection error");
-    } finally {
-      setIsAssigningRole(false);
     }
   };
 
-  // Save Hyperparameters to System .env
+  // Save Parameters to .env
   const handleSaveParameters = async () => {
     setIsSavingSettings(true);
     setSaveSettingsMsg("");
@@ -869,27 +844,27 @@ function PlaygroundInner() {
   };
 
   return (
-    <div className="relative min-h-[calc(100vh-4rem)] flex flex-col bg-[#07070B] text-white overflow-x-hidden">
-      {/* Ambient Top Glow Canvas (Matching Reference Art) */}
+    <div className="relative min-h-[calc(100vh-4rem)] flex flex-col bg-[#07070B] text-white overflow-x-hidden selection:bg-orange-500/30 selection:text-orange-200">
+      {/* Ambient Warm Obsidian Glow (Orange & Amber warmth, zero blue/pink) */}
       <div
-        className="pointer-events-none absolute inset-0 z-0 opacity-60"
+        className="pointer-events-none absolute inset-0 z-0 opacity-70"
         style={{
           background:
-            "radial-gradient(circle at 50% 12%, rgba(20, 30, 60, 0.6) 0%, rgba(10, 15, 30, 0.3) 45%, transparent 75%)",
+            "radial-gradient(circle at 50% 8%, rgba(255, 107, 0, 0.14) 0%, rgba(25, 18, 12, 0.4) 38%, rgba(7, 7, 11, 0.95) 75%, #07070B 100%)",
         }}
       />
 
       {/* ========================================================================= */}
-      {/* Top Header Bar: Model Selector Pill & Actions                           */}
+      {/* Top Header Bar: Liquid Glass Model Selector & Navigation                  */}
       {/* ========================================================================= */}
-      <header className="relative z-20 flex items-center justify-between px-3 sm:px-6 py-3 border-b border-white/5 bg-[#07070B]/80 backdrop-blur-md">
-        {/* Left: Translucent Model Selector Pill (Exact Reference Design) */}
+      <header className="relative z-20 flex items-center justify-between px-3 sm:px-6 py-3 border-b border-white/10 bg-[#07070B]/80 backdrop-blur-2xl">
+        {/* Left: Liquid Glass Model Selector Pill */}
         <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setIsModelDropdownOpen(!isModelDropdownOpen)}
-            className="flex items-center gap-2 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl sm:rounded-2xl bg-white/[0.06] hover:bg-white/[0.1] border border-white/10 text-xs sm:text-sm font-medium transition-all shadow-sm group"
+            className="flex items-center gap-2 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl sm:rounded-2xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/15 text-xs sm:text-sm font-medium transition-all shadow-[0_4px_16px_rgba(0,0,0,0.4),inset_0_1px_1px_rgba(255,255,255,0.15)] group"
           >
-            <span className="w-5 h-5 rounded-lg bg-sky-500/20 text-sky-400 flex items-center justify-center text-xs">
+            <span className="w-5 h-5 rounded-lg bg-orange-500/20 text-orange-400 flex items-center justify-center text-xs">
               🤖
             </span>
             <span className="font-semibold text-zinc-100 max-w-[130px] sm:max-w-[200px] truncate">
@@ -905,16 +880,16 @@ function PlaygroundInner() {
                 Free
               </span>
             ) : (
-              <span className="hidden sm:inline-block px-1.5 py-0.5 text-[9px] font-bold rounded-md bg-sky-500/20 text-sky-400 border border-sky-500/30">
+              <span className="hidden sm:inline-block px-1.5 py-0.5 text-[9px] font-bold rounded-md bg-orange-500/20 text-orange-400 border border-orange-500/30">
                 Google
               </span>
             )}
           </button>
 
-          {/* Grouped Model Dropdown Menu */}
+          {/* Liquid Glass Model Dropdown Menu */}
           {isModelDropdownOpen && (
-            <div className="absolute top-full left-0 mt-2 w-72 sm:w-80 rounded-2xl bg-[#0e0e16] border border-white/10 shadow-2xl p-2 z-50 max-h-[70vh] overflow-y-auto">
-              <div className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+            <div className="absolute top-full left-0 mt-2 w-72 sm:w-80 rounded-2xl bg-[#0f1015]/95 backdrop-blur-2xl border border-white/15 shadow-[0_16px_40px_rgba(0,0,0,0.8),inset_0_1px_1px_rgba(255,255,255,0.15)] p-2 z-50 max-h-[70vh] overflow-y-auto">
+              <div className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-orange-400">
                 Google Gemini Suite
               </div>
               {PLAYGROUND_MODELS.filter((m) => m.provider === "Google").map((m) => (
@@ -926,7 +901,7 @@ function PlaygroundInner() {
                   }}
                   className={`w-full text-left px-3 py-2 rounded-xl text-xs flex items-center justify-between transition-colors ${
                     selectedModelId === m.id
-                      ? "bg-sky-500/20 text-sky-300 font-semibold"
+                      ? "bg-orange-500/20 text-orange-300 font-semibold border border-orange-500/30"
                       : "text-zinc-300 hover:bg-white/5"
                   }`}
                 >
@@ -934,7 +909,7 @@ function PlaygroundInner() {
                     <div className="truncate font-medium">{m.name}</div>
                     <div className="text-[10px] text-zinc-500">{m.latencyEst} · {m.pricingLabel}</div>
                   </div>
-                  {selectedModelId === m.id && <Check className="w-3.5 h-3.5 text-sky-400 flex-shrink-0" />}
+                  {selectedModelId === m.id && <Check className="w-3.5 h-3.5 text-orange-400 flex-shrink-0" />}
                 </button>
               ))}
 
@@ -951,7 +926,7 @@ function PlaygroundInner() {
                   }}
                   className={`w-full text-left px-3 py-2 rounded-xl text-xs flex items-center justify-between transition-colors ${
                     selectedModelId === m.id
-                      ? "bg-emerald-500/20 text-emerald-300 font-semibold"
+                      ? "bg-emerald-500/20 text-emerald-300 font-semibold border border-emerald-500/30"
                       : "text-zinc-300 hover:bg-white/5"
                   }`}
                 >
@@ -966,12 +941,12 @@ function PlaygroundInner() {
           )}
         </div>
 
-        {/* Center: Branding Title */}
+        {/* Center: Dual-Brain Studio Status */}
         <div className="hidden md:flex items-center gap-2 text-xs font-medium text-zinc-400">
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-          <span>Dual-Brain Testing Studio</span>
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#10b981]" />
+          <span className="text-zinc-200 font-semibold">Dual-Brain Testing Studio</span>
           <span className="text-zinc-600">|</span>
-          <span className="text-zinc-300">{currentModel.contextLimit} Context</span>
+          <span className="text-zinc-300 font-mono">{currentModel.contextLimit} Context</span>
         </div>
 
         {/* Right: Quick Action Controls */}
@@ -980,9 +955,9 @@ function PlaygroundInner() {
             <button
               onClick={handleClearHistory}
               title="Start New Chat"
-              className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-zinc-400 hover:text-white text-xs flex items-center gap-1 transition-colors"
+              className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-zinc-400 hover:text-white text-xs flex items-center gap-1 transition-colors"
             >
-              <Trash2 className="w-3.5 h-3.5" />
+              <Trash2 className="w-3.5 h-3.5 text-red-400" />
               <span className="hidden sm:inline">New Test</span>
             </button>
           )}
@@ -993,9 +968,9 @@ function PlaygroundInner() {
               setIsSidePanelOpen(true);
             }}
             title="View Test History"
-            className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-zinc-400 hover:text-white text-xs flex items-center gap-1 transition-colors"
+            className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-zinc-400 hover:text-white text-xs flex items-center gap-1 transition-colors"
           >
-            <History className="w-3.5 h-3.5" />
+            <History className="w-3.5 h-3.5 text-zinc-300" />
             <span className="hidden sm:inline">History</span>
           </button>
 
@@ -1004,55 +979,55 @@ function PlaygroundInner() {
               setActiveSideTab("params");
               setIsSidePanelOpen(true);
             }}
-            className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-gradient-to-r from-sky-500/20 to-indigo-500/20 border border-sky-500/30 hover:border-sky-400/50 text-sky-300 text-xs font-medium flex items-center gap-1.5 transition-all shadow-sm"
+            className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-white/[0.08] hover:bg-white/[0.14] border border-white/15 text-white text-xs font-semibold flex items-center gap-1.5 transition-all shadow-[0_4px_16px_rgba(0,0,0,0.4),inset_0_1px_1px_rgba(255,255,255,0.2)]"
           >
-            <Sliders className="w-3.5 h-3.5" />
+            <Sliders className="w-3.5 h-3.5 text-orange-400" />
             <span>Parameters</span>
-            <span className="text-[10px] opacity-75 font-mono">T:{temperature}</span>
+            <span className="text-[10px] text-orange-300 font-mono">T:{temperature}</span>
           </button>
         </div>
       </header>
 
       {/* ========================================================================= */}
-      {/* Main Center Area: Conversational Messages / Empty State Mascot           */}
+      {/* Main Center Area: Messages / Empty State Mascot                           */}
       {/* ========================================================================= */}
-      <main className="relative z-10 flex-1 flex flex-col max-w-4xl w-full mx-auto px-3 sm:px-6 pt-4 pb-36">
+      <main className="relative z-10 flex-1 flex flex-col max-w-4xl w-full mx-auto px-3 sm:px-6 pt-4 pb-48">
         {messages.length === 0 ? (
-          /* Empty State: Matching Reference Image 3 (Dark Theme Art) */
+          /* Empty State: Dark Theme with Warm Amber/White/Green Accents */
           <div className="flex-1 flex flex-col items-center justify-center text-center py-8 sm:py-12 my-auto">
             {/* Title Greeting */}
             <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-white mb-6">
               HI Operator{" "}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-400 via-indigo-300 to-purple-300">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-amber-200 to-white">
                 Ready to Achieve Great Things?
               </span>
             </h1>
 
-            {/* Centered 2D Transparent AI Mascot with Floating Speech Bubbles */}
+            {/* Centered 2D Transparent Mascot with Floating Liquid Glass Speech Bubbles */}
             <div className="relative my-4 flex items-center justify-center">
               {/* Left Speech Bubble */}
-              <div className="hidden sm:flex absolute -left-36 md:-left-44 top-2 items-center gap-1.5 px-3.5 py-1.5 rounded-2xl bg-white/[0.08] backdrop-blur-md border border-white/10 text-xs text-zinc-200 shadow-2xl animate-pulse">
+              <div className="hidden sm:flex absolute -left-36 md:-left-44 top-2 items-center gap-1.5 px-3.5 py-1.5 rounded-2xl bg-white/[0.08] backdrop-blur-xl border border-white/15 text-xs text-zinc-100 shadow-[0_8px_32px_rgba(0,0,0,0.6)] animate-pulse">
                 <span>🤖</span>
                 <span>Hey there! Need a boost?</span>
               </div>
 
-              {/* Floating 2D Mascot (Zero Background, Guaranteed Load) */}
+              {/* Floating 2D Mascot */}
               <FloatingRobotMascot />
 
               {/* Right Speech Bubble */}
-              <div className="hidden sm:flex absolute -right-36 md:-right-48 bottom-4 items-center gap-1.5 px-3.5 py-1.5 rounded-2xl bg-white/[0.08] backdrop-blur-md border border-white/10 text-xs text-zinc-200 shadow-2xl">
-                <span>⚡</span>
-                <span>NVIDIA Zero-Cost Ready</span>
+              <div className="hidden sm:flex absolute -right-36 md:-right-48 bottom-4 items-center gap-1.5 px-3.5 py-1.5 rounded-2xl bg-white/[0.08] backdrop-blur-xl border border-white/15 text-xs text-zinc-100 shadow-[0_8px_32px_rgba(0,0,0,0.6)]">
+                <span className="text-emerald-400">⚡</span>
+                <span className="text-emerald-300 font-medium">NVIDIA Zero-Cost Ready</span>
               </div>
             </div>
 
             {/* Model Capabilities Pill */}
-            <div className="mt-4 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-zinc-400">
-              <span className="text-zinc-200 font-semibold">{currentModel.name}</span>
-              <span>·</span>
-              <span>{currentModel.contextLimit} Context</span>
-              <span>·</span>
-              <span className={currentModel.isFree ? "text-emerald-400" : "text-sky-400"}>
+            <div className="mt-4 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.06] backdrop-blur-md border border-white/15 text-xs text-zinc-300 shadow-md">
+              <span className="text-white font-semibold">{currentModel.name}</span>
+              <span className="text-zinc-600">·</span>
+              <span className="text-zinc-300">{currentModel.contextLimit} Context</span>
+              <span className="text-zinc-600">·</span>
+              <span className={currentModel.isFree ? "text-emerald-400 font-bold" : "text-orange-400 font-bold"}>
                 {currentModel.pricingLabel}
               </span>
             </div>
@@ -1068,16 +1043,16 @@ function PlaygroundInner() {
                 }`}
               >
                 {msg.role !== "user" && (
-                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-tr from-sky-500/20 to-indigo-500/20 border border-sky-500/30 flex items-center justify-center text-sky-400 flex-shrink-0 mt-0.5">
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-orange-500/20 border border-orange-500/40 flex items-center justify-center text-orange-400 flex-shrink-0 mt-0.5 shadow-sm">
                     <Bot className="w-4 h-4" />
                   </div>
                 )}
 
                 <div
-                  className={`max-w-[88%] sm:max-w-[80%] rounded-2xl p-3.5 sm:p-4 text-xs sm:text-sm leading-relaxed ${
+                  className={`max-w-[88%] sm:max-w-[80%] rounded-2xl p-3.5 sm:p-4 text-xs sm:text-sm leading-relaxed backdrop-blur-xl ${
                     msg.role === "user"
-                      ? "bg-gradient-to-r from-sky-600/30 to-indigo-600/30 border border-sky-500/30 text-white shadow-md"
-                      : "bg-[#0e0e16]/90 border border-white/10 text-zinc-200 shadow-lg"
+                      ? "bg-gradient-to-r from-orange-600/30 via-amber-600/25 to-orange-500/30 border border-orange-500/40 text-white shadow-[0_4px_20px_rgba(255,107,0,0.2)]"
+                      : "bg-[#101116]/90 border border-white/10 text-zinc-200 shadow-[0_8px_30px_rgba(0,0,0,0.7),inset_0_1px_1px_rgba(255,255,255,0.08)]"
                   }`}
                 >
                   {msg.role === "assistant" ? (
@@ -1086,24 +1061,24 @@ function PlaygroundInner() {
                     <p className="whitespace-pre-wrap">{msg.content}</p>
                   )}
 
-                  {/* Telemetry Pill for Assistant Turns */}
+                  {/* Telemetry Bar for Assistant Turns */}
                   {msg.telemetry && (
-                    <div className="mt-3 pt-2.5 border-t border-white/5 flex flex-wrap items-center gap-2 text-[10px] text-zinc-400">
-                      <span className="inline-flex items-center gap-1 font-mono text-amber-300">
-                        <Zap className="w-3 h-3" />
+                    <div className="mt-3 pt-2.5 border-t border-white/10 flex flex-wrap items-center gap-2 text-[10px] text-zinc-400">
+                      <span className="inline-flex items-center gap-1 font-mono text-cyan-400">
+                        <Zap className="w-3 h-3 text-cyan-400" />
                         {msg.telemetry.latency_ms}ms
                       </span>
-                      <span>·</span>
+                      <span className="text-zinc-600">·</span>
                       <span className="font-mono text-zinc-400">
                         {msg.telemetry.tokens.prompt_tokens} in / {msg.telemetry.tokens.completion_tokens} out
                       </span>
-                      <span>·</span>
+                      <span className="text-zinc-600">·</span>
                       {msg.telemetry.pricing.is_free_nvidia ? (
                         <span className="font-bold text-emerald-400 bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-500/30">
                           $0.00 Free
                         </span>
                       ) : (
-                        <span className="font-mono text-sky-300">
+                        <span className="font-mono text-white">
                           {msg.telemetry.pricing.total_cost_cents.toFixed(4)}¢
                         </span>
                       )}
@@ -1116,7 +1091,7 @@ function PlaygroundInner() {
                         {copiedId === msg.id ? (
                           <Check className="w-3 h-3 text-emerald-400" />
                         ) : (
-                          <Copy className="w-3 h-3" />
+                          <Copy className="w-3 h-3 text-zinc-400" />
                         )}
                       </button>
                     </div>
@@ -1124,7 +1099,7 @@ function PlaygroundInner() {
                 </div>
 
                 {msg.role === "user" && (
-                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-white/10 border border-white/15 flex items-center justify-center text-zinc-300 flex-shrink-0 mt-0.5">
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-white/10 border border-white/15 flex items-center justify-center text-zinc-200 flex-shrink-0 mt-0.5">
                     <User className="w-4 h-4" />
                   </div>
                 )}
@@ -1132,8 +1107,8 @@ function PlaygroundInner() {
             ))}
 
             {isGenerating && (
-              <div className="flex gap-3 items-center text-xs text-sky-400 pl-1">
-                <RefreshCw className="w-4 h-4 animate-spin text-sky-400" />
+              <div className="flex gap-3 items-center text-xs text-orange-400 pl-1">
+                <RefreshCw className="w-4 h-4 animate-spin text-orange-400" />
                 <span>Generating response from {currentModel.name}...</span>
               </div>
             )}
@@ -1143,117 +1118,233 @@ function PlaygroundInner() {
       </main>
 
       {/* ========================================================================= */}
-      {/* Floating Composer Card & Categorized Chips (Exact Reference Layout)       */}
+      {/* Floating Liquid Glass Composer (Exact Reference Screenshots 1 & 2)        */}
       {/* ========================================================================= */}
-      <div className="fixed bottom-0 left-0 right-0 z-20 px-3 sm:px-6 pb-4 pt-2 bg-gradient-to-t from-[#07070B] via-[#07070B]/95 to-transparent">
-        <div className="max-w-3xl mx-auto space-y-2.5">
+      <div className="fixed bottom-0 left-0 right-0 z-30 px-3 sm:px-6 pb-4 pt-2 bg-gradient-to-t from-[#07070B] via-[#07070B]/95 to-transparent pointer-events-none">
+        <div className="max-w-3xl mx-auto space-y-2 pointer-events-auto">
           {/* Notification Banner for Prompt Upgrade */}
           {upgradeNotice && (
-            <div className="text-center text-xs font-semibold text-sky-300 bg-sky-950/80 border border-sky-500/40 rounded-xl py-1 px-3 shadow-md animate-fadeIn">
+            <div className="text-center text-xs font-semibold text-orange-300 bg-[#16120e]/90 border border-orange-500/40 rounded-xl py-1 px-3 shadow-md animate-fadeIn">
               {upgradeNotice}
             </div>
           )}
 
-          {/* Floating Dark Glass Composer Card */}
-          <div className="rounded-2xl sm:rounded-3xl bg-[#0e0e16]/90 backdrop-blur-xl border border-white/10 p-2.5 sm:p-3 shadow-[0_10px_35px_rgba(0,0,0,0.7)] focus-within:border-sky-500/50 focus-within:shadow-[0_0_30px_rgba(56,189,248,0.2)] transition-all">
-            {/* Top Bar inside composer: Model Tier / Dual-Brain Notice */}
-            <div className="flex items-center justify-between px-2 pb-2 text-[10px] sm:text-xs text-zinc-400 border-b border-white/5">
-              <div className="flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-sky-400" />
-                <span className="font-semibold text-zinc-200">
-                  {currentModel.name}
-                </span>
-                <span className="text-zinc-500">|</span>
-                <span className="text-zinc-400">{selectedPersona.name}</span>
+          {/* The Liquid Glass Chatbox Container */}
+          <div
+            className={`relative rounded-3xl sm:rounded-[28px] bg-[#111217]/85 backdrop-blur-2xl border transition-all duration-300 shadow-[0_16px_50px_rgba(0,0,0,0.85),inset_0_1px_1px_rgba(255,255,255,0.14)] ${
+              isComposerFocused || isGenerating
+                ? "border-orange-500/60 shadow-[0_0_35px_rgba(255,107,0,0.25)]"
+                : "border-white/15 hover:border-white/25"
+            }`}
+          >
+            {/* Top Glowing Electric Orange Plasma Wave Beam (Active state from screenshot) */}
+            <div
+              className={`absolute -top-[1px] left-0 right-0 h-[2px] overflow-visible pointer-events-none transition-opacity duration-300 ${
+                isComposerFocused || isGenerating || inputMessage.trim().length > 0
+                  ? "opacity-100"
+                  : "opacity-40"
+              }`}
+            >
+              {/* Left corner orange neon accent (matching screenshot top-left rim) */}
+              <div className="absolute top-0 left-0 w-28 h-6 rounded-tl-3xl sm:rounded-tl-[28px] border-t-2 border-l-2 border-[#ff6b00] shadow-[0_0_15px_#ff6b00]" />
+
+              {/* Electric Plasma Lightning Wave across the top */}
+              <svg
+                className="absolute -top-[8px] left-8 sm:left-14 right-0 w-[calc(100%-2rem)] sm:w-[calc(100%-3.5rem)] h-5 pointer-events-none overflow-visible"
+                preserveAspectRatio="none"
+                viewBox="0 0 400 20"
+              >
+                <defs>
+                  <filter id="plasma-glow-box" x="-20%" y="-50%" width="140%" height="200%">
+                    <feGaussianBlur stdDeviation="2.5" result="blur1" />
+                    <feMerge>
+                      <feMergeNode in="blur1" />
+                      <feMergeNode in="SourceGraphic" />
+                    </feMerge>
+                  </filter>
+                  <linearGradient id="plasmaGradBox" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#ff7b00" stopOpacity="1" />
+                    <stop offset="35%" stopColor="#ff9900" stopOpacity="0.9" />
+                    <stop offset="70%" stopColor="#ff5500" stopOpacity="0.85" />
+                    <stop offset="100%" stopColor="#ff3300" stopOpacity="0.2" />
+                  </linearGradient>
+                  <linearGradient id="plasmaCoreBox" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#ffffff" stopOpacity="0.95" />
+                    <stop offset="30%" stopColor="#ffebaa" stopOpacity="0.9" />
+                    <stop offset="75%" stopColor="#ff8800" stopOpacity="0.7" />
+                    <stop offset="100%" stopColor="#ff4400" stopOpacity="0.2" />
+                  </linearGradient>
+                </defs>
+                {/* Wavy Electric Beam */}
+                <path
+                  d="M 0 10 Q 30 6, 65 13 T 130 8 T 200 12 T 270 7 T 340 12 L 400 10"
+                  fill="none"
+                  stroke="url(#plasmaGradBox)"
+                  strokeWidth="3.5"
+                  filter="url(#plasma-glow-box)"
+                />
+                {/* Bright white/gold electric core */}
+                <path
+                  d="M 0 10 Q 30 8, 65 12 T 130 9 T 200 11 T 270 8 T 340 11 L 400 10"
+                  fill="none"
+                  stroke="url(#plasmaCoreBox)"
+                  strokeWidth="1.2"
+                />
+              </svg>
+            </div>
+
+            {/* Quick Action Popup Menu (when + is clicked) */}
+            {isQuickMenuOpen && (
+              <div className="absolute bottom-full left-3 mb-3 w-56 rounded-2xl bg-[#14151c]/95 backdrop-blur-2xl border border-white/15 p-2 shadow-2xl z-40 space-y-1 animate-fadeIn">
+                <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+                  Quick Actions
+                </div>
+                <button
+                  onClick={() => {
+                    setInputMessage("Voice greeting inquiry");
+                    setIsQuickMenuOpen(false);
+                    if (textareaRef.current) textareaRef.current.focus();
+                  }}
+                  className="w-full text-left px-2.5 py-1.5 rounded-xl text-xs text-zinc-200 hover:text-white hover:bg-white/10 flex items-center gap-2 transition-colors"
+                >
+                  <Mic className="w-3.5 h-3.5 text-orange-400" />
+                  <span>Realtime Voice Mode</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setInputMessage("Lead Rajesh (+91 98001 23456) asks: Can you give 35% discount on 500kg wholesale order?");
+                    setIsQuickMenuOpen(false);
+                    if (textareaRef.current) textareaRef.current.focus();
+                  }}
+                  className="w-full text-left px-2.5 py-1.5 rounded-xl text-xs text-zinc-200 hover:text-white hover:bg-white/10 flex items-center gap-2 transition-colors"
+                >
+                  <FileText className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Load Wholesale Deal</span>
+                </button>
+                <button
+                  onClick={handleClearHistory}
+                  className="w-full text-left px-2.5 py-1.5 rounded-xl text-xs text-red-300 hover:text-red-200 hover:bg-red-500/20 flex items-center gap-2 transition-colors"
+                >
+                  <Trash2 className="w-3.5 h-3.5 text-red-400" />
+                  <span>Clear Current Chat</span>
+                </button>
+              </div>
+            )}
+
+            {/* Inner Content Padding */}
+            <div className="p-3 sm:p-4">
+              {/* Top Row inside composer: Model Tier / Role / Telemetry Pill */}
+              <div className="flex items-center justify-between pb-2 text-[10px] sm:text-xs text-zinc-400 border-b border-white/5">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-orange-400">⚡</span>
+                  <span className="font-semibold text-zinc-200">
+                    {currentModel.name}
+                  </span>
+                  <span className="text-zinc-600">|</span>
+                  <span className="text-zinc-400">{selectedPersona.name}</span>
+                </div>
+
+                {currentModel.isFree ? (
+                  <span className="text-emerald-400 font-bold bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-500/30 text-[9px]">
+                    NVIDIA Zero-Cost Key ($0.00)
+                  </span>
+                ) : (
+                  <span className="text-orange-300 font-semibold text-[10px]">
+                    Google Gemini API
+                  </span>
+                )}
               </div>
 
-              {currentModel.isFree ? (
-                <span className="text-emerald-400 font-bold bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-500/30 text-[9px]">
-                  Zero-Cost NVIDIA Key
-                </span>
-              ) : (
-                <span className="text-sky-300 font-semibold text-[10px]">
-                  Google Gemini API
-                </span>
-              )}
-            </div>
+              {/* Textarea Input (Placeholder: "Chat with Suba" / "Chat with Friday & EDITH...") */}
+              <div className="pt-2">
+                <textarea
+                  ref={textareaRef}
+                  value={inputMessage}
+                  onFocus={() => setIsComposerFocused(true)}
+                  onBlur={() => setIsComposerFocused(false)}
+                  onChange={(e) => setInputMessage(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSendMessage();
+                    }
+                  }}
+                  rows={2}
+                  placeholder="Chat with Friday & EDITH... ask to negotiate wholesale deals, check policies, or test latency"
+                  className="w-full bg-transparent border-0 resize-none text-xs sm:text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:ring-0 leading-relaxed font-sans"
+                />
+              </div>
 
-            {/* Input Textarea */}
-            <div className="flex items-start gap-2 pt-2 px-1">
-              <textarea
-                ref={textareaRef}
-                value={inputMessage}
-                onChange={(e) => setInputMessage(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSendMessage();
-                  }
-                }}
-                rows={2}
-                placeholder="Initiate a query or send a test command to the AI..."
-                className="w-full bg-transparent border-0 resize-none text-xs sm:text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:ring-0 leading-relaxed font-sans"
-              />
-            </div>
-
-            {/* Bottom Row Inside Composer: Dynamic Feature Pills, Upgrade Button, Send */}
-            <div className="flex items-center justify-between pt-2 border-t border-white/5 mt-1">
-              {/* Left Action Pills: Dynamic Model Features & AI Prompt Upgrade */}
-              <div className="flex items-center gap-1 sm:gap-1.5 overflow-x-auto no-scrollbar py-0.5 max-w-[70%] sm:max-w-[75%]">
-                {/* ✨ Upgrade Prompt Button (NVIDIA AI) */}
-                <button
-                  onClick={handleUpgradePrompt}
-                  disabled={isUpgradingPrompt}
-                  title="Enhance your draft prompt with AI"
-                  className="inline-flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-xl text-[10px] sm:text-xs font-semibold bg-gradient-to-r from-sky-500/20 to-indigo-500/20 border border-sky-500/40 text-sky-300 hover:border-sky-400 hover:text-white transition-all flex-shrink-0"
-                >
-                  <Sparkles className={`w-3 h-3 ${isUpgradingPrompt ? "animate-spin text-sky-400" : ""}`} />
-                  <span>{isUpgradingPrompt ? "Upgrading..." : "✨ Upgrade Prompt"}</span>
-                </button>
-
-                {/* Model-Specific Feature Pills */}
-                {currentModel.features.map((feat) => (
+              {/* Bottom Action Row (Matching screenshot exact controls: Left Plus Button + Pill Capsule) */}
+              <div className="flex items-center justify-between pt-2.5 border-t border-white/5 mt-1">
+                {/* Left Action Controls: Circular Plus Button + Dynamic Feature Pills */}
+                <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5 max-w-[65%] sm:max-w-[70%]">
+                  {/* Circular '+' Glass Button (Exact look from screenshot) */}
                   <button
-                    key={feat}
-                    onClick={() => setActiveFeature(feat)}
-                    className={`inline-flex items-center gap-1 px-2 py-1 rounded-xl text-[10px] sm:text-xs font-medium transition-all flex-shrink-0 ${
-                      activeFeature === feat
-                        ? "bg-white/15 text-white border border-white/20 font-semibold"
-                        : "bg-white/[0.04] text-zinc-400 hover:text-zinc-200 border border-white/5"
+                    type="button"
+                    onClick={() => setIsQuickMenuOpen(!isQuickMenuOpen)}
+                    title="Quick Tools & Attachments"
+                    className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/[0.08] hover:bg-white/[0.15] active:scale-95 border border-white/15 flex items-center justify-center text-white/90 hover:text-white transition-all shadow-sm flex-shrink-0 ${
+                      isQuickMenuOpen ? "bg-white/20 text-white rotate-45" : ""
                     }`}
                   >
-                    <span>{feat}</span>
+                    <Plus className="w-4 h-4 sm:w-5 sm:h-5 transition-transform" />
                   </button>
-                ))}
-              </div>
 
-              {/* Right Action Tools: Voice & Send */}
-              <div className="flex items-center gap-1.5 flex-shrink-0">
-                <button
-                  type="button"
-                  title="Voice command (Gemini Live)"
-                  onClick={() => setInputMessage("Voice greeting inquiry")}
-                  className="p-1.5 sm:p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-white/10 transition-colors"
-                >
-                  <Mic className="w-4 h-4" />
-                </button>
+                  {/* Dynamic Model Feature Pills */}
+                  {currentModel.features.map((feat) => (
+                    <button
+                      key={feat}
+                      onClick={() => setActiveFeature(feat)}
+                      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] sm:text-xs font-medium transition-all flex-shrink-0 ${
+                        activeFeature === feat
+                          ? "bg-orange-500/20 text-orange-300 border border-orange-500/40 font-semibold shadow-[0_0_12px_rgba(255,107,0,0.25)]"
+                          : "bg-white/[0.04] text-zinc-400 hover:text-white border border-white/5 hover:bg-white/[0.08]"
+                      }`}
+                    >
+                      <span>{feat}</span>
+                    </button>
+                  ))}
+                </div>
 
-                <button
-                  onClick={handleSendMessage}
-                  disabled={!inputMessage.trim() || isGenerating}
-                  className={`p-2 sm:p-2.5 rounded-full flex items-center justify-center transition-all ${
-                    inputMessage.trim() && !isGenerating
-                      ? "bg-gradient-to-r from-sky-500 to-indigo-500 text-white shadow-lg shadow-sky-500/25 hover:scale-105"
-                      : "bg-white/10 text-zinc-500 cursor-not-allowed"
-                  }`}
-                >
-                  <Send className="w-3.5 h-3.5" />
-                </button>
+                {/* Right Capsule Container: Upgrade Prompt Icon + Liquid Orange Pill Button (Exact Screenshot look) */}
+                <div className="flex items-center gap-1.5 p-1 bg-black/60 backdrop-blur-xl border border-white/10 rounded-full shadow-inner flex-shrink-0">
+                  {/* ✨ AI Prompt Upgrader Button */}
+                  <button
+                    onClick={handleUpgradePrompt}
+                    disabled={isUpgradingPrompt}
+                    title="Upgrade prompt with NVIDIA AI"
+                    className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-full text-zinc-400 hover:text-white hover:bg-white/10 flex items-center gap-1 transition-colors flex-shrink-0"
+                  >
+                    <Sparkles className={`w-4 h-4 text-orange-400 ${isUpgradingPrompt ? "animate-spin" : ""}`} />
+                    <span className="hidden sm:inline text-[11px] font-semibold text-zinc-300">
+                      {isUpgradingPrompt ? "Upgrading..." : "Upgrade"}
+                    </span>
+                  </button>
+
+                  {/* The Liquid Orange Pill Button (Exact look from media_1789828694529.png) */}
+                  <button
+                    onClick={handleSendMessage}
+                    disabled={!inputMessage.trim() || isGenerating}
+                    title="Send Query"
+                    className={`flex items-center justify-center gap-1.5 px-4 sm:px-5 py-2 rounded-full font-bold text-xs text-white transition-all shadow-[0_4px_18px_rgba(255,85,0,0.45),inset_0_1px_1px_rgba(255,255,255,0.4)] ring-1 ring-white/20 ${
+                      inputMessage.trim() && !isGenerating
+                        ? "bg-gradient-to-b from-[#ff6b2b] via-[#ff5500] to-[#d43800] hover:brightness-110 active:scale-95 shadow-[0_4px_22px_rgba(255,85,0,0.65)] cursor-pointer"
+                        : "bg-gradient-to-b from-[#ff6b2b]/60 to-[#d43800]/60 opacity-60 cursor-not-allowed"
+                    }`}
+                  >
+                    {isGenerating ? (
+                      <RefreshCw className="w-4 h-4 animate-spin text-white" />
+                    ) : (
+                      <Send className="w-3.5 h-3.5 text-white fill-white/25" />
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Categorized Test Presets Chips (Beneath Composer) */}
+          {/* Categorized Test Presets Chips (Beneath Composer in Frosted Liquid Glass) */}
           <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar pb-1 text-xs">
             <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider pl-1 flex-shrink-0">
               Test Presets:
@@ -1270,7 +1361,7 @@ function PlaygroundInner() {
                     textareaRef.current.focus();
                   }
                 }}
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-white/[0.04] hover:bg-white/[0.09] border border-white/5 hover:border-white/15 text-zinc-300 hover:text-white text-[10px] sm:text-xs whitespace-nowrap transition-all flex-shrink-0 shadow-sm"
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-white/[0.04] hover:bg-white/[0.1] border border-white/10 hover:border-orange-500/40 text-zinc-300 hover:text-white text-[10px] sm:text-xs whitespace-nowrap transition-all flex-shrink-0 shadow-sm"
               >
                 <span>{chip.icon}</span>
                 <span>{chip.label}</span>
@@ -1285,14 +1376,14 @@ function PlaygroundInner() {
       {/* ========================================================================= */}
       {isSidePanelOpen && (
         <div className="fixed inset-0 z-50 flex justify-end">
-          {/* Backdrop for Mobile & Desktop click-to-close */}
+          {/* Backdrop */}
           <div
             onClick={() => setIsSidePanelOpen(false)}
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
+            className="absolute inset-0 bg-black/70 backdrop-blur-md transition-opacity"
           />
 
-          {/* Drawer Body */}
-          <aside className="relative w-full max-w-md bg-[#0e0e16] border-l border-white/10 shadow-2xl flex flex-col h-full z-10 animate-slideIn">
+          {/* Drawer Body in Liquid Glass */}
+          <aside className="relative w-full max-w-md bg-[#0e0f14]/95 backdrop-blur-2xl border-l border-white/10 shadow-2xl flex flex-col h-full z-10 animate-slideIn">
             {/* Drawer Header */}
             <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-white/10">
               <div className="flex items-center gap-2">
@@ -1300,7 +1391,7 @@ function PlaygroundInner() {
                   onClick={() => setActiveSideTab("params")}
                   className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
                     activeSideTab === "params"
-                      ? "bg-sky-500/20 text-sky-300 border border-sky-500/30"
+                      ? "bg-orange-500/20 text-orange-300 border border-orange-500/30"
                       : "text-zinc-400 hover:text-white"
                   }`}
                 >
@@ -1310,7 +1401,7 @@ function PlaygroundInner() {
                   onClick={() => setActiveSideTab("history")}
                   className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
                     activeSideTab === "history"
-                      ? "bg-sky-500/20 text-sky-300 border border-sky-500/30"
+                      ? "bg-orange-500/20 text-orange-300 border border-orange-500/30"
                       : "text-zinc-400 hover:text-white"
                   }`}
                 >
@@ -1331,10 +1422,10 @@ function PlaygroundInner() {
               {activeSideTab === "params" ? (
                 <>
                   {/* 1. 1-Click Operational Role Assignment */}
-                  <div className="rounded-2xl border border-sky-500/20 bg-sky-950/20 p-4 space-y-3">
+                  <div className="rounded-2xl border border-orange-500/30 bg-orange-950/20 p-4 space-y-3 shadow-inner">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-sky-300 flex items-center gap-1.5">
-                        <Cpu className="w-3.5 h-3.5" /> 1-Click Assign Model to Role
+                      <span className="text-xs font-bold text-orange-300 flex items-center gap-1.5">
+                        <Cpu className="w-3.5 h-3.5 text-orange-400" /> 1-Click Assign Model to Role
                       </span>
                       {currentModel.isFree && (
                         <span className="text-[9px] font-bold text-emerald-400 bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-500/30">
@@ -1350,7 +1441,7 @@ function PlaygroundInner() {
                       <select
                         value={targetRole}
                         onChange={(e) => setTargetRole(e.target.value)}
-                        className="w-full px-3 py-2 rounded-xl bg-black/40 border border-white/10 text-xs text-white focus:outline-none focus:border-sky-400"
+                        className="w-full px-3 py-2 rounded-xl bg-black/50 border border-white/10 text-xs text-white focus:outline-none focus:border-orange-400"
                       >
                         <option value="friday_web_model">Friday Web Copilot (Dashboard Navigation)</option>
                         <option value="edith_sales_model">EDITH Sales Closer (WhatsApp Deals)</option>
@@ -1362,7 +1453,7 @@ function PlaygroundInner() {
                       <button
                         onClick={handleAssignToRole}
                         disabled={isAssigningRole}
-                        className="w-full py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold transition-all shadow-md flex items-center justify-center gap-1.5"
+                        className="w-full py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-white text-xs font-bold transition-all shadow-[0_4px_16px_rgba(255,85,0,0.3)] flex items-center justify-center gap-1.5"
                       >
                         {isAssigningRole ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
                         <span>Apply Model to Role</span>
@@ -1378,7 +1469,7 @@ function PlaygroundInner() {
                   {/* 2. Persona Presets */}
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-zinc-300 flex items-center gap-1.5">
-                      <Bot className="w-3.5 h-3.5 text-indigo-400" /> Persona Presets
+                      <Bot className="w-3.5 h-3.5 text-orange-400" /> Persona Presets
                     </label>
                     <div className="grid grid-cols-2 gap-2">
                       {PERSONA_PRESETS.map((persona) => (
@@ -1387,7 +1478,7 @@ function PlaygroundInner() {
                           onClick={() => handleSelectPersona(persona)}
                           className={`p-2.5 rounded-xl text-left border text-xs transition-all ${
                             selectedPersona.id === persona.id
-                              ? "border-sky-500 bg-sky-500/10 text-white"
+                              ? "border-orange-500 bg-orange-500/15 text-white font-medium"
                               : "border-white/10 bg-white/[0.03] text-zinc-400 hover:bg-white/[0.06]"
                           }`}
                         >
@@ -1412,7 +1503,7 @@ function PlaygroundInner() {
                       value={systemPrompt}
                       onChange={(e) => setSystemPrompt(e.target.value)}
                       rows={4}
-                      className="w-full px-3 py-2 rounded-xl bg-black/40 border border-white/10 text-xs text-zinc-200 focus:outline-none focus:border-sky-400 font-mono resize-none leading-relaxed"
+                      className="w-full px-3 py-2 rounded-xl bg-black/50 border border-white/10 text-xs text-zinc-200 focus:outline-none focus:border-orange-400 font-mono resize-none leading-relaxed"
                     />
                   </div>
 
@@ -1421,7 +1512,7 @@ function PlaygroundInner() {
                     <div className="space-y-1.5">
                       <div className="flex justify-between text-xs font-bold text-zinc-300">
                         <span>Temperature (Creativity)</span>
-                        <span className="font-mono text-sky-400">{temperature.toFixed(2)}</span>
+                        <span className="font-mono text-orange-400">{temperature.toFixed(2)}</span>
                       </div>
                       <input
                         type="range"
@@ -1430,7 +1521,7 @@ function PlaygroundInner() {
                         step="0.05"
                         value={temperature}
                         onChange={(e) => setTemperature(parseFloat(e.target.value))}
-                        className="w-full accent-sky-500 cursor-pointer"
+                        className="w-full accent-orange-500 cursor-pointer"
                       />
                       <div className="flex justify-between text-[9px] text-zinc-500">
                         <span>0.00 (Strict Margin)</span>
@@ -1442,7 +1533,7 @@ function PlaygroundInner() {
                     <div className="space-y-1.5">
                       <div className="flex justify-between text-xs font-bold text-zinc-300">
                         <span>Max Output Tokens</span>
-                        <span className="font-mono text-sky-400">{maxTokens}</span>
+                        <span className="font-mono text-orange-400">{maxTokens}</span>
                       </div>
                       <input
                         type="range"
@@ -1451,19 +1542,19 @@ function PlaygroundInner() {
                         step="128"
                         value={maxTokens}
                         onChange={(e) => setMaxTokens(parseInt(e.target.value))}
-                        className="w-full accent-sky-500 cursor-pointer"
+                        className="w-full accent-orange-500 cursor-pointer"
                       />
                     </div>
 
                     <div className="space-y-1.5">
                       <div className="flex justify-between text-xs font-bold text-zinc-300">
                         <span>Request Timeout</span>
-                        <span className="font-mono text-sky-400">{timeoutSecs}s</span>
+                        <span className="font-mono text-orange-400">{timeoutSecs}s</span>
                       </div>
                       <select
                         value={timeoutSecs}
                         onChange={(e) => setTimeoutSecs(parseInt(e.target.value))}
-                        className="w-full px-3 py-2 rounded-xl bg-black/40 border border-white/10 text-xs text-white focus:outline-none"
+                        className="w-full px-3 py-2 rounded-xl bg-black/50 border border-white/10 text-xs text-white focus:outline-none"
                       >
                         <option value={15}>15 seconds (Ultra Fast)</option>
                         <option value={30}>30 seconds (Standard)</option>
@@ -1501,7 +1592,7 @@ function PlaygroundInner() {
                     </span>
                     <button
                       onClick={handleClearHistory}
-                      className="text-[11px] text-sky-400 hover:underline flex items-center gap-1"
+                      className="text-[11px] text-orange-400 hover:underline flex items-center gap-1"
                     >
                       + New Chat
                     </button>
@@ -1511,7 +1602,7 @@ function PlaygroundInner() {
                     {chatHistoryList.map((item) => (
                       <div
                         key={item.id}
-                        className="p-3 rounded-xl bg-white/[0.03] hover:bg-white/[0.07] border border-white/5 transition-all cursor-pointer group"
+                        className="p-3 rounded-xl bg-white/[0.03] hover:bg-white/[0.07] border border-white/5 hover:border-orange-500/30 transition-all cursor-pointer group"
                       >
                         <div className="text-xs font-semibold text-zinc-200 group-hover:text-white truncate">
                           {item.title}
@@ -1538,7 +1629,7 @@ export default function PlaygroundPage() {
     <Suspense
       fallback={
         <div className="min-h-screen flex items-center justify-center bg-[#07070B] text-zinc-400 text-sm">
-          <RefreshCw className="w-5 h-5 animate-spin text-sky-400 mr-2" />
+          <RefreshCw className="w-5 h-5 animate-spin text-orange-400 mr-2" />
           Loading Dual-Brain Testing Studio...
         </div>
       }
