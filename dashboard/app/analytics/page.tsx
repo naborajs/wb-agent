@@ -13,7 +13,47 @@ import {
   CheckCircle2,
   RefreshCw,
   ExternalLink,
+  Compass,
 } from "lucide-react";
+import { PolarAngleAxis, PolarGrid, Radar, RadarChart } from "recharts";
+import {
+  ChartConfig,
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "@/components/ui/radar-chart";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+
+const objectionRadarConfig = {
+  frequency: {
+    label: "Inquiry Share",
+    color: "var(--chart-1)",
+  },
+  resolved: {
+    label: "Auto-Resolution %",
+    color: "var(--chart-3)",
+  },
+} satisfies ChartConfig;
+
+const regionalRadarConfig = {
+  leads: {
+    label: "Lead Volume",
+    color: "var(--chart-2)",
+  },
+  won: {
+    label: "Closed Deals",
+    color: "var(--chart-3)",
+  },
+} satisfies ChartConfig;
+
+const objectionRadarData = [
+  { objection: "Price/Rate", frequency: 45, resolved: 72 },
+  { objection: "Quality Proof", frequency: 25, resolved: 88 },
+  { objection: "MOQ Tier", frequency: 15, resolved: 78 },
+  { objection: "Transit Time", frequency: 10, resolved: 90 },
+  { objection: "Credit Terms", frequency: 5, resolved: 45 },
+];
 
 interface ParetoItem {
   objection: string;
@@ -48,6 +88,8 @@ interface AnalyticsData {
 export default function AnalyticsPage() {
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [objectionView, setObjectionView] = useState<"bars" | "radar">("bars");
+  const [geoView, setGeoView] = useState<"table" | "radar">("table");
 
   const fetchAnalytics = async () => {
     setLoading(true);
@@ -175,39 +217,95 @@ export default function AnalyticsPage() {
                 Frequency distribution and cumulative 80% resolution impact
               </p>
             </div>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-red-500/10 text-red-500 border border-red-500/20">
-              80/20 Rule Active
-            </span>
+            <div className="flex items-center gap-1 p-1 rounded-xl border border-[var(--ed-border)] text-[11px] bg-[var(--ed-bg)]">
+              <button
+                onClick={() => setObjectionView("bars")}
+                className={`px-2.5 py-0.5 rounded-lg font-semibold transition-colors flex items-center gap-1 ${
+                  objectionView === "bars"
+                    ? "text-[var(--ed-text-primary)] bg-[var(--ed-surface)] shadow-sm"
+                    : "text-[var(--ed-text-muted)]"
+                }`}
+              >
+                <BarChart3 className="w-3 h-3" /> List
+              </button>
+              <button
+                onClick={() => setObjectionView("radar")}
+                className={`px-2.5 py-0.5 rounded-lg font-semibold transition-colors flex items-center gap-1 ${
+                  objectionView === "radar"
+                    ? "text-[var(--ed-text-primary)] bg-[var(--ed-surface)] shadow-sm"
+                    : "text-[var(--ed-text-muted)]"
+                }`}
+              >
+                <Compass className="w-3 h-3" /> Radar
+              </button>
+            </div>
           </div>
 
-          <div className="space-y-3 pt-1">
-            {(data?.pareto || [
-              { objection: "price_too_high", count: 45, cumulative_pct: 45.0 },
-              { objection: "needs_quality_proof", count: 25, cumulative_pct: 70.0 },
-              { objection: "minimum_order_quantity_too_high", count: 15, cumulative_pct: 85.0 },
-              { objection: "logistics_delivery_timeline", count: 10, cumulative_pct: 95.0 },
-              { objection: "credit_payment_terms", count: 5, cumulative_pct: 100.0 },
-            ]).map((item, idx) => {
-              const label = objectionLabels[item.objection] || item.objection;
-              return (
-                <div key={idx} className="space-y-1 text-xs">
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium text-[var(--ed-text-primary)]">{label}</span>
-                    <div className="flex items-center gap-2 font-mono text-[11px]">
-                      <span className="font-bold text-[var(--ed-text-primary)]">{item.count}</span>
-                      <span className="text-[var(--ed-text-muted)]">({item.cumulative_pct}% cum.)</span>
+          {objectionView === "bars" ? (
+            <div className="space-y-3 pt-1">
+              {(data?.pareto || [
+                { objection: "price_too_high", count: 45, cumulative_pct: 45.0 },
+                { objection: "needs_quality_proof", count: 25, cumulative_pct: 70.0 },
+                { objection: "minimum_order_quantity_too_high", count: 15, cumulative_pct: 85.0 },
+                { objection: "logistics_delivery_timeline", count: 10, cumulative_pct: 95.0 },
+                { objection: "credit_payment_terms", count: 5, cumulative_pct: 100.0 },
+              ]).map((item, idx) => {
+                const label = objectionLabels[item.objection] || item.objection;
+                return (
+                  <div key={idx} className="space-y-1 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium text-[var(--ed-text-primary)]">{label}</span>
+                      <div className="flex items-center gap-2 font-mono text-[11px]">
+                        <span className="font-bold text-[var(--ed-text-primary)]">{item.count}</span>
+                        <span className="text-[var(--ed-text-muted)]">({item.cumulative_pct}% cum.)</span>
+                      </div>
+                    </div>
+                    <div className="h-2 w-full bg-[var(--ed-bg)] rounded-full overflow-hidden flex">
+                      <div
+                        className="bg-gradient-to-r from-red-600 to-red-400 rounded-full"
+                        style={{ width: `${item.count}%` }}
+                      />
                     </div>
                   </div>
-                  <div className="h-2 w-full bg-[var(--ed-bg)] rounded-full overflow-hidden flex">
-                    <div
-                      className="bg-gradient-to-r from-red-600 to-red-400 rounded-full"
-                      style={{ width: `${item.count}%` }}
-                    />
-                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="py-2 space-y-2">
+              <ChartContainer
+                config={objectionRadarConfig}
+                className="mx-auto aspect-square max-h-[240px] w-full"
+              >
+                <RadarChart data={objectionRadarData}>
+                  <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+                  <PolarAngleAxis dataKey="objection" />
+                  <PolarGrid strokeDasharray="3 3" />
+                  <Radar
+                    stroke="var(--color-frequency)"
+                    dataKey="frequency"
+                    fill="var(--color-frequency)"
+                    fillOpacity={0.25}
+                  />
+                  <Radar
+                    stroke="var(--color-resolved)"
+                    dataKey="resolved"
+                    fill="var(--color-resolved)"
+                    fillOpacity={0.12}
+                  />
+                </RadarChart>
+              </ChartContainer>
+              <div className="flex items-center justify-center gap-5 text-[11px] text-[var(--ed-text-muted)] pt-2 border-t border-[var(--ed-border)]">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-[var(--chart-1)]" />
+                  <span className="text-[var(--ed-text-primary)] font-medium">Inquiry Frequency %</span>
                 </div>
-              );
-            })}
-          </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-[var(--chart-3)]" />
+                  <span>Auto-Resolution Rate %</span>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="p-3 rounded-xl bg-[var(--ed-bg)] border border-[var(--ed-border)] text-[11px] text-[var(--ed-text-muted)] leading-relaxed">
             💡 <strong>AI Sales Recommendation:</strong> 70% of buyer objections relate to rate sensitivity and quality reassurance. Offering automated 50kg rate locks and sample packs resolves the vast majority of dropped conversations.
@@ -225,46 +323,114 @@ export default function AnalyticsPage() {
                 Wholesale inquiries and conversion across Eastern India corridors
               </p>
             </div>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
-              5 Regional Hubs
-            </span>
+            <div className="flex items-center gap-1 p-1 rounded-xl border border-[var(--ed-border)] text-[11px] bg-[var(--ed-bg)]">
+              <button
+                onClick={() => setGeoView("table")}
+                className={`px-2.5 py-0.5 rounded-lg font-semibold transition-colors flex items-center gap-1 ${
+                  geoView === "table"
+                    ? "text-[var(--ed-text-primary)] bg-[var(--ed-surface)] shadow-sm"
+                    : "text-[var(--ed-text-muted)]"
+                }`}
+              >
+                <BarChart3 className="w-3 h-3" /> Table
+              </button>
+              <button
+                onClick={() => setGeoView("radar")}
+                className={`px-2.5 py-0.5 rounded-lg font-semibold transition-colors flex items-center gap-1 ${
+                  geoView === "radar"
+                    ? "text-[var(--ed-text-primary)] bg-[var(--ed-surface)] shadow-sm"
+                    : "text-[var(--ed-text-muted)]"
+                }`}
+              >
+                <Compass className="w-3 h-3" /> Radar
+              </button>
+            </div>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse min-w-[460px]">
-              <thead>
-                <tr className="border-b border-[var(--ed-border)] text-[10px] uppercase font-bold text-[var(--ed-text-muted)]">
-                  <th className="py-2">Hub Region</th>
-                  <th className="py-2 text-center">Leads</th>
-                  <th className="py-2 text-center">Closed Won</th>
-                  <th className="py-2 text-right">Revenue (INR)</th>
-                  <th className="py-2 text-right">Win Rate</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[var(--ed-border)]">
-                {(data?.geographic || [
-                  { region: "Siliguri", state: "West Bengal", lead_count: 58, won_count: 24, revenue: 842000.0 },
-                  { region: "Kolkata", state: "West Bengal", lead_count: 34, won_count: 12, revenue: 520000.0 },
-                  { region: "Darjeeling", state: "West Bengal", lead_count: 22, won_count: 9, revenue: 390000.0 },
-                  { region: "Jalpaiguri", state: "West Bengal", lead_count: 18, won_count: 6, revenue: 210000.0 },
-                  { region: "Delhi NCR", state: "Other", lead_count: 15, won_count: 4, revenue: 185000.0 },
-                ]).map((geo, idx) => {
-                  const winRate = geo.lead_count > 0 ? ((geo.won_count / geo.lead_count) * 100).toFixed(1) : "0.0";
-                  return (
-                    <tr key={idx} className="hover:bg-[var(--ed-bg)] transition-colors">
-                      <td className="py-2.5 font-bold text-[var(--ed-text-primary)]">
-                        {geo.region} <span className="text-[10px] font-normal text-[var(--ed-text-muted)]">({geo.state})</span>
-                      </td>
-                      <td className="py-2.5 text-center font-mono">{geo.lead_count}</td>
-                      <td className="py-2.5 text-center font-mono font-bold text-emerald-500">{geo.won_count}</td>
-                      <td className="py-2.5 text-right font-mono font-data">₹{geo.revenue.toLocaleString("en-IN")}</td>
-                      <td className="py-2.5 text-right font-mono font-bold text-[var(--ed-text-primary)]">{winRate}%</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          {geoView === "table" ? (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse min-w-[460px]">
+                <thead>
+                  <tr className="border-b border-[var(--ed-border)] text-[10px] uppercase font-bold text-[var(--ed-text-muted)]">
+                    <th className="py-2">Hub Region</th>
+                    <th className="py-2 text-center">Leads</th>
+                    <th className="py-2 text-center">Closed Won</th>
+                    <th className="py-2 text-right">Revenue (INR)</th>
+                    <th className="py-2 text-right">Win Rate</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--ed-border)]">
+                  {(data?.geographic || [
+                    { region: "Siliguri", state: "West Bengal", lead_count: 58, won_count: 24, revenue: 842000.0 },
+                    { region: "Kolkata", state: "West Bengal", lead_count: 34, won_count: 12, revenue: 520000.0 },
+                    { region: "Darjeeling", state: "West Bengal", lead_count: 22, won_count: 9, revenue: 390000.0 },
+                    { region: "Jalpaiguri", state: "West Bengal", lead_count: 18, won_count: 6, revenue: 210000.0 },
+                    { region: "Delhi NCR", state: "Other", lead_count: 15, won_count: 4, revenue: 185000.0 },
+                  ]).map((geo, idx) => {
+                    const winRate = geo.lead_count > 0 ? ((geo.won_count / geo.lead_count) * 100).toFixed(1) : "0.0";
+                    return (
+                      <tr key={idx} className="hover:bg-[var(--ed-bg)] transition-colors">
+                        <td className="py-2.5 font-bold text-[var(--ed-text-primary)]">
+                          {geo.region} <span className="text-[10px] font-normal text-[var(--ed-text-muted)]">({geo.state})</span>
+                        </td>
+                        <td className="py-2.5 text-center font-mono">{geo.lead_count}</td>
+                        <td className="py-2.5 text-center font-mono font-bold text-emerald-500">{geo.won_count}</td>
+                        <td className="py-2.5 text-right font-mono font-data">₹{geo.revenue.toLocaleString("en-IN")}</td>
+                        <td className="py-2.5 text-right font-mono font-bold text-[var(--ed-text-primary)]">{winRate}%</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="py-2 space-y-2">
+              <ChartContainer
+                config={regionalRadarConfig}
+                className="mx-auto aspect-square max-h-[240px] w-full"
+              >
+                <RadarChart
+                  data={(data?.geographic || [
+                    { region: "Siliguri", lead_count: 58, won_count: 24 },
+                    { region: "Kolkata", lead_count: 34, won_count: 12 },
+                    { region: "Darjeeling", lead_count: 22, won_count: 9 },
+                    { region: "Jalpaiguri", lead_count: 18, won_count: 6 },
+                    { region: "Delhi NCR", lead_count: 15, won_count: 4 },
+                  ]).map((g) => ({
+                    hub: g.region,
+                    leads: g.lead_count,
+                    won: g.won_count,
+                  }))}
+                >
+                  <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+                  <PolarAngleAxis dataKey="hub" />
+                  <PolarGrid strokeDasharray="3 3" />
+                  <Radar
+                    stroke="var(--color-leads)"
+                    dataKey="leads"
+                    fill="var(--color-leads)"
+                    fillOpacity={0.22}
+                  />
+                  <Radar
+                    stroke="var(--color-won)"
+                    dataKey="won"
+                    fill="var(--color-won)"
+                    fillOpacity={0.15}
+                  />
+                </RadarChart>
+              </ChartContainer>
+              <div className="flex items-center justify-center gap-5 text-[11px] text-[var(--ed-text-muted)] pt-2 border-t border-[var(--ed-border)]">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-[var(--chart-2)]" />
+                  <span className="text-[var(--ed-text-primary)] font-medium">Inquiry Leads</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-[var(--chart-3)]" />
+                  <span>Closed Won Deals</span>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Stage Probabilities Bar */}
           <div className="pt-2 border-t border-[var(--ed-border)] space-y-2">
