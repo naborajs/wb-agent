@@ -23,6 +23,19 @@ class BridgeWhatsAppProvider(WhatsAppProvider):
     async def send_message(self, to_phone: str, text: str) -> OutboundWhatsAppResult:
         start_t = time.perf_counter()
         norm_phone = normalize_phone_number(to_phone)
+
+        # Sandbox Safety Interceptor: Never send live messages to test/demo dummy numbers over Baileys
+        from app.utils.phone import is_sandbox_test_phone
+        if is_sandbox_test_phone(norm_phone):
+            logger.warning(f"[SANDBOX SUPPRESSION] Outbound message to sandbox/test phone {norm_phone} intercepted. Bridge HTTP dispatch bypassed.")
+            return OutboundWhatsAppResult(
+                success=True,
+                provider_message_id=f"sim_sandbox_{int(time.time() * 1000)}",
+                to_phone=norm_phone,
+                latency_ms=1,
+                raw_response={"simulated": True, "reason": "sandbox_dummy_number_suppression"},
+            )
+
         url = f"{self.bridge_url}/send"
         payload = {"to": norm_phone, "text": text}
 
@@ -75,6 +88,18 @@ class BridgeWhatsAppProvider(WhatsAppProvider):
     ) -> OutboundWhatsAppResult:
         start_t = time.perf_counter()
         norm_phone = normalize_phone_number(to_phone)
+
+        # Sandbox Safety Interceptor: Never send documents to test/demo dummy numbers over Baileys
+        from app.utils.phone import is_sandbox_test_phone
+        if is_sandbox_test_phone(norm_phone):
+            logger.warning(f"[SANDBOX SUPPRESSION] Outbound document to sandbox/test phone {norm_phone} intercepted. Bridge HTTP dispatch bypassed.")
+            return OutboundWhatsAppResult(
+                success=True,
+                provider_message_id=f"sim_doc_sandbox_{int(time.time() * 1000)}",
+                to_phone=norm_phone,
+                latency_ms=1,
+                raw_response={"simulated": True, "reason": "sandbox_dummy_number_suppression"},
+            )
         url = f"{self.bridge_url}/send-document"
         doc_name = filename or (file_path.split("/")[-1].split("\\")[-1] if file_path else "proforma_invoice.pdf")
         payload = {
