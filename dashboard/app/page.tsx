@@ -254,7 +254,7 @@ export default function DashboardOverview() {
     }
   };
 
-  // Execute Live Simulation Turn directly on Overview
+  // Execute Live Simulation Turn directly on Overview (Isolated Sandbox)
   const handleRunSimulation = async () => {
     if (!simPrompt.trim()) return;
     setIsSimulating(true);
@@ -265,8 +265,8 @@ export default function DashboardOverview() {
         body: JSON.stringify({
           phone: simPhone,
           message: simPrompt,
-          name: "Wholesale Partner",
-          company: "Grand Hospitality",
+          name: "Wholesale Partner (Simulated)",
+          company: "Grand Hospitality (Sandbox)",
         }),
       });
       if (res.ok) {
@@ -317,7 +317,8 @@ export default function DashboardOverview() {
     };
 
     const loadRecentConvs = () => {
-      fetch("/api/v1/conversations?page=1&page_size=5")
+      // Only query authentic WhatsApp conversations for live activity
+      fetch("/api/v1/conversations?page=1&page_size=5&channel=whatsapp")
         .then((r) => r.ok && r.json())
         .then((data) => {
           if (data?.items) {
@@ -920,12 +921,12 @@ export default function DashboardOverview() {
               <span className="text-xs font-mono font-bold text-[#00D2FE] uppercase tracking-wider flex items-center gap-1.5">
                 <Play className="w-3.5 h-3.5 fill-[#00D2FE]" /> The Money Moment: Live AI Simulator
               </span>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#00D2FE]/20 text-[#00D2FE] border border-[#00D2FE]/30 font-semibold">
-                Instant Turn
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-semibold flex items-center gap-1">
+                🧪 Isolated Sandbox
               </span>
             </div>
             <p className="text-xs text-slate-300">
-              Watch EDITH compute deterministic wholesale rates and reason over the Inter-Brain Bus in real time:
+              Test EDITH reasoning safely in an isolated sandbox channel without sending outbound messages to real WhatsApp:
             </p>
 
             <div className="space-y-2">
