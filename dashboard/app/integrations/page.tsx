@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import Link from "next/link";
 import {
   Cpu,
   MessageSquare,
@@ -35,6 +36,8 @@ import {
   ArrowRight,
   ShieldCheck,
   FileText,
+  Bot,
+  Send,
 } from "lucide-react";
 
 interface ModelInfo {
@@ -49,82 +52,111 @@ interface ModelInfo {
 interface ModelEconomics {
   id: string;
   name: string;
-  provider: "Google" | "NVIDIA" | "Meta";
+  provider: "Google" | "NVIDIA";
   whatItDoes: string;
   inputCostPer1M: number;
   outputCostPer1M: number;
   costBadge: string;
   isLeastCostly?: boolean;
+  isFreeNvidia?: boolean;
   contextLimit: string;
   estLatency: string;
 }
 
 const KNOWN_MODELS_ECONOMICS: ModelEconomics[] = [
+  // Google Gemini Suite (Priced per token telemetry)
   {
-    id: "gemini-3.1-flash-live-preview",
-    name: "Gemini 3.1 Flash Live",
+    id: "gemini-2.5-flash",
+    name: "Gemini 2.5 Flash",
     provider: "Google",
-    whatItDoes: "Realtime 16kHz PCM Voice Streaming, UI Navigation, Screen Grounding & Executive Copilot (Friday).",
+    whatItDoes: "Friday Web Copilot & Automation: Ultra-fast multimodal reasoning, DOM grounding, and operational execution.",
     inputCostPer1M: 0.10,
     outputCostPer1M: 0.40,
-    costBadge: "★ Least Costly Voice/UI",
+    costBadge: "★ Fast Reasoning Tier",
     isLeastCostly: true,
     contextLimit: "1,048,576 tok",
-    estLatency: "185ms",
+    estLatency: "180ms",
   },
+  {
+    id: "gemini-3.1-flash-live-preview",
+    name: "Gemini 3.1 Flash Live Preview",
+    provider: "Google",
+    whatItDoes: "Friday Realtime Voice Agent: Native bidirectional 16kHz PCM audio streaming & split-second UI navigation.",
+    inputCostPer1M: 0.10,
+    outputCostPer1M: 0.40,
+    costBadge: "Voice Streaming Tier",
+    contextLimit: "1,048,576 tok",
+    estLatency: "120ms",
+  },
+  {
+    id: "gemini-2.5-flash-lite",
+    name: "Gemini 2.5 Flash-Lite",
+    provider: "Google",
+    whatItDoes: "Ultra-low-latency high-throughput turns, rapid status checking, and quick confirmation replies.",
+    inputCostPer1M: 0.05,
+    outputCostPer1M: 0.20,
+    costBadge: "Ultra-Lightweight Tier",
+    contextLimit: "1,048,576 tok",
+    estLatency: "110ms",
+  },
+  {
+    id: "gemini-3.5-flash",
+    name: "Gemini 3.5 Flash",
+    provider: "Google",
+    whatItDoes: "Next-gen multimodal reasoning, catalog visual analysis, and multi-step customer inquiries.",
+    inputCostPer1M: 0.10,
+    outputCostPer1M: 0.40,
+    costBadge: "Next-Gen Flash Tier",
+    contextLimit: "1,048,576 tok",
+    estLatency: "190ms",
+  },
+  {
+    id: "gemini-2.5-pro",
+    name: "Gemini 2.5 Pro",
+    provider: "Google",
+    whatItDoes: "Flagship Deep Reasoning: Long-context multi-document contracts, technical diagnostics, and audits.",
+    inputCostPer1M: 1.25,
+    outputCostPer1M: 5.00,
+    costBadge: "Deep Analysis Tier",
+    contextLimit: "2,097,152 tok",
+    estLatency: "650ms",
+  },
+
+  // NVIDIA NIM Suite (Zero-Cost: Included / Free under user key)
   {
     id: "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning",
     name: "Nemotron-3 Nano Omni 30B",
     provider: "NVIDIA",
-    whatItDoes: "High-speed customer message cadence checking, anti-spam validation, and instant price checks.",
-    inputCostPer1M: 0.08,
-    outputCostPer1M: 0.25,
-    costBadge: "★ Least Costly NIM Reasoner",
+    whatItDoes: "Customer message cadence checking, anti-spam validation, instant margin checks, and watchdog guard.",
+    inputCostPer1M: 0.00,
+    outputCostPer1M: 0.00,
+    costBadge: "Included / Free (NVIDIA Key)",
+    isFreeNvidia: true,
     isLeastCostly: true,
     contextLimit: "32,768 tok",
     estLatency: "220ms",
-  },
-  {
-    id: "google/gemma-4-31b-it",
-    name: "Gemma 4 31B IT",
-    provider: "Google",
-    whatItDoes: "Compact regional dialect understanding, Indic multilingual queries, and structured JSON parsing.",
-    inputCostPer1M: 0.09,
-    outputCostPer1M: 0.28,
-    costBadge: "Budget Multilingual",
-    contextLimit: "32,768 tok",
-    estLatency: "260ms",
   },
   {
     id: "nvidia/nemotron-3-super-120b-a12b",
     name: "Nemotron-3 Super 120B",
     provider: "NVIDIA",
     whatItDoes: "Balanced volume discount formulation, catalog grounding, and standard B2B WhatsApp proposals.",
-    inputCostPer1M: 0.15,
-    outputCostPer1M: 0.45,
-    costBadge: "Balanced High-Volume",
-    contextLimit: "65,536 tok",
-    estLatency: "310ms",
-  },
-  {
-    id: "meta/llama-3.3-70b-instruct",
-    name: "Llama 3.3 70B Instruct",
-    provider: "Meta",
-    whatItDoes: "EDITH Flagship Closer: Rigorous commercial objection handling, margin enforcement, and counter-offers.",
-    inputCostPer1M: 0.20,
-    outputCostPer1M: 0.60,
-    costBadge: "Commercial Closer Tier",
-    contextLimit: "131,072 tok",
-    estLatency: "340ms",
+    inputCostPer1M: 0.00,
+    outputCostPer1M: 0.00,
+    costBadge: "Included / Free (NVIDIA Key)",
+    isFreeNvidia: true,
+    contextLimit: "1,048,576 tok",
+    estLatency: "420ms",
   },
   {
     id: "nvidia/nemotron-4-340b-instruct",
     name: "Nemotron-4 340B Instruct",
     provider: "NVIDIA",
-    whatItDoes: "Deep enterprise commercial negotiations, multi-year supply contracts, and high-stakes objection arbitration.",
-    inputCostPer1M: 0.35,
-    outputCostPer1M: 0.95,
-    costBadge: "Enterprise Heavyweight",
+    whatItDoes: "Deep enterprise commercial negotiations, multi-year supply contracts, and high-stakes objection handling.",
+    inputCostPer1M: 0.00,
+    outputCostPer1M: 0.00,
+    costBadge: "Included / Free (NVIDIA Key)",
+    isFreeNvidia: true,
     contextLimit: "131,072 tok",
     estLatency: "490ms",
   },
@@ -132,12 +164,61 @@ const KNOWN_MODELS_ECONOMICS: ModelEconomics[] = [
     id: "nvidia/nemotron-3-ultra-550b-a55b",
     name: "Nemotron-3 Ultra 550B",
     provider: "NVIDIA",
-    whatItDoes: "Complex legal auditing, export compliance, non-compete clauses, and executive-level governance.",
-    inputCostPer1M: 0.50,
-    outputCostPer1M: 1.50,
-    costBadge: "Maximum Reasoning Tier",
+    whatItDoes: "EDITH Flagship Closer: Complex commercial objection handling, margin enforcement, and closing.",
+    inputCostPer1M: 0.00,
+    outputCostPer1M: 0.00,
+    costBadge: "Included / Free (NVIDIA Key)",
+    isFreeNvidia: true,
     contextLimit: "131,072 tok",
     estLatency: "650ms",
+  },
+  {
+    id: "deepseek-ai/deepseek-r1",
+    name: "DeepSeek R1",
+    provider: "NVIDIA",
+    whatItDoes: "Chain-of-thought mathematical reasoning, algorithmic profit optimization, and objection counter-logic.",
+    inputCostPer1M: 0.00,
+    outputCostPer1M: 0.00,
+    costBadge: "Included / Free (NVIDIA Key)",
+    isFreeNvidia: true,
+    contextLimit: "65,536 tok",
+    estLatency: "580ms",
+  },
+  {
+    id: "qwen/qwen2.5-72b-instruct",
+    name: "Qwen 2.5 72B Instruct",
+    provider: "NVIDIA",
+    whatItDoes: "High-accuracy multilingual instruction following across Indic and international trade dialogues.",
+    inputCostPer1M: 0.00,
+    outputCostPer1M: 0.00,
+    costBadge: "Included / Free (NVIDIA Key)",
+    isFreeNvidia: true,
+    contextLimit: "32,768 tok",
+    estLatency: "360ms",
+  },
+  {
+    id: "mistralai/mistral-large-2411",
+    name: "Mistral Large 2411",
+    provider: "NVIDIA",
+    whatItDoes: "Precise policy governance, contract term enforcement, and structured JSON parsing.",
+    inputCostPer1M: 0.00,
+    outputCostPer1M: 0.00,
+    costBadge: "Included / Free (NVIDIA Key)",
+    isFreeNvidia: true,
+    contextLimit: "128,000 tok",
+    estLatency: "380ms",
+  },
+  {
+    id: "google/gemma-4-31b-it",
+    name: "Gemma 4 31B IT",
+    provider: "NVIDIA",
+    whatItDoes: "Compact dialect classification, customer intent extraction, and rapid sanity checks.",
+    inputCostPer1M: 0.00,
+    outputCostPer1M: 0.00,
+    costBadge: "Included / Free (NVIDIA Key)",
+    isFreeNvidia: true,
+    contextLimit: "32,768 tok",
+    estLatency: "260ms",
   },
 ];
 
@@ -210,9 +291,32 @@ export default function IntegrationsPage() {
   const [isTestingModel, setIsTestingModel] = useState(false);
   const [testResult, setTestResult] = useState<any>(null);
 
+  // Model-to-Task Operational Roles Assignment state
+  interface ModelRolesData {
+    friday_web_model: string;
+    edith_sales_model: string;
+    friday_voice_model: string;
+    edith_policy_model: string;
+    system_watchdog_model: string;
+  }
+  const [modelRoles, setModelRoles] = useState<ModelRolesData>({
+    friday_web_model: "gemini-2.5-flash",
+    edith_sales_model: "nvidia/nemotron-3-ultra-550b-a55b",
+    friday_voice_model: "gemini-3.1-flash-live-preview",
+    edith_policy_model: "nvidia/nemotron-4-340b-instruct",
+    system_watchdog_model: "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning",
+  });
+  const [isSavingRoles, setIsSavingRoles] = useState(false);
+  const [saveRolesMsg, setSaveRolesMsg] = useState("");
+
+  // 1-Click Speed Test state per model row
+  const [rowSpeedTests, setRowSpeedTests] = useState<
+    Record<string, { loading: boolean; latency?: number; error?: string; tokens?: number }>
+  >({});
+
   // Rapid Benchmarking & Continuous 1-Second Testing Suite
   const [benchmarkPrompt, setBenchmarkPrompt] = useState(REFERENCE_TEST_PROMPTS[0].prompt);
-  const [selectedBenchModel, setSelectedBenchModel] = useState("meta/llama-3.3-70b-instruct");
+  const [selectedBenchModel, setSelectedBenchModel] = useState("gemini-2.5-flash");
   const [isBenchmarking, setIsBenchmarking] = useState(false);
   const [benchResult, setBenchResult] = useState<any>(null);
   const [isAutoTesting1s, setIsAutoTesting1s] = useState(false);
@@ -246,6 +350,12 @@ export default function IntegrationsPage() {
         setTemperature(resModels.temperature ?? 0.2);
         setMaxTokens(resModels.max_tokens ?? 2048);
         setTimeoutSecs(resModels.timeout ?? 90);
+      }
+
+      // 4. Model-to-task assignments
+      const resRoles = await fetch("/api/v1/brain/model-roles").then((r) => (r.ok ? r.json() : null)).catch(() => null);
+      if (resRoles) {
+        setModelRoles(resRoles);
       }
     } catch (e) {
       console.error("Failed to load integrations telemetry:", e);
@@ -362,6 +472,58 @@ export default function IntegrationsPage() {
       }
     } catch (e: any) {
       return { status: "error", error: e.message };
+    }
+  };
+
+  // 1-Click Speed Test for an individual model row
+  const handleRowSpeedTest = async (modelId: string) => {
+    setRowSpeedTests((prev) => ({ ...prev, [modelId]: { loading: true } }));
+    try {
+      const res = await runSingleBenchmark(modelId, "Speed test ping: Measure operational round-trip latency.");
+      if (res.status === "error" || res.error) {
+        setRowSpeedTests((prev) => ({
+          ...prev,
+          [modelId]: { loading: false, error: res.error || "Speed test failed" },
+        }));
+      } else {
+        setRowSpeedTests((prev) => ({
+          ...prev,
+          [modelId]: {
+            loading: false,
+            latency: res.latency_ms,
+            tokens: res.tokens?.total,
+          },
+        }));
+      }
+    } catch (err: any) {
+      setRowSpeedTests((prev) => ({
+        ...prev,
+        [modelId]: { loading: false, error: err.message },
+      }));
+    }
+  };
+
+  // Save model-to-task assignments to backend and .env
+  const handleSaveModelRoles = async () => {
+    setIsSavingRoles(true);
+    setSaveRolesMsg("");
+    try {
+      const res = await fetch("/api/v1/brain/model-roles", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(modelRoles),
+      });
+      if (res.ok) {
+        setSaveRolesMsg("Task assignments saved to local .env and runtime!");
+        setTimeout(() => setSaveRolesMsg(""), 4000);
+      } else {
+        const err = await res.json();
+        alert(`Failed to save task assignments: ${err.detail || "Server error"}`);
+      }
+    } catch (err: any) {
+      alert(`Network error saving task assignments: ${err.message}`);
+    } finally {
+      setIsSavingRoles(false);
     }
   };
 
@@ -544,14 +706,14 @@ export default function IntegrationsPage() {
               Model Economics, Pricing Comparison & Architecture Roles
             </h3>
             <p className="text-xs text-[var(--ed-text-muted)] mt-0.5">
-              Compare token pricing across providers, see what each model does, and identify the least costly model for each operational workload.
+              Compare token pricing across providers. All NVIDIA NIM models are <strong>Included / Free</strong> under your NVIDIA API key ($0.00). Google Gemini models are priced strictly per token usage.
             </p>
           </div>
 
           <div className="flex items-center gap-2">
             <span className="text-xs font-semibold px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center gap-1.5">
               <TrendingDown className="w-3.5 h-3.5" />
-              Friday (Gemini 3.1) & Nano Omni are Least Costly
+              NVIDIA NIM models are Included / Free ($0.00)
             </span>
           </div>
         </div>
@@ -567,86 +729,365 @@ export default function IntegrationsPage() {
                 <th className="py-2.5 px-3">Output / 1M</th>
                 <th className="py-2.5 px-3">Cost Tier</th>
                 <th className="py-2.5 px-3">Context</th>
-                <th className="py-2.5 px-3">Latency</th>
-                <th className="py-2.5 px-3 text-right">Action</th>
+                <th className="py-2.5 px-3">Latency & Live Speed</th>
+                <th className="py-2.5 px-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--ed-border)] text-xs">
-              {KNOWN_MODELS_ECONOMICS.map((m) => (
-                <tr
-                  key={m.id}
-                  className={`hover:bg-[var(--ed-bg)] transition-colors ${
-                    m.isLeastCostly ? "bg-emerald-500/5 dark:bg-emerald-950/10" : ""
-                  }`}
-                >
-                  <td className="py-3 px-3 font-semibold text-[var(--ed-text-primary)]">
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`w-2 h-2 rounded-full shrink-0 ${
-                          m.provider === "Google"
-                            ? "bg-sky-500"
-                            : m.provider === "Meta"
-                            ? "bg-indigo-500"
-                            : "bg-emerald-500"
-                        }`}
-                      />
-                      <div>
-                        <div>{m.name}</div>
-                        <div className="text-[10px] font-mono text-[var(--ed-text-muted)] truncate max-w-[180px]">
-                          {m.id}
+              {KNOWN_MODELS_ECONOMICS.map((m) => {
+                const speedTest = rowSpeedTests[m.id];
+                return (
+                  <tr
+                    key={m.id}
+                    className={`hover:bg-[var(--ed-bg)] transition-colors ${
+                      m.isLeastCostly ? "bg-emerald-500/5 dark:bg-emerald-950/10" : ""
+                    }`}
+                  >
+                    <td className="py-3 px-3 font-semibold text-[var(--ed-text-primary)]">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`w-2 h-2 rounded-full shrink-0 ${
+                            m.provider === "Google" ? "bg-sky-500" : "bg-emerald-500"
+                          }`}
+                        />
+                        <div>
+                          <div>{m.name}</div>
+                          <div className="text-[10px] font-mono text-[var(--ed-text-muted)] truncate max-w-[180px]">
+                            {m.id}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </td>
+                    </td>
 
-                  <td className="py-3 px-3 text-[var(--ed-text-muted)] max-w-xs leading-relaxed">
-                    {m.whatItDoes}
-                  </td>
+                    <td className="py-3 px-3 text-[var(--ed-text-muted)] max-w-xs leading-relaxed">
+                      {m.whatItDoes}
+                    </td>
 
-                  <td className="py-3 px-3 font-mono font-bold text-[var(--ed-text-primary)]">
-                    ${m.inputCostPer1M.toFixed(2)}
-                  </td>
+                    <td className="py-3 px-3">
+                      {m.isFreeNvidia ? (
+                        <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                          $0.00 <span className="text-[10px] font-normal opacity-80">(Free)</span>
+                        </span>
+                      ) : (
+                        <span className="font-mono font-bold text-[var(--ed-text-primary)]">
+                          ${m.inputCostPer1M.toFixed(2)}
+                        </span>
+                      )}
+                    </td>
 
-                  <td className="py-3 px-3 font-mono font-bold text-[var(--ed-text-primary)]">
-                    ${m.outputCostPer1M.toFixed(2)}
-                  </td>
+                    <td className="py-3 px-3">
+                      {m.isFreeNvidia ? (
+                        <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                          $0.00 <span className="text-[10px] font-normal opacity-80">(Free)</span>
+                        </span>
+                      ) : (
+                        <span className="font-mono font-bold text-[var(--ed-text-primary)]">
+                          ${m.outputCostPer1M.toFixed(2)}
+                        </span>
+                      )}
+                    </td>
 
-                  <td className="py-3 px-3">
-                    <span
-                      className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                        m.isLeastCostly
-                          ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
-                          : "bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-zinc-700"
-                      }`}
-                    >
-                      {m.costBadge}
-                    </span>
-                  </td>
+                    <td className="py-3 px-3">
+                      {m.isFreeNvidia ? (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                          Included / Free
+                        </span>
+                      ) : (
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            m.isLeastCostly
+                              ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                              : "bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-zinc-700"
+                          }`}
+                        >
+                          {m.costBadge}
+                        </span>
+                      )}
+                    </td>
 
-                  <td className="py-3 px-3 font-mono text-[11px] text-[var(--ed-text-muted)]">
-                    {m.contextLimit}
-                  </td>
+                    <td className="py-3 px-3 font-mono text-[11px] text-[var(--ed-text-muted)]">
+                      {m.contextLimit}
+                    </td>
 
-                  <td className="py-3 px-3 font-mono text-[11px] text-[var(--ed-text-muted)]">
-                    {m.estLatency}
-                  </td>
+                    <td className="py-3 px-3">
+                      <div className="font-mono text-[11px] text-[var(--ed-text-muted)]">
+                        {m.estLatency}
+                      </div>
+                      {speedTest && (
+                        <div className="mt-1">
+                          {speedTest.loading ? (
+                            <span className="inline-flex items-center gap-1 text-[10px] text-amber-500 font-mono font-semibold">
+                              <RefreshCw className="w-2.5 h-2.5 animate-spin" /> Pinging...
+                            </span>
+                          ) : speedTest.error ? (
+                            <span
+                              className="inline-flex items-center gap-1 text-[10px] text-rose-500 font-medium"
+                              title={speedTest.error}
+                            >
+                              <AlertCircle className="w-2.5 h-2.5 shrink-0" /> Error
+                            </span>
+                          ) : (
+                            <div className="flex items-center gap-1.5">
+                              <span
+                                className={`w-2 h-2 rounded-full shrink-0 ${
+                                  (speedTest.latency || 0) < 1000
+                                    ? "bg-emerald-500"
+                                    : (speedTest.latency || 0) < 3000
+                                    ? "bg-amber-500"
+                                    : "bg-rose-500"
+                                }`}
+                              />
+                              <span className="font-mono text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                                {speedTest.latency}ms
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </td>
 
-                  <td className="py-3 px-3 text-right">
-                    <button
-                      onClick={() => {
-                        setSelectedBenchModel(m.id);
-                        const el = document.getElementById("rapid-benchmark-suite");
-                        if (el) el.scrollIntoView({ behavior: "smooth" });
-                      }}
-                      className="px-2.5 py-1 rounded-lg border border-[var(--ed-border)] bg-[var(--ed-surface)] hover:bg-[var(--ed-bg)] text-[11px] font-semibold text-[var(--ed-text-primary)] transition-all ed-press"
-                    >
-                      Load in Tester
-                    </button>
-                  </td>
-                </tr>
-              ))}
+                    <td className="py-3 px-3 text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          onClick={() => handleRowSpeedTest(m.id)}
+                          disabled={speedTest?.loading}
+                          className="px-2.5 py-1 rounded-lg border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 transition-all ed-press inline-flex items-center gap-1 shrink-0 disabled:opacity-50"
+                          title="Run authentic live API latency benchmark"
+                        >
+                          <Zap className={`w-3 h-3 ${speedTest?.loading ? "animate-spin text-amber-400" : ""}`} />
+                          Speed Test
+                        </button>
+                        <Link
+                          href={`/playground?model=${encodeURIComponent(m.id)}`}
+                          className="px-2.5 py-1 rounded-lg border border-[var(--ed-border)] bg-[var(--ed-surface)] hover:bg-[var(--ed-bg)] text-[11px] font-semibold text-[var(--ed-text-primary)] transition-all ed-press inline-flex items-center gap-1 shrink-0"
+                          title="Open dedicated playground chat with this model"
+                        >
+                          <Sparkles className="w-3 h-3 text-purple-400" />
+                          Playground
+                        </Link>
+                        <button
+                          onClick={() => {
+                            setSelectedBenchModel(m.id);
+                            const el = document.getElementById("rapid-benchmark-suite");
+                            if (el) el.scrollIntoView({ behavior: "smooth" });
+                          }}
+                          className="px-2 py-1 rounded-lg border border-[var(--ed-border)] text-[10px] text-[var(--ed-text-muted)] hover:text-[var(--ed-text-primary)] transition-all ed-press"
+                          title="Load model into rapid benchmark tester below"
+                        >
+                          Tester
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      {/* 2.6 Model-to-Task Operational Roles & Capabilities Assignment Panel */}
+      <div className="ed-panel rounded-2xl p-4 sm:p-6 space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[var(--ed-border)] pb-4">
+          <div>
+            <h3 className="text-sm font-bold text-[var(--ed-text-primary)] flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-purple-400" />
+              Dynamic Model-to-Task Assignment (Dual Brain & Agent Matrix)
+            </h3>
+            <p className="text-xs text-[var(--ed-text-muted)] mt-0.5">
+              Assign specific models to each AI operational task. Persists to active memory and local <code>.env</code> automatically.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {saveRolesMsg && (
+              <span className="text-xs font-bold text-[var(--ed-success)] bg-[var(--ed-success)]/10 px-3 py-1 rounded-lg border border-[var(--ed-success)]/20 inline-flex items-center gap-1.5">
+                <CheckCircle className="w-3.5 h-3.5" />
+                {saveRolesMsg}
+              </span>
+            )}
+            <button
+              onClick={handleSaveModelRoles}
+              disabled={isSavingRoles}
+              className="ed-btn-primary ed-press ed-focus-ring px-4 py-2 rounded-xl text-xs font-semibold shadow-sm transition-all inline-flex items-center gap-1.5 disabled:opacity-50"
+            >
+              <Save className="w-3.5 h-3.5" />
+              {isSavingRoles ? "Saving Roles..." : "Save Task Assignments"}
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* Role 1: Friday Web Assistant */}
+          <div className="p-4 rounded-xl border border-[var(--ed-border)] bg-[var(--ed-bg)] space-y-2.5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-[var(--ed-text-primary)] flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-sky-400" />
+                Friday Web Assistant
+              </span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/20">
+                Executive Copilot
+              </span>
+            </div>
+            <p className="text-[11px] text-[var(--ed-text-muted)]">
+              Autonomous dashboard control, operator chat, DOM automation, and multi-modal actions.
+            </p>
+            <select
+              value={modelRoles.friday_web_model}
+              onChange={(e) => setModelRoles({ ...modelRoles, friday_web_model: e.target.value })}
+              className="w-full px-2.5 py-1.5 rounded-lg border border-[var(--ed-border)] bg-[var(--ed-surface)] text-[var(--ed-text-primary)] font-mono text-xs ed-focus-ring"
+            >
+              <optgroup label="Google Gemini Models (Fast / Multimodal)">
+                {KNOWN_MODELS_ECONOMICS.filter((m) => m.provider === "Google").map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name} ({m.costBadge})
+                  </option>
+                ))}
+              </optgroup>
+              <optgroup label="NVIDIA NIM Models (Free / Included)">
+                {KNOWN_MODELS_ECONOMICS.filter((m) => m.provider === "NVIDIA").map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name} (Free)
+                  </option>
+                ))}
+              </optgroup>
+            </select>
+          </div>
+
+          {/* Role 2: EDITH WhatsApp Commercial Closer */}
+          <div className="p-4 rounded-xl border border-[var(--ed-border)] bg-[var(--ed-bg)] space-y-2.5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-[var(--ed-text-primary)] flex items-center gap-1.5">
+                <Coins className="w-3.5 h-3.5 text-purple-400" />
+                EDITH WhatsApp Sales
+              </span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                Commercial Closer
+              </span>
+            </div>
+            <p className="text-[11px] text-[var(--ed-text-muted)]">
+              Inbound customer proposals, volume discount negotiations, objection defense, and checkout closing.
+            </p>
+            <select
+              value={modelRoles.edith_sales_model}
+              onChange={(e) => setModelRoles({ ...modelRoles, edith_sales_model: e.target.value })}
+              className="w-full px-2.5 py-1.5 rounded-lg border border-[var(--ed-border)] bg-[var(--ed-surface)] text-[var(--ed-text-primary)] font-mono text-xs ed-focus-ring"
+            >
+              <optgroup label="NVIDIA NIM Models (Free / Included)">
+                {KNOWN_MODELS_ECONOMICS.filter((m) => m.provider === "NVIDIA").map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name} (Free)
+                  </option>
+                ))}
+              </optgroup>
+              <optgroup label="Google Gemini Models">
+                {KNOWN_MODELS_ECONOMICS.filter((m) => m.provider === "Google").map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
+                  </option>
+                ))}
+              </optgroup>
+            </select>
+          </div>
+
+          {/* Role 3: Friday Voice Agent */}
+          <div className="p-4 rounded-xl border border-[var(--ed-border)] bg-[var(--ed-bg)] space-y-2.5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-[var(--ed-text-primary)] flex items-center gap-1.5">
+                <Radio className="w-3.5 h-3.5 text-emerald-400" />
+                Friday Voice Agent
+              </span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                16kHz PCM Stream
+              </span>
+            </div>
+            <p className="text-[11px] text-[var(--ed-text-muted)]">
+              Ultra-low latency bidirectional audio streaming for hands-free operator voice control.
+            </p>
+            <select
+              value={modelRoles.friday_voice_model}
+              onChange={(e) => setModelRoles({ ...modelRoles, friday_voice_model: e.target.value })}
+              className="w-full px-2.5 py-1.5 rounded-lg border border-[var(--ed-border)] bg-[var(--ed-surface)] text-[var(--ed-text-primary)] font-mono text-xs ed-focus-ring"
+            >
+              <optgroup label="Google Gemini Voice Live Models">
+                <option value="gemini-3.1-flash-live-preview">Gemini 3.1 Flash Live Preview (Recommended Voice)</option>
+                <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+                <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash-Lite</option>
+              </optgroup>
+            </select>
+          </div>
+
+          {/* Role 4: Policy & Margin Auditor */}
+          <div className="p-4 rounded-xl border border-[var(--ed-border)] bg-[var(--ed-bg)] space-y-2.5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-[var(--ed-text-primary)] flex items-center gap-1.5">
+                <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+                Policy & Margin Auditor
+              </span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                Governance & Safety
+              </span>
+            </div>
+            <p className="text-[11px] text-[var(--ed-text-muted)]">
+              Minimum margin threshold verification, contract auditing, and objection safety enforcement.
+            </p>
+            <select
+              value={modelRoles.edith_policy_model}
+              onChange={(e) => setModelRoles({ ...modelRoles, edith_policy_model: e.target.value })}
+              className="w-full px-2.5 py-1.5 rounded-lg border border-[var(--ed-border)] bg-[var(--ed-surface)] text-[var(--ed-text-primary)] font-mono text-xs ed-focus-ring"
+            >
+              <optgroup label="NVIDIA NIM Models (Free / Included)">
+                {KNOWN_MODELS_ECONOMICS.filter((m) => m.provider === "NVIDIA").map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name} (Free)
+                  </option>
+                ))}
+              </optgroup>
+              <optgroup label="Google Gemini Models">
+                {KNOWN_MODELS_ECONOMICS.filter((m) => m.provider === "Google").map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
+                  </option>
+                ))}
+              </optgroup>
+            </select>
+          </div>
+
+          {/* Role 5: System Watchdog Supervisor */}
+          <div className="p-4 rounded-xl border border-[var(--ed-border)] bg-[var(--ed-bg)] space-y-2.5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-[var(--ed-text-primary)] flex items-center gap-1.5">
+                <Activity className="w-3.5 h-3.5 text-rose-400" />
+                Watchdog Supervisor
+              </span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                Health & Loop Guard
+              </span>
+            </div>
+            <p className="text-[11px] text-[var(--ed-text-muted)]">
+              Continuous sub-second health audits, infinite loop prevention, and autonomous recovery checks.
+            </p>
+            <select
+              value={modelRoles.system_watchdog_model}
+              onChange={(e) => setModelRoles({ ...modelRoles, system_watchdog_model: e.target.value })}
+              className="w-full px-2.5 py-1.5 rounded-lg border border-[var(--ed-border)] bg-[var(--ed-surface)] text-[var(--ed-text-primary)] font-mono text-xs ed-focus-ring"
+            >
+              <optgroup label="NVIDIA NIM Models (Free / Included)">
+                {KNOWN_MODELS_ECONOMICS.filter((m) => m.provider === "NVIDIA").map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name} (Free)
+                  </option>
+                ))}
+              </optgroup>
+              <optgroup label="Google Gemini Models">
+                {KNOWN_MODELS_ECONOMICS.filter((m) => m.provider === "Google").map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
+                  </option>
+                ))}
+              </optgroup>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -1143,11 +1584,20 @@ export default function IntegrationsPage() {
                 onChange={(e) => setSelectedBenchModel(e.target.value)}
                 className="w-full px-3 py-2 rounded-xl border border-[var(--ed-border)] bg-[var(--ed-bg)] text-[var(--ed-text-primary)] font-mono text-xs ed-focus-ring"
               >
-                {KNOWN_MODELS_ECONOMICS.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.name} — ${m.outputCostPer1M.toFixed(2)}/1M out ({m.costBadge})
-                  </option>
-                ))}
+                <optgroup label="Google Gemini Models (Token Priced)">
+                  {KNOWN_MODELS_ECONOMICS.filter((m) => m.provider === "Google").map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.name} — ${m.outputCostPer1M.toFixed(2)}/1M ({m.costBadge})
+                    </option>
+                  ))}
+                </optgroup>
+                <optgroup label="NVIDIA NIM Models (Included / Free under key)">
+                  {KNOWN_MODELS_ECONOMICS.filter((m) => m.provider === "NVIDIA").map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.name} — Free ($0.00)
+                    </option>
+                  ))}
+                </optgroup>
               </select>
             </div>
 
@@ -1221,7 +1671,7 @@ export default function IntegrationsPage() {
               className="ed-press ed-focus-ring px-4 py-2.5 rounded-xl border border-[var(--ed-border)] bg-[var(--ed-surface)] hover:bg-[var(--ed-bg)] text-[var(--ed-text-primary)] font-semibold text-xs transition-all disabled:opacity-50 inline-flex items-center gap-1.5"
             >
               <BarChart3 className={`w-3.5 h-3.5 ${isComparingAll ? "animate-spin text-sky-500" : ""}`} />
-              {isComparingAll ? "Testing All 7 Models..." : "Compare All Models Concurrently"}
+              {isComparingAll ? "Testing All Models..." : "Compare All Models Concurrently"}
             </button>
           </div>
         </div>
@@ -1236,10 +1686,10 @@ export default function IntegrationsPage() {
               </h4>
               <div className="flex items-center gap-2 text-[11px] font-mono">
                 <span className="px-2 py-0.5 rounded-md bg-[var(--ed-surface)] border border-[var(--ed-border)] text-[var(--ed-text-primary)] font-bold">
-                  Latency: {benchResult.latency_ms ?? 240} ms
+                  Latency: {benchResult.latency_ms ?? 0} ms
                 </span>
                 <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold border border-emerald-500/20">
-                  Cost: {benchResult.pricing?.total_cost_cents ? `${benchResult.pricing.total_cost_cents}¢` : "0.0031¢"}
+                  Cost: {benchResult.pricing?.is_free_nvidia || (benchResult.model_id && (benchResult.model_id.startsWith("nvidia/") || benchResult.model_id.startsWith("deepseek-") || benchResult.model_id.startsWith("qwen/") || benchResult.model_id.startsWith("mistralai/") || benchResult.model_id.startsWith("meta/"))) ? "Free ($0.00)" : (benchResult.pricing?.total_cost_cents ? `${benchResult.pricing.total_cost_cents}¢` : "0.0004¢")}
                 </span>
               </div>
             </div>
@@ -1249,25 +1699,27 @@ export default function IntegrationsPage() {
                 <div className="p-2 rounded-xl bg-[var(--ed-surface)] border border-[var(--ed-border)]">
                   <span className="text-[10px] text-[var(--ed-text-muted)] block">Input Tokens</span>
                   <span className="font-bold text-[var(--ed-text-primary)]">
-                    {benchResult.tokens?.input ?? Math.round(benchmarkPrompt.length / 3.8)}
+                    {benchResult.tokens?.input ?? benchResult.tokens?.prompt_tokens ?? "-"}
                   </span>
                 </div>
                 <div className="p-2 rounded-xl bg-[var(--ed-surface)] border border-[var(--ed-border)]">
                   <span className="text-[10px] text-[var(--ed-text-muted)] block">Output Tokens</span>
                   <span className="font-bold text-[var(--ed-text-primary)]">
-                    {benchResult.tokens?.output ?? 84}
+                    {benchResult.tokens?.output ?? benchResult.tokens?.completion_tokens ?? "-"}
                   </span>
                 </div>
                 <div className="p-2 rounded-xl bg-[var(--ed-surface)] border border-[var(--ed-border)]">
                   <span className="text-[10px] text-[var(--ed-text-muted)] block">Total Tokens</span>
                   <span className="font-bold text-[var(--ed-text-primary)]">
-                    {benchResult.tokens?.total ?? 132}
+                    {benchResult.tokens?.total ?? benchResult.tokens?.total_tokens ?? "-"}
                   </span>
                 </div>
                 <div className="p-2 rounded-xl bg-[var(--ed-surface)] border border-[var(--ed-border)]">
                   <span className="text-[10px] text-[var(--ed-text-muted)] block">Output Rate</span>
                   <span className="font-bold text-sky-500">
-                    ${benchResult.pricing?.cost_per_1m_output_usd ?? 0.60}/1M
+                    {benchResult.pricing?.is_free_nvidia || (benchResult.model_id && (benchResult.model_id.startsWith("nvidia/") || benchResult.model_id.startsWith("deepseek-") || benchResult.model_id.startsWith("qwen/") || benchResult.model_id.startsWith("mistralai/") || benchResult.model_id.startsWith("meta/")))
+                      ? "Included / Free"
+                      : `$${benchResult.pricing?.cost_per_1m_output_usd ?? 0.40}/1M`}
                   </span>
                 </div>
               </div>
@@ -1308,7 +1760,7 @@ export default function IntegrationsPage() {
                     <th className="py-2 px-3">Role</th>
                     <th className="py-2 px-3">Latency</th>
                     <th className="py-2 px-3">Tokens</th>
-                    <th className="py-2 px-3">Cost (¢)</th>
+                    <th className="py-2 px-3">Cost</th>
                     <th className="py-2 px-3">Generated Output Snippet</th>
                   </tr>
                 </thead>
@@ -1319,9 +1771,9 @@ export default function IntegrationsPage() {
                       <tr key={idx} className="hover:bg-[var(--ed-bg)]">
                         <td className="py-2.5 px-3 font-semibold text-[var(--ed-text-primary)]">
                           {m.name}
-                          {m.isLeastCostly && (
+                          {m.isFreeNvidia && (
                             <span className="ml-1.5 text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                              Lowest Cost
+                              Free Key
                             </span>
                           )}
                         </td>
@@ -1329,13 +1781,13 @@ export default function IntegrationsPage() {
                           {m.whatItDoes}
                         </td>
                         <td className="py-2.5 px-3 font-mono font-bold text-sky-500">
-                          {bench.latency_ms ?? 240} ms
+                          {bench.latency_ms ?? "-"} ms
                         </td>
                         <td className="py-2.5 px-3 font-mono text-[var(--ed-text-primary)]">
-                          {bench.tokens?.total ?? 120} tok
+                          {bench.tokens?.total ?? "-"} tok
                         </td>
                         <td className="py-2.5 px-3 font-mono font-bold text-emerald-500">
-                          {bench.pricing?.total_cost_cents ? `${bench.pricing.total_cost_cents}¢` : "0.003¢"}
+                          {m.isFreeNvidia ? "Free ($0.00)" : (bench.pricing?.total_cost_cents ? `${bench.pricing.total_cost_cents}¢` : "0.0004¢")}
                         </td>
                         <td className="py-2.5 px-3 font-mono text-[10px] text-[var(--ed-text-muted)] max-w-xs truncate">
                           "{bench.output || "Generated strategy output."}"
