@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.brain import inter_brain_bus
 from app.config import settings
+from app.database.base import utc_now
 from app.database.session import get_db
 from app.utils.logging import logger
 
@@ -343,11 +344,27 @@ async def get_safe_mode():
 
 
 class BenchmarkModelRequest(BaseModel):
-    model_id: str = Field(..., description="Model identifier to test (e.g. 'nvidia/nemotron-3-nano-omni-30b', 'google/gemma-4-31b-it')")
+    model_id: str = Field(..., description="Model identifier to test (e.g. 'gemini-2.5-flash', 'meta/llama-3.3-70b-instruct')")
     prompt: Optional[str] = Field("What wholesale discount can we offer for a 500kg commitment?", description="Prompt to test")
     api_key_override: Optional[str] = None
     temperature: Optional[float] = 0.2
     max_tokens: Optional[int] = 256
+
+
+class ModelRolesUpdateRequest(BaseModel):
+    friday_web_model: Optional[str] = None
+    edith_sales_model: Optional[str] = None
+    friday_voice_model: Optional[str] = None
+    edith_policy_model: Optional[str] = None
+    system_watchdog_model: Optional[str] = None
+
+
+class PlaygroundChatRequest(BaseModel):
+    model_id: str = Field(..., description="Model identifier to chat with")
+    messages: List[Dict[str, str]] = Field(..., description="List of messages: [{'role': 'user', 'content': '...'}]")
+    system_prompt: Optional[str] = Field(None, description="Optional system prompt / persona")
+    temperature: Optional[float] = Field(0.3, description="Sampling temperature")
+    max_tokens: Optional[int] = Field(1024, description="Max output tokens")
 
 
 @router.get("/telemetry")
@@ -359,90 +376,431 @@ async def get_brain_telemetry(session: AsyncSession = Depends(get_db)):
     return await inter_brain_bus.get_telemetry(session, org_id)
 
 
+@router.get("/model-roles")
+async def get_model_roles():
+    """
+    Returns current active model assignments for Friday, EDITH, Voice, and System roles,
+    along with the full available model catalog.
+    """
+    catalog = [
+        # Google Gemini Suite
+        {"id": "gemini-2.5-flash", "name": "Gemini 2.5 Flash (Recommended)", "provider": "Google", "category": "Fast Reasoning & Low Latency", "context": "1,048,576 tok", "pricing": "$0.10 / $0.40 per 1M", "is_free": False},
+        {"id": "gemini-2.5-pro", "name": "Gemini 2.5 Pro", "provider": "Google", "category": "Deep Reasoning & Analysis", "context": "2,097,152 tok", "pricing": "$1.25 / $5.00 per 1M", "is_free": False},
+        {"id": "gemini-3.1-flash-live-preview", "name": "Gemini 3.1 Flash Live", "provider": "Google", "category": "Realtime Voice Streaming (PCM)", "context": "1,048,576 tok", "pricing": "$0.10 / $0.40 per 1M", "is_free": False},
+        {"id": "gemini-2.5-flash-lite", "name": "Gemini 2.5 Flash-Lite", "provider": "Google", "category": "Ultra-Low Latency Lightweight", "context": "1,048,576 tok", "pricing": "$0.075 / $0.30 per 1M", "is_free": False},
+        {"id": "gemini-3.1-flash-lite", "name": "Gemini 3.1 Flash-Lite Preview", "provider": "Google", "category": "Next-Gen Lightweight", "context": "1,048,576 tok", "pricing": "$0.075 / $0.30 per 1M", "is_free": False},
+        {"id": "gemini-3.5-flash", "name": "Gemini 3.5 Flash", "provider": "Google", "category": "High-Throughput Multimodal", "context": "1,048,576 tok", "pricing": "$0.10 / $0.40 per 1M", "is_free": False},
+        {"id": "gemini-flash-latest", "name": "Gemini Flash Latest Alias", "provider": "Google", "category": "Auto-Updated Production Flash", "context": "1,048,576 tok", "pricing": "$0.10 / $0.40 per 1M", "is_free": False},
+        # NVIDIA NIM Suite (Zero-Cost under user key)
+        {"id": "meta/llama-3.3-70b-instruct", "name": "Llama 3.3 70B Instruct", "provider": "NVIDIA", "category": "Commercial Sales Closer", "context": "131,072 tok", "pricing": "Free (NVIDIA Key)", "is_free": True},
+        {"id": "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning", "name": "Nemotron-3 Nano Omni 30B", "provider": "NVIDIA", "category": "Cadence & Anti-Spam", "context": "32,768 tok", "pricing": "Free (NVIDIA Key)", "is_free": True},
+        {"id": "nvidia/nemotron-3-super-120b-a12b", "name": "Nemotron-3 Super 120B", "provider": "NVIDIA", "category": "Balanced Commercial Evaluator", "context": "65,536 tok", "pricing": "Free (NVIDIA Key)", "is_free": True},
+        {"id": "nvidia/nemotron-4-340b-instruct", "name": "Nemotron-4 340B Instruct", "provider": "NVIDIA", "category": "Enterprise Contract Negotiator", "context": "131,072 tok", "pricing": "Free (NVIDIA Key)", "is_free": True},
+        {"id": "nvidia/nemotron-3-ultra-550b-a55b", "name": "Nemotron-3 Ultra 550B", "provider": "NVIDIA", "category": "Deep Policy & Governance Audit", "context": "131,072 tok", "pricing": "Free (NVIDIA Key)", "is_free": True},
+        {"id": "deepseek-ai/deepseek-r1", "name": "DeepSeek R1 (Reasoning)", "provider": "NVIDIA", "category": "Open Reasoning Flagship", "context": "65,536 tok", "pricing": "Free (NVIDIA Key)", "is_free": True},
+        {"id": "qwen/qwen2.5-72b-instruct", "name": "Qwen 2.5 72B Instruct", "provider": "NVIDIA", "category": "High-Accuracy Multilingual", "context": "131,072 tok", "pricing": "Free (NVIDIA Key)", "is_free": True},
+        {"id": "mistralai/mistral-large-2411", "name": "Mistral Large 2411", "provider": "NVIDIA", "category": "Multilingual Complex Reasoning", "context": "128,000 tok", "pricing": "Free (NVIDIA Key)", "is_free": True},
+        {"id": "google/gemma-4-31b-it", "name": "Gemma 4 31B IT", "provider": "NVIDIA", "category": "Compact Multilingual Agent", "context": "32,768 tok", "pricing": "Free (NVIDIA Key)", "is_free": True},
+        {"id": "google/diffusiongemma-26b-a4b-it", "name": "DiffusionGemma 26B IT", "provider": "NVIDIA", "category": "Ultra Low-Latency Triage", "context": "32,768 tok", "pricing": "Free (NVIDIA Key)", "is_free": True},
+        {"id": "openai/gpt-oss-20b", "name": "OpenAI GPT-OSS 20B", "provider": "NVIDIA", "category": "Logic & Arithmetic Sanity", "context": "32,768 tok", "pricing": "Free (NVIDIA Key)", "is_free": True},
+    ]
+
+    return {
+        "friday_web_model": getattr(settings, "FRIDAY_WEB_MODEL", "gemini-3.1-flash-live-preview"),
+        "edith_sales_model": getattr(settings, "EDITH_SALES_MODEL", "meta/llama-3.3-70b-instruct"),
+        "friday_voice_model": getattr(settings, "FRIDAY_VOICE_MODEL", "gemini-3.1-flash-live-preview"),
+        "edith_policy_model": getattr(settings, "EDITH_POLICY_MODEL", "nvidia/nemotron-3-super-120b-a12b"),
+        "system_watchdog_model": getattr(settings, "SYSTEM_WATCHDOG_MODEL", "openai/gpt-oss-20b"),
+        "catalog": catalog,
+    }
+
+
+@router.post("/model-roles")
+async def update_model_roles(req: ModelRolesUpdateRequest):
+    """
+    Updates model role assignments, updating active runtime memory and persisting to local .env file.
+    """
+    from app.api.routes.settings import update_local_env_file
+
+    env_updates: Dict[str, str] = {}
+    if req.friday_web_model is not None:
+        setattr(settings, "FRIDAY_WEB_MODEL", req.friday_web_model)
+        env_updates["FRIDAY_WEB_MODEL"] = req.friday_web_model
+    if req.edith_sales_model is not None:
+        setattr(settings, "EDITH_SALES_MODEL", req.edith_sales_model)
+        env_updates["EDITH_SALES_MODEL"] = req.edith_sales_model
+    if req.friday_voice_model is not None:
+        setattr(settings, "FRIDAY_VOICE_MODEL", req.friday_voice_model)
+        env_updates["FRIDAY_VOICE_MODEL"] = req.friday_voice_model
+    if req.edith_policy_model is not None:
+        setattr(settings, "EDITH_POLICY_MODEL", req.edith_policy_model)
+        env_updates["EDITH_POLICY_MODEL"] = req.edith_policy_model
+    if req.system_watchdog_model is not None:
+        setattr(settings, "SYSTEM_WATCHDOG_MODEL", req.system_watchdog_model)
+        env_updates["SYSTEM_WATCHDOG_MODEL"] = req.system_watchdog_model
+
+    if env_updates:
+        update_local_env_file(env_updates)
+
+    logger.info(f"[Brain API] Updated model role assignments: {env_updates}")
+    return {
+        "success": True,
+        "message": "Model role assignments updated and persisted.",
+        "roles": {
+            "friday_web_model": settings.FRIDAY_WEB_MODEL,
+            "edith_sales_model": settings.EDITH_SALES_MODEL,
+            "friday_voice_model": settings.FRIDAY_VOICE_MODEL,
+            "edith_policy_model": settings.EDITH_POLICY_MODEL,
+            "system_watchdog_model": settings.SYSTEM_WATCHDOG_MODEL,
+        },
+    }
+
+
 @router.post("/benchmark-model")
 async def benchmark_model(req: BenchmarkModelRequest):
     """
-    Tests any specified model live: calculates real latency, generated output, token usage, and cost.
-    Supports rapid benchmarking across reference prompts.
+    Executes an authentic, non-simulated inference request against Google Gemini or NVIDIA NIM
+    using genuine API keys. Measures real response latency and provider token usage.
+    NVIDIA models are strictly zero-cost ($0.00). Only Gemini models calculate dollar cost.
     """
     import time
+    import httpx
+
     start_t = time.perf_counter()
+    model_id = req.model_id.strip()
+    prompt = req.prompt or "What wholesale discount can we offer for a 500kg commitment?"
+    temp = req.temperature if req.temperature is not None else 0.2
+    max_tok = req.max_tokens or 256
 
-    pricing_map = {
-        "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning": {"in": 0.08, "out": 0.25, "role": "Fast Reasoning & Cadence Filter"},
-        "google/gemma-4-31b-it": {"in": 0.09, "out": 0.28, "role": "Compact Multilingual Agent"},
-        "nvidia/nemotron-3-super-120b-a12b": {"in": 0.15, "out": 0.45, "role": "Balanced Commercial Evaluator"},
-        "nvidia/nemotron-4-340b-instruct": {"in": 0.35, "out": 0.95, "role": "Deep Enterprise Negotiation"},
-        "nvidia/nemotron-3-ultra-550b-a55b": {"in": 0.50, "out": 1.50, "role": "Complex Policy & Legal Audit"},
-        "meta/llama-3.3-70b-instruct": {"in": 0.20, "out": 0.60, "role": "Commercial Closer & Conversational Engine"},
-        "gemini-3.1-flash-live-preview": {"in": 0.10, "out": 0.40, "role": "Real-time Voice & Multimodal Assistant"},
-    }
-
-    model_key = req.model_id.lower()
-    matched_pricing = None
-    for k, v in pricing_map.items():
-        if k in model_key or model_key in k:
-            matched_pricing = v
-            break
-    if not matched_pricing:
-        matched_pricing = {"in": 0.20, "out": 0.60, "role": "General LLM Engine"}
-
+    is_gemini = "gemini" in model_id.lower() or model_id.lower().startswith("google/gemma") is False and "google" in model_id.lower()
+    
     output_text = ""
-    api_key = req.api_key_override or getattr(settings, "NVIDIA_API_KEY", "")
-    if api_key and not api_key.startswith("mock") and "nvidia" in req.model_id:
+    prompt_tokens = 0
+    completion_tokens = 0
+    total_tokens = 0
+    cost_cents = 0.0
+    cost_per_million = "Included / Free (NVIDIA Key)"
+    is_free = True
+    provider_name = "NVIDIA NIM"
+    status_str = "success"
+    error_msg = None
+
+    if is_gemini:
+        provider_name = "Google Gemini"
+        clean_model = model_id.replace("models/", "")
+        if clean_model == "gemini-3.1-flash-live-preview":
+            clean_model = "gemini-2.5-flash"
+
+        gemini_key = req.api_key_override or getattr(settings, "GEMINI_API_KEY", "")
+        if not gemini_key or gemini_key.startswith("mock"):
+            elapsed_ms = round((time.perf_counter() - start_t) * 1000, 1)
+            return {
+                "model_id": model_id,
+                "provider": provider_name,
+                "status": "error",
+                "error": "No valid GEMINI_API_KEY configured in environment.",
+                "latency_ms": elapsed_ms,
+                "output_text": "",
+                "input_tokens": 0,
+                "output_tokens": 0,
+                "total_tokens": 0,
+                "cost_cents": 0.0,
+                "cost_per_million": "$0.10 in / $0.40 out",
+                "is_free": False,
+                "timestamp": utc_now().isoformat(),
+            }
+
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{clean_model}:generateContent?key={gemini_key}"
+        payload = {
+            "contents": [{"parts": [{"text": prompt}]}],
+            "generationConfig": {"temperature": temp, "maxOutputTokens": max_tok},
+        }
+
         try:
-            import httpx
-            headers = {
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json",
-            }
-            payload = {
-                "model": req.model_id,
-                "messages": [{"role": "user", "content": req.prompt}],
-                "temperature": req.temperature or 0.2,
-                "max_tokens": req.max_tokens or 256,
-            }
-            async with httpx.AsyncClient(timeout=15.0) as client:
-                resp = await client.post("https://integrate.api.nvidia.com/v1/chat/completions", headers=headers, json=payload)
+            async with httpx.AsyncClient(timeout=25.0) as client:
+                resp = await client.post(url, json=payload)
+                elapsed_ms = round((time.perf_counter() - start_t) * 1000, 1)
                 if resp.status_code == 200:
                     data = resp.json()
-                    output_text = data["choices"][0]["message"]["content"].strip()
-        except Exception:
-            pass
+                    candidates = data.get("candidates", [])
+                    if candidates:
+                        parts = candidates[0].get("content", {}).get("parts", [])
+                        if parts:
+                            output_text = parts[0].get("text", "").strip()
 
-    if not output_text:
-        prompt_lower = (req.prompt or "").lower()
-        if "discount" in prompt_lower or "wholesale" in prompt_lower:
-            output_text = (
-                f"[{req.model_id}] Commercial Policy Evaluation: For a 500kg commitment, our verified Tier 2 pricing allows "
-                f"up to a 12.5% wholesale discount with MOQ qualification. Proposed invoice value reflects standard gross margin compliance."
-            )
-        elif "hi" in prompt_lower or "hello" in prompt_lower:
-            output_text = f"[{req.model_id}] Operational connection verified. Model ready for high-throughput enterprise reasoning."
-        else:
-            output_text = f"[{req.model_id}] Response generated for instruction: '{(req.prompt or '')[:60]}...'. Output verified against deterministic safety and tone guardrails."
+                    usage = data.get("usageMetadata", {})
+                    prompt_tokens = usage.get("promptTokenCount", max(1, len(prompt) // 4))
+                    completion_tokens = usage.get("candidatesTokenCount", max(1, len(output_text) // 4))
+                    total_tokens = usage.get("totalTokenCount", prompt_tokens + completion_tokens)
 
-    elapsed_ms = round((time.perf_counter() - start_t) * 1000, 1)
-    if elapsed_ms < 110:
-        elapsed_ms = round(135.0 + (len(output_text) % 75), 1)
+                    in_rate = 1.25 if "pro" in clean_model else 0.10
+                    out_rate = 5.00 if "pro" in clean_model else 0.40
+                    cost_usd = (prompt_tokens * in_rate / 1_000_000) + (completion_tokens * out_rate / 1_000_000)
+                    cost_cents = round(cost_usd * 100, 4)
+                    cost_per_million = f"${in_rate:.2f} in / ${out_rate:.2f} out"
+                    is_free = False
+                else:
+                    status_str = "error"
+                    error_msg = f"Gemini API returned {resp.status_code}: {resp.text[:200]}"
+        except Exception as e:
+            elapsed_ms = round((time.perf_counter() - start_t) * 1000, 1)
+            status_str = "error"
+            error_msg = f"Gemini connection failure: {str(e)}"
 
-    in_tokens = max(1, len(req.prompt or "") // 4)
-    out_tokens = max(1, len(output_text) // 4)
-    cost_usd = (in_tokens * matched_pricing["in"] / 1_000_000) + (out_tokens * matched_pricing["out"] / 1_000_000)
+    else:
+        # NVIDIA NIM API Call
+        provider_name = "NVIDIA NIM"
+        is_free = True
+        cost_cents = 0.0
+        cost_per_million = "Included / Free (NVIDIA Key)"
 
-    from app.database.base import utc_now
+        nvidia_key = req.api_key_override or getattr(settings, "nvidia_primary_key", "")
+        fallback_key = getattr(settings, "nvidia_fallback_key", "")
+
+        keys_to_try = [k for k in [nvidia_key, fallback_key] if k and not k.startswith("mock") and not k.startswith("nvapi-mock")]
+        if not keys_to_try:
+            elapsed_ms = round((time.perf_counter() - start_t) * 1000, 1)
+            return {
+                "model_id": model_id,
+                "provider": provider_name,
+                "status": "error",
+                "error": "No valid NVIDIA API key configured in environment.",
+                "latency_ms": elapsed_ms,
+                "output_text": "",
+                "input_tokens": 0,
+                "output_tokens": 0,
+                "total_tokens": 0,
+                "cost_cents": 0.0,
+                "cost_per_million": cost_per_million,
+                "is_free": True,
+                "timestamp": utc_now().isoformat(),
+            }
+
+        headers_base = {"Content-Type": "application/json"}
+        payload = {
+            "model": model_id,
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": temp,
+            "max_tokens": max_tok,
+        }
+
+        succeeded = False
+        last_error_text = ""
+        for key in keys_to_try:
+            try:
+                headers = {**headers_base, "Authorization": f"Bearer {key}"}
+                async with httpx.AsyncClient(timeout=25.0) as client:
+                    resp = await client.post(
+                        f"{settings.NVIDIA_BASE_URL.rstrip('/')}/chat/completions",
+                        headers=headers,
+                        json=payload,
+                    )
+                    elapsed_ms = round((time.perf_counter() - start_t) * 1000, 1)
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        choices = data.get("choices", [])
+                        if choices:
+                            output_text = choices[0].get("message", {}).get("content", "").strip()
+                        usage = data.get("usage", {})
+                        prompt_tokens = usage.get("prompt_tokens", max(1, len(prompt) // 4))
+                        completion_tokens = usage.get("completion_tokens", max(1, len(output_text) // 4))
+                        total_tokens = usage.get("total_tokens", prompt_tokens + completion_tokens)
+                        succeeded = True
+                        break
+                    else:
+                        last_error_text = f"HTTP {resp.status_code}: {resp.text[:200]}"
+            except Exception as e:
+                last_error_text = f"Connection error: {str(e)}"
+
+        elapsed_ms = round((time.perf_counter() - start_t) * 1000, 1)
+        if not succeeded:
+            status_str = "error"
+            error_msg = f"NVIDIA NIM error on '{model_id}': {last_error_text}"
+
     return {
-        "model_id": req.model_id,
-        "status": "success",
+        "model_id": model_id,
+        "provider": provider_name,
+        "status": status_str,
+        "error": error_msg,
         "latency_ms": elapsed_ms,
         "output_text": output_text,
-        "input_tokens": in_tokens,
-        "output_tokens": out_tokens,
-        "total_tokens": in_tokens + out_tokens,
-        "cost_cents": round(cost_usd * 100, 4),
-        "cost_per_million": f"${matched_pricing['in']:.2f} in / ${matched_pricing['out']:.2f} out",
-        "role_summary": matched_pricing["role"],
+        "input_tokens": prompt_tokens,
+        "output_tokens": completion_tokens,
+        "total_tokens": total_tokens,
+        "cost_cents": cost_cents,
+        "cost_per_million": cost_per_million,
+        "is_free": is_free,
         "timestamp": utc_now().isoformat(),
+    }
+
+
+@router.post("/playground/chat")
+async def playground_chat(req: PlaygroundChatRequest):
+    """
+    Powers the dedicated Google Gemini / ChatGPT-style Playground.
+    Executes real-time conversational inference against any selected model,
+    returning authentic response text, latency, token usage, and pricing telemetry.
+    """
+    import time
+    import httpx
+
+    start_t = time.perf_counter()
+    model_id = req.model_id.strip()
+    is_gemini = "gemini" in model_id.lower() or model_id.lower().startswith("google/gemma") is False and "google" in model_id.lower()
+    
+    clean_model = model_id.replace("models/", "")
+    if clean_model == "gemini-3.1-flash-live-preview":
+        clean_model = "gemini-2.5-flash"
+
+    # Assemble conversation prompt / messages
+    messages = list(req.messages)
+    if req.system_prompt and not is_gemini:
+        messages = [{"role": "system", "content": req.system_prompt}] + messages
+
+    output_text = ""
+    prompt_tokens = 0
+    completion_tokens = 0
+    total_tokens = 0
+    cost_cents = 0.0
+    cost_label = "Included / Free (NVIDIA Key)"
+    is_free = True
+    provider_name = "NVIDIA NIM"
+    status_str = "success"
+    error_msg = None
+
+    if is_gemini:
+        provider_name = "Google Gemini"
+        gemini_key = getattr(settings, "GEMINI_API_KEY", "")
+        if not gemini_key or gemini_key.startswith("mock"):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Valid GEMINI_API_KEY is not configured in backend environment.",
+            )
+
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{clean_model}:generateContent?key={gemini_key}"
+        
+        # Convert messages to Gemini contents format
+        contents = []
+        for m in req.messages:
+            role = "user" if m.get("role") in ("user", "human") else "model"
+            contents.append({"role": role, "parts": [{"text": m.get("content", "")}]})
+        
+        payload: Dict[str, Any] = {
+            "contents": contents,
+            "generationConfig": {
+                "temperature": req.temperature or 0.3,
+                "maxOutputTokens": req.max_tokens or 1024,
+            },
+        }
+        if req.system_prompt:
+            payload["systemInstruction"] = {"parts": [{"text": req.system_prompt}]}
+
+        try:
+            async with httpx.AsyncClient(timeout=45.0) as client:
+                resp = await client.post(url, json=payload)
+                elapsed_ms = round((time.perf_counter() - start_t) * 1000, 1)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    candidates = data.get("candidates", [])
+                    if candidates:
+                        parts = candidates[0].get("content", {}).get("parts", [])
+                        if parts:
+                            output_text = parts[0].get("text", "").strip()
+
+                    usage = data.get("usageMetadata", {})
+                    prompt_tokens = usage.get("promptTokenCount", 10)
+                    completion_tokens = usage.get("candidatesTokenCount", max(1, len(output_text) // 4))
+                    total_tokens = usage.get("totalTokenCount", prompt_tokens + completion_tokens)
+
+                    in_rate = 1.25 if "pro" in clean_model else 0.10
+                    out_rate = 5.00 if "pro" in clean_model else 0.40
+                    cost_usd = (prompt_tokens * in_rate / 1_000_000) + (completion_tokens * out_rate / 1_000_000)
+                    cost_cents = round(cost_usd * 100, 4)
+                    cost_label = f"${in_rate:.2f} in / ${out_rate:.2f} out"
+                    is_free = False
+                else:
+                    raise HTTPException(
+                        status_code=resp.status_code,
+                        detail=f"Google Gemini Error: {resp.text[:200]}",
+                    )
+        except HTTPException:
+            raise
+        except Exception as e:
+            elapsed_ms = round((time.perf_counter() - start_t) * 1000, 1)
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=f"Gemini connection failure: {str(e)}",
+            )
+    else:
+        # NVIDIA NIM
+        provider_name = "NVIDIA NIM"
+        is_free = True
+        cost_cents = 0.0
+        cost_label = "Included / Free (NVIDIA Key)"
+
+        nvidia_key = getattr(settings, "nvidia_primary_key", "")
+        fallback_key = getattr(settings, "nvidia_fallback_key", "")
+        keys = [k for k in [nvidia_key, fallback_key] if k and not k.startswith("mock") and not k.startswith("nvapi-mock")]
+        if not keys:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Valid NVIDIA API Key is not configured in backend environment.",
+            )
+
+        payload = {
+            "model": model_id,
+            "messages": messages,
+            "temperature": req.temperature or 0.3,
+            "max_tokens": req.max_tokens or 1024,
+        }
+
+        succeeded = False
+        last_err = ""
+        for key in keys:
+            try:
+                headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
+                async with httpx.AsyncClient(timeout=45.0) as client:
+                    resp = await client.post(
+                        f"{settings.NVIDIA_BASE_URL.rstrip('/')}/chat/completions",
+                        headers=headers,
+                        json=payload,
+                    )
+                    elapsed_ms = round((time.perf_counter() - start_t) * 1000, 1)
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        choices = data.get("choices", [])
+                        if choices:
+                            output_text = choices[0].get("message", {}).get("content", "").strip()
+                        usage = data.get("usage", {})
+                        prompt_tokens = usage.get("prompt_tokens", 10)
+                        completion_tokens = usage.get("completion_tokens", max(1, len(output_text) // 4))
+                        total_tokens = usage.get("total_tokens", prompt_tokens + completion_tokens)
+                        succeeded = True
+                        break
+                    else:
+                        last_err = f"HTTP {resp.status_code}: {resp.text[:200]}"
+            except Exception as e:
+                last_err = str(e)
+
+        elapsed_ms = round((time.perf_counter() - start_t) * 1000, 1)
+        if not succeeded:
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=f"NVIDIA NIM error on '{model_id}': {last_err}",
+            )
+
+    return {
+        "content": output_text,
+        "latency_ms": elapsed_ms,
+        "input_tokens": prompt_tokens,
+        "output_tokens": completion_tokens,
+        "total_tokens": total_tokens,
+        "provider": provider_name,
+        "is_free": is_free,
+        "cost_cents": cost_cents,
+        "cost_label": cost_label,
+        "model_id": model_id,
+        "status": "success",
     }
 
 
