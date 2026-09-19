@@ -373,7 +373,7 @@ class ConversationService:
             resp = await ai_router.execute(Capability.CORE_BRAIN, model_req)
             if resp and resp.content:
                 suggested_text = resp.content.strip().strip('"')
-                model_used = resp.model_name or "NVIDIA Nemotron / Google Gemini"
+                model_used = getattr(resp, "model", None) or getattr(resp, "model_name", None) or "NVIDIA Nemotron / Google Gemini"
         except Exception as e:
             logger.warning(f"AI draft generation fallback: {e}")
 
