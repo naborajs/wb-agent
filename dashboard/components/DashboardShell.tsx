@@ -31,11 +31,13 @@ import {
   CheckCircle,
   RefreshCw,
   Activity,
+  Sparkles,
 } from "lucide-react";
 
 const navigation = [
   { name: "Overview", href: "/", icon: BarChart3 },
   { name: "Dual Brains", href: "/brain", icon: Cpu },
+  { name: "Playground", href: "/playground", icon: Sparkles },
   { name: "Notifications", href: "/notifications", icon: Bell },
   { name: "Live Inbox", href: "/conversations", icon: Inbox },
   { name: "Leads", href: "/leads", icon: Users },
