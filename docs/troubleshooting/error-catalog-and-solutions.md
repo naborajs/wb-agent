@@ -178,7 +178,22 @@ HTTP/1.1 403 Forbidden - {"detail": "Webhook verification failed."}
   3. **FRIDAY & EDITH Dual-Brain Commands**:
      - You can ask Friday: *"Check the full database stats"*, and Friday will report live storage metrics.
      - You can command Friday: *"Purge simulation history"*, which coordinates with EDITH over the Inter-Brain Bus and executes safe pruning.
-     - If you instruct Friday to delete a **Hot** lead with active commercial negotiations, EDITH exercises autonomous refusal to prevent accidental revenue loss, requiring manual dashboard confirmation.
+     - **Autonomous Refusal Guard**: If asked to delete an active, qualified hot lead, EDITH independently refuses the deletion to prevent pipeline damage and prompts manual dashboard confirmation.
+
+---
+
+### 2.6 AI Spam in WhatsApp Group Chats (`@g.us`) & Operator Response Routing (ADR 0024)
+- **Symptom**:
+  - The bot phone number is added to a WhatsApp group chat (e.g., industry wholesale suppliers, regional dealer forums).
+  - Operator asks: *"Will EDITH or Friday reply to group messages and spam the group?"*
+- **Root Cause**:
+  - If group messages are forwarded directly to conversational LLM agents without group discrimination, the AI can treat public group messages as private 1-on-1 sales inquiries and output automated replies into the group.
+- **Architectural Solution & Safeguards**:
+  1. **Fail-Closed Inbound Suppression**: Webhook detection identifies WhatsApp group JIDs ending in `@g.us` (`is_whatsapp_group_jid`). The inbound webhook records the message, extracts the participant sender phone, sets `Conversation.mode = "HUMAN"`, and **skips enqueuing any AI turn job**.
+  2. **Orchestrator Defense-in-Depth**: `AgentOrchestrator.process_turn` explicitly inspects `metadata_json.get("is_group")` and `channel_id.endswith("@g.us")`. Any attempted turn execution is suppressed immediately with `reason_code="GROUP_MESSAGE_AI_DISABLED"` and zero outbound messages.
+  3. **Live Operator Notification**: Dispatches an `AgentNotification` (`category="GROUP_MESSAGE"`, `severity="warning"`) with a real-time WebSocket toast on the dashboard linking directly to the thread.
+  4. **Dashboard Experience**: Group chats display a `👥 GROUP` badge in the thread list, are filtered under the `👥 Groups` tab, show an amber alert banner (*"AI auto-reply is disabled for groups. Responses are dispatched only when you send an Operator Reply"*), and disable the AI resume toggle.
+  5. **Direct Manual Reply**: Operators can review group discussions and type replies directly from the dashboard, which Baileys dispatches directly to the group JID.
 
 ---
 
