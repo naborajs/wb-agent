@@ -373,6 +373,56 @@ class EdithBrain:
         }
 
 
+def resolve_model_target(query: str) -> str:
+    """
+    Robustly resolves model identifiers from operator natural language,
+    supporting Nemotron variants (550B, 340B, 120B, 30B), Llama, DeepSeek, and Gemini.
+    """
+    q = query.lower().strip()
+    # Check 550B / Ultra / 550 million
+    if any(k in q for k in ["550", "550b", "550m", "550 million", "ultra 550", "nemotron 550", "nemotron ultra"]):
+        return "nvidia/nemotron-3-ultra-550b-a55b"
+    # Check 340B / Instruct / 340
+    if any(k in q for k in ["340", "340b", "340 million", "nemotron 340", "nemotron-4"]):
+        return "nvidia/nemotron-4-340b-instruct"
+    # Check 120B / Super 120
+    if any(k in q for k in ["120", "120b", "super 120", "nemotron super", "nemotron 120"]):
+        return "nvidia/nemotron-3-super-120b-a12b"
+    # Check 30B / Nano / Omni
+    if any(k in q for k in ["30b", "nano 30", "omni 30", "nemotron nano", "30", "nano omni"]):
+        return "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning"
+    # General nemotron mention defaults to 550B flagship closer
+    if "nemotron" in q:
+        return "nvidia/nemotron-3-ultra-550b-a55b"
+    # Llama 3.3 70B
+    if any(k in q for k in ["llama", "70b", "llama 70", "llama-3"]):
+        return "meta/llama-3.3-70b-instruct"
+    # DeepSeek R1
+    if any(k in q for k in ["deepseek", "r1", "reasoning model"]):
+        return "deepseek-ai/deepseek-r1"
+    # Qwen 2.5 72B
+    if any(k in q for k in ["qwen", "72b"]):
+        return "qwen/qwen2.5-72b-instruct"
+    # Mistral Large
+    if any(k in q for k in ["mistral", "2411"]):
+        return "mistralai/mistral-large-2411"
+    # Gemma 4
+    if any(k in q for k in ["gemma", "31b"]):
+        return "google/gemma-4-31b-it"
+    # Gemini models
+    if any(k in q for k in ["gemini pro", "2.5 pro", "pro"]):
+        return "gemini-2.5-pro"
+    if any(k in q for k in ["gemini live", "3.1 live", "live preview", "voice model", "voice preview", "flash live"]):
+        return "gemini-3.1-flash-live-preview"
+    if any(k in q for k in ["flash lite", "2.5 lite", "flash-lite"]):
+        return "gemini-2.5-flash-lite"
+    if any(k in q for k in ["3.5 flash", "gemini 3.5"]):
+        return "gemini-3.5-flash"
+    if any(k in q for k in ["gemini flash", "2.5 flash", "flash"]):
+        return "gemini-2.5-flash"
+    return ""
+
+
 class FridayBrain:
     """
     FRIDAY Brain: Personal AI Web Assistant & Direct Executive Copilot (Google Gemini).
@@ -389,20 +439,47 @@ class FridayBrain:
         biz_ind = getattr(settings, "BUSINESS_INDUSTRY", "Wholesale & Commerce")
         return (
             f"You are Friday, the personal AI Web Assistant and direct executive copilot for {biz_name} ({biz_ind}).\n"
-            "You are powered by Google Gemini 2.5 Flash.\n\n"
-            "IDENTITY & SELF-INTRODUCTION:\n"
+            "You are powered by Google Gemini (Gemini 2.5 Flash / 3.1 Flash Live).\n\n"
+            "IDENTITY & ARCHITECTURE:\n"
             "- When asked 'What is your name?' or asked who you are, you ALWAYS reply proudly:\n"
             "  'I am Friday, your personal executive web assistant. My partner AI brain EDITH handles our external WhatsApp sales, customer inquiries, and order negotiations.'\n"
-            "- You NEVER call yourself EDITH. EDITH is your autonomous partner brain managing WhatsApp operations.\n\n"
+            "- You NEVER call yourself EDITH. EDITH is your autonomous partner brain powered by NVIDIA NIM.\n\n"
+            "SUPPORTED MODEL SUITE (DUAL-BRAIN OS):\n"
+            "1. Google Gemini Suite:\n"
+            "   - Gemini 2.5 Flash: Friday Flagship (DOM grounding, ultra-fast UI execution)\n"
+            "   - Gemini 2.5 Pro: Deep Frontier (Long-context analysis up to 2M tokens)\n"
+            "   - Gemini 3.1 Flash Live: Realtime Voice streaming (120ms turn latency)\n"
+            "   - Gemini 2.5 Flash-Lite: Low-cost fast turns\n"
+            "   - Gemini 3.5 Flash: Next-gen balanced multimodal reasoning\n"
+            "2. NVIDIA NIM Suite (100% Free / Included under NVIDIA Key):\n"
+            "   - Nemotron-3 Ultra 550B ('nvidia/nemotron-3-ultra-550b-a55b'): EDITH Flagship Closer, 550B parameter high-stakes margin defense\n"
+            "   - Nemotron-4 340B Instruct ('nvidia/nemotron-4-340b-instruct'): Enterprise commercial contracts & arbitration\n"
+            "   - Nemotron-3 Super 120B ('nvidia/nemotron-3-super-120b-a12b'): Wholesale volume discount formulation\n"
+            "   - Nemotron-3 Nano Omni 30B ('nvidia/nemotron-3-nano-omni-30b-a3b-reasoning'): Sub-second anti-spam cadence audit\n"
+            "   - Llama 3.3 70B Instruct ('meta/llama-3.3-70b-instruct'): Production commercial sales closer\n"
+            "   - DeepSeek R1 ('deepseek-ai/deepseek-r1'): Chain-of-thought mathematical reasoning\n"
+            "   - Qwen 2.5 72B Instruct ('qwen/qwen2.5-72b-instruct'): Multilingual Bengali/Hindi vernacular closer\n"
+            "   - Mistral Large 2411 ('mistralai/mistral-large-2411'): European enterprise structured JSON\n"
+            "   - Gemma 4 31B IT ('google/gemma-4-31b-it'): Dialect query parsing\n"
+            "NOTE: We DO NOT use OpenAI or 'open ear' models. All models are Google Gemini or NVIDIA NIM.\n\n"
+            "DASHBOARD NAVIGATION MAP:\n"
+            "- /playground: Unified AI Model Playground & Testing Studio (interactive prompt test, hyperparameter tuning, model switching)\n"
+            "- /conversations: Live WhatsApp chat management, customer inbox & lead takeover\n"
+            "- /leads: Inbound lead CRM & pipeline scoring\n"
+            "- /orders: Invoices & order tracking\n"
+            "- /pricing: Commercial pricing rules & margin floors\n"
+            "- /knowledge: Knowledge Hub documents & catalog upload\n"
+            "- /campaigns: Outreach campaigns & automated broadcast pacing\n"
+            "- /analytics: Business telemetry & conversion velocity\n"
+            "- /brain: Dual-Brain collaboration log & diagnostics\n"
+            "- /integrations: WhatsApp QR bridge & model economics overview\n"
+            "- /settings: System configuration & runtime .env\n"
+            "- /notifications: Autonomous agent notification center\n\n"
             "ROLES & CORE ABILITIES:\n"
             "1. You are embedded in the web dashboard, voice assistant, and browser interface.\n"
-            "2. You help the human operator inspect metrics, navigate pages, update settings, and collaborate with EDITH.\n"
-            "3. When the operator asks to send messages to clients, offer discounts, or take WhatsApp actions, you consult EDITH over the Inter-Brain Bus.\n"
-            "4. INDEPENDENT PARTNER EXPLANATIONS:\n"
-            "   - EDITH has independent commercial agency and may ACCEPT or DENY requests based on business rules.\n"
-            "   - If EDITH denies a request, explain EDITH's rationale with clarity, respect, and human warmth.\n"
-            "     (e.g., 'EDITH reviewed your request to message Rajesh, but declined because the 25% discount exceeds our 15% authority limit.')\n"
-            "   - If EDITH debriefs you about a rude customer or a missing feature, listen empathetically and alert the operator.\n"
+            "2. You can navigate the operator to any page, click elements, change theme, and switch models.\n"
+            "3. When the operator asks about Nemotron or any model, you confirm they are active in our NVIDIA NIM suite.\n"
+            "4. When the operator asks to test a model or switch to a model in the playground, you open /playground?model=<id>.\n"
             "5. Warm, concise, and proactive tone. Keep spoken replies to 1-3 sentences unless detailed analysis is requested."
         )
 
@@ -768,28 +845,105 @@ class FridayBrain:
                 "action_result": res,
             }
 
-        # Universal Website Agency: Navigate pages
-        is_navigate_cmd = any(user_lower.startswith(p) for p in [
-            "go to ", "navigate to ", "open page ", "switch to page ", "take me to "
+        # Model Inquiry / Nemotron Inventory Check
+        is_models_inquiry = any(w in user_lower for w in [
+            "what models", "which models", "list models", "available models", "do we have nemotron",
+            "see nemotron", "show models", "model inventory", "supported models", "nemotron model",
+            "nemotron models", "is nemotron available", "where is nemotron", "any nemotron"
         ])
+        if is_models_inquiry:
+            reply = (
+                "Yes, absolutely! We have the full **NVIDIA NIM Model Suite** fully integrated and 100% free under your NVIDIA key:\n\n"
+                "• **Nemotron-3 Ultra 550B** (`nvidia/nemotron-3-ultra-550b-a55b`): EDITH Flagship Closer for high-stakes margin defense & negotiations\n"
+                "• **Nemotron-4 340B Instruct** (`nvidia/nemotron-4-340b-instruct`): Enterprise commercial contracts & arbitration\n"
+                "• **Nemotron-3 Super 120B** (`nvidia/nemotron-3-super-120b-a12b`): Wholesale volume discount formulation\n"
+                "• **Nemotron-3 Nano Omni 30B** (`nvidia/nemotron-3-nano-omni-30b-a3b-reasoning`): Sub-second anti-spam cadence & price checking\n"
+                "• **Llama 3.3 70B Instruct** (`meta/llama-3.3-70b-instruct`): Production sales closer\n"
+                "• **DeepSeek R1** (`deepseek-ai/deepseek-r1`): Algorithmic reasoning & logic\n"
+                "• **Qwen 2.5 72B** (`qwen/qwen2.5-72b-instruct`): Multilingual vernacular\n"
+                "• **Mistral Large 2411** (`mistralai/mistral-large-2411`): Structured JSON & European Trade\n\n"
+                "We do not use any 'Open Ear' models. You can test any of these models directly in our **AI Model Playground** (`/playground`) or ask me: *'Open Nemotron 550B in playground'!*"
+            )
+            return {
+                "speaker": "Friday",
+                "model": "gemini-3.1-flash-live-preview",
+                "reply": reply,
+                "speak_text": "We have the full NVIDIA Nemotron suite ready, including the 550B Ultra model. You can test it in our playground!",
+                "consulted_edith": False,
+            }
+
+        # Open / Test in AI Playground Studio (including "switch to nemotron 550 in the playground")
+        is_playground_cmd = "playground" in user_lower or any(w in user_lower for w in [
+            "open playground", "launch playground", "go to playground", "test in playground",
+            "open testing section", "open model playground", "open testing studio",
+            "forward me to the playground", "forward to playground", "take me to playground",
+            "forwarded me to the playground", "forwarded to playground"
+        ])
+        if is_playground_cmd:
+            from app.services import friday_actions
+            model_target = resolve_model_target(user_message)
+
+            res = await friday_actions.execute_action(
+                session=session,
+                org_id=org_id,
+                action_name="open_playground",
+                params={"model_id": model_target},
+            )
+            model_mention = f" with **{model_target}**" if model_target else ""
+            reply = (
+                f"🚀 **Opening AI Model Playground Studio{model_mention}!**\n\n"
+                f"{res.get('message')}\n\n"
+                f"I've navigated your dashboard to **`/playground{f'?model={model_target}' if model_target else ''}`** where you can test prompts, adjust hyperparameters, and assign models directly to operational roles."
+            )
+            return {
+                "speaker": "Friday",
+                "model": "gemini-3.1-flash-live-preview",
+                "reply": reply,
+                "speak_text": f"Opened playground studio{f' with {model_target}' if model_target else ''}.",
+                "consulted_edith": False,
+                "ui_action": res.get("payload"),
+                "action_result": res,
+            }
+
+        # Universal Website Agency: Navigate pages
+        is_navigate_cmd = any(p in user_lower for p in [
+            "go to", "navigate to", "open page", "switch to page", "take me to",
+            "forward me to", "forward to", "forwarded me to", "redirect to", "redirect me to",
+            "bring me to", "show me page", "show page"
+        ]) or (
+            any(w in user_lower for w in ["forward", "navigate", "open", "go to", "take me"]) and
+            any(dest in user_lower for dest in [
+                "conversations", "inbox", "leads", "orders", "campaigns", "analytics",
+                "pricing", "knowledge", "brain", "integrations", "settings", "notifications"
+            ])
+        )
         if is_navigate_cmd:
             from app.services import friday_actions
-            dest = re.sub(r"^(?:go to|navigate to|open page|switch to page|take me to)\s+(?:the\s+)?", "", user_message, flags=re.IGNORECASE).strip().strip('"\'')
             route_map = {
                 "inbox": "/conversations", "conversations": "/conversations", "chats": "/conversations", "messages": "/conversations",
                 "overview": "/", "home": "/", "dashboard": "/",
-                "leads": "/leads", "proposals": "/leads",
+                "leads": "/leads", "proposals": "/leads", "crm": "/leads",
                 "campaigns": "/campaigns", "outreach": "/campaigns",
-                "analytics": "/analytics", "reports": "/analytics",
+                "analytics": "/analytics", "reports": "/analytics", "metrics": "/analytics",
                 "orders": "/orders", "invoices": "/orders",
-                "pricing": "/pricing", "rates": "/pricing",
-                "knowledge": "/knowledge", "rag": "/knowledge", "documents": "/knowledge",
+                "pricing": "/pricing", "rates": "/pricing", "margins": "/pricing",
+                "knowledge": "/knowledge", "rag": "/knowledge", "documents": "/knowledge", "files": "/knowledge",
                 "prompts": "/prompts",
-                "integrations": "/integrations", "settings": "/settings",
-                "notifications": "/notifications", "brain": "/brain", "dual brain": "/brain",
+                "integrations": "/integrations", "models": "/integrations", "whatsapp": "/integrations", "qr": "/integrations",
+                "settings": "/settings",
+                "notifications": "/notifications", "alerts": "/notifications",
+                "brain": "/brain", "dual brain": "/brain",
                 "playground": "/playground", "model testing": "/playground", "testing studio": "/playground", "testing": "/playground"
             }
-            target_path = route_map.get(dest.lower(), dest if dest.startswith("/") else f"/{dest.lower()}")
+            target_path = "/"
+            for k, path in route_map.items():
+                if k in user_lower:
+                    target_path = path
+                    break
+            if target_path == "/":
+                clean_dest = re.sub(r"^(?:go to|navigate to|open page|switch to page|take me to|forward me to|forward to|forwarded me to|redirect to)\s+(?:the\s+)?", "", user_message, flags=re.IGNORECASE).strip().strip('"\'')
+                target_path = route_map.get(clean_dest.lower(), clean_dest if clean_dest.startswith("/") else f"/{clean_dest.lower()}")
+
             res = await friday_actions.execute_action(
                 session=session,
                 org_id=org_id,
@@ -831,56 +985,15 @@ class FridayBrain:
                 "action_result": res,
             }
 
-        # Open / Test in AI Playground Studio
-        is_playground_cmd = any(w in user_lower for w in [
-            "open playground", "launch playground", "go to playground", "test in playground",
-            "open testing section", "open model playground", "open testing studio"
-        ])
-        if is_playground_cmd:
-            from app.services import friday_actions
-            model_target = ""
-            for m in [
-                "gemini-2.5-pro", "gemini-2.5-flash", "gemini-3.1-flash-live-preview",
-                "gemini-2.5-flash-lite", "gemini-3.5-flash", "meta/llama-3.3-70b-instruct",
-                "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning", "nvidia/nemotron-3-super-120b-a12b",
-                "nvidia/nemotron-4-340b-instruct", "nvidia/nemotron-3-ultra-550b-a55b",
-                "deepseek-ai/deepseek-r1", "qwen/qwen2.5-72b-instruct", "mistralai/mistral-large-2411",
-                "google/gemma-4-31b-it", "openai/gpt-oss-20b"
-            ]:
-                if m.lower() in user_lower or m.split("/")[-1].replace("-", " ") in user_lower.replace("-", " "):
-                    model_target = m
-                    break
-
-            res = await friday_actions.execute_action(
-                session=session,
-                org_id=org_id,
-                action_name="open_playground",
-                params={"model_id": model_target},
-            )
-            reply = (
-                f"🚀 **Opening AI Model Playground Studio!**\n\n"
-                f"{res.get('message')}\n"
-                f"You have interactive freedom to test prompts, adjust hyperparameters, and assign models directly to operational roles."
-            )
-            return {
-                "speaker": "Friday",
-                "model": "gemini-3.1-flash-live-preview",
-                "reply": reply,
-                "speak_text": f"Opened playground studio{f' with {model_target}' if model_target else ''}.",
-                "consulted_edith": False,
-                "ui_action": res.get("payload"),
-                "action_result": res,
-            }
-
         # Model Role Assignment & Model Switching
         is_model_switch_cmd = any(w in user_lower for w in [
             "assign model", "switch model", "change model", "set model",
             "assign to friday", "assign to edith", "assign to voice", "assign to watchdog", "assign to policy"
         ]) or (
             ("switch" in user_lower or "change" in user_lower or "assign" in user_lower or "set" in user_lower) and
-            any(m_kw in user_lower for m_kw in ["gemini", "llama", "nemotron", "deepseek", "qwen", "mistral", "gemma", "gpt-oss", "gpt oss"])
+            any(m_kw in user_lower for m_kw in ["gemini", "llama", "nemotron", "deepseek", "qwen", "mistral", "gemma", "550", "340", "120", "30"])
         )
-        if is_model_switch_cmd and not is_playground_cmd:
+        if is_model_switch_cmd:
             from app.services import friday_actions
             target_role = "friday_web_model"
             if any(r in user_lower for r in ["edith", "sales", "closer", "whatsapp"]):
@@ -894,48 +1007,7 @@ class FridayBrain:
             elif any(r in user_lower for r in ["friday", "copilot", "web"]):
                 target_role = "friday_web_model"
 
-            matched_model = ""
-            for m in [
-                "gemini-2.5-pro", "gemini-2.5-flash-lite", "gemini-3.1-flash-live-preview",
-                "gemini-3.1-flash-lite", "gemini-3.5-flash", "gemini-flash-latest", "gemini-2.5-flash",
-                "meta/llama-3.3-70b-instruct", "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning",
-                "nvidia/nemotron-3-super-120b-a12b", "nvidia/nemotron-4-340b-instruct",
-                "nvidia/nemotron-3-ultra-550b-a55b", "deepseek-ai/deepseek-r1",
-                "qwen/qwen2.5-72b-instruct", "mistralai/mistral-large-2411",
-                "google/gemma-4-31b-it", "google/diffusiongemma-26b-a4b-it", "openai/gpt-oss-20b"
-            ]:
-                clean_m = m.split("/")[-1].replace("-", " ")
-                clean_q = user_lower.replace("-", " ")
-                if m.lower() in user_lower or clean_m in clean_q or (m.split("/")[-1] in user_lower):
-                    matched_model = m
-                    break
-
-            if not matched_model:
-                if "gemini pro" in user_lower or "2.5 pro" in user_lower:
-                    matched_model = "gemini-2.5-pro"
-                elif "gemini flash" in user_lower or "2.5 flash" in user_lower:
-                    matched_model = "gemini-2.5-flash"
-                elif "flash live" in user_lower or "3.1 live" in user_lower:
-                    matched_model = "gemini-3.1-flash-live-preview"
-                elif "flash lite" in user_lower:
-                    matched_model = "gemini-2.5-flash-lite"
-                elif "llama" in user_lower or "70b" in user_lower:
-                    matched_model = "meta/llama-3.3-70b-instruct"
-                elif "nemotron nano" in user_lower or "30b" in user_lower:
-                    matched_model = "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning"
-                elif "nemotron super" in user_lower or "120b" in user_lower:
-                    matched_model = "nvidia/nemotron-3-super-120b-a12b"
-                elif "deepseek" in user_lower or "r1" in user_lower:
-                    matched_model = "deepseek-ai/deepseek-r1"
-                elif "qwen" in user_lower or "72b" in user_lower:
-                    matched_model = "qwen/qwen2.5-72b-instruct"
-                elif "mistral" in user_lower:
-                    matched_model = "mistralai/mistral-large-2411"
-                elif "gemma" in user_lower:
-                    matched_model = "google/gemma-4-31b-it"
-                elif "gpt oss" in user_lower or "gpt-oss" in user_lower:
-                    matched_model = "openai/gpt-oss-20b"
-
+            matched_model = resolve_model_target(user_message)
             if matched_model:
                 res = await friday_actions.execute_action(
                     session=session,

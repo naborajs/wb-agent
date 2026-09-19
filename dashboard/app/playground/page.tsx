@@ -600,13 +600,59 @@ function PlaygroundInner() {
   const dropdownRef = useRef<HTMLDivElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
-  // Sync URL model parameter if present
+  // Sync URL model parameter if present (with robust fuzzy matching)
   useEffect(() => {
     const qModel = searchParams.get("model");
-    if (qModel && PLAYGROUND_MODELS.some((m) => m.id === qModel)) {
-      setSelectedModelId(qModel);
+    if (qModel) {
+      const qLower = qModel.toLowerCase();
+      const found = PLAYGROUND_MODELS.find(
+        (m) =>
+          m.id.toLowerCase() === qLower ||
+          m.id.split("/").pop()?.toLowerCase() === qLower ||
+          m.name.toLowerCase().includes(qLower) ||
+          (qLower.includes("550") && m.id.includes("550b")) ||
+          (qLower.includes("340") && m.id.includes("340b")) ||
+          (qLower.includes("120") && m.id.includes("120b")) ||
+          (qLower.includes("30") && m.id.includes("30b")) ||
+          (qLower.includes("llama") && m.id.includes("llama")) ||
+          (qLower.includes("deepseek") && m.id.includes("deepseek"))
+      );
+      if (found) {
+        setSelectedModelId(found.id);
+      }
     }
   }, [searchParams]);
+
+  // Listen to live Friday UI actions (e.g. playground configuration from chat)
+  useEffect(() => {
+    const handleFridayAction = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      const detail = customEvent.detail;
+      if (detail?.action === "playground_configure" || detail?.model_id) {
+        const targetModel = (detail.model_id || "").toLowerCase();
+        if (targetModel) {
+          const found = PLAYGROUND_MODELS.find(
+            (m) =>
+              m.id.toLowerCase() === targetModel ||
+              m.id.split("/").pop()?.toLowerCase() === targetModel ||
+              m.name.toLowerCase().includes(targetModel) ||
+              (targetModel.includes("550") && m.id.includes("550b")) ||
+              (targetModel.includes("340") && m.id.includes("340b")) ||
+              (targetModel.includes("120") && m.id.includes("120b")) ||
+              (targetModel.includes("30") && m.id.includes("30b"))
+          );
+          if (found) {
+            setSelectedModelId(found.id);
+          }
+        }
+        if (detail.temperature !== undefined) setTemperature(detail.temperature);
+        if (detail.max_tokens !== undefined) setMaxTokens(detail.max_tokens);
+      }
+    };
+
+    window.addEventListener("friday_ui_action", handleFridayAction);
+    return () => window.removeEventListener("friday_ui_action", handleFridayAction);
+  }, []);
 
   // Auto-scroll messages
   useEffect(() => {
