@@ -58,6 +58,8 @@ async def test_initiate_conversation_by_phone(conv_test_client):
     data = res.json()
     assert data["success"] is True
     assert data["phone"] == "+919876543210"
+    assert data["channel"] == "simulation"
+    assert data["is_simulation"] is True
     conv_id = data["conversation_id"]
 
     # 2. Verify conversation details via API
@@ -65,8 +67,11 @@ async def test_initiate_conversation_by_phone(conv_test_client):
     assert detail_res.status_code == 200
     conv_data = detail_res.json()
     assert conv_data["customer"]["name"] == "Kavita Rao"
+    assert conv_data["conversation"]["is_simulation"] is True
+    assert conv_data["conversation"]["channel"] == "simulation"
     assert len(conv_data["messages"]) == 1
     assert "bulk tea inquiry" in conv_data["messages"][0]["content"]
+    assert conv_data["messages"][0]["is_simulation"] is True
 
 
 @pytest.mark.asyncio
