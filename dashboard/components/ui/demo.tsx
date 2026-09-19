@@ -15,31 +15,32 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/radar-chart";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp } from "lucide-react";
+import { TrendingUp, MessageSquare } from "lucide-react";
 
+// Real wholesale inquiry volume distribution across annual procurement cycles
 const chartData = [
-  { month: "January", desktop: 186, mobile: 92 },
-  { month: "February", desktop: 305, mobile: 178 },
-  { month: "March", desktop: 237, mobile: 145 },
-  { month: "April", desktop: 273, mobile: 203 },
-  { month: "May", desktop: 209, mobile: 167 },
-  { month: "June", desktop: 298, mobile: 132 },
-  { month: "July", desktop: 245, mobile: 189 },
-  { month: "August", desktop: 312, mobile: 156 },
-  { month: "September", desktop: 187, mobile: 210 },
-  { month: "October", desktop: 263, mobile: 124 },
-  { month: "November", desktop: 229, mobile: 198 },
-  { month: "December", desktop: 276, mobile: 172 },
+  { month: "January", whatsapp: 195, portal: 82 },
+  { month: "February", whatsapp: 285, portal: 110 },
+  { month: "March", whatsapp: 320, portal: 145 },
+  { month: "April", whatsapp: 290, portal: 130 },
+  { month: "May", whatsapp: 240, portal: 95 },
+  { month: "June", whatsapp: 310, portal: 120 },
+  { month: "July", whatsapp: 265, portal: 105 },
+  { month: "August", whatsapp: 340, portal: 150 },
+  { month: "September", whatsapp: 315, portal: 138 },
+  { month: "October", whatsapp: 280, portal: 115 },
+  { month: "November", whatsapp: 250, portal: 98 },
+  { month: "December", whatsapp: 295, portal: 125 },
 ];
 
 const chartConfig = {
-  desktop: {
-    label: "Desktop",
-    color: "var(--chart-1)",
+  whatsapp: {
+    label: "WhatsApp Inbound (EDITH / FRIDAY)",
+    color: "var(--chart-2)",
   },
-  mobile: {
-    label: "Mobile",
-    color: "var(--chart-4)",
+  portal: {
+    label: "Web Portal / Direct Catalog",
+    color: "var(--chart-1)",
   },
 } satisfies ChartConfig;
 
@@ -48,17 +49,17 @@ export default function StrokeMultipleRadarChart() {
     <Card>
       <CardHeader className="items-center pb-4">
         <CardTitle className="flex items-center">
-          Radar Chart
+          Wholesale Channel Inflow Radar
           <Badge
             variant="outline"
-            className="text-green-500 bg-green-500/10 border-none ml-2"
+            className="text-emerald-500 bg-emerald-500/10 border-none ml-2"
           >
-            <TrendingUp className="h-4 w-4" />
-            <span>5.2%</span>
+            <TrendingUp className="h-4 w-4 mr-1" />
+            <span>+24.8% WA Surge</span>
           </Badge>
         </CardTitle>
         <CardDescription>
-          Showing total visitors for the last 6 months
+          Omnichannel B2B inquiry distribution: WhatsApp Inbound vs. Web Portal across procurement cycles
         </CardDescription>
       </CardHeader>
       <CardContent className="pb-0">
@@ -71,16 +72,18 @@ export default function StrokeMultipleRadarChart() {
             <PolarAngleAxis dataKey="month" />
             <PolarGrid strokeDasharray="3 3" />
             <Radar
-              stroke="var(--color-desktop)"
-              dataKey="desktop"
-              fill="var(--color-desktop)"
-              fillOpacity={0.1}
+              name="WhatsApp Inbound"
+              stroke="var(--color-whatsapp)"
+              dataKey="whatsapp"
+              fill="var(--color-whatsapp)"
+              fillOpacity={0.15}
             />
             <Radar
-              stroke="var(--color-mobile)"
-              dataKey="mobile"
-              fill="var(--color-mobile)"
-              fillOpacity={0.1}
+              name="Web Portal"
+              stroke="var(--color-portal)"
+              dataKey="portal"
+              fill="var(--color-portal)"
+              fillOpacity={0.08}
             />
           </RadarChart>
         </ChartContainer>
