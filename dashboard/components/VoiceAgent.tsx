@@ -247,6 +247,39 @@ export default function VoiceAgent() {
             timestamp: new Date().toLocaleTimeString(),
           },
         ]);
+      } else if (name === "suggest_conversation_reply" || name === "refine_reply") {
+        const instructions = args.instructions || args.directive || "";
+        const tone = args.tone || "";
+
+        setTranscripts((prev) => [
+          ...prev,
+          {
+            id: Math.random().toString(),
+            speaker: "system",
+            text: instructions
+              ? `Friday refining reply: "${instructions}"...`
+              : "Friday drafting 1-click AI suggestion...",
+            timestamp: new Date().toLocaleTimeString(),
+          },
+        ]);
+
+        const suggestBtn = document.getElementById("btn-suggest-reply");
+        if (suggestBtn) {
+          suggestBtn.click();
+        }
+
+        window.dispatchEvent(
+          new CustomEvent("friday_draft_reply", {
+            detail: { instructions, tone },
+          })
+        );
+
+        result = {
+          success: true,
+          message: instructions
+            ? `I have updated the reply draft with your directive: "${instructions}". Review it in your composer before sending.`
+            : "I have drafted a high-converting reply and placed it in your composer. Review and click Send whenever you are ready!",
+        };
       } else if (name === "fill_field") {
         const fieldName = args.field_name || "";
         const value = String(args.value ?? "");
@@ -1326,6 +1359,25 @@ export default function VoiceAgent() {
                         },
                       },
                       required: ["field_name", "value"],
+                    },
+                  },
+                  {
+                    name: "suggest_conversation_reply",
+                    description:
+                      "Generates or refines a 1-Click AI draft suggestion for WhatsApp group or 1-on-1 chats and injects it into the operator composer for review.",
+                    parameters: {
+                      type: "OBJECT",
+                      properties: {
+                        instructions: {
+                          type: "STRING",
+                          description:
+                            "Optional refinement instructions (e.g., 'make it shorter', 'offer 5% discount', 'formal tone', 'translate to Hindi').",
+                        },
+                        tone: {
+                          type: "STRING",
+                          description: "Optional desired tone (e.g. 'formal', 'casual', 'concise').",
+                        },
+                      },
                     },
                   },
                   {

@@ -2,9 +2,10 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import VoiceAgent from "./VoiceAgent";
 import { SystemHealthBadge } from "./SystemHealthBadge";
+import { clickElement, typeText, setColorTheme } from "./voice/domActions";
 import {
   Inbox,
   Users,
@@ -74,6 +75,7 @@ interface AgentNotificationItem {
 
 export default function DashboardShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [darkMode, setDarkMode] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -201,6 +203,26 @@ export default function DashboardShell({ children }: { children: React.ReactNode
               if (resolvedId) {
                 setAlerts((prev) => prev.filter((a) => a.id !== resolvedId));
               }
+            } else if (msg.event === "friday_ui_action" && msg.data) {
+              const uiAction = msg.data;
+              try {
+                if (uiAction.action === "click" && (uiAction.query || uiAction.target)) {
+                  clickElement(uiAction.query || uiAction.target);
+                } else if (uiAction.action === "type" && uiAction.target) {
+                  typeText(uiAction.target, uiAction.text || "", Boolean(uiAction.submit));
+                } else if (uiAction.action === "navigate" && (uiAction.path || uiAction.target)) {
+                  router.push(uiAction.path || uiAction.target);
+                } else if (uiAction.action === "theme" && (uiAction.theme || uiAction.value)) {
+                  setColorTheme(uiAction.theme || uiAction.value);
+                } else if (uiAction.action === "draft_reply") {
+                  window.dispatchEvent(new CustomEvent("friday_draft_reply", { detail: uiAction }));
+                }
+                window.dispatchEvent(new CustomEvent("friday_ui_action", { detail: uiAction }));
+              } catch (domErr) {
+                console.warn("[DashboardShell] Error executing Friday UI action:", domErr);
+              }
+            } else if (msg.event === "friday_draft_reply" && msg.data) {
+              window.dispatchEvent(new CustomEvent("friday_draft_reply", { detail: msg.data }));
             }
           } catch {}
         };
