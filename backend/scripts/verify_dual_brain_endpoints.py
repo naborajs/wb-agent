@@ -72,8 +72,26 @@ async def main():
         print("Friday Traffic Reply:", chat_traffic["reply"][:150], "...")
         assert "Peak Operational Hours" in chat_traffic["reply"]
 
-        # 6. Test Safe Mode
-        print("\n--- 7. Safe Mode Toggle ---")
+        # 7. Test Friday Chat explaining architecture schematic
+        print("\n--- 8. Friday Chat explaining system architecture ---")
+        chat_arch = await inter_brain_bus.friday.chat("explain our system architecture and connection", session, org_id)
+        print("Friday Architecture Reply:", chat_arch["reply"][:180], "...")
+        assert "Inbound Gateway" in chat_arch["reply"]
+        assert "FRIDAY Core" in chat_arch["reply"]
+        assert "EDITH Core" in chat_arch["reply"]
+        assert "Inter-Brain Synaptic Bus" in chat_arch["reply"]
+        assert "5.0% margin ceiling" in chat_arch["reply"] or "5 percent" in chat_arch["speak_text"]
+
+        # 8. Test Friday Chat explaining radar charts and commercial readiness
+        print("\n--- 9. Friday Chat explaining radar charts ---")
+        chat_radar = await inter_brain_bus.friday.chat("explain our radar charts and commercial readiness", session, org_id)
+        print("Friday Radar Reply:", chat_radar["reply"][:180], "...")
+        assert "Commercial Readiness Radar" in chat_radar["reply"]
+        assert "Response Speed" in chat_radar["reply"]
+        assert "Deal Margin" in chat_radar["reply"]
+
+        # 9. Test Safe Mode
+        print("\n--- 10. Safe Mode Toggle ---")
         sm = inter_brain_bus.toggle_safe_mode()
         print("Safe Mode State:", sm)
         assert inter_brain_bus.safe_mode_enabled == sm
