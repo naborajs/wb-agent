@@ -132,6 +132,37 @@ class AgentOrchestrator:
                     is_suppressed=True,
                 )
 
+        # WhatsApp Group Guardrail: Never allow autonomous AI replies to WhatsApp group chats
+        is_group_chat = bool(
+            (conv.metadata_json and conv.metadata_json.get("is_group"))
+            or (conv.channel_id and (conv.channel_id.endswith("@g.us") or "@g.us" in conv.channel_id))
+        )
+        if is_group_chat:
+            logger.info(f"Conversation {conversation_id} is a WhatsApp group chat ({conv.channel_id}). Suppressing AI auto-reply.")
+            if conv.mode != "HUMAN":
+                conv.mode = "HUMAN"
+                await self.session.commit()
+            return AgentTurnResponse(
+                conversation_id=conversation_id,
+                reply_text="",
+                decision=StructuredDecision(
+                    intent="group_chat_suppressed",
+                    sales_stage=conv.sales_stage,
+                    confidence=1.0,
+                    recommended_action="wait_for_human_operator",
+                    tools_required=[],
+                    reason_code="GROUP_MESSAGE_AI_DISABLED",
+                    handoff_required=False,
+                ),
+                sales_stage_before=conv.sales_stage,
+                sales_stage_after=conv.sales_stage,
+                lead_score_before=conv.lead_score,
+                lead_score_after=conv.lead_score,
+                tools_executed=[],
+                handoff_created=False,
+                is_suppressed=True,
+            )
+
         # Early Guard: If conversation is in HUMAN, PAUSED, or CLOSED mode, do not invoke AI
         if conv.mode != "AI":
             logger.info(f"Conversation {conversation_id} is in mode '{conv.mode}'. Suppressing AI turn execution.")
