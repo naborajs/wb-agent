@@ -34,6 +34,8 @@ import {
   Package,
   Layers,
   Target,
+  Trash2,
+  Database,
 } from "lucide-react";
 
 interface ConversationItem {
@@ -536,6 +538,73 @@ export default function LiveInboxPage() {
     }
   };
 
+  // Handle Delete Conversation Permanently
+  const [isDeleting, setIsDeleting] = useState(false);
+  const handleDeleteConversation = async () => {
+    if (!activeConvId || isDeleting) return;
+    const targetName =
+      activeConvDetail?.customer?.name ||
+      activeConvDetail?.customer?.primary_phone ||
+      activeConv?.channel_id ||
+      "this conversation";
+    if (
+      !window.confirm(
+        `Are you sure you want to permanently delete ${targetName} and all its message history? This action cannot be undone.`
+      )
+    ) {
+      return;
+    }
+    setIsDeleting(true);
+    try {
+      const res = await fetch(`/api/v1/conversations/${activeConvId}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        const deletedId = activeConvId;
+        setConversations((prev) => prev.filter((c) => c.id !== deletedId));
+        setActiveConvId("");
+        setActiveConvDetail(null);
+        loadConversations();
+      } else {
+        alert("Failed to delete conversation. Please check backend logs.");
+      }
+    } catch (e) {
+      console.error("Failed to delete conversation:", e);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  // Handle Purge All Simulations
+  const [isPurgingSims, setIsPurgingSims] = useState(false);
+  const handlePurgeSimulations = async () => {
+    if (isPurgingSims) return;
+    if (
+      !window.confirm(
+        "Are you sure you want to purge all simulated test conversations and messages? Live WhatsApp conversations will NOT be touched."
+      )
+    ) {
+      return;
+    }
+    setIsPurgingSims(true);
+    try {
+      const res = await fetch("/api/v1/conversations/simulations/purge", {
+        method: "POST",
+      });
+      if (res.ok) {
+        const data = await res.json();
+        alert(data.message || "Simulations purged successfully.");
+        loadConversations();
+        setActiveConvDetail(null);
+        setActiveConvId("");
+      }
+    } catch (e) {
+      console.error("Failed to purge simulations:", e);
+    } finally {
+      setIsPurgingSims(false);
+    }
+  };
+
   // Handle Voice Note Audio Upload (R2)
   const handleAudioUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -740,6 +809,23 @@ export default function LiveInboxPage() {
         </div>
 
         {/* Thread List */}
+        {filterMode === "simulation" && conversations.some((c) => c.channel === "simulation" || c.metadata_json?.is_simulation) && (
+          <div className="px-3 py-2 bg-purple-500/10 border-b border-purple-500/20 flex items-center justify-between text-[11px] shrink-0">
+            <span className="text-purple-300 font-semibold flex items-center gap-1">
+              🧪 Sandbox Storage
+            </span>
+            <button
+              onClick={handlePurgeSimulations}
+              disabled={isPurgingSims}
+              className="px-2 py-0.5 rounded bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 font-semibold flex items-center gap-1 transition-all cursor-pointer disabled:opacity-50 text-[10px]"
+              title="Wipe all simulated test conversations from database"
+            >
+              <Trash2 className="w-2.5 h-2.5" />
+              <span>{isPurgingSims ? "Purging..." : "Purge All"}</span>
+            </button>
+          </div>
+        )}
+
         <div className="flex-1 overflow-y-auto divide-y divide-[var(--ed-border)]">
           {filteredConversations.length === 0 ? (
             <div className="p-8 text-center text-xs text-[var(--ed-text-muted)]">
@@ -974,6 +1060,18 @@ export default function LiveInboxPage() {
                 >
                   <RotateCcw className={`w-3.5 h-3.5 ${isResetting ? "animate-spin" : ""}`} />
                   <span className="hidden sm:inline">{isResetting ? "..." : "Reset"}</span>
+                </button>
+
+                {/* Delete Conversation Button */}
+                <button
+                  type="button"
+                  onClick={handleDeleteConversation}
+                  disabled={isDeleting}
+                  title="Permanently delete this conversation and all its message history from the database"
+                  className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl border border-red-500/40 hover:border-red-500/80 bg-red-500/10 hover:bg-red-500/25 text-red-400 text-xs font-semibold transition-all inline-flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                >
+                  <Trash2 className={`w-3.5 h-3.5 ${isDeleting ? "animate-spin" : ""}`} />
+                  <span className="hidden sm:inline">{isDeleting ? "..." : "Delete"}</span>
                 </button>
               </div>
             </div>
