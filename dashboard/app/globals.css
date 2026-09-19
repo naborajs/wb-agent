@@ -41,6 +41,35 @@
   --ed-shadow-elevated: 0 2px 8px rgba(0, 0, 0, 0.08), 0 8px 24px rgba(0, 0, 0, 0.06);
 
   --foreground-rgb: 17, 17, 24;
+
+  /* shadcn UI Color Tokens (Light Mode — Estate White) */
+  --background: 240 10% 98%;
+  --foreground: 240 10% 8%;
+  --card: 0 0% 100%;
+  --card-foreground: 240 10% 8%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 240 10% 8%;
+  --primary: 352 79% 49%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 240 5% 94%;
+  --secondary-foreground: 240 10% 8%;
+  --muted: 240 5% 94%;
+  --muted-foreground: 240 4% 46%;
+  --accent: 240 5% 94%;
+  --accent-foreground: 240 10% 8%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 240 6% 86%;
+  --input: 240 6% 86%;
+  --ring: 352 79% 49%;
+  --radius: 0.75rem;
+
+  /* Chart tokens (light mode) */
+  --chart-1: #DC1B35;
+  --chart-2: #0284C7;
+  --chart-3: #059669;
+  --chart-4: #8B5CF6;
+  --chart-5: #D97706;
 }
 
 .dark {
@@ -77,6 +106,34 @@
   --ed-shadow-elevated: 0 2px 8px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.3);
 
   --foreground-rgb: 240, 240, 245;
+
+  /* shadcn UI Color Tokens (Dark Mode — Royal Pitch Black) */
+  --background: 240 31% 4%;
+  --foreground: 240 16% 96%;
+  --card: 240 14% 7%;
+  --card-foreground: 240 16% 96%;
+  --popover: 240 14% 7%;
+  --popover-foreground: 240 16% 96%;
+  --primary: 352 87% 54%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 240 16% 12%;
+  --secondary-foreground: 240 16% 96%;
+  --muted: 240 16% 12%;
+  --muted-foreground: 240 9% 46%;
+  --accent: 240 16% 12%;
+  --accent-foreground: 240 16% 96%;
+  --destructive: 0 63% 31%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 240 16% 12%;
+  --input: 240 16% 12%;
+  --ring: 352 87% 54%;
+
+  /* Chart tokens (dark mode) */
+  --chart-1: #F02341;
+  --chart-2: #38BDF8;
+  --chart-3: #10B981;
+  --chart-4: #A78BFA;
+  --chart-5: #F59E0B;
 }
 
 /* ============================================================
@@ -242,6 +299,29 @@ body {
     border: 1px solid var(--ed-border);
     box-shadow: var(--ed-shadow-elevated);
   }
+
+  /* Arbitrary variable compatibility for Tailwind v3 / v4 */
+  .border-\(--color-border\) {
+    border-color: var(--color-border, var(--ed-border));
+  }
+  .bg-\(--color-bg\) {
+    background-color: var(--color-bg, var(--ed-accent));
+  }
+}
+
+/* ============================================================
+   Recharts Polar & Radar Chart Dual-Theme Styling
+   ============================================================ */
+.recharts-polar-grid line,
+.recharts-polar-grid polygon,
+.recharts-polar-grid circle {
+  stroke: var(--ed-border) !important;
+  stroke-opacity: 0.6;
+}
+
+.recharts-polar-angle-axis-tick text {
+  fill: var(--ed-text-muted) !important;
+  font-size: 11px;
 }
 
 /* ============================================================
