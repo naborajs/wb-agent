@@ -17,6 +17,10 @@ class InboundWhatsAppEvent(BaseModel):
     media_url: Optional[str] = None
     media_type: Optional[str] = None
     status: Optional[str] = None  # 'delivered', 'read', 'failed'
+    is_group: bool = False
+    group_id: Optional[str] = None
+    group_name: Optional[str] = None
+    participant: Optional[str] = None
     raw_payload: Dict[str, Any] = Field(default_factory=dict)
 
 

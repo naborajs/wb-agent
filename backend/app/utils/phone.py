@@ -12,18 +12,26 @@ import re
 from typing import Optional, Tuple
 
 
+def is_whatsapp_group_jid(jid: Optional[str]) -> bool:
+    """
+    Returns True if the identifier represents a WhatsApp group chat.
+    WhatsApp group JIDs use the '@g.us' suffix (e.g., '120363024845@g.us').
+    """
+    if not jid or not isinstance(jid, str):
+        return False
+    clean = jid.strip().lower()
+    return clean.endswith("@g.us") or "@g.us" in clean
+
+
 def clean_phone_digits(raw: str) -> str:
     """
     Extracts only digits and leading plus sign from an unformatted phone string.
-    
-    Args:
-        raw: Input string such as '+91 (89006) 53250' or '089006-53250'
-        
-    Returns:
-        String containing only digits with optional leading '+'
+    Preserves WhatsApp group JIDs unchanged.
     """
     if not raw or not isinstance(raw, str):
         return ""
+    if is_whatsapp_group_jid(raw):
+        return raw.strip()
     cleaned = raw.strip()
     has_plus = cleaned.startswith("+")
     digits_only = re.sub(r"[^\d]", "", cleaned)
@@ -36,30 +44,14 @@ def normalize_phone_number(
 ) -> str:
     """
     Normalizes a phone string into canonical E.164 format.
-    
-    Rules:
-    1. If already in E.164 format (starts with '+' and has 10 to 15 digits), validates and returns.
-    2. If starts with '00', strips '00' and prepends '+'.
-    3. If starts with '0' and has 11 digits (e.g. Indian STD prefix '08900653250'), strips '0'
-       and prepends default_country_code.
-    4. If has 10 digits (standard Indian mobile/landline without country code),
-       prepends default_country_code.
-    5. Strips any extraneous symbols, spaces, and formatting characters.
-    
-    Args:
-        raw_phone: Input phone string from CSV, WhatsApp, or API.
-        default_country_code: Country code to prepend if missing (defaults to '+91' for India).
-        
-    Returns:
-        Canonical E.164 phone string (e.g., '+918900653250').
-        
-    Raises:
-        ValueError: If phone cannot be parsed into a valid 10-15 digit phone number.
+    Passes WhatsApp group JIDs through without alteration.
     """
     if not raw_phone or not isinstance(raw_phone, str):
         raise ValueError("Phone number must be a non-empty string.")
 
     cleaned = raw_phone.strip()
+    if is_whatsapp_group_jid(cleaned):
+        return cleaned
     # Normalize country code prefix
     norm_cc = default_country_code if default_country_code.startswith("+") else f"+{default_country_code}"
     norm_cc_digits = norm_cc.lstrip("+")

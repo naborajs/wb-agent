@@ -1,4 +1,4 @@
-﻿"""
+"""
 Unit tests for phone number parsing, normalization, masking, and validation utilities.
 """
 
@@ -9,6 +9,7 @@ from app.utils.phone import (
     is_valid_phone_number,
     mask_phone_number,
     extract_country_code,
+    is_whatsapp_group_jid,
 )
 
 
@@ -58,3 +59,18 @@ def test_extract_country_code():
     assert extract_country_code("+918900653250") == "+91"
     assert extract_country_code("+14155552671") == "+1"
     assert extract_country_code("+447911123456") == "+44"
+
+
+def test_is_whatsapp_group_jid_and_normalization():
+    group_jid = "120363024845918234@g.us"
+    assert is_whatsapp_group_jid(group_jid) is True
+    assert is_whatsapp_group_jid("918900653250@s.whatsapp.net") is False
+    assert is_whatsapp_group_jid("+918900653250") is False
+    assert is_whatsapp_group_jid("") is False
+    assert is_whatsapp_group_jid(None) is False
+
+    # Clean digits preserves group JID unchanged
+    assert clean_phone_digits(group_jid) == group_jid
+
+    # Normalize phone number preserves group JID unchanged
+    assert normalize_phone_number(group_jid) == group_jid

@@ -133,13 +133,24 @@ class SimulatorWhatsAppProvider(WhatsAppProvider):
                     val = change.get("value", {})
                     # Inbound messages
                     for m in val.get("messages", []):
+                        raw_from = str(m.get("from", ""))
+                        is_grp = bool(m.get("is_group") or "@g.us" in raw_from or "-group" in raw_from)
+                        grp_id = m.get("group_id") or (raw_from if is_grp else None)
+                        grp_name = m.get("group_name")
+                        participant = m.get("participant")
+                        sender = grp_id if is_grp else normalize_phone_number(raw_from)
+
                         events.append(
                             InboundWhatsAppEvent(
                                 event_type="message",
-                                sender_phone=normalize_phone_number(m.get("from")),
+                                sender_phone=sender,
                                 message_id=m.get("id", f"sim_{uuid.uuid4().hex[:8]}"),
                                 timestamp=utc_now(),
                                 content=m.get("text", {}).get("body", ""),
+                                is_group=is_grp,
+                                group_id=grp_id,
+                                group_name=grp_name,
+                                participant=participant,
                                 raw_payload=m,
                             )
                         )
