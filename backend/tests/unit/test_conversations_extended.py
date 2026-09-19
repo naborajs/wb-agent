@@ -241,3 +241,64 @@ async def test_purge_simulations_endpoint(conv_test_client):
     get_res = await client.get("/api/v1/conversations/conv_sim_purge")
     assert get_res.status_code == 404
 
+
+@pytest.mark.asyncio
+async def test_suggest_reply_endpoint(conv_test_client):
+    client, session_factory = conv_test_client
+
+    # 1. Create a WhatsApp group conversation with an inbound query
+    async with session_factory() as session:
+        cust = Customer(
+            id="cust_grp_suggest",
+            org_id=settings.DEFAULT_ORG_ID,
+            primary_phone="120363024845918234@g.us",
+            name="Tea Wholesalers Group",
+            company_type="whatsapp_group",
+        )
+        session.add(cust)
+        await session.flush()
+
+        conv = Conversation(
+            id="conv_grp_suggest",
+            org_id=settings.DEFAULT_ORG_ID,
+            customer_id=cust.id,
+            channel="whatsapp",
+            channel_id="120363024845918234@g.us",
+            mode="HUMAN",
+            metadata_json={"is_group": True, "group_name": "Tea Wholesalers Group"},
+        )
+        session.add(conv)
+        await session.flush()
+
+        msg = Message(
+            org_id=settings.DEFAULT_ORG_ID,
+            conversation_id=conv.id,
+            direction="inbound",
+            sender_type="customer",
+            sender_id="+919832439994",
+            content="What is the price of Assam CTC 30kg bags for immediate shipment to Kolkata?",
+            delivery_status="received",
+        )
+        session.add(msg)
+        await session.commit()
+
+    # 2. Call suggest-reply endpoint without instructions
+    res = await client.post(f"/api/v1/conversations/conv_grp_suggest/suggest-reply")
+    assert res.status_code == 200, res.text
+    data = res.json()
+    assert data["success"] is True
+    assert data["is_group"] is True
+    assert len(data["suggested_reply"]) > 10
+    assert data["conversation_id"] == "conv_grp_suggest"
+
+    # 3. Call suggest-reply endpoint with operator instructions
+    res_custom = await client.post(
+        f"/api/v1/conversations/conv_grp_suggest/suggest-reply",
+        json={"instructions": "Mention that dispatch is ready within 24 hours", "tone": "urgent and courteous"},
+    )
+    assert res_custom.status_code == 200
+    data_custom = res_custom.json()
+    assert data_custom["success"] is True
+    assert len(data_custom["suggested_reply"]) > 10
+    assert data_custom["instructions_applied"] == "Mention that dispatch is ready within 24 hours"
+
