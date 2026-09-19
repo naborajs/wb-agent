@@ -50,6 +50,7 @@ class ConversationResponse(BaseModel):
     unread_count: int
     last_message_at: Optional[datetime] = None
     active_objections: List[Any] = Field(default_factory=list)
+    metadata_json: Dict[str, Any] = Field(default_factory=dict)
     created_at: datetime
     updated_at: datetime
 
