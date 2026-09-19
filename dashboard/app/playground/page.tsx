@@ -600,6 +600,35 @@ function PlaygroundInner() {
   const dropdownRef = useRef<HTMLDivElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
+  // Theme Detection (supports both Dark and Light mode)
+  const [isDark, setIsDark] = useState<boolean>(true);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const updateTheme = () => {
+      setIsDark(document.documentElement.classList.contains("dark"));
+    };
+    updateTheme();
+
+    const observer = new MutationObserver(updateTheme);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+
+    const onThemeChange = (e: any) => {
+      if (e?.detail?.theme) {
+        setIsDark(e.detail.theme === "dark");
+      }
+    };
+    window.addEventListener("theme_change", onThemeChange);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("theme_change", onThemeChange);
+    };
+  }, []);
+
   // Sync URL model parameter if present (with robust fuzzy matching)
   useEffect(() => {
     const qModel = searchParams.get("model");
@@ -890,43 +919,58 @@ function PlaygroundInner() {
   };
 
   return (
-    <div className="relative min-h-[calc(100vh-4rem)] flex flex-col bg-[#07070B] text-white overflow-x-hidden selection:bg-orange-500/30 selection:text-orange-200">
+    <div className={`relative min-h-[calc(100vh-4rem)] flex flex-col ${
+      isDark
+        ? "bg-[#07070B] text-white selection:bg-orange-500/30 selection:text-orange-200"
+        : "bg-[#F8F8FA] text-zinc-900 selection:bg-orange-500/20 selection:text-orange-900"
+    } overflow-x-hidden transition-colors duration-300`}>
       {/* Ambient Warm Obsidian Glow (Orange & Amber warmth, zero blue/pink) */}
       <div
-        className="pointer-events-none absolute inset-0 z-0 opacity-70"
+        className="pointer-events-none absolute inset-0 z-0 opacity-70 transition-all duration-500"
         style={{
-          background:
-            "radial-gradient(circle at 50% 8%, rgba(255, 107, 0, 0.14) 0%, rgba(25, 18, 12, 0.4) 38%, rgba(7, 7, 11, 0.95) 75%, #07070B 100%)",
+          background: isDark
+            ? "radial-gradient(circle at 50% 8%, rgba(255, 107, 0, 0.14) 0%, rgba(25, 18, 12, 0.4) 38%, rgba(7, 7, 11, 0.95) 75%, #07070B 100%)"
+            : "radial-gradient(circle at 50% 8%, rgba(255, 120, 0, 0.09) 0%, rgba(255, 245, 235, 0.7) 40%, #F8F8FA 85%)",
         }}
       />
 
       {/* ========================================================================= */}
       {/* Top Header Bar: Liquid Glass Model Selector & Navigation                  */}
       {/* ========================================================================= */}
-      <header className="relative z-20 flex items-center justify-between px-3 sm:px-6 py-3 border-b border-white/10 bg-[#07070B]/80 backdrop-blur-2xl">
+      <header className={`relative z-20 flex items-center justify-between px-3 sm:px-6 py-3 border-b backdrop-blur-2xl transition-colors duration-300 ${
+        isDark ? "border-white/10 bg-[#07070B]/80 text-white" : "border-black/10 bg-white/80 text-zinc-900 shadow-sm"
+      }`}>
         {/* Left: Liquid Glass Model Selector Pill */}
         <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setIsModelDropdownOpen(!isModelDropdownOpen)}
-            className="flex items-center gap-2 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl sm:rounded-2xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/15 text-xs sm:text-sm font-medium transition-all shadow-[0_4px_16px_rgba(0,0,0,0.4),inset_0_1px_1px_rgba(255,255,255,0.15)] group"
+            className={`flex items-center gap-2 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl sm:rounded-2xl text-xs sm:text-sm font-medium transition-all group ${
+              isDark
+                ? "bg-white/[0.06] hover:bg-white/[0.12] border border-white/15 shadow-[0_4px_16px_rgba(0,0,0,0.4),inset_0_1px_1px_rgba(255,255,255,0.15)] text-white"
+                : "bg-black/[0.04] hover:bg-black/[0.08] border border-black/10 shadow-sm text-zinc-900"
+            }`}
           >
-            <span className="w-5 h-5 rounded-lg bg-orange-500/20 text-orange-400 flex items-center justify-center text-xs">
+            <span className="w-5 h-5 rounded-lg bg-orange-500/20 text-orange-500 flex items-center justify-center text-xs">
               🤖
             </span>
-            <span className="font-semibold text-zinc-100 max-w-[130px] sm:max-w-[200px] truncate">
+            <span className={`font-semibold max-w-[130px] sm:max-w-[200px] truncate ${isDark ? "text-zinc-100" : "text-zinc-900"}`}>
               {currentModel.name}
             </span>
             <ChevronDown
-              className={`w-3.5 h-3.5 text-zinc-400 transition-transform ${
-                isModelDropdownOpen ? "rotate-180 text-white" : ""
+              className={`w-3.5 h-3.5 transition-transform ${isDark ? "text-zinc-400" : "text-zinc-500"} ${
+                isModelDropdownOpen ? (isDark ? "rotate-180 text-white" : "rotate-180 text-zinc-900") : ""
               }`}
             />
             {currentModel.isFree ? (
-              <span className="hidden sm:inline-block px-1.5 py-0.5 text-[9px] font-bold rounded-md bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+              <span className={`hidden sm:inline-block px-1.5 py-0.5 text-[9px] font-bold rounded-md border ${
+                isDark ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" : "bg-emerald-50 text-emerald-700 border-emerald-200"
+              }`}>
                 Free
               </span>
             ) : (
-              <span className="hidden sm:inline-block px-1.5 py-0.5 text-[9px] font-bold rounded-md bg-orange-500/20 text-orange-400 border border-orange-500/30">
+              <span className={`hidden sm:inline-block px-1.5 py-0.5 text-[9px] font-bold rounded-md border ${
+                isDark ? "bg-orange-500/20 text-orange-400 border-orange-500/30" : "bg-orange-50 text-orange-700 border-orange-200"
+              }`}>
                 Google
               </span>
             )}
@@ -934,8 +978,12 @@ function PlaygroundInner() {
 
           {/* Liquid Glass Model Dropdown Menu */}
           {isModelDropdownOpen && (
-            <div className="absolute top-full left-0 mt-2 w-72 sm:w-80 rounded-2xl bg-[#0f1015]/95 backdrop-blur-2xl border border-white/15 shadow-[0_16px_40px_rgba(0,0,0,0.8),inset_0_1px_1px_rgba(255,255,255,0.15)] p-2 z-50 max-h-[70vh] overflow-y-auto">
-              <div className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-orange-400">
+            <div className={`absolute top-full left-0 mt-2 w-72 sm:w-80 rounded-2xl backdrop-blur-2xl border p-2 z-50 max-h-[70vh] overflow-y-auto ${
+              isDark
+                ? "bg-[#0f1015]/95 border-white/15 shadow-[0_16px_40px_rgba(0,0,0,0.8),inset_0_1px_1px_rgba(255,255,255,0.15)] text-zinc-200"
+                : "bg-white/95 border-black/15 shadow-2xl text-zinc-800"
+            }`}>
+              <div className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-orange-500">
                 Google Gemini Suite
               </div>
               {PLAYGROUND_MODELS.filter((m) => m.provider === "Google").map((m) => (
@@ -947,21 +995,23 @@ function PlaygroundInner() {
                   }}
                   className={`w-full text-left px-3 py-2 rounded-xl text-xs flex items-center justify-between transition-colors ${
                     selectedModelId === m.id
-                      ? "bg-orange-500/20 text-orange-300 font-semibold border border-orange-500/30"
-                      : "text-zinc-300 hover:bg-white/5"
+                      ? "bg-orange-500/20 text-orange-400 font-semibold border border-orange-500/30"
+                      : isDark
+                      ? "text-zinc-300 hover:bg-white/5"
+                      : "text-zinc-700 hover:bg-black/5"
                   }`}
                 >
                   <div className="truncate">
                     <div className="truncate font-medium">{m.name}</div>
-                    <div className="text-[10px] text-zinc-500">{m.latencyEst} · {m.pricingLabel}</div>
+                    <div className={`text-[10px] ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>{m.latencyEst} · {m.pricingLabel}</div>
                   </div>
                   {selectedModelId === m.id && <Check className="w-3.5 h-3.5 text-orange-400 flex-shrink-0" />}
                 </button>
               ))}
 
-              <div className="px-2 pt-3 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-emerald-400 flex items-center justify-between">
+              <div className="px-2 pt-3 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-emerald-500 flex items-center justify-between">
                 <span>NVIDIA NIM Suite</span>
-                <span className="text-[9px] text-emerald-300">100% Free / Included</span>
+                <span className={`text-[9px] ${isDark ? "text-emerald-300" : "text-emerald-700"}`}>100% Free / Included</span>
               </div>
               {PLAYGROUND_MODELS.filter((m) => m.provider === "NVIDIA").map((m) => (
                 <button
@@ -972,13 +1022,15 @@ function PlaygroundInner() {
                   }}
                   className={`w-full text-left px-3 py-2 rounded-xl text-xs flex items-center justify-between transition-colors ${
                     selectedModelId === m.id
-                      ? "bg-emerald-500/20 text-emerald-300 font-semibold border border-emerald-500/30"
-                      : "text-zinc-300 hover:bg-white/5"
+                      ? "bg-emerald-500/20 text-emerald-400 font-semibold border border-emerald-500/30"
+                      : isDark
+                      ? "text-zinc-300 hover:bg-white/5"
+                      : "text-zinc-700 hover:bg-black/5"
                   }`}
                 >
                   <div className="truncate">
                     <div className="truncate font-medium">{m.name}</div>
-                    <div className="text-[10px] text-zinc-500">{m.latencyEst} · Free (NVIDIA Key)</div>
+                    <div className={`text-[10px] ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>{m.latencyEst} · Free (NVIDIA Key)</div>
                   </div>
                   {selectedModelId === m.id && <Check className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />}
                 </button>
@@ -988,11 +1040,11 @@ function PlaygroundInner() {
         </div>
 
         {/* Center: Dual-Brain Studio Status */}
-        <div className="hidden md:flex items-center gap-2 text-xs font-medium text-zinc-400">
+        <div className={`hidden md:flex items-center gap-2 text-xs font-medium ${isDark ? "text-zinc-400" : "text-zinc-600"}`}>
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#10b981]" />
-          <span className="text-zinc-200 font-semibold">Dual-Brain Testing Studio</span>
-          <span className="text-zinc-600">|</span>
-          <span className="text-zinc-300 font-mono">{currentModel.contextLimit} Context</span>
+          <span className={`font-semibold ${isDark ? "text-zinc-200" : "text-zinc-800"}`}>Dual-Brain Testing Studio</span>
+          <span className={isDark ? "text-zinc-600" : "text-zinc-300"}>|</span>
+          <span className={`font-mono ${isDark ? "text-zinc-300" : "text-zinc-600"}`}>{currentModel.contextLimit} Context</span>
         </div>
 
         {/* Right: Quick Action Controls */}
@@ -1001,9 +1053,13 @@ function PlaygroundInner() {
             <button
               onClick={handleClearHistory}
               title="Start New Chat"
-              className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-zinc-400 hover:text-white text-xs flex items-center gap-1 transition-colors"
+              className={`p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl border text-xs flex items-center gap-1 transition-colors ${
+                isDark
+                  ? "bg-white/[0.06] hover:bg-white/[0.12] border-white/10 text-zinc-400 hover:text-white"
+                  : "bg-black/[0.04] hover:bg-black/[0.08] border-black/10 text-zinc-600 hover:text-zinc-900"
+              }`}
             >
-              <Trash2 className="w-3.5 h-3.5 text-red-400" />
+              <Trash2 className="w-3.5 h-3.5 text-red-500" />
               <span className="hidden sm:inline">New Test</span>
             </button>
           )}
@@ -1014,9 +1070,13 @@ function PlaygroundInner() {
               setIsSidePanelOpen(true);
             }}
             title="View Test History"
-            className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-zinc-400 hover:text-white text-xs flex items-center gap-1 transition-colors"
+            className={`p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl border text-xs flex items-center gap-1 transition-colors ${
+              isDark
+                ? "bg-white/[0.06] hover:bg-white/[0.12] border-white/10 text-zinc-400 hover:text-white"
+                : "bg-black/[0.04] hover:bg-black/[0.08] border-black/10 text-zinc-600 hover:text-zinc-900"
+            }`}
           >
-            <History className="w-3.5 h-3.5 text-zinc-300" />
+            <History className={`w-3.5 h-3.5 ${isDark ? "text-zinc-300" : "text-zinc-600"}`} />
             <span className="hidden sm:inline">History</span>
           </button>
 
@@ -1025,11 +1085,15 @@ function PlaygroundInner() {
               setActiveSideTab("params");
               setIsSidePanelOpen(true);
             }}
-            className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-white/[0.08] hover:bg-white/[0.14] border border-white/15 text-white text-xs font-semibold flex items-center gap-1.5 transition-all shadow-[0_4px_16px_rgba(0,0,0,0.4),inset_0_1px_1px_rgba(255,255,255,0.2)]"
+            className={`px-2.5 sm:px-3 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all ${
+              isDark
+                ? "bg-white/[0.08] hover:bg-white/[0.14] border-white/15 text-white shadow-[0_4px_16px_rgba(0,0,0,0.4),inset_0_1px_1px_rgba(255,255,255,0.2)]"
+                : "bg-black/[0.05] hover:bg-black/[0.09] border-black/15 text-zinc-900 shadow-sm"
+            }`}
           >
-            <Sliders className="w-3.5 h-3.5 text-orange-400" />
+            <Sliders className="w-3.5 h-3.5 text-orange-500" />
             <span>Parameters</span>
-            <span className="text-[10px] text-orange-300 font-mono">T:{temperature}</span>
+            <span className="text-[10px] text-orange-400 font-mono">T:{temperature}</span>
           </button>
         </div>
       </header>
@@ -1039,12 +1103,14 @@ function PlaygroundInner() {
       {/* ========================================================================= */}
       <main className="relative z-10 flex-1 flex flex-col max-w-4xl w-full mx-auto px-3 sm:px-6 pt-4 pb-48">
         {messages.length === 0 ? (
-          /* Empty State: Dark Theme with Warm Amber/White/Green Accents */
+          /* Empty State: Liquid Glass with Warm Amber/White/Green Accents */
           <div className="flex-1 flex flex-col items-center justify-center text-center py-8 sm:py-12 my-auto">
             {/* Title Greeting */}
-            <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-white mb-6">
+            <h1 className={`text-2xl sm:text-4xl font-extrabold tracking-tight mb-6 transition-colors ${
+              isDark ? "text-white" : "text-zinc-900"
+            }`}>
               HI Operator{" "}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-amber-200 to-white">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 via-amber-400 to-orange-600">
                 Ready to Achieve Great Things?
               </span>
             </h1>
@@ -1052,7 +1118,11 @@ function PlaygroundInner() {
             {/* Centered 2D Transparent Mascot with Floating Liquid Glass Speech Bubbles */}
             <div className="relative my-4 flex items-center justify-center">
               {/* Left Speech Bubble */}
-              <div className="hidden sm:flex absolute -left-36 md:-left-44 top-2 items-center gap-1.5 px-3.5 py-1.5 rounded-2xl bg-white/[0.08] backdrop-blur-xl border border-white/15 text-xs text-zinc-100 shadow-[0_8px_32px_rgba(0,0,0,0.6)] animate-pulse">
+              <div className={`hidden sm:flex absolute -left-36 md:-left-44 top-2 items-center gap-1.5 px-3.5 py-1.5 rounded-2xl backdrop-blur-xl border text-xs transition-all shadow-lg animate-pulse ${
+                isDark
+                  ? "bg-white/[0.08] border-white/15 text-zinc-100 shadow-[0_8px_32px_rgba(0,0,0,0.6)]"
+                  : "bg-white/90 border-black/10 text-zinc-800 shadow-md"
+              }`}>
                 <span>🤖</span>
                 <span>Hey there! Need a boost?</span>
               </div>
@@ -1061,19 +1131,29 @@ function PlaygroundInner() {
               <FloatingRobotMascot />
 
               {/* Right Speech Bubble */}
-              <div className="hidden sm:flex absolute -right-36 md:-right-48 bottom-4 items-center gap-1.5 px-3.5 py-1.5 rounded-2xl bg-white/[0.08] backdrop-blur-xl border border-white/15 text-xs text-zinc-100 shadow-[0_8px_32px_rgba(0,0,0,0.6)]">
-                <span className="text-emerald-400">⚡</span>
-                <span className="text-emerald-300 font-medium">NVIDIA Zero-Cost Ready</span>
+              <div className={`hidden sm:flex absolute -right-36 md:-right-48 bottom-4 items-center gap-1.5 px-3.5 py-1.5 rounded-2xl backdrop-blur-xl border text-xs transition-all shadow-lg ${
+                isDark
+                  ? "bg-white/[0.08] border-white/15 text-zinc-100 shadow-[0_8px_32px_rgba(0,0,0,0.6)]"
+                  : "bg-white/90 border-black/10 text-zinc-800 shadow-md"
+              }`}>
+                <span className="text-emerald-500">⚡</span>
+                <span className={isDark ? "text-emerald-300 font-medium" : "text-emerald-700 font-semibold"}>
+                  NVIDIA Zero-Cost Ready
+                </span>
               </div>
             </div>
 
             {/* Model Capabilities Pill */}
-            <div className="mt-4 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.06] backdrop-blur-md border border-white/15 text-xs text-zinc-300 shadow-md">
-              <span className="text-white font-semibold">{currentModel.name}</span>
-              <span className="text-zinc-600">·</span>
-              <span className="text-zinc-300">{currentModel.contextLimit} Context</span>
-              <span className="text-zinc-600">·</span>
-              <span className={currentModel.isFree ? "text-emerald-400 font-bold" : "text-orange-400 font-bold"}>
+            <div className={`mt-4 inline-flex items-center gap-2 px-3 py-1 rounded-full backdrop-blur-md border text-xs shadow-sm transition-all ${
+              isDark
+                ? "bg-white/[0.06] border-white/15 text-zinc-300"
+                : "bg-white/90 border-black/10 text-zinc-700"
+            }`}>
+              <span className={`font-semibold ${isDark ? "text-white" : "text-zinc-900"}`}>{currentModel.name}</span>
+              <span className={isDark ? "text-zinc-600" : "text-zinc-300"}>·</span>
+              <span>{currentModel.contextLimit} Context</span>
+              <span className={isDark ? "text-zinc-600" : "text-zinc-300"}>·</span>
+              <span className={currentModel.isFree ? (isDark ? "text-emerald-400 font-bold" : "text-emerald-600 font-bold") : "text-orange-500 font-bold"}>
                 {currentModel.pricingLabel}
               </span>
             </div>
@@ -1089,16 +1169,20 @@ function PlaygroundInner() {
                 }`}
               >
                 {msg.role !== "user" && (
-                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-orange-500/20 border border-orange-500/40 flex items-center justify-center text-orange-400 flex-shrink-0 mt-0.5 shadow-sm">
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-orange-500/20 border border-orange-500/40 flex items-center justify-center text-orange-500 flex-shrink-0 mt-0.5 shadow-sm">
                     <Bot className="w-4 h-4" />
                   </div>
                 )}
 
                 <div
-                  className={`max-w-[88%] sm:max-w-[80%] rounded-2xl p-3.5 sm:p-4 text-xs sm:text-sm leading-relaxed backdrop-blur-xl ${
+                  className={`max-w-[88%] sm:max-w-[80%] rounded-2xl p-3.5 sm:p-4 text-xs sm:text-sm leading-relaxed backdrop-blur-xl transition-all ${
                     msg.role === "user"
-                      ? "bg-gradient-to-r from-orange-600/30 via-amber-600/25 to-orange-500/30 border border-orange-500/40 text-white shadow-[0_4px_20px_rgba(255,107,0,0.2)]"
-                      : "bg-[#101116]/90 border border-white/10 text-zinc-200 shadow-[0_8px_30px_rgba(0,0,0,0.7),inset_0_1px_1px_rgba(255,255,255,0.08)]"
+                      ? isDark
+                        ? "bg-gradient-to-r from-orange-600/30 via-amber-600/25 to-orange-500/30 border border-orange-500/40 text-white shadow-[0_4px_20px_rgba(255,107,0,0.2)]"
+                        : "bg-gradient-to-r from-orange-500 to-amber-500 border border-orange-400 text-white shadow-[0_4px_16px_rgba(255,107,0,0.25)]"
+                      : isDark
+                        ? "bg-[#101116]/90 border border-white/10 text-zinc-200 shadow-[0_8px_30px_rgba(0,0,0,0.7),inset_0_1px_1px_rgba(255,255,255,0.08)]"
+                        : "bg-white/90 border border-black/10 text-zinc-800 shadow-[0_8px_24px_rgba(0,0,0,0.06),inset_0_1px_1px_rgba(255,255,255,0.9)]"
                   }`}
                 >
                   {msg.role === "assistant" ? (
@@ -1109,33 +1193,41 @@ function PlaygroundInner() {
 
                   {/* Telemetry Bar for Assistant Turns */}
                   {msg.telemetry && (
-                    <div className="mt-3 pt-2.5 border-t border-white/10 flex flex-wrap items-center gap-2 text-[10px] text-zinc-400">
+                    <div className={`mt-3 pt-2.5 border-t flex flex-wrap items-center gap-2 text-[10px] ${
+                      isDark ? "border-white/10 text-zinc-400" : "border-black/10 text-zinc-500"
+                    }`}>
                       <span className="inline-flex items-center gap-1 font-mono text-cyan-400">
                         <Zap className="w-3 h-3 text-cyan-400" />
                         {msg.telemetry.latency_ms}ms
                       </span>
-                      <span className="text-zinc-600">·</span>
-                      <span className="font-mono text-zinc-400">
+                      <span className={isDark ? "text-zinc-600" : "text-zinc-300"}>·</span>
+                      <span className="font-mono">
                         {msg.telemetry.tokens.prompt_tokens} in / {msg.telemetry.tokens.completion_tokens} out
                       </span>
-                      <span className="text-zinc-600">·</span>
+                      <span className={isDark ? "text-zinc-600" : "text-zinc-300"}>·</span>
                       {msg.telemetry.pricing.is_free_nvidia ? (
-                        <span className="font-bold text-emerald-400 bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-500/30">
+                        <span className={`font-bold px-1.5 py-0.5 rounded border ${
+                          isDark
+                            ? "text-emerald-400 bg-emerald-950/60 border-emerald-500/30"
+                            : "text-emerald-700 bg-emerald-50 border-emerald-200"
+                        }`}>
                           $0.00 Free
                         </span>
                       ) : (
-                        <span className="font-mono text-white">
+                        <span className={`font-mono font-semibold ${isDark ? "text-white" : "text-zinc-900"}`}>
                           {msg.telemetry.pricing.total_cost_cents.toFixed(4)}¢
                         </span>
                       )}
 
                       <button
                         onClick={() => handleCopyMessage(msg.id, msg.content)}
-                        className="ml-auto hover:text-white transition-colors inline-flex items-center gap-1"
+                        className={`ml-auto transition-colors inline-flex items-center gap-1 ${
+                          isDark ? "hover:text-white" : "hover:text-zinc-900"
+                        }`}
                         title="Copy text"
                       >
                         {copiedId === msg.id ? (
-                          <Check className="w-3 h-3 text-emerald-400" />
+                          <Check className="w-3 h-3 text-emerald-500" />
                         ) : (
                           <Copy className="w-3 h-3 text-zinc-400" />
                         )}
@@ -1145,7 +1237,11 @@ function PlaygroundInner() {
                 </div>
 
                 {msg.role === "user" && (
-                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-white/10 border border-white/15 flex items-center justify-center text-zinc-200 flex-shrink-0 mt-0.5">
+                  <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-xl border flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                    isDark
+                      ? "bg-white/10 border-white/15 text-zinc-200"
+                      : "bg-black/5 border-black/10 text-zinc-700"
+                  }`}>
                     <User className="w-4 h-4" />
                   </div>
                 )}
@@ -1153,8 +1249,8 @@ function PlaygroundInner() {
             ))}
 
             {isGenerating && (
-              <div className="flex gap-3 items-center text-xs text-orange-400 pl-1">
-                <RefreshCw className="w-4 h-4 animate-spin text-orange-400" />
+              <div className="flex gap-3 items-center text-xs text-orange-500 pl-1">
+                <RefreshCw className="w-4 h-4 animate-spin text-orange-500" />
                 <span>Generating response from {currentModel.name}...</span>
               </div>
             )}
@@ -1164,44 +1260,63 @@ function PlaygroundInner() {
       </main>
 
       {/* ========================================================================= */}
-      {/* Floating Liquid Glass Composer (Exact Reference Screenshots 1 & 2)        */}
+      {/* Floating Liquid Glass Composer (Dual Theme: Dark & Light)                 */}
       {/* ========================================================================= */}
-      <div className="fixed bottom-0 left-0 right-0 z-30 px-3 sm:px-6 pb-4 pt-2 bg-gradient-to-t from-[#07070B] via-[#07070B]/95 to-transparent pointer-events-none">
+      <div className={`fixed bottom-0 left-0 right-0 z-30 px-3 sm:px-6 pb-4 pt-2 pointer-events-none transition-colors duration-300 ${
+        isDark
+          ? "bg-gradient-to-t from-[#07070B] via-[#07070B]/95 to-transparent"
+          : "bg-gradient-to-t from-[#F8F8FA] via-[#F8F8FA]/95 to-transparent"
+      }`}>
         <div className="max-w-3xl mx-auto space-y-2 pointer-events-auto">
           {/* Notification Banner for Prompt Upgrade */}
           {upgradeNotice && (
-            <div className="text-center text-xs font-semibold text-orange-300 bg-[#16120e]/90 border border-orange-500/40 rounded-xl py-1 px-3 shadow-md animate-fadeIn">
+            <div className={`text-center text-xs font-semibold rounded-xl py-1 px-3 shadow-md animate-fadeIn transition-colors ${
+              isDark
+                ? "text-orange-300 bg-[#16120e]/90 border border-orange-500/40"
+                : "text-orange-900 bg-orange-100/90 border border-orange-300"
+            }`}>
               {upgradeNotice}
             </div>
           )}
 
           {/* The Liquid Glass Chatbox Container */}
           <div
-            className={`relative rounded-3xl sm:rounded-[28px] bg-[#111217]/85 backdrop-blur-2xl border transition-all duration-300 shadow-[0_16px_50px_rgba(0,0,0,0.85),inset_0_1px_1px_rgba(255,255,255,0.14)] ${
-              isComposerFocused || isGenerating
-                ? "border-orange-500/60 shadow-[0_0_35px_rgba(255,107,0,0.25)]"
-                : "border-white/15 hover:border-white/25"
+            className={`relative rounded-3xl sm:rounded-[28px] backdrop-blur-2xl border transition-all duration-300 ${
+              isDark
+                ? isComposerFocused || isGenerating
+                  ? "bg-[#111218]/90 border-orange-500/60 shadow-[0_16px_50px_rgba(0,0,0,0.85),0_0_35px_rgba(255,107,0,0.25),inset_0_1.5px_2px_rgba(255,200,120,0.3)]"
+                  : "bg-[#111217]/80 border-white/15 hover:border-white/25 shadow-[0_16px_50px_rgba(0,0,0,0.85),inset_0_1.5px_1.5px_rgba(255,255,255,0.18)]"
+                : isComposerFocused || isGenerating
+                  ? "bg-white/90 border-orange-500/50 shadow-[0_16px_40px_rgba(0,0,0,0.08),0_0_30px_rgba(255,107,0,0.2),inset_0_1.5px_2px_rgba(255,255,255,1)]"
+                  : "bg-white/80 border-black/10 hover:border-black/20 shadow-[0_16px_40px_rgba(0,0,0,0.06),inset_0_1.5px_1.5px_rgba(255,255,255,0.95)]"
             }`}
           >
-            {/* Top Glowing Electric Orange Plasma Wave Beam (Active state from screenshot) */}
+            {/* Liquid Glass Specular Ambient Top Rim Light */}
             <div
-              className={`absolute -top-[1px] left-0 right-0 h-[2px] overflow-visible pointer-events-none transition-opacity duration-300 ${
+              className={`absolute inset-x-8 -top-[1px] h-[1.5px] rounded-full pointer-events-none transition-opacity duration-300 ${
+                isComposerFocused || isGenerating || inputMessage.trim().length > 0
+                  ? "bg-gradient-to-r from-transparent via-[#ff7700] to-transparent opacity-90 blur-[0.5px]"
+                  : isDark
+                    ? "bg-gradient-to-r from-transparent via-white/25 to-transparent opacity-40"
+                    : "bg-gradient-to-r from-transparent via-orange-400/50 to-transparent opacity-60"
+              }`}
+            />
+
+            {/* Seamless Full-Width Electric Plasma Lightning Wave across the top curve */}
+            <div
+              className={`absolute -top-[7px] inset-x-0 h-4 pointer-events-none overflow-visible transition-opacity duration-300 ${
                 isComposerFocused || isGenerating || inputMessage.trim().length > 0
                   ? "opacity-100"
-                  : "opacity-40"
+                  : "opacity-35"
               }`}
             >
-              {/* Left corner orange neon accent (matching screenshot top-left rim) */}
-              <div className="absolute top-0 left-0 w-28 h-6 rounded-tl-3xl sm:rounded-tl-[28px] border-t-2 border-l-2 border-[#ff6b00] shadow-[0_0_15px_#ff6b00]" />
-
-              {/* Electric Plasma Lightning Wave across the top */}
               <svg
-                className="absolute -top-[8px] left-8 sm:left-14 right-0 w-[calc(100%-2rem)] sm:w-[calc(100%-3.5rem)] h-5 pointer-events-none overflow-visible"
+                className="w-full h-full pointer-events-none overflow-visible"
                 preserveAspectRatio="none"
-                viewBox="0 0 400 20"
+                viewBox="0 0 400 16"
               >
                 <defs>
-                  <filter id="plasma-glow-box" x="-20%" y="-50%" width="140%" height="200%">
+                  <filter id="plasma-glow-box" x="-10%" y="-50%" width="120%" height="200%">
                     <feGaussianBlur stdDeviation="2.5" result="blur1" />
                     <feMerge>
                       <feMergeNode in="blur1" />
@@ -1209,29 +1324,32 @@ function PlaygroundInner() {
                     </feMerge>
                   </filter>
                   <linearGradient id="plasmaGradBox" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stopColor="#ff7b00" stopOpacity="1" />
-                    <stop offset="35%" stopColor="#ff9900" stopOpacity="0.9" />
+                    <stop offset="0%" stopColor="#ff7b00" stopOpacity="0" />
+                    <stop offset="10%" stopColor="#ff7b00" stopOpacity="0.8" />
+                    <stop offset="40%" stopColor="#ffa000" stopOpacity="0.95" />
                     <stop offset="70%" stopColor="#ff5500" stopOpacity="0.85" />
-                    <stop offset="100%" stopColor="#ff3300" stopOpacity="0.2" />
+                    <stop offset="90%" stopColor="#ff3300" stopOpacity="0.6" />
+                    <stop offset="100%" stopColor="#ff3300" stopOpacity="0" />
                   </linearGradient>
                   <linearGradient id="plasmaCoreBox" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stopColor="#ffffff" stopOpacity="0.95" />
-                    <stop offset="30%" stopColor="#ffebaa" stopOpacity="0.9" />
-                    <stop offset="75%" stopColor="#ff8800" stopOpacity="0.7" />
-                    <stop offset="100%" stopColor="#ff4400" stopOpacity="0.2" />
+                    <stop offset="0%" stopColor="#ffffff" stopOpacity="0" />
+                    <stop offset="15%" stopColor="#ffffff" stopOpacity="0.95" />
+                    <stop offset="45%" stopColor="#fffae0" stopOpacity="0.95" />
+                    <stop offset="75%" stopColor="#ff9900" stopOpacity="0.8" />
+                    <stop offset="100%" stopColor="#ff4400" stopOpacity="0" />
                   </linearGradient>
                 </defs>
                 {/* Wavy Electric Beam */}
                 <path
-                  d="M 0 10 Q 30 6, 65 13 T 130 8 T 200 12 T 270 7 T 340 12 L 400 10"
+                  d="M 10 8 Q 50 4, 100 11 T 200 7 T 300 10 T 390 8"
                   fill="none"
                   stroke="url(#plasmaGradBox)"
-                  strokeWidth="3.5"
+                  strokeWidth="3.2"
                   filter="url(#plasma-glow-box)"
                 />
                 {/* Bright white/gold electric core */}
                 <path
-                  d="M 0 10 Q 30 8, 65 12 T 130 9 T 200 11 T 270 8 T 340 11 L 400 10"
+                  d="M 10 8 Q 50 6, 100 10 T 200 8 T 300 9 T 390 8"
                   fill="none"
                   stroke="url(#plasmaCoreBox)"
                   strokeWidth="1.2"
@@ -1241,8 +1359,14 @@ function PlaygroundInner() {
 
             {/* Quick Action Popup Menu (when + is clicked) */}
             {isQuickMenuOpen && (
-              <div className="absolute bottom-full left-3 mb-3 w-56 rounded-2xl bg-[#14151c]/95 backdrop-blur-2xl border border-white/15 p-2 shadow-2xl z-40 space-y-1 animate-fadeIn">
-                <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+              <div className={`absolute bottom-full left-3 mb-3 w-56 rounded-2xl backdrop-blur-2xl border p-2 shadow-2xl z-40 space-y-1 animate-fadeIn ${
+                isDark
+                  ? "bg-[#14151c]/95 border-white/15 text-zinc-200"
+                  : "bg-white/95 border-black/10 text-zinc-800"
+              }`}>
+                <div className={`px-2 py-1 text-[10px] font-bold uppercase tracking-wider ${
+                  isDark ? "text-zinc-400" : "text-zinc-500"
+                }`}>
                   Quick Actions
                 </div>
                 <button
@@ -1251,9 +1375,13 @@ function PlaygroundInner() {
                     setIsQuickMenuOpen(false);
                     if (textareaRef.current) textareaRef.current.focus();
                   }}
-                  className="w-full text-left px-2.5 py-1.5 rounded-xl text-xs text-zinc-200 hover:text-white hover:bg-white/10 flex items-center gap-2 transition-colors"
+                  className={`w-full text-left px-2.5 py-1.5 rounded-xl text-xs flex items-center gap-2 transition-colors ${
+                    isDark
+                      ? "text-zinc-200 hover:text-white hover:bg-white/10"
+                      : "text-zinc-800 hover:text-black hover:bg-black/5"
+                  }`}
                 >
-                  <Mic className="w-3.5 h-3.5 text-orange-400" />
+                  <Mic className="w-3.5 h-3.5 text-orange-500" />
                   <span>Realtime Voice Mode</span>
                 </button>
                 <button
@@ -1262,16 +1390,24 @@ function PlaygroundInner() {
                     setIsQuickMenuOpen(false);
                     if (textareaRef.current) textareaRef.current.focus();
                   }}
-                  className="w-full text-left px-2.5 py-1.5 rounded-xl text-xs text-zinc-200 hover:text-white hover:bg-white/10 flex items-center gap-2 transition-colors"
+                  className={`w-full text-left px-2.5 py-1.5 rounded-xl text-xs flex items-center gap-2 transition-colors ${
+                    isDark
+                      ? "text-zinc-200 hover:text-white hover:bg-white/10"
+                      : "text-zinc-800 hover:text-black hover:bg-black/5"
+                  }`}
                 >
-                  <FileText className="w-3.5 h-3.5 text-amber-400" />
+                  <FileText className="w-3.5 h-3.5 text-amber-500" />
                   <span>Load Wholesale Deal</span>
                 </button>
                 <button
                   onClick={handleClearHistory}
-                  className="w-full text-left px-2.5 py-1.5 rounded-xl text-xs text-red-300 hover:text-red-200 hover:bg-red-500/20 flex items-center gap-2 transition-colors"
+                  className={`w-full text-left px-2.5 py-1.5 rounded-xl text-xs flex items-center gap-2 transition-colors ${
+                    isDark
+                      ? "text-red-300 hover:text-red-200 hover:bg-red-500/20"
+                      : "text-red-600 hover:text-red-700 hover:bg-red-50"
+                  }`}
                 >
-                  <Trash2 className="w-3.5 h-3.5 text-red-400" />
+                  <Trash2 className="w-3.5 h-3.5 text-red-500" />
                   <span>Clear Current Chat</span>
                 </button>
               </div>
@@ -1280,22 +1416,30 @@ function PlaygroundInner() {
             {/* Inner Content Padding */}
             <div className="p-3 sm:p-4">
               {/* Top Row inside composer: Model Tier / Role / Telemetry Pill */}
-              <div className="flex items-center justify-between pb-2 text-[10px] sm:text-xs text-zinc-400 border-b border-white/5">
+              <div className={`flex items-center justify-between pb-2 text-[10px] sm:text-xs border-b transition-colors ${
+                isDark ? "border-white/5 text-zinc-400" : "border-black/5 text-zinc-500"
+              }`}>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-orange-400">⚡</span>
-                  <span className="font-semibold text-zinc-200">
+                  <span className="text-orange-500">⚡</span>
+                  <span className={`font-semibold ${isDark ? "text-zinc-200" : "text-zinc-800"}`}>
                     {currentModel.name}
                   </span>
-                  <span className="text-zinc-600">|</span>
-                  <span className="text-zinc-400">{selectedPersona.name}</span>
+                  <span className={isDark ? "text-zinc-600" : "text-zinc-300"}>|</span>
+                  <span className={isDark ? "text-zinc-400" : "text-zinc-600"}>{selectedPersona.name}</span>
                 </div>
 
                 {currentModel.isFree ? (
-                  <span className="text-emerald-400 font-bold bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-500/30 text-[9px]">
+                  <span className={`font-bold px-2 py-0.5 rounded-full border text-[9px] ${
+                    isDark
+                      ? "text-emerald-400 bg-emerald-950/60 border-emerald-500/30"
+                      : "text-emerald-700 bg-emerald-50 border-emerald-200"
+                  }`}>
                     NVIDIA Zero-Cost Key ($0.00)
                   </span>
                 ) : (
-                  <span className="text-orange-300 font-semibold text-[10px]">
+                  <span className={`font-semibold text-[10px] ${
+                    isDark ? "text-orange-300" : "text-orange-600"
+                  }`}>
                     Google Gemini API
                   </span>
                 )}
@@ -1317,21 +1461,33 @@ function PlaygroundInner() {
                   }}
                   rows={2}
                   placeholder="Chat with Friday & EDITH... ask to negotiate wholesale deals, check policies, or test latency"
-                  className="w-full bg-transparent border-0 resize-none text-xs sm:text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:ring-0 leading-relaxed font-sans"
+                  className={`w-full bg-transparent border-0 resize-none text-xs sm:text-sm leading-relaxed font-sans focus:outline-none focus:ring-0 ${
+                    isDark
+                      ? "text-white placeholder:text-zinc-500"
+                      : "text-zinc-900 placeholder:text-zinc-400"
+                  }`}
                 />
               </div>
 
               {/* Bottom Action Row (Matching screenshot exact controls: Left Plus Button + Pill Capsule) */}
-              <div className="flex items-center justify-between pt-2.5 border-t border-white/5 mt-1">
+              <div className={`flex items-center justify-between pt-2.5 border-t mt-1 transition-colors ${
+                isDark ? "border-white/5" : "border-black/5"
+              }`}>
                 {/* Left Action Controls: Circular Plus Button + Dynamic Feature Pills */}
                 <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5 max-w-[65%] sm:max-w-[70%]">
-                  {/* Circular '+' Glass Button (Exact look from screenshot) */}
+                  {/* Circular '+' Glass Button */}
                   <button
                     type="button"
                     onClick={() => setIsQuickMenuOpen(!isQuickMenuOpen)}
                     title="Quick Tools & Attachments"
-                    className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/[0.08] hover:bg-white/[0.15] active:scale-95 border border-white/15 flex items-center justify-center text-white/90 hover:text-white transition-all shadow-sm flex-shrink-0 ${
-                      isQuickMenuOpen ? "bg-white/20 text-white rotate-45" : ""
+                    className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full active:scale-95 border flex items-center justify-center transition-all shadow-sm flex-shrink-0 ${
+                      isDark
+                        ? `bg-white/[0.08] hover:bg-white/[0.15] border-white/15 text-white/90 hover:text-white ${
+                            isQuickMenuOpen ? "bg-white/20 text-white rotate-45" : ""
+                          }`
+                        : `bg-black/[0.05] hover:bg-black/[0.1] border-black/10 text-zinc-700 hover:text-zinc-900 ${
+                            isQuickMenuOpen ? "bg-black/15 text-zinc-900 rotate-45" : ""
+                          }`
                     }`}
                   >
                     <Plus className="w-4 h-4 sm:w-5 sm:h-5 transition-transform" />
@@ -1344,8 +1500,12 @@ function PlaygroundInner() {
                       onClick={() => setActiveFeature(feat)}
                       className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] sm:text-xs font-medium transition-all flex-shrink-0 ${
                         activeFeature === feat
-                          ? "bg-orange-500/20 text-orange-300 border border-orange-500/40 font-semibold shadow-[0_0_12px_rgba(255,107,0,0.25)]"
-                          : "bg-white/[0.04] text-zinc-400 hover:text-white border border-white/5 hover:bg-white/[0.08]"
+                          ? isDark
+                            ? "bg-orange-500/20 text-orange-300 border border-orange-500/40 font-semibold shadow-[0_0_12px_rgba(255,107,0,0.25)]"
+                            : "bg-orange-500/15 text-orange-700 border border-orange-500/30 font-semibold shadow-sm"
+                          : isDark
+                            ? "bg-white/[0.04] text-zinc-400 hover:text-white border border-white/5 hover:bg-white/[0.08]"
+                            : "bg-black/[0.04] text-zinc-600 hover:text-zinc-900 border border-black/5 hover:bg-black/[0.08]"
                       }`}
                     >
                       <span>{feat}</span>
@@ -1353,22 +1513,32 @@ function PlaygroundInner() {
                   ))}
                 </div>
 
-                {/* Right Capsule Container: Upgrade Prompt Icon + Liquid Orange Pill Button (Exact Screenshot look) */}
-                <div className="flex items-center gap-1.5 p-1 bg-black/60 backdrop-blur-xl border border-white/10 rounded-full shadow-inner flex-shrink-0">
+                {/* Right Capsule Container: Upgrade Prompt Icon + Liquid Orange Pill Button */}
+                <div className={`flex items-center gap-1.5 p-1 backdrop-blur-xl border rounded-full shadow-inner flex-shrink-0 transition-colors ${
+                  isDark
+                    ? "bg-black/60 border-white/10"
+                    : "bg-zinc-100/90 border-black/10"
+                }`}>
                   {/* ✨ AI Prompt Upgrader Button */}
                   <button
                     onClick={handleUpgradePrompt}
                     disabled={isUpgradingPrompt}
                     title="Upgrade prompt with NVIDIA AI"
-                    className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-full text-zinc-400 hover:text-white hover:bg-white/10 flex items-center gap-1 transition-colors flex-shrink-0"
+                    className={`p-1.5 sm:px-2.5 sm:py-1.5 rounded-full flex items-center gap-1 transition-colors flex-shrink-0 ${
+                      isDark
+                        ? "text-zinc-400 hover:text-white hover:bg-white/10"
+                        : "text-zinc-600 hover:text-zinc-900 hover:bg-black/5"
+                    }`}
                   >
-                    <Sparkles className={`w-4 h-4 text-orange-400 ${isUpgradingPrompt ? "animate-spin" : ""}`} />
-                    <span className="hidden sm:inline text-[11px] font-semibold text-zinc-300">
+                    <Sparkles className={`w-4 h-4 text-orange-500 ${isUpgradingPrompt ? "animate-spin" : ""}`} />
+                    <span className={`hidden sm:inline text-[11px] font-semibold ${
+                      isDark ? "text-zinc-300" : "text-zinc-700"
+                    }`}>
                       {isUpgradingPrompt ? "Upgrading..." : "Upgrade"}
                     </span>
                   </button>
 
-                  {/* The Liquid Orange Pill Button (Exact look from media_1789828694529.png) */}
+                  {/* The Liquid Orange Pill Button */}
                   <button
                     onClick={handleSendMessage}
                     disabled={!inputMessage.trim() || isGenerating}
@@ -1392,7 +1562,9 @@ function PlaygroundInner() {
 
           {/* Categorized Test Presets Chips (Beneath Composer in Frosted Liquid Glass) */}
           <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar pb-1 text-xs">
-            <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider pl-1 flex-shrink-0">
+            <span className={`text-[10px] font-bold uppercase tracking-wider pl-1 flex-shrink-0 ${
+              isDark ? "text-zinc-500" : "text-zinc-400"
+            }`}>
               Test Presets:
             </span>
             {CATEGORIZED_PRESET_CHIPS.map((chip) => (
@@ -1407,7 +1579,11 @@ function PlaygroundInner() {
                     textareaRef.current.focus();
                   }
                 }}
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-white/[0.04] hover:bg-white/[0.1] border border-white/10 hover:border-orange-500/40 text-zinc-300 hover:text-white text-[10px] sm:text-xs whitespace-nowrap transition-all flex-shrink-0 shadow-sm"
+                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-xl border text-[10px] sm:text-xs whitespace-nowrap transition-all flex-shrink-0 shadow-sm ${
+                  isDark
+                    ? "bg-white/[0.04] hover:bg-white/[0.1] border-white/10 hover:border-orange-500/40 text-zinc-300 hover:text-white"
+                    : "bg-white/80 hover:bg-white border-black/10 hover:border-orange-500/40 text-zinc-700 hover:text-zinc-900 shadow-sm"
+                }`}
               >
                 <span>{chip.icon}</span>
                 <span>{chip.label}</span>
@@ -1429,16 +1605,20 @@ function PlaygroundInner() {
           />
 
           {/* Drawer Body in Liquid Glass */}
-          <aside className="relative w-full max-w-md bg-[#0e0f14]/95 backdrop-blur-2xl border-l border-white/10 shadow-2xl flex flex-col h-full z-10 animate-slideIn">
+          <aside className={`relative w-full max-w-md backdrop-blur-2xl border-l shadow-2xl flex flex-col h-full z-10 animate-slideIn transition-colors ${
+            isDark ? "bg-[#0e0f14]/95 border-white/10 text-white" : "bg-white/95 border-black/10 text-zinc-900"
+          }`}>
             {/* Drawer Header */}
-            <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-white/10">
+            <div className={`flex items-center justify-between px-4 sm:px-6 py-4 border-b ${
+              isDark ? "border-white/10" : "border-black/10"
+            }`}>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setActiveSideTab("params")}
                   className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
                     activeSideTab === "params"
-                      ? "bg-orange-500/20 text-orange-300 border border-orange-500/30"
-                      : "text-zinc-400 hover:text-white"
+                      ? "bg-orange-500/20 text-orange-400 border border-orange-500/30"
+                      : isDark ? "text-zinc-400 hover:text-white" : "text-zinc-600 hover:text-zinc-900"
                   }`}
                 >
                   ⚙️ Parameters & Roles
@@ -1447,8 +1627,8 @@ function PlaygroundInner() {
                   onClick={() => setActiveSideTab("history")}
                   className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
                     activeSideTab === "history"
-                      ? "bg-orange-500/20 text-orange-300 border border-orange-500/30"
-                      : "text-zinc-400 hover:text-white"
+                      ? "bg-orange-500/20 text-orange-400 border border-orange-500/30"
+                      : isDark ? "text-zinc-400 hover:text-white" : "text-zinc-600 hover:text-zinc-900"
                   }`}
                 >
                   🕐 History ({chatHistoryList.length})
@@ -1457,7 +1637,9 @@ function PlaygroundInner() {
 
               <button
                 onClick={() => setIsSidePanelOpen(false)}
-                className="p-1.5 rounded-xl text-zinc-400 hover:text-white hover:bg-white/10 transition-colors"
+                className={`p-1.5 rounded-xl transition-colors ${
+                  isDark ? "text-zinc-400 hover:text-white hover:bg-white/10" : "text-zinc-500 hover:text-zinc-900 hover:bg-black/5"
+                }`}
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1468,26 +1650,34 @@ function PlaygroundInner() {
               {activeSideTab === "params" ? (
                 <>
                   {/* 1. 1-Click Operational Role Assignment */}
-                  <div className="rounded-2xl border border-orange-500/30 bg-orange-950/20 p-4 space-y-3 shadow-inner">
+                  <div className={`rounded-2xl border p-4 space-y-3 shadow-inner ${
+                    isDark ? "border-orange-500/30 bg-orange-950/20" : "border-orange-300 bg-orange-50/80"
+                  }`}>
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-orange-300 flex items-center gap-1.5">
-                        <Cpu className="w-3.5 h-3.5 text-orange-400" /> 1-Click Assign Model to Role
+                      <span className={`text-xs font-bold flex items-center gap-1.5 ${isDark ? "text-orange-300" : "text-orange-800"}`}>
+                        <Cpu className="w-3.5 h-3.5 text-orange-500" /> 1-Click Assign Model to Role
                       </span>
                       {currentModel.isFree && (
-                        <span className="text-[9px] font-bold text-emerald-400 bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-500/30">
+                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${
+                          isDark
+                            ? "text-emerald-400 bg-emerald-950/60 border-emerald-500/30"
+                            : "text-emerald-700 bg-emerald-100 border-emerald-300"
+                        }`}>
                           Free NIM
                         </span>
                       )}
                     </div>
-                    <p className="text-[11px] text-zinc-400">
-                      Deploy <strong className="text-white">{currentModel.name}</strong> to handle live production workloads:
+                    <p className={`text-[11px] ${isDark ? "text-zinc-400" : "text-zinc-600"}`}>
+                      Deploy <strong className={isDark ? "text-white" : "text-zinc-900"}>{currentModel.name}</strong> to handle live production workloads:
                     </p>
 
                     <div className="space-y-2">
                       <select
                         value={targetRole}
                         onChange={(e) => setTargetRole(e.target.value)}
-                        className="w-full px-3 py-2 rounded-xl bg-black/50 border border-white/10 text-xs text-white focus:outline-none focus:border-orange-400"
+                        className={`w-full px-3 py-2 rounded-xl text-xs focus:outline-none focus:border-orange-400 ${
+                          isDark ? "bg-black/50 border border-white/10 text-white" : "bg-white border border-black/15 text-zinc-900"
+                        }`}
                       >
                         <option value="friday_web_model">Friday Web Copilot (Dashboard Navigation)</option>
                         <option value="edith_sales_model">EDITH Sales Closer (WhatsApp Deals)</option>
@@ -1505,7 +1695,7 @@ function PlaygroundInner() {
                         <span>Apply Model to Role</span>
                       </button>
                       {assignRoleMsg && (
-                        <p className="text-[10px] text-center font-semibold text-emerald-400">
+                        <p className="text-[10px] text-center font-semibold text-emerald-500">
                           {assignRoleMsg}
                         </p>
                       )}
@@ -1514,8 +1704,8 @@ function PlaygroundInner() {
 
                   {/* 2. Persona Presets */}
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-zinc-300 flex items-center gap-1.5">
-                      <Bot className="w-3.5 h-3.5 text-orange-400" /> Persona Presets
+                    <label className={`text-xs font-bold flex items-center gap-1.5 ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
+                      <Bot className="w-3.5 h-3.5 text-orange-500" /> Persona Presets
                     </label>
                     <div className="grid grid-cols-2 gap-2">
                       {PERSONA_PRESETS.map((persona) => (
@@ -1524,14 +1714,18 @@ function PlaygroundInner() {
                           onClick={() => handleSelectPersona(persona)}
                           className={`p-2.5 rounded-xl text-left border text-xs transition-all ${
                             selectedPersona.id === persona.id
-                              ? "border-orange-500 bg-orange-500/15 text-white font-medium"
-                              : "border-white/10 bg-white/[0.03] text-zinc-400 hover:bg-white/[0.06]"
+                              ? isDark
+                                ? "border-orange-500 bg-orange-500/15 text-white font-medium"
+                                : "border-orange-500 bg-orange-50 text-zinc-900 font-medium shadow-sm"
+                              : isDark
+                                ? "border-white/10 bg-white/[0.03] text-zinc-400 hover:bg-white/[0.06]"
+                                : "border-black/10 bg-black/[0.02] text-zinc-600 hover:bg-black/[0.05]"
                           }`}
                         >
-                          <div className="font-semibold text-[11px] truncate text-zinc-200">
+                          <div className={`font-semibold text-[11px] truncate ${isDark ? "text-zinc-200" : "text-zinc-800"}`}>
                             {persona.name}
                           </div>
-                          <div className="text-[9px] text-zinc-500 mt-0.5 line-clamp-1">
+                          <div className={`text-[9px] mt-0.5 line-clamp-1 ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
                             {persona.description}
                           </div>
                         </button>
@@ -1541,24 +1735,26 @@ function PlaygroundInner() {
 
                   {/* 3. Live System Prompt Editor */}
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-zinc-300 flex items-center justify-between">
+                    <label className={`text-xs font-bold flex items-center justify-between ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
                       <span>Live System Prompt</span>
-                      <span className="text-[10px] text-zinc-500 font-mono">{systemPrompt.length} chars</span>
+                      <span className={`text-[10px] font-mono ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>{systemPrompt.length} chars</span>
                     </label>
                     <textarea
                       value={systemPrompt}
                       onChange={(e) => setSystemPrompt(e.target.value)}
                       rows={4}
-                      className="w-full px-3 py-2 rounded-xl bg-black/50 border border-white/10 text-xs text-zinc-200 focus:outline-none focus:border-orange-400 font-mono resize-none leading-relaxed"
+                      className={`w-full px-3 py-2 rounded-xl text-xs font-mono resize-none leading-relaxed focus:outline-none focus:border-orange-400 ${
+                        isDark ? "bg-black/50 border border-white/10 text-zinc-200" : "bg-zinc-50 border border-black/15 text-zinc-900"
+                      }`}
                     />
                   </div>
 
                   {/* 4. Inference Sliders */}
-                  <div className="space-y-4 pt-2 border-t border-white/10">
+                  <div className={`space-y-4 pt-2 border-t ${isDark ? "border-white/10" : "border-black/10"}`}>
                     <div className="space-y-1.5">
-                      <div className="flex justify-between text-xs font-bold text-zinc-300">
+                      <div className={`flex justify-between text-xs font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
                         <span>Temperature (Creativity)</span>
-                        <span className="font-mono text-orange-400">{temperature.toFixed(2)}</span>
+                        <span className="font-mono text-orange-500">{temperature.toFixed(2)}</span>
                       </div>
                       <input
                         type="range"
@@ -1569,7 +1765,7 @@ function PlaygroundInner() {
                         onChange={(e) => setTemperature(parseFloat(e.target.value))}
                         className="w-full accent-orange-500 cursor-pointer"
                       />
-                      <div className="flex justify-between text-[9px] text-zinc-500">
+                      <div className={`flex justify-between text-[9px] ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
                         <span>0.00 (Strict Margin)</span>
                         <span>0.70 (Standard)</span>
                         <span>1.00 (Exploratory)</span>
@@ -1577,9 +1773,9 @@ function PlaygroundInner() {
                     </div>
 
                     <div className="space-y-1.5">
-                      <div className="flex justify-between text-xs font-bold text-zinc-300">
+                      <div className={`flex justify-between text-xs font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
                         <span>Max Output Tokens</span>
-                        <span className="font-mono text-orange-400">{maxTokens}</span>
+                        <span className="font-mono text-orange-500">{maxTokens}</span>
                       </div>
                       <input
                         type="range"
@@ -1593,14 +1789,16 @@ function PlaygroundInner() {
                     </div>
 
                     <div className="space-y-1.5">
-                      <div className="flex justify-between text-xs font-bold text-zinc-300">
+                      <div className={`flex justify-between text-xs font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
                         <span>Request Timeout</span>
-                        <span className="font-mono text-orange-400">{timeoutSecs}s</span>
+                        <span className="font-mono text-orange-500">{timeoutSecs}s</span>
                       </div>
                       <select
                         value={timeoutSecs}
                         onChange={(e) => setTimeoutSecs(parseInt(e.target.value))}
-                        className="w-full px-3 py-2 rounded-xl bg-black/50 border border-white/10 text-xs text-white focus:outline-none"
+                        className={`w-full px-3 py-2 rounded-xl text-xs focus:outline-none ${
+                          isDark ? "bg-black/50 border border-white/10 text-white" : "bg-white border border-black/15 text-zinc-900"
+                        }`}
                       >
                         <option value={15}>15 seconds (Ultra Fast)</option>
                         <option value={30}>30 seconds (Standard)</option>
@@ -1613,17 +1811,21 @@ function PlaygroundInner() {
                     <button
                       onClick={handleSaveParameters}
                       disabled={isSavingSettings}
-                      className="w-full py-2.5 rounded-xl bg-white/[0.08] hover:bg-white/[0.15] border border-white/15 text-white text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-md"
+                      className={`w-full py-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-md ${
+                        isDark
+                          ? "bg-white/[0.08] hover:bg-white/[0.15] border-white/15 text-white"
+                          : "bg-black/[0.05] hover:bg-black/[0.1] border-black/10 text-zinc-900"
+                      }`}
                     >
                       {isSavingSettings ? (
                         <RefreshCw className="w-3.5 h-3.5 animate-spin" />
                       ) : (
-                        <Save className="w-3.5 h-3.5 text-emerald-400" />
+                        <Save className="w-3.5 h-3.5 text-emerald-500" />
                       )}
                       <span>Save Parameters to System .env</span>
                     </button>
                     {saveSettingsMsg && (
-                      <p className="text-[10px] text-center font-semibold text-emerald-400">
+                      <p className="text-[10px] text-center font-semibold text-emerald-500">
                         {saveSettingsMsg}
                       </p>
                     )}
@@ -1632,13 +1834,13 @@ function PlaygroundInner() {
               ) : (
                 /* History Tab */
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between pb-2 border-b border-white/5">
-                    <span className="text-xs font-bold text-zinc-300 uppercase tracking-wider">
+                  <div className={`flex items-center justify-between pb-2 border-b ${isDark ? "border-white/5" : "border-black/5"}`}>
+                    <span className={`text-xs font-bold uppercase tracking-wider ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
                       Recent Test Runs
                     </span>
                     <button
                       onClick={handleClearHistory}
-                      className="text-[11px] text-orange-400 hover:underline flex items-center gap-1"
+                      className="text-[11px] text-orange-500 hover:underline flex items-center gap-1"
                     >
                       + New Chat
                     </button>
@@ -1648,13 +1850,17 @@ function PlaygroundInner() {
                     {chatHistoryList.map((item) => (
                       <div
                         key={item.id}
-                        className="p-3 rounded-xl bg-white/[0.03] hover:bg-white/[0.07] border border-white/5 hover:border-orange-500/30 transition-all cursor-pointer group"
+                        className={`p-3 rounded-xl border transition-all cursor-pointer group ${
+                          isDark
+                            ? "bg-white/[0.03] hover:bg-white/[0.07] border-white/5 hover:border-orange-500/30 text-zinc-200"
+                            : "bg-black/[0.02] hover:bg-black/[0.05] border-black/5 hover:border-orange-500/30 text-zinc-800"
+                        }`}
                       >
-                        <div className="text-xs font-semibold text-zinc-200 group-hover:text-white truncate">
+                        <div className={`text-xs font-semibold truncate ${isDark ? "text-zinc-200 group-hover:text-white" : "text-zinc-800 group-hover:text-black"}`}>
                           {item.title}
                         </div>
-                        <div className="flex items-center justify-between text-[10px] text-zinc-500 mt-1">
-                          <span className="font-mono text-zinc-400">{item.model.split("/").pop()}</span>
+                        <div className={`flex items-center justify-between text-[10px] mt-1 ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
+                          <span className={`font-mono ${isDark ? "text-zinc-400" : "text-zinc-600"}`}>{item.model.split("/").pop()}</span>
                           <span>{item.time}</span>
                         </div>
                       </div>
