@@ -197,6 +197,22 @@ HTTP/1.1 403 Forbidden - {"detail": "Webhook verification failed."}
 
 ---
 
+### 2.7 1-Click AI Suggestion Reply for Groups & Omnipotent Friday Agency (ADR 0025)
+- **Symptom**:
+  - Operators want AI assistance in drafting group chat replies without letting the AI send messages autonomously.
+  - Operator asks: *"Can Friday or EDITH suggest what to reply in a group chat, let me refine it, and put it directly into my composer?"*
+  - Operator asks: *"Can Friday click buttons, change themes, and navigate the website like a human?"*
+- **Solution & Controls**:
+  1. **1-Click AI Draft Button**: In the `/conversations` input toolbar, click **"✨ Suggest Reply"**. Friday & EDITH inspect recent messages and active catalog products, generate a professional draft, and inject it directly into the text input area without sending.
+  2. **Refine with Friday**:
+     - Quick chips allow 1-click refinement: `⚡ Shorter`, `💰 5% Bulk Discount`, `🚚 3-Day Delivery`, `👔 Formal Tone`, `🇮🇳 Hindi (हिंदी)`.
+     - Click **💬 Talk to Friday...** to enter custom instructions (e.g., *"translate to Bengali"*, *"add bank details"*).
+  3. **Voice & Text Agency**:
+     - You can speak to Friday via the Voice Agent or type into Friday Chat: *"suggest reply for group with 5% discount"*, and Friday places the updated draft in your composer live via WebSocket.
+     - You can tell Friday to click any element (*"click Suggest Reply"*, *"click Take Over"*), navigate routes (*"go to orders"*), or toggle themes (*"switch to dark mode"*). Friday executes DOM actions natively with animated visual rings.
+
+---
+
 ## 🧠 3. LLM & Embedding Errors
 
 ### 3.1 `httpx.HTTPStatusError: 404 Not Found on /chat/completions`
