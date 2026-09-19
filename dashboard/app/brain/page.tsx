@@ -44,7 +44,37 @@ import {
   Layers,
   CheckCircle,
   Database,
+  Compass,
 } from "lucide-react";
+import { PolarAngleAxis, PolarGrid, Radar, RadarChart } from "recharts";
+import {
+  ChartConfig,
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "@/components/ui/radar-chart";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+
+const brainRadarConfig = {
+  friday: {
+    label: "FRIDAY (Gemini 3.1 Flash)",
+    color: "var(--chart-2)",
+  },
+  edith: {
+    label: "EDITH (Llama 3.3 70B / Nemotron)",
+    color: "var(--chart-1)",
+  },
+} satisfies ChartConfig;
+
+const brainCapabilitiesData = [
+  { dimension: "Latency Velocity", friday: 96, edith: 70 },
+  { dimension: "Policy Reasoning", friday: 68, edith: 98 },
+  { dimension: "Context Depth", friday: 95, edith: 78 },
+  { dimension: "Guardrail Rigor", friday: 72, edith: 99 },
+  { dimension: "Voice & Tools", friday: 94, edith: 75 },
+  { dimension: "Token Efficiency", friday: 92, edith: 82 },
+];
 
 interface InterBrainMessageItem {
   id: string;
@@ -1098,6 +1128,85 @@ export default function DualBrainPage() {
           </div>
         </div>
       </div>
+
+      {/* SECTION: Dual-Brain Cognitive Vector Radar Analysis */}
+      <Card className="rounded-3xl border border-gray-200 dark:border-zinc-800 bg-white/95 dark:bg-zinc-900/95 shadow-sm">
+        <CardHeader className="pb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <CardTitle className="text-base font-bold flex items-center gap-2">
+                <Compass className="w-5 h-5 text-sky-500" />
+                Dual-Brain Cognitive Vector Benchmark (FRIDAY vs EDITH)
+                <Badge variant="outline" className="text-emerald-500 bg-emerald-500/10 border-none ml-2">
+                  Symbiotic Architecture
+                </Badge>
+              </CardTitle>
+              <CardDescription className="text-xs">
+                Polar evaluation comparing real-time conversational streaming (Gemini 3.1 Flash) against deterministic reasoning & policy enforcement (Llama 3.3 70B)
+              </CardDescription>
+            </div>
+            <div className="flex items-center gap-4 text-xs font-mono">
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full" style={{ backgroundColor: "var(--chart-2)" }} />
+                <span className="text-gray-700 dark:text-gray-300 font-semibold">FRIDAY (Fast-Path)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full" style={{ backgroundColor: "var(--chart-1)" }} />
+                <span className="text-gray-700 dark:text-gray-300 font-semibold">EDITH (Deep-Reasoning)</span>
+              </div>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="pb-4">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+            <div className="lg:col-span-7">
+              <ChartContainer
+                config={brainRadarConfig}
+                className="mx-auto aspect-square max-h-[320px] w-full"
+              >
+                <RadarChart data={brainCapabilitiesData}>
+                  <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+                  <PolarAngleAxis dataKey="dimension" />
+                  <PolarGrid strokeDasharray="3 3" />
+                  <Radar
+                    name="FRIDAY (Fast-Path)"
+                    stroke="var(--color-friday)"
+                    dataKey="friday"
+                    fill="var(--color-friday)"
+                    fillOpacity={0.22}
+                  />
+                  <Radar
+                    name="EDITH (Deep-Reasoning)"
+                    stroke="var(--color-edith)"
+                    dataKey="edith"
+                    fill="var(--color-edith)"
+                    fillOpacity={0.18}
+                  />
+                </RadarChart>
+              </ChartContainer>
+            </div>
+            <div className="lg:col-span-5 space-y-3 text-xs">
+              <div className="p-3.5 rounded-2xl bg-sky-500/5 dark:bg-sky-500/10 border border-sky-500/20">
+                <div className="font-bold text-sky-600 dark:text-sky-400 flex items-center gap-1.5 mb-1">
+                  ⚡ FRIDAY Superpowers: Low Latency & Voice Dexterity
+                </div>
+                <p className="text-gray-600 dark:text-gray-300 text-[11px] leading-relaxed">
+                  Excels in real-time audio PCM streaming, sub-200ms latency, and continuous 1M context memory. Handles immediate customer queries without stalling.
+                </p>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-red-500/5 dark:bg-red-500/10 border border-red-500/20">
+                <div className="font-bold text-red-600 dark:text-red-400 flex items-center gap-1.5 mb-1">
+                  🛡️ EDITH Superpowers: Deterministic Governance & Margin Protection
+                </div>
+                <p className="text-gray-600 dark:text-gray-300 text-[11px] leading-relaxed">
+                  Excels in policy enforcement, discount capping (≤5.0%), prompt injection defense, and multi-step commercial reasoning before any high-stakes WhatsApp dispatch.
+                </p>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Main Two-Column Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
