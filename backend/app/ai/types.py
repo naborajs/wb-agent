@@ -122,3 +122,18 @@ class PromptOptimizationResult(BaseModel):
             return "\n".join(f"{k}: {val}" for k, val in v.items())
         return str(v or "System prompt updated based on user intent.")
 
+
+class PromptDraftSectionResult(BaseModel):
+    """Structured proposal for creating a new prompt section from scratch."""
+    key: str
+    display_name: str
+    icon: str = "Sparkles"
+    description: str
+    starter_instructions: str
+    quality_score: int = Field(default=95, ge=0, le=100)
+    quality_grade: str = "A+"
+    rating_breakdown: PromptRatingBreakdown = Field(default_factory=PromptRatingBreakdown)
+    summary_of_changes: str
+    model_used: str = "nvidia/nemotron-3-ultra-550b-a55b"
+    latency_ms: int = 0
+
