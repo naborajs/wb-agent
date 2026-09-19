@@ -411,31 +411,41 @@ function RenderMarkdown({ content }: { content: string }) {
   );
 }
 
-function FloatingRobotMascot() {
+function FloatingRobotMascot({ isDark = true }: { isDark?: boolean }) {
   const [imgLoaded, setImgLoaded] = useState(false);
 
   return (
     <div className="relative group cursor-pointer select-none">
-      {/* Soft warm ambient radial glow (Amber / Orange & Emerald) */}
-      <div className="absolute -inset-6 rounded-full bg-gradient-to-r from-orange-500/20 via-amber-500/15 to-emerald-500/15 blur-2xl opacity-60 group-hover:opacity-100 transition-opacity pointer-events-none" />
+      {/* Soft warm ambient radial glow — adapts to theme */}
+      <div className={`absolute -inset-6 rounded-full blur-2xl opacity-60 group-hover:opacity-100 transition-opacity pointer-events-none ${
+        isDark
+          ? "bg-gradient-to-r from-orange-500/20 via-amber-500/15 to-emerald-500/15"
+          : "bg-gradient-to-r from-orange-400/10 via-amber-300/10 to-emerald-400/10"
+      }`} />
 
       {/* Mascot Container: Loads transparent PNG with instant SVG backup */}
       <div className="relative w-28 h-36 sm:w-32 sm:h-40 md:w-36 md:h-44 flex items-center justify-center transition-transform duration-300 group-hover:scale-105">
-        {/* Transparent PNG from user screenshot */}
+        {/* Transparent PNG */}
         <img
           src="/ai-mascot-transparent.png"
           alt="AI Mascot"
           onLoad={() => setImgLoaded(true)}
-          className={`w-full h-full object-contain filter drop-shadow-[0_12px_24px_rgba(0,0,0,0.7)] transition-opacity duration-300 ${
-            imgLoaded ? "opacity-100" : "opacity-0 absolute"
-          }`}
+          className={`w-full h-full object-contain transition-opacity duration-300 ${
+            isDark
+              ? "filter drop-shadow-[0_12px_24px_rgba(0,0,0,0.7)]"
+              : "filter drop-shadow-[0_8px_20px_rgba(0,0,0,0.15)]"
+          } ${imgLoaded ? "opacity-100" : "opacity-0 absolute"}`}
         />
 
-        {/* Crisp Vector SVG (Matches screenshot geometry exactly, renders instantly with zero background) */}
+        {/* Crisp Vector SVG fallback */}
         {!imgLoaded && (
           <svg
             viewBox="0 0 160 180"
-            className="w-full h-full filter drop-shadow-[0_12px_24px_rgba(255,107,0,0.3)]"
+            className={`w-full h-full ${
+              isDark
+                ? "filter drop-shadow-[0_12px_24px_rgba(255,107,0,0.3)]"
+                : "filter drop-shadow-[0_8px_16px_rgba(0,0,0,0.12)]"
+            }`}
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
           >
@@ -446,8 +456,8 @@ function FloatingRobotMascot() {
                 <stop offset="100%" stopColor="#E2E3E8" />
               </linearGradient>
               <linearGradient id="robotTitaniumGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#555866" />
-                <stop offset="100%" stopColor="#2A2C35" />
+                <stop offset="0%" stopColor={isDark ? "#555866" : "#8B8FA0"} />
+                <stop offset="100%" stopColor={isDark ? "#2A2C35" : "#555866"} />
               </linearGradient>
               <linearGradient id="headBezelGrad" x1="0%" y1="0%" x2="0%" y2="100%">
                 <stop offset="0%" stopColor="#FFFFFF" />
@@ -524,9 +534,13 @@ function FloatingRobotMascot() {
         )}
       </div>
 
-      {/* Online indicator */}
-      <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#0d0d12]/95 border border-orange-500/30 text-[9px] font-bold text-orange-300 shadow-lg whitespace-nowrap">
-        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+      {/* Online indicator — adapts to theme */}
+      <div className={`absolute -bottom-2 left-1/2 -translate-x-1/2 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border text-[9px] font-bold shadow-lg whitespace-nowrap transition-colors ${
+        isDark
+          ? "bg-[#0d0d12]/95 border-orange-500/30 text-orange-300"
+          : "bg-white/95 border-orange-400/40 text-orange-700 shadow-md"
+      }`}>
+        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
         <span>ONLINE</span>
       </div>
     </div>
@@ -1128,7 +1142,7 @@ function PlaygroundInner() {
               </div>
 
               {/* Floating 2D Mascot */}
-              <FloatingRobotMascot />
+              <FloatingRobotMascot isDark={isDark} />
 
               {/* Right Speech Bubble */}
               <div className={`hidden sm:flex absolute -right-36 md:-right-48 bottom-4 items-center gap-1.5 px-3.5 py-1.5 rounded-2xl backdrop-blur-xl border text-xs transition-all shadow-lg ${
@@ -1601,7 +1615,9 @@ function PlaygroundInner() {
           {/* Backdrop */}
           <div
             onClick={() => setIsSidePanelOpen(false)}
-            className="absolute inset-0 bg-black/70 backdrop-blur-md transition-opacity"
+            className={`absolute inset-0 backdrop-blur-md transition-opacity ${
+              isDark ? "bg-black/70" : "bg-black/30"
+            }`}
           />
 
           {/* Drawer Body in Liquid Glass */}
@@ -1880,8 +1896,8 @@ export default function PlaygroundPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center bg-[#07070B] text-zinc-400 text-sm">
-          <RefreshCw className="w-5 h-5 animate-spin text-orange-400 mr-2" />
+        <div className="min-h-screen flex items-center justify-center text-sm transition-colors dark:bg-[#07070B] dark:text-zinc-400 bg-[#F8F8FA] text-zinc-500">
+          <RefreshCw className="w-5 h-5 animate-spin text-orange-500 mr-2" />
           Loading Dual-Brain Testing Studio...
         </div>
       }
