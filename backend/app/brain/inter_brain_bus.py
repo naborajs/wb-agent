@@ -1046,6 +1046,81 @@ class FridayBrain:
                     "action_result": res,
                 }
 
+        # Prompt Section Voice Operations (Rollback, Reset, Toggle, Compare, Archive, Create)
+        is_prompt_command = any(k in user_lower for k in [
+            "roll back", "rollback", "restore version", "revert version",
+            "reset to default", "factory default", "restore default",
+            "toggle section", "enable section", "disable section",
+            "archive section", "delete section",
+            "compare prompt", "diff prompt", "compare version",
+            "create section", "create new section"
+        ])
+        if is_prompt_command:
+            from app.services import friday_actions
+            action_name = ""
+            params: Dict[str, Any] = {}
+
+            # 1. Rollback
+            rb_match = re.search(r"(?:roll\s*back|restore|revert)\s+(?:the\s+)?([a-zA-Z0-9_\s]+?)\s+(?:to\s+)?(?:version\s+|v)?(\d+)", user_lower)
+            if rb_match:
+                action_name = "rollback_prompt_section"
+                params["section"] = rb_match.group(1).strip()
+                params["version"] = int(rb_match.group(2))
+                params["confirmed"] = "confirm" in user_lower or "yes" in user_lower
+
+            # 2. Reset default
+            elif any(k in user_lower for k in ["reset to default", "factory default", "restore default"]):
+                action_name = "reset_prompt_section_default"
+                sec_match = re.search(r"reset\s+(?:the\s+)?([a-zA-Z0-9_\s]+?)\s+to\s+(?:factory\s*)?default", user_lower)
+                params["section"] = sec_match.group(1).strip() if sec_match else "core_identity"
+                params["confirmed"] = "confirm" in user_lower or "yes" in user_lower
+
+            # 3. Archive
+            elif any(k in user_lower for k in ["archive section", "delete section"]):
+                action_name = "archive_prompt_section"
+                sec_match = re.search(r"(?:archive|delete)\s+section\s+([a-zA-Z0-9_\s]+)", user_lower)
+                params["section"] = sec_match.group(1).strip() if sec_match else ""
+                params["confirmed"] = "confirm" in user_lower or "yes" in user_lower
+
+            # 4. Toggle
+            elif any(k in user_lower for k in ["disable section", "turn off section"]):
+                action_name = "toggle_prompt_section"
+                sec_match = re.search(r"(?:disable|turn off)\s+section\s+([a-zA-Z0-9_\s]+)", user_lower)
+                params["section"] = sec_match.group(1).strip() if sec_match else ""
+                params["is_active"] = False
+            elif any(k in user_lower for k in ["enable section", "turn on section"]):
+                action_name = "toggle_prompt_section"
+                sec_match = re.search(r"(?:enable|turn on)\s+section\s+([a-zA-Z0-9_\s]+)", user_lower)
+                params["section"] = sec_match.group(1).strip() if sec_match else ""
+                params["is_active"] = True
+
+            # 5. Compare / diff
+            elif any(k in user_lower for k in ["compare", "diff"]):
+                diff_m = re.search(r"(?:compare|diff)\s+([a-zA-Z0-9_\s]+?)\s+(?:version\s+|v)?(\d+)\s+(?:and|to|with)\s+(?:version\s+|v)?(\d+)", user_lower)
+                if diff_m:
+                    action_name = "compare_prompt_versions"
+                    params["section"] = diff_m.group(1).strip()
+                    params["from_version"] = int(diff_m.group(2))
+                    params["to_version"] = int(diff_m.group(3))
+
+            if action_name and params:
+                res = await friday_actions.execute_action(
+                    session=session,
+                    org_id=org_id,
+                    action_name=action_name,
+                    params=params,
+                )
+                spoken = res.get("confirmation_prompt") if res.get("requires_confirmation") else res.get("message")
+                return {
+                    "speaker": "Friday",
+                    "model": "gemini-3.1-flash-live-preview",
+                    "reply": spoken,
+                    "speak_text": spoken,
+                    "consulted_edith": False,
+                    "action_result": res,
+                }
+
+
         # Universal Website Agency: Click elements all over website
         is_click_cmd = any(user_lower.startswith(p) for p in [
             "click ", "press ", "tap ", "hit button ", "push button "
