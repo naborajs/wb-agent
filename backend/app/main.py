@@ -51,6 +51,13 @@ async def lifespan(app: FastAPI):
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
         logger.info("FastAPI Lifespan: Database schema verified and all tables created.")
+
+        # Ensure dynamic prompt sections and version linkages are migrated & seeded
+        from app.database.session import get_db_context
+        from app.database.migrations.migrate_to_dynamic_prompt_sections import run_prompt_sections_migration
+        async with get_db_context() as session:
+            await run_prompt_sections_migration(session)
+        logger.info("FastAPI Lifespan: Dynamic modular prompt sections verified and seeded.")
     except Exception as e:
         logger.warning(f"FastAPI Lifespan: Database schema init notice: {e}")
 
