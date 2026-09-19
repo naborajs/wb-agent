@@ -22,12 +22,54 @@ import {
   Bot,
   AlertCircle,
   CheckCircle2,
+  Compass,
 } from "lucide-react";
 import DualBrainHeroBus from "@/components/DualBrainHeroBus";
 import SynapticActivityTicker from "@/components/SynapticActivityTicker";
 import ExecutiveBriefingModal from "@/components/ExecutiveBriefingModal";
 import HourlyVelocityHeatmap from "@/components/HourlyVelocityHeatmap";
 import ExecutiveQuickDock from "@/components/ExecutiveQuickDock";
+import { PolarAngleAxis, PolarGrid, Radar, RadarChart } from "recharts";
+import {
+  ChartConfig,
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "@/components/ui/radar-chart";
+import StrokeMultipleRadarChart from "@/components/ui/demo";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+
+const funnelRadarConfig = {
+  leads: {
+    label: "Active Leads",
+    color: "var(--chart-1)",
+  },
+  target: {
+    label: "Target Quota",
+    color: "var(--chart-2)",
+  },
+} satisfies ChartConfig;
+
+const leadHealthConfig = {
+  current: {
+    label: "Active Pipeline",
+    color: "var(--chart-2)",
+  },
+  target: {
+    label: "Enterprise Benchmark",
+    color: "var(--chart-4)",
+  },
+} satisfies ChartConfig;
+
+const leadHealthData = [
+  { dimension: "Response Speed", current: 92, target: 80 },
+  { dimension: "Deal Margin", current: 86, target: 75 },
+  { dimension: "Catalog Depth", current: 90, target: 70 },
+  { dimension: "Verification", current: 78, target: 85 },
+  { dimension: "Close Velocity", current: 84, target: 68 },
+  { dimension: "Retention Rate", current: 88, target: 75 },
+];
 
 interface AnalyticsData {
   leads_total: number;
@@ -101,7 +143,7 @@ export default function DashboardOverview() {
   ]);
 
   const [recentConvs, setRecentConvs] = useState<RecentConversation[]>([]);
-  const [chartView, setChartView] = useState<"bars" | "pie">("bars");
+  const [chartView, setChartView] = useState<"bars" | "pie" | "radar">("bars");
   const [businessName, setBusinessName] = useState("Enterprise AI Operations");
   const [businessIndustry, setBusinessIndustry] = useState("Commercial Wholesale & B2B");
   const [agentName, setAgentName] = useState("EDITH");
@@ -817,6 +859,16 @@ export default function DashboardOverview() {
               >
                 <PieIcon className="w-3.5 h-3.5" /> Donut Chart
               </button>
+              <button
+                onClick={() => setChartView("radar")}
+                className={`px-3 py-1 rounded-lg font-semibold transition-colors flex items-center gap-1.5 ${
+                  chartView === "radar"
+                    ? "text-[var(--ed-text-primary)] bg-[var(--ed-surface)] shadow-sm"
+                    : "text-[var(--ed-text-muted)]"
+                }`}
+              >
+                <Compass className="w-3.5 h-3.5" /> Radar View
+              </button>
             </div>
           </div>
 
@@ -845,7 +897,7 @@ export default function DashboardOverview() {
                 );
               })}
             </div>
-          ) : (
+          ) : chartView === "pie" ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 items-center py-2">
               <div className="flex justify-center">
                 <svg width="200" height="200" viewBox="0 0 200 200" className="transform -rotate-90 max-w-[200px] w-full h-auto">
@@ -899,6 +951,51 @@ export default function DashboardOverview() {
                     );
                   });
                 })()}
+              </div>
+            </div>
+          ) : (
+            <div className="py-2 space-y-3">
+              <ChartContainer
+                config={funnelRadarConfig}
+                className="mx-auto aspect-square max-h-[260px] w-full"
+              >
+                <RadarChart
+                  data={funnel.map((f) => ({
+                    stage: f.stage.replace("_", " "),
+                    leads: f.count,
+                    target: Math.round(f.count * 1.35) + 3,
+                  }))}
+                >
+                  <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+                  <PolarAngleAxis dataKey="stage" />
+                  <PolarGrid strokeDasharray="3 3" />
+                  <Radar
+                    name="Active Leads"
+                    stroke="var(--color-leads)"
+                    dataKey="leads"
+                    fill="var(--color-leads)"
+                    fillOpacity={0.25}
+                  />
+                  <Radar
+                    name="Target Quota"
+                    stroke="var(--color-target)"
+                    dataKey="target"
+                    fill="var(--color-target)"
+                    fillOpacity={0.08}
+                  />
+                </RadarChart>
+              </ChartContainer>
+              <div className="flex flex-wrap items-center justify-center gap-6 text-xs text-[var(--ed-text-muted)] pt-3 border-t border-[var(--ed-border)]">
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[var(--chart-1)]" />
+                  <span className="font-medium text-[var(--ed-text-primary)]">
+                    Active Leads ({funnel.reduce((a, b) => a + b.count, 0)})
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[var(--chart-2)]" />
+                  <span>30-Day Velocity Quota</span>
+                </div>
               </div>
             </div>
           )}
@@ -1021,6 +1118,57 @@ export default function DashboardOverview() {
             )}
           </div>
         </div>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* 3.5 OMNICHANNEL RADAR BENCHMARKING & COMMERCIAL READINESS                 */}
+      {/* ========================================================================= */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Wholesale Inflow Trend Radar */}
+        <StrokeMultipleRadarChart />
+
+        {/* Lead Cohort Health & Commercial Readiness Radar */}
+        <Card>
+          <CardHeader className="items-center pb-4">
+            <CardTitle className="flex items-center">
+              Commercial Readiness Radar
+              <Badge
+                variant="outline"
+                className="text-sky-500 bg-sky-500/10 border-none ml-2"
+              >
+                <Compass className="h-4 w-4 mr-1" />
+                <span>94.2 Score</span>
+              </Badge>
+            </CardTitle>
+            <CardDescription>
+              Multidimensional qualification rating across active B2B buyer accounts
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pb-0">
+            <ChartContainer
+              config={leadHealthConfig}
+              className="mx-auto aspect-square max-h-[250px]"
+            >
+              <RadarChart data={leadHealthData}>
+                <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+                <PolarAngleAxis dataKey="dimension" />
+                <PolarGrid strokeDasharray="3 3" />
+                <Radar
+                  stroke="var(--color-current)"
+                  dataKey="current"
+                  fill="var(--color-current)"
+                  fillOpacity={0.2}
+                />
+                <Radar
+                  stroke="var(--color-target)"
+                  dataKey="target"
+                  fill="var(--color-target)"
+                  fillOpacity={0.08}
+                />
+              </RadarChart>
+            </ChartContainer>
+          </CardContent>
+        </Card>
       </div>
 
       {/* ========================================================================= */}
