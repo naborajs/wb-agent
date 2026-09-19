@@ -305,3 +305,89 @@ async def test_friday_suggest_reply_and_agency_chat(test_session: AsyncSession):
     assert "/conversations" in nav_res["reply"]
     assert nav_res.get("ui_action", {}).get("action") == "navigate"
 
+
+@pytest.mark.asyncio
+async def test_friday_model_management_actions_and_chat(test_session: AsyncSession):
+    """
+    Verifies that Friday can assign model roles, update inference hyperparameters,
+    and open/configure the model testing playground via both direct actions and natural language commands.
+    """
+    from app.services import friday_actions
+    from app.brain.inter_brain_bus import FridayBrain
+    org_id = settings.DEFAULT_ORG_ID
+    friday = FridayBrain()
+
+    # 1. Direct Action: Assign model role
+    role_res = await friday_actions.execute_action(
+        session=test_session,
+        org_id=org_id,
+        action_name="set_model_role",
+        params={"role": "edith_sales_model", "model_id": "meta/llama-3.3-70b-instruct"},
+    )
+    assert role_res["success"] is True
+    assert role_res["role"] == "edith_sales_model"
+    assert role_res["model_id"] == "meta/llama-3.3-70b-instruct"
+    assert settings.EDITH_SALES_MODEL == "meta/llama-3.3-70b-instruct"
+
+    # 2. Direct Action: Update model settings (temperature, tokens)
+    settings_res = await friday_actions.execute_action(
+        session=test_session,
+        org_id=org_id,
+        action_name="update_model_settings",
+        params={"temperature": 0.45, "max_tokens": 1500, "timeout": 45},
+    )
+    assert settings_res["success"] is True
+    assert settings.LLM_TEMPERATURE == 0.45
+    assert settings.LLM_MAX_TOKENS == 1500
+    assert settings.LLM_REQUEST_TIMEOUT == 45
+
+    # 3. Direct Action: Open playground
+    play_res = await friday_actions.execute_action(
+        session=test_session,
+        org_id=org_id,
+        action_name="open_playground",
+        params={"model_id": "gemini-2.5-pro"},
+    )
+    assert play_res["success"] is True
+    assert "playground" in play_res["path"]
+    assert "gemini-2.5-pro" in play_res["path"]
+
+    # 4. Chat Command: Switch model for Friday
+    chat_switch = await friday.chat(
+        user_message="Friday, switch model to gemini-2.5-pro",
+        session=test_session,
+        org_id=org_id,
+    )
+    assert chat_switch["speaker"] == "Friday"
+    assert "gemini-2.5-pro" in chat_switch["reply"]
+    assert settings.FRIDAY_WEB_MODEL == "gemini-2.5-pro"
+
+    # 5. Chat Command: Set EDITH to Llama
+    chat_edith = await friday.chat(
+        user_message="Friday, set EDITH to meta/llama-3.3-70b-instruct",
+        session=test_session,
+        org_id=org_id,
+    )
+    assert chat_edith["speaker"] == "Friday"
+    assert "meta/llama-3.3-70b-instruct" in chat_edith["reply"]
+
+    # 6. Chat Command: Set temperature
+    chat_temp = await friday.chat(
+        user_message="Friday, set temperature to 0.35",
+        session=test_session,
+        org_id=org_id,
+    )
+    assert chat_temp["speaker"] == "Friday"
+    assert "0.35" in chat_temp["reply"]
+    assert settings.LLM_TEMPERATURE == 0.35
+
+    # 7. Chat Command: Open playground
+    chat_play = await friday.chat(
+        user_message="Friday, open playground to test gemini-2.5-flash",
+        session=test_session,
+        org_id=org_id,
+    )
+    assert chat_play["speaker"] == "Friday"
+    assert "Playground" in chat_play["reply"]
+
+

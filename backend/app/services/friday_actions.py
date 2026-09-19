@@ -148,6 +148,41 @@ FRIDAY_ACTION_REGISTRY: Dict[str, Dict[str, Any]] = {
         "params": {"theme": "str — 'dark', 'light', or 'toggle'"},
         "effect": "Broadcasts theme change event to browser.",
     },
+    "set_model_role": {
+        "description": "Assigns a specific AI model to an operational role (Friday Web Copilot, EDITH Sales Closer, Voice Agent, Policy Auditor, Watchdog).",
+        "params": {
+            "role": "str — Target role: 'friday_web_model', 'edith_sales_model', 'friday_voice_model', 'edith_policy_model', or 'system_watchdog_model'",
+            "model_id": "str — AI model identifier (e.g. 'gemini-2.5-pro', 'meta/llama-3.3-70b-instruct')",
+        },
+        "effect": "Updates active system runtime memory and persists the assignment to the .env file.",
+    },
+    "update_model_settings": {
+        "description": "Calibrates LLM hyperparameters (temperature, max_tokens, timeout, primary model).",
+        "params": {
+            "temperature": "float (optional) — Inference temperature (0.0 to 1.0)",
+            "max_tokens": "int (optional) — Token ceiling (256 to 4096)",
+            "timeout": "int (optional) — Timeout in seconds (15 to 120)",
+            "primary_model": "str (optional) — Primary model identifier",
+        },
+        "effect": "Updates runtime settings and persists variables in the .env file.",
+    },
+    "open_playground": {
+        "description": "Opens the unified AI Model Playground studio on connected operator dashboards, optionally pre-selecting a model.",
+        "params": {
+            "model_id": "str (optional) — AI model ID to activate in the playground",
+        },
+        "effect": "Navigates dashboard to /playground and broadcasts activation event.",
+    },
+    "configure_playground": {
+        "description": "Adjusts live playground parameters (model, temperature, max_tokens, system prompt) on connected operator dashboards.",
+        "params": {
+            "model_id": "str (optional) — AI model ID",
+            "temperature": "float (optional) — Temperature (0.0 to 1.0)",
+            "max_tokens": "int (optional) — Token ceiling",
+            "system_prompt": "str (optional) — System prompt text",
+        },
+        "effect": "Broadcasts live playground configuration event to all open playground views.",
+    },
 }
 
 
@@ -287,6 +322,14 @@ async def _dispatch_action(
         return await _action_navigate_page(session, org_id, params)
     elif action_name == "set_ui_theme":
         return await _action_set_ui_theme(session, org_id, params)
+    elif action_name == "set_model_role":
+        return await _action_set_model_role(session, org_id, params)
+    elif action_name == "update_model_settings":
+        return await _action_update_model_settings(session, org_id, params)
+    elif action_name == "open_playground":
+        return await _action_open_playground(session, org_id, params)
+    elif action_name == "configure_playground":
+        return await _action_configure_playground(session, org_id, params)
     else:
         return {"success": False, "message": f"Action '{action_name}' not implemented."}
 
@@ -661,3 +704,200 @@ async def _action_set_ui_theme(session: AsyncSession, org_id: str, params: Dict)
     return await _action_dispatch_ui_action(
         session, org_id, {"action_type": "theme", "target": "theme", "value": theme, "theme": theme}
     )
+
+
+async def _action_set_model_role(session: AsyncSession, org_id: str, params: Dict) -> Dict:
+    raw_role = str(params.get("role") or "").strip().lower()
+    raw_model = str(params.get("model_id") or params.get("model") or "").strip()
+    if not raw_role or not raw_model:
+        return {"success": False, "message": "Missing required parameters: role, model_id"}
+
+    role_map = {
+        "friday": "friday_web_model",
+        "friday_web": "friday_web_model",
+        "friday_web_model": "friday_web_model",
+        "copilot": "friday_web_model",
+        "web_copilot": "friday_web_model",
+        "edith": "edith_sales_model",
+        "edith_sales": "edith_sales_model",
+        "edith_sales_model": "edith_sales_model",
+        "sales": "edith_sales_model",
+        "closer": "edith_sales_model",
+        "whatsapp_sales": "edith_sales_model",
+        "voice": "friday_voice_model",
+        "friday_voice": "friday_voice_model",
+        "friday_voice_model": "friday_voice_model",
+        "voice_agent": "friday_voice_model",
+        "policy": "edith_policy_model",
+        "edith_policy": "edith_policy_model",
+        "edith_policy_model": "edith_policy_model",
+        "margin": "edith_policy_model",
+        "margin_auditor": "edith_policy_model",
+        "watchdog": "system_watchdog_model",
+        "system_watchdog": "system_watchdog_model",
+        "system_watchdog_model": "system_watchdog_model",
+        "supervisor": "system_watchdog_model",
+    }
+    canonical_role = role_map.get(raw_role.replace("-", "_").replace(" ", "_"), raw_role)
+
+    # Normalize model ID against known catalog
+    known_catalog = [
+        "gemini-2.5-flash", "gemini-2.5-pro", "gemini-3.1-flash-live-preview",
+        "gemini-2.5-flash-lite", "gemini-3.1-flash-lite", "gemini-3.5-flash", "gemini-flash-latest",
+        "meta/llama-3.3-70b-instruct", "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning",
+        "nvidia/nemotron-3-super-120b-a12b", "nvidia/nemotron-4-340b-instruct",
+        "nvidia/nemotron-3-ultra-550b-a55b", "deepseek-ai/deepseek-r1",
+        "qwen/qwen2.5-72b-instruct", "mistralai/mistral-large-2411",
+        "google/gemma-4-31b-it", "google/diffusiongemma-26b-a4b-it", "openai/gpt-oss-20b"
+    ]
+    canonical_model = raw_model
+    for known in known_catalog:
+        if raw_model.lower() == known.lower() or raw_model.lower() in known.lower():
+            canonical_model = known
+            break
+
+    from app.api.routes.settings import update_local_env_file
+
+    env_key = canonical_role.upper()
+    setattr(settings, env_key, canonical_model)
+    update_local_env_file({env_key: canonical_model})
+
+    friendly_roles = {
+        "friday_web_model": "Friday Web Copilot",
+        "edith_sales_model": "EDITH WhatsApp Sales Closer",
+        "friday_voice_model": "Friday Voice Agent",
+        "edith_policy_model": "EDITH Margin & Policy Auditor",
+        "system_watchdog_model": "System Watchdog Supervisor",
+    }
+    role_label = friendly_roles.get(canonical_role, canonical_role)
+
+    return {
+        "success": True,
+        "message": f"Assigned model **{canonical_model}** to **{role_label}** and persisted to .env.",
+        "role": canonical_role,
+        "model_id": canonical_model,
+    }
+
+
+async def _action_update_model_settings(session: AsyncSession, org_id: str, params: Dict) -> Dict:
+    from app.api.routes.settings import update_local_env_file
+    env_updates: Dict[str, str] = {}
+    updated_items = []
+
+    if "primary_model" in params and params["primary_model"]:
+        m = str(params["primary_model"]).strip()
+        settings.NVIDIA_MODEL = m
+        env_updates["NVIDIA_MODEL"] = m
+        updated_items.append(f"Primary Model: {m}")
+
+    if "temperature" in params and params["temperature"] is not None:
+        try:
+            t = float(params["temperature"])
+            t = max(0.0, min(1.0, round(t, 2)))
+            settings.LLM_TEMPERATURE = t
+            env_updates["LLM_TEMPERATURE"] = str(t)
+            updated_items.append(f"Temperature: {t}")
+        except ValueError:
+            pass
+
+    if "max_tokens" in params and params["max_tokens"] is not None:
+        try:
+            mt = int(params["max_tokens"])
+            mt = max(128, min(8192, mt))
+            settings.LLM_MAX_TOKENS = mt
+            env_updates["LLM_MAX_TOKENS"] = str(mt)
+            updated_items.append(f"Max Tokens: {mt}")
+        except ValueError:
+            pass
+
+    if "timeout" in params and params["timeout"] is not None:
+        try:
+            to = int(params["timeout"])
+            to = max(10, min(300, to))
+            settings.LLM_REQUEST_TIMEOUT = to
+            env_updates["LLM_REQUEST_TIMEOUT"] = str(to)
+            updated_items.append(f"Timeout: {to}s")
+        except ValueError:
+            pass
+
+    if env_updates:
+        update_local_env_file(env_updates)
+
+    msg = f"Updated system LLM parameters: {', '.join(updated_items)}." if updated_items else "No parameters modified."
+    return {
+        "success": bool(updated_items),
+        "message": msg,
+        "updates": env_updates,
+    }
+
+
+async def _action_open_playground(session: AsyncSession, org_id: str, params: Dict) -> Dict:
+    raw_model = str(params.get("model_id") or params.get("model") or "").strip()
+    # Normalize model ID if provided
+    canonical_model = raw_model
+    if raw_model:
+        known_catalog = [
+            "gemini-2.5-flash", "gemini-2.5-pro", "gemini-3.1-flash-live-preview",
+            "gemini-2.5-flash-lite", "gemini-3.1-flash-lite", "gemini-3.5-flash", "gemini-flash-latest",
+            "meta/llama-3.3-70b-instruct", "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning",
+            "nvidia/nemotron-3-super-120b-a12b", "nvidia/nemotron-4-340b-instruct",
+            "nvidia/nemotron-3-ultra-550b-a55b", "deepseek-ai/deepseek-r1",
+            "qwen/qwen2.5-72b-instruct", "mistralai/mistral-large-2411",
+            "google/gemma-4-31b-it", "google/diffusiongemma-26b-a4b-it", "openai/gpt-oss-20b"
+        ]
+        for known in known_catalog:
+            if raw_model.lower() == known.lower() or raw_model.lower() in known.lower():
+                canonical_model = known
+                break
+
+    path = f"/playground?model={canonical_model}" if canonical_model else "/playground"
+    await _action_dispatch_ui_action(
+        session, org_id, {"action_type": "navigate", "target": path, "path": path}
+    )
+
+    if canonical_model:
+        from app.realtime.connection_manager import ws_manager
+        try:
+            await ws_manager.broadcast_to_org(
+                org_id,
+                "friday_ui_action",
+                {
+                    "action": "playground_configure",
+                    "model_id": canonical_model,
+                    "actor": "friday_agent",
+                    "timestamp": utc_now().isoformat(),
+                },
+            )
+        except Exception as e:
+            logger.warning(f"Could not broadcast playground model update: {e}")
+
+    return {
+        "success": True,
+        "message": f"Opened AI Model Playground{' with model ' + canonical_model if canonical_model else ''} on operator screen.",
+        "path": path,
+        "model_id": canonical_model,
+    }
+
+
+async def _action_configure_playground(session: AsyncSession, org_id: str, params: Dict) -> Dict:
+    from app.realtime.connection_manager import ws_manager
+    payload = {
+        "action": "playground_configure",
+        "model_id": params.get("model_id"),
+        "temperature": params.get("temperature"),
+        "max_tokens": params.get("max_tokens"),
+        "system_prompt": params.get("system_prompt"),
+        "actor": "friday_agent",
+        "timestamp": utc_now().isoformat(),
+    }
+    try:
+        await ws_manager.broadcast_to_org(org_id, "friday_ui_action", payload)
+    except Exception as e:
+        logger.warning(f"Could not broadcast playground configure: {e}")
+
+    return {
+        "success": True,
+        "message": "Playground studio parameters updated live on screen.",
+        "payload": payload,
+    }
+

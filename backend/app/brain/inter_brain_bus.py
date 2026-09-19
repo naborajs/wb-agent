@@ -786,7 +786,8 @@ class FridayBrain:
                 "knowledge": "/knowledge", "rag": "/knowledge", "documents": "/knowledge",
                 "prompts": "/prompts",
                 "integrations": "/integrations", "settings": "/settings",
-                "notifications": "/notifications", "brain": "/brain", "dual brain": "/brain"
+                "notifications": "/notifications", "brain": "/brain", "dual brain": "/brain",
+                "playground": "/playground", "model testing": "/playground", "testing studio": "/playground", "testing": "/playground"
             }
             target_path = route_map.get(dest.lower(), dest if dest.startswith("/") else f"/{dest.lower()}")
             res = await friday_actions.execute_action(
@@ -829,6 +830,171 @@ class FridayBrain:
                 "ui_action": res.get("payload"),
                 "action_result": res,
             }
+
+        # Open / Test in AI Playground Studio
+        is_playground_cmd = any(w in user_lower for w in [
+            "open playground", "launch playground", "go to playground", "test in playground",
+            "open testing section", "open model playground", "open testing studio"
+        ])
+        if is_playground_cmd:
+            from app.services import friday_actions
+            model_target = ""
+            for m in [
+                "gemini-2.5-pro", "gemini-2.5-flash", "gemini-3.1-flash-live-preview",
+                "gemini-2.5-flash-lite", "gemini-3.5-flash", "meta/llama-3.3-70b-instruct",
+                "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning", "nvidia/nemotron-3-super-120b-a12b",
+                "nvidia/nemotron-4-340b-instruct", "nvidia/nemotron-3-ultra-550b-a55b",
+                "deepseek-ai/deepseek-r1", "qwen/qwen2.5-72b-instruct", "mistralai/mistral-large-2411",
+                "google/gemma-4-31b-it", "openai/gpt-oss-20b"
+            ]:
+                if m.lower() in user_lower or m.split("/")[-1].replace("-", " ") in user_lower.replace("-", " "):
+                    model_target = m
+                    break
+
+            res = await friday_actions.execute_action(
+                session=session,
+                org_id=org_id,
+                action_name="open_playground",
+                params={"model_id": model_target},
+            )
+            reply = (
+                f"🚀 **Opening AI Model Playground Studio!**\n\n"
+                f"{res.get('message')}\n"
+                f"You have interactive freedom to test prompts, adjust hyperparameters, and assign models directly to operational roles."
+            )
+            return {
+                "speaker": "Friday",
+                "model": "gemini-3.1-flash-live-preview",
+                "reply": reply,
+                "speak_text": f"Opened playground studio{f' with {model_target}' if model_target else ''}.",
+                "consulted_edith": False,
+                "ui_action": res.get("payload"),
+                "action_result": res,
+            }
+
+        # Model Role Assignment & Model Switching
+        is_model_switch_cmd = any(w in user_lower for w in [
+            "assign model", "switch model", "change model", "set model",
+            "assign to friday", "assign to edith", "assign to voice", "assign to watchdog", "assign to policy"
+        ]) or (
+            ("switch" in user_lower or "change" in user_lower or "assign" in user_lower or "set" in user_lower) and
+            any(m_kw in user_lower for m_kw in ["gemini", "llama", "nemotron", "deepseek", "qwen", "mistral", "gemma", "gpt-oss", "gpt oss"])
+        )
+        if is_model_switch_cmd and not is_playground_cmd:
+            from app.services import friday_actions
+            target_role = "friday_web_model"
+            if any(r in user_lower for r in ["edith", "sales", "closer", "whatsapp"]):
+                target_role = "edith_sales_model"
+            elif any(r in user_lower for r in ["voice", "audio", "speech"]):
+                target_role = "friday_voice_model"
+            elif any(r in user_lower for r in ["policy", "margin", "governance"]):
+                target_role = "edith_policy_model"
+            elif any(r in user_lower for r in ["watchdog", "supervisor", "sanity"]):
+                target_role = "system_watchdog_model"
+            elif any(r in user_lower for r in ["friday", "copilot", "web"]):
+                target_role = "friday_web_model"
+
+            matched_model = ""
+            for m in [
+                "gemini-2.5-pro", "gemini-2.5-flash-lite", "gemini-3.1-flash-live-preview",
+                "gemini-3.1-flash-lite", "gemini-3.5-flash", "gemini-flash-latest", "gemini-2.5-flash",
+                "meta/llama-3.3-70b-instruct", "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning",
+                "nvidia/nemotron-3-super-120b-a12b", "nvidia/nemotron-4-340b-instruct",
+                "nvidia/nemotron-3-ultra-550b-a55b", "deepseek-ai/deepseek-r1",
+                "qwen/qwen2.5-72b-instruct", "mistralai/mistral-large-2411",
+                "google/gemma-4-31b-it", "google/diffusiongemma-26b-a4b-it", "openai/gpt-oss-20b"
+            ]:
+                clean_m = m.split("/")[-1].replace("-", " ")
+                clean_q = user_lower.replace("-", " ")
+                if m.lower() in user_lower or clean_m in clean_q or (m.split("/")[-1] in user_lower):
+                    matched_model = m
+                    break
+
+            if not matched_model:
+                if "gemini pro" in user_lower or "2.5 pro" in user_lower:
+                    matched_model = "gemini-2.5-pro"
+                elif "gemini flash" in user_lower or "2.5 flash" in user_lower:
+                    matched_model = "gemini-2.5-flash"
+                elif "flash live" in user_lower or "3.1 live" in user_lower:
+                    matched_model = "gemini-3.1-flash-live-preview"
+                elif "flash lite" in user_lower:
+                    matched_model = "gemini-2.5-flash-lite"
+                elif "llama" in user_lower or "70b" in user_lower:
+                    matched_model = "meta/llama-3.3-70b-instruct"
+                elif "nemotron nano" in user_lower or "30b" in user_lower:
+                    matched_model = "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning"
+                elif "nemotron super" in user_lower or "120b" in user_lower:
+                    matched_model = "nvidia/nemotron-3-super-120b-a12b"
+                elif "deepseek" in user_lower or "r1" in user_lower:
+                    matched_model = "deepseek-ai/deepseek-r1"
+                elif "qwen" in user_lower or "72b" in user_lower:
+                    matched_model = "qwen/qwen2.5-72b-instruct"
+                elif "mistral" in user_lower:
+                    matched_model = "mistralai/mistral-large-2411"
+                elif "gemma" in user_lower:
+                    matched_model = "google/gemma-4-31b-it"
+                elif "gpt oss" in user_lower or "gpt-oss" in user_lower:
+                    matched_model = "openai/gpt-oss-20b"
+
+            if matched_model:
+                res = await friday_actions.execute_action(
+                    session=session,
+                    org_id=org_id,
+                    action_name="set_model_role",
+                    params={"role": target_role, "model_id": matched_model},
+                )
+                return {
+                    "speaker": "Friday",
+                    "model": "gemini-3.1-flash-live-preview",
+                    "reply": f"⚙️ {res.get('message')}\n\nThe new model is active immediately across all subsequent turns.",
+                    "speak_text": f"Assigned {matched_model} to {target_role.replace('_', ' ')}.",
+                    "consulted_edith": False,
+                    "action_result": res,
+                }
+
+        # Hyperparameter Tuning (Temperature, Max Tokens, Timeout)
+        is_param_cmd = any(w in user_lower for w in [
+            "set temperature", "change temperature", "adjust temperature",
+            "set max tokens", "change max tokens", "adjust max tokens",
+            "set timeout", "change timeout"
+        ])
+        if is_param_cmd:
+            from app.services import friday_actions
+            param_updates: Dict[str, Any] = {}
+            temp_match = re.search(r"temperature\s+(?:to\s+)?([0-9]*\.?[0-9]+)", user_lower)
+            if temp_match:
+                param_updates["temperature"] = float(temp_match.group(1))
+
+            tokens_match = re.search(r"(?:max\s+tokens?|token\s+limit|tokens?)\s+(?:to\s+)?([0-9]+)", user_lower)
+            if tokens_match:
+                param_updates["max_tokens"] = int(tokens_match.group(1))
+
+            timeout_match = re.search(r"timeout\s+(?:to\s+)?([0-9]+)", user_lower)
+            if timeout_match:
+                param_updates["timeout"] = int(timeout_match.group(1))
+
+            if param_updates:
+                res = await friday_actions.execute_action(
+                    session=session,
+                    org_id=org_id,
+                    action_name="update_model_settings",
+                    params=param_updates,
+                )
+                # Also synchronize open playground views
+                await friday_actions.execute_action(
+                    session=session,
+                    org_id=org_id,
+                    action_name="configure_playground",
+                    params=param_updates,
+                )
+                return {
+                    "speaker": "Friday",
+                    "model": "gemini-3.1-flash-live-preview",
+                    "reply": f"🎛️ {res.get('message')}\n\nParameters have been updated in active memory, saved to `.env`, and broadcast live to connected playground sessions.",
+                    "speak_text": "Updated model parameters.",
+                    "consulted_edith": False,
+                    "action_result": res,
+                }
 
         # Reply Suggestion & Refinement Directive (Option 3 for Groups & Chats)
         is_suggest_reply = not is_click_cmd and any(w in user_lower for w in [
