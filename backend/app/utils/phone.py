@@ -158,3 +158,48 @@ def is_valid_phone_number(raw_phone: str, default_country_code: str = "+91") -> 
     except (ValueError, TypeError):
         return False
 
+
+# Known simulated and synthetic phone numbers reserved for tests, simulations, and seed datasets
+KNOWN_SANDBOX_PHONES = {
+    "+919876543210",
+    "+919876543298",
+    "+919876543211",
+    "+919876543212",
+    "+919999988888",
+    "+919999911111",
+    "+919999922222",
+    "+919999900000",
+    "+910000000000",
+    "+911234567890",
+}
+
+
+def is_sandbox_test_phone(raw_phone: str) -> bool:
+    """
+    Identifies whether a phone number is a known dummy/sandbox number used in testing or simulation.
+    Prevents accidental outbound WhatsApp dispatch to real people holding standard test sequences.
+    """
+    if not raw_phone:
+        return False
+    try:
+        norm = normalize_phone_number(raw_phone)
+    except Exception:
+        norm = clean_phone_digits(raw_phone)
+
+    if norm in KNOWN_SANDBOX_PHONES:
+        return True
+
+    digits = re.sub(r"[^\d]", "", norm)
+    # Common test patterns (e.g. +91 987654..., +91 99999..., +1 555...)
+    if norm.startswith("+91987654") or norm.startswith("+9199999") or norm.startswith("+9100000"):
+        return True
+    if norm.startswith("+1") and "555" in norm:
+        return True
+
+    # Repeated digits (e.g. 1111111111, 0000000000)
+    if len(digits) >= 10 and len(set(digits[-10:])) <= 2:
+        return True
+
+    return False
+
+
