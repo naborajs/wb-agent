@@ -410,6 +410,128 @@ function RenderMarkdown({ content }: { content: string }) {
   );
 }
 
+function FloatingRobotMascot() {
+  const [imgLoaded, setImgLoaded] = useState(false);
+
+  return (
+    <div className="relative group cursor-pointer select-none">
+      {/* Soft ambient radial glow */}
+      <div className="absolute -inset-6 rounded-full bg-gradient-to-r from-sky-500/25 via-indigo-500/20 to-purple-500/25 blur-2xl opacity-60 group-hover:opacity-100 transition-opacity pointer-events-none" />
+
+      {/* Mascot Container: Loads transparent PNG with instant SVG backup */}
+      <div className="relative w-28 h-36 sm:w-32 sm:h-40 md:w-36 md:h-44 flex items-center justify-center transition-transform duration-300 group-hover:scale-105">
+        {/* Transparent PNG from user screenshot */}
+        <img
+          src="/ai-mascot-transparent.png"
+          alt="AI Mascot"
+          onLoad={() => setImgLoaded(true)}
+          className={`w-full h-full object-contain filter drop-shadow-[0_12px_24px_rgba(0,0,0,0.7)] transition-opacity duration-300 ${
+            imgLoaded ? "opacity-100" : "opacity-0 absolute"
+          }`}
+        />
+
+        {/* Crisp Vector SVG (Matches screenshot geometry exactly, renders instantly with zero background) */}
+        {!imgLoaded && (
+          <svg
+            viewBox="0 0 160 180"
+            className="w-full h-full filter drop-shadow-[0_12px_24px_rgba(79,107,255,0.3)]"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <defs>
+              <linearGradient id="robotBodyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#FFFFFF" />
+                <stop offset="60%" stopColor="#EDF2FF" />
+                <stop offset="100%" stopColor="#D2DCFF" />
+              </linearGradient>
+              <linearGradient id="robotBlueGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#687BFE" />
+                <stop offset="100%" stopColor="#485AE8" />
+              </linearGradient>
+              <linearGradient id="headBezelGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#FFFFFF" />
+                <stop offset="100%" stopColor="#D5DEFF" />
+              </linearGradient>
+            </defs>
+
+            {/* Left Wing / Arm */}
+            <path
+              d="M 44 88 C 28 92 18 116 20 138 C 22 148 30 152 38 144 C 48 132 54 112 52 94 Z"
+              fill="url(#robotBlueGrad)"
+            />
+
+            {/* Right Wing / Arm */}
+            <path
+              d="M 116 88 C 132 92 142 116 140 138 C 138 148 130 152 122 144 C 112 132 106 112 108 94 Z"
+              fill="url(#robotBlueGrad)"
+            />
+
+            {/* White Torso / Shield Body */}
+            <path
+              d="M 46 88 C 46 88 80 88 114 88 C 122 106 122 135 106 156 C 94 170 80 176 80 176 C 80 176 66 170 54 156 C 38 135 38 106 46 88 Z"
+              fill="url(#robotBodyGrad)"
+            />
+
+            {/* Body 3 Dots (...) */}
+            <circle cx="68" cy="116" r="3.5" fill="#252F48" />
+            <circle cx="80" cy="116" r="3.5" fill="#252F48" />
+            <circle cx="92" cy="116" r="3.5" fill="#252F48" />
+
+            {/* Vent bar */}
+            <rect x="70" y="130" width="20" height="4" rx="2" fill="#252F48" />
+
+            {/* Left Ear / Headphone */}
+            <rect x="30" y="44" width="16" height="26" rx="8" fill="url(#robotBlueGrad)" />
+
+            {/* Right Ear / Headphone */}
+            <rect x="114" y="44" width="16" height="26" rx="8" fill="url(#robotBlueGrad)" />
+
+            {/* Neck */}
+            <rect x="71" y="78" width="18" height="12" rx="3" fill="#9BA8C4" />
+
+            {/* Head Bezel */}
+            <rect
+              x="42"
+              y="22"
+              width="76"
+              height="58"
+              rx="18"
+              fill="url(#headBezelGrad)"
+              stroke="#BCC8E8"
+              strokeWidth="1.5"
+            />
+
+            {/* Head Screen */}
+            <rect x="48" y="28" width="64" height="46" rx="13" fill="#0A0C14" />
+
+            {/* Left Eye (Smiling Curve) */}
+            <path
+              d="M 58 48 C 60 41 68 41 70 48"
+              stroke="#FFFFFF"
+              strokeWidth="3.5"
+              strokeLinecap="round"
+            />
+
+            {/* Right Eye (Smiling Curve) */}
+            <path
+              d="M 82 48 C 84 41 92 41 94 48"
+              stroke="#FFFFFF"
+              strokeWidth="3.5"
+              strokeLinecap="round"
+            />
+          </svg>
+        )}
+      </div>
+
+      {/* Online indicator */}
+      <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#0d0d16]/95 border border-sky-500/30 text-[9px] font-bold text-sky-300 shadow-lg whitespace-nowrap">
+        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+        <span>ONLINE</span>
+      </div>
+    </div>
+  );
+}
+
 function PlaygroundInner() {
   const searchParams = useSearchParams();
   const initialModel = searchParams.get("model") || "gemini-2.5-flash";
@@ -906,7 +1028,7 @@ function PlaygroundInner() {
               </span>
             </h1>
 
-            {/* Centered 3D AI Mascot with Floating Speech Bubbles */}
+            {/* Centered 2D Transparent AI Mascot with Floating Speech Bubbles */}
             <div className="relative my-4 flex items-center justify-center">
               {/* Left Speech Bubble */}
               <div className="hidden sm:flex absolute -left-36 md:-left-44 top-2 items-center gap-1.5 px-3.5 py-1.5 rounded-2xl bg-white/[0.08] backdrop-blur-md border border-white/10 text-xs text-zinc-200 shadow-2xl animate-pulse">
@@ -914,25 +1036,8 @@ function PlaygroundInner() {
                 <span>Hey there! Need a boost?</span>
               </div>
 
-              {/* 3D Mascot Model with Radial Glow */}
-              <div className="relative group cursor-pointer">
-                {/* Radial Glow */}
-                <div className="absolute -inset-4 rounded-full bg-gradient-to-r from-sky-500/25 via-indigo-500/20 to-emerald-500/25 blur-2xl opacity-80 group-hover:opacity-100 transition-opacity pointer-events-none" />
-
-                <div className="relative w-36 h-36 sm:w-44 sm:h-44 md:w-52 md:h-52 rounded-3xl overflow-hidden flex items-center justify-center transition-transform duration-500 hover:scale-105">
-                  <img
-                    src="/ai-mascot-3d.png"
-                    alt="3D Dual-Brain AI Mascot"
-                    className="w-full h-full object-contain filter drop-shadow-[0_20px_40px_rgba(0,0,0,0.85)]"
-                  />
-                </div>
-
-                {/* Status Badge */}
-                <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-[#0d0d16]/95 border border-sky-500/40 text-[10px] font-extrabold text-sky-300 shadow-xl whitespace-nowrap">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                  <span>3D DUAL-BRAIN ACTIVE</span>
-                </div>
-              </div>
+              {/* Floating 2D Mascot (Zero Background, Guaranteed Load) */}
+              <FloatingRobotMascot />
 
               {/* Right Speech Bubble */}
               <div className="hidden sm:flex absolute -right-36 md:-right-48 bottom-4 items-center gap-1.5 px-3.5 py-1.5 rounded-2xl bg-white/[0.08] backdrop-blur-md border border-white/10 text-xs text-zinc-200 shadow-2xl">
