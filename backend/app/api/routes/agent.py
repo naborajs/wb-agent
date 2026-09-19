@@ -50,14 +50,19 @@ async def run_agent_simulation(req: SimulationRequest, session: AsyncSession = D
         primary_phone=req.phone,
         name=req.persona_name,
         company_name=req.business_name,
-        company_type="Cafe",
+        company_type="simulation",
         preferred_language="English",
         opt_in_status=True,
     )
     session.add(cust)
     await session.commit()
 
-    conv = await conv_svc.get_or_create_conversation(cust.id, channel="simulator", channel_id=req.phone)
+    conv = await conv_svc.get_or_create_conversation(cust.id, channel="simulation", channel_id=req.phone)
+    meta = dict(conv.metadata_json or {})
+    meta["is_simulation"] = True
+    meta["persona"] = req.persona_name
+    conv.metadata_json = meta
+    await session.commit()
 
     orchestrator = AgentOrchestrator(session, org_id)
     history: List[Dict[str, Any]] = []
