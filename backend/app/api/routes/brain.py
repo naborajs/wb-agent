@@ -367,6 +367,12 @@ class PlaygroundChatRequest(BaseModel):
     max_tokens: Optional[int] = Field(1024, description="Max output tokens")
 
 
+class UpgradePromptRequest(BaseModel):
+    prompt: str = Field(..., description="Draft prompt to enhance and upgrade")
+    model_id: Optional[str] = Field("meta/llama-3.3-70b-instruct", description="NVIDIA NIM model to execute prompt upgrade")
+    category: Optional[str] = Field(None, description="Optional focus area or category")
+
+
 @router.get("/telemetry")
 async def get_brain_telemetry(session: AsyncSession = Depends(get_db)):
     """
@@ -801,6 +807,119 @@ async def playground_chat(req: PlaygroundChatRequest):
         "cost_label": cost_label,
         "model_id": model_id,
         "status": "success",
+    }
+
+
+@router.post("/upgrade-prompt")
+async def upgrade_prompt(req: UpgradePromptRequest):
+    """
+    Uses NVIDIA NIM (or Google Gemini fallback) to enhance and upgrade a raw test prompt
+    into an expert benchmark scenario with realistic customer context, operational constraints,
+    and rigorous evaluation criteria.
+    """
+    import httpx
+
+    raw_prompt = req.prompt.strip()
+    if not raw_prompt:
+        raw_prompt = "Test customer discount negotiation for 500kg wholesale order"
+
+    model_id = (req.model_id or "meta/llama-3.3-70b-instruct").strip()
+    is_gemini = "gemini" in model_id.lower() or (model_id.lower().startswith("google/gemma") is False and "google" in model_id.lower())
+
+    meta_system_prompt = (
+        "You are an elite Prompt Engineer and benchmark evaluator for enterprise WhatsApp dual-brain agents.\n"
+        "Transform the user's raw prompt into an ultra-realistic, edge-case test scenario.\n"
+        "Include:\n"
+        "1. Real-world customer/lead profile (e.g. buyer name, phone, tier, location, volume).\n"
+        "2. Exact business dilemma (e.g. competitor offering cheaper price, tight delivery deadline, certification requirement, discount policy challenge).\n"
+        "3. Clear instructions on how the agent should defend margins, negotiate, or respond.\n"
+        "Return ONLY the upgraded prompt text. No explanations, no prefixes, no quotation marks."
+    )
+
+    upgraded_text = ""
+    model_used = model_id
+    success = False
+
+    if not is_gemini:
+        # Query NVIDIA NIM
+        nvidia_key = getattr(settings, "nvidia_primary_key", "")
+        fallback_key = getattr(settings, "nvidia_fallback_key", "")
+        keys = [k for k in [nvidia_key, fallback_key] if k and not k.startswith("mock") and not k.startswith("nvapi-mock")]
+        
+        for key in keys:
+            try:
+                headers = {"Content-Type": "application/json", "Authorization": f"Bearer {key}"}
+                payload = {
+                    "model": model_id,
+                    "messages": [
+                        {"role": "system", "content": meta_system_prompt},
+                        {"role": "user", "content": f"Raw draft prompt to upgrade:\n\n{raw_prompt}"}
+                    ],
+                    "temperature": 0.5,
+                    "max_tokens": 400,
+                }
+                async with httpx.AsyncClient(timeout=15.0) as client:
+                    resp = await client.post(
+                        f"{settings.NVIDIA_BASE_URL.rstrip('/')}/chat/completions",
+                        headers=headers,
+                        json=payload,
+                    )
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        choices = data.get("choices", [])
+                        if choices:
+                            upgraded_text = choices[0].get("message", {}).get("content", "").strip()
+                            if upgraded_text:
+                                success = True
+                                break
+            except Exception as e:
+                logger.warning(f"[UpgradePrompt] NVIDIA error: {e}")
+
+    # Fallback to Gemini if NVIDIA failed or Gemini requested
+    if not success:
+        gemini_key = getattr(settings, "GEMINI_API_KEY", "")
+        if gemini_key and not gemini_key.startswith("mock"):
+            try:
+                clean_model = "gemini-2.5-flash"
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/{clean_model}:generateContent?key={gemini_key}"
+                payload = {
+                    "contents": [{"parts": [{"text": f"{meta_system_prompt}\n\nRaw draft prompt to upgrade:\n{raw_prompt}"}]}],
+                    "generationConfig": {"temperature": 0.4, "maxOutputTokens": 400},
+                }
+                async with httpx.AsyncClient(timeout=15.0) as client:
+                    resp = await client.post(url, json=payload)
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        candidates = data.get("candidates", [])
+                        if candidates:
+                            parts = candidates[0].get("content", {}).get("parts", [])
+                            if parts:
+                                upgraded_text = parts[0].get("text", "").strip()
+                                if upgraded_text:
+                                    success = True
+                                    model_used = "gemini-2.5-flash"
+            except Exception as e:
+                logger.warning(f"[UpgradePrompt] Gemini error: {e}")
+
+    if not upgraded_text:
+        # Rule-based fallback upgrade
+        upgraded_text = (
+            f"Inbound lead Rajesh (+91 98001 23456, Verified Wholesale Buyer, Kolkata) states: "
+            f"'{raw_prompt}'. We have a strict policy margin cap of 12% max discount for volumes under 1,000kg. "
+            f"Defend commercial margins, propose structured volume-based tiering, and maintain a decisive, persuasive closer persona."
+        )
+        success = True
+        model_used = "Rule-based Expert Enhancer"
+
+    # Clean surrounding quotes
+    upgraded_text = upgraded_text.strip('"\'')
+
+    return {
+        "success": success,
+        "original_prompt": raw_prompt,
+        "upgraded_prompt": upgraded_text,
+        "model_used": model_used,
+        "category": req.category or "custom_upgrade",
     }
 
 
