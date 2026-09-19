@@ -9,6 +9,7 @@ Official integration supporting:
 
 import hashlib
 import hmac
+import time
 from typing import Any, Dict, List, Optional
 import httpx
 from app.database.base import utc_now
@@ -124,6 +125,17 @@ class MetaCloudWhatsAppProvider(WhatsAppProvider):
 
     async def send_message(self, to_phone: str, text: str) -> OutboundWhatsAppResult:
         """Sends an outbound WhatsApp text message via Meta Cloud API."""
+        from app.utils.phone import is_sandbox_test_phone
+        if is_sandbox_test_phone(to_phone):
+            logger.warning(f"[SANDBOX SUPPRESSION] Meta Cloud outbound message to sandbox phone {to_phone} intercepted. API call bypassed.")
+            return OutboundWhatsAppResult(
+                success=True,
+                provider_message_id=f"sim_meta_{int(time.time() * 1000)}",
+                to_phone=to_phone,
+                latency_ms=1,
+                raw_response={"simulated": True, "reason": "sandbox_dummy_number_suppression"},
+            )
+
         norm_phone = normalize_phone_number(to_phone).lstrip("+")
         url = f"{self.base_url}/{self.phone_number_id}/messages"
         headers = {
@@ -161,6 +173,17 @@ class MetaCloudWhatsAppProvider(WhatsAppProvider):
         language_code: str = "en",
         components: Optional[List[Dict[str, Any]]] = None,
     ) -> OutboundWhatsAppResult:
+        from app.utils.phone import is_sandbox_test_phone
+        if is_sandbox_test_phone(to_phone):
+            logger.warning(f"[SANDBOX SUPPRESSION] Meta Cloud template to sandbox phone {to_phone} intercepted. API call bypassed.")
+            return OutboundWhatsAppResult(
+                success=True,
+                provider_message_id=f"sim_meta_tpl_{int(time.time() * 1000)}",
+                to_phone=to_phone,
+                latency_ms=1,
+                raw_response={"simulated": True, "reason": "sandbox_dummy_number_suppression"},
+            )
+
         norm_phone = normalize_phone_number(to_phone).lstrip("+")
         url = f"{self.base_url}/{self.phone_number_id}/messages"
         headers = {
@@ -194,6 +217,17 @@ class MetaCloudWhatsAppProvider(WhatsAppProvider):
         filename: Optional[str] = None,
     ) -> OutboundWhatsAppResult:
         """Sends a document (e.g. PDF pro-forma invoice) via Meta Cloud API."""
+        from app.utils.phone import is_sandbox_test_phone
+        if is_sandbox_test_phone(to_phone):
+            logger.warning(f"[SANDBOX SUPPRESSION] Meta Cloud document to sandbox phone {to_phone} intercepted. API call bypassed.")
+            return OutboundWhatsAppResult(
+                success=True,
+                provider_message_id=f"sim_meta_doc_{int(time.time() * 1000)}",
+                to_phone=to_phone,
+                latency_ms=1,
+                raw_response={"simulated": True, "reason": "sandbox_dummy_number_suppression"},
+            )
+
         from app.config import settings
         norm_phone = normalize_phone_number(to_phone).lstrip("+")
         url = f"{self.base_url}/{self.phone_number_id}/messages"
