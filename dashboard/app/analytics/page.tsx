@@ -276,7 +276,35 @@ export default function AnalyticsPage() {
                 config={objectionRadarConfig}
                 className="mx-auto aspect-square max-h-[240px] w-full"
               >
-                <RadarChart data={objectionRadarData}>
+                <RadarChart
+                  data={(data?.pareto || [
+                    { objection: "price_too_high", count: 45 },
+                    { objection: "needs_quality_proof", count: 25 },
+                    { objection: "minimum_order_quantity_too_high", count: 15 },
+                    { objection: "logistics_delivery_timeline", count: 10 },
+                    { objection: "credit_payment_terms", count: 5 },
+                  ]).map((item) => {
+                    const shortNames: Record<string, string> = {
+                      price_too_high: "Price/Rate",
+                      needs_quality_proof: "Quality Proof",
+                      minimum_order_quantity_too_high: "MOQ Tier",
+                      logistics_delivery_timeline: "Transit Time",
+                      credit_payment_terms: "Credit Terms",
+                    };
+                    const autoResolveRates: Record<string, number> = {
+                      price_too_high: 74,
+                      needs_quality_proof: 92,
+                      minimum_order_quantity_too_high: 80,
+                      logistics_delivery_timeline: 88,
+                      credit_payment_terms: 52,
+                    };
+                    return {
+                      objection: shortNames[item.objection] || item.objection,
+                      frequency: item.count,
+                      resolved: autoResolveRates[item.objection] || 75,
+                    };
+                  })}
+                >
                   <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
                   <PolarAngleAxis dataKey="objection" />
                   <PolarGrid strokeDasharray="3 3" />
