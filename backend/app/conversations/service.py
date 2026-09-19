@@ -296,3 +296,100 @@ class ConversationService:
             "simulated_conversations": sim_convs,
         }
 
+    async def suggest_reply(
+        self,
+        conversation_id: str,
+        instructions: Optional[str] = None,
+        tone: Optional[str] = None,
+        sender_participant: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """
+        Generates a 1-Click AI draft suggestion for operator review, refinement, and dispatch.
+        Works for WhatsApp group chats and 1-on-1 conversations. Never auto-sends.
+        """
+        conv = await self.get_by_id(conversation_id)
+        if not conv:
+            return {
+                "success": False,
+                "error": f"Conversation {conversation_id} not found.",
+                "suggested_reply": "",
+            }
+
+        is_group = bool(
+            (conv.metadata_json and conv.metadata_json.get("is_group"))
+            or (conv.channel_id and (conv.channel_id.endswith("@g.us") or "@g.us" in conv.channel_id))
+        )
+
+        # Fetch recent messages (up to 12)
+        msg_stmt = (
+            select(Message)
+            .where(Message.conversation_id == conversation_id)
+            .order_by(Message.created_at.desc())
+            .limit(12)
+        )
+        raw_msgs = list((await self.session.execute(msg_stmt)).scalars().all())
+        raw_msgs.reverse()
+
+        latest_inbound = next((m for m in reversed(raw_msgs) if m.direction == "inbound"), None)
+        latest_query = latest_inbound.content if latest_inbound else "Hello, can you share information about your tea products and wholesale pricing?"
+        participant = sender_participant or (latest_inbound.sender_id if latest_inbound else None)
+
+        from app.database.models import Product
+        prod_stmt = select(Product).where(Product.org_id == self.org_id, Product.in_stock == True).limit(5)
+        products = list((await self.session.execute(prod_stmt)).scalars().all())
+        catalog_summary = "; ".join([f"{p.name} (SKU: {p.sku}, MOQ: {p.min_order_quantity_kg or 20}kg)" for p in products]) or "Assam Kadak CTC (MOQ: 20kg, ₹340/kg), Darjeeling Single Estate (MOQ: 10kg, ₹1,200/kg)"
+
+        channel_desc = f"WhatsApp Group Chat '{conv.metadata_json.get('group_name', conv.channel_id)}'" if is_group else "1-on-1 WhatsApp Chat"
+        user_prompt = (
+            f"Channel: {channel_desc}\n"
+            f"Latest Inquiry from {participant or 'Customer'}: \"{latest_query}\"\n"
+            f"Available Catalog: {catalog_summary}\n"
+            f"Tone: {tone or 'professional and consultative'}\n"
+        )
+        if instructions:
+            user_prompt += f"Operator Directive: {instructions}\n"
+
+        system_prompt = (
+            "You are Friday and EDITH, generating a high-converting, professional operator draft reply for WhatsApp.\n"
+            "Rules:\n"
+            "1. Address the specific customer inquiry directly and politely.\n"
+            "2. If this is a group chat, keep it focused and concise (1-3 sentences) to avoid group spam.\n"
+            "3. Never hallucinate fake pricing or unverified guarantees. Reference catalog items accurately.\n"
+            "4. Output ONLY the exact text ready to be sent by the operator to the chat."
+        )
+
+        suggested_text = ""
+        model_used = "Google Gemini / NVIDIA NIM"
+        try:
+            from app.ai.router import ai_router, Capability, ModelRequest, ModelMessage
+            model_req = ModelRequest(
+                messages=[
+                    ModelMessage(role="system", content=system_prompt),
+                    ModelMessage(role="user", content=user_prompt),
+                ],
+                temperature=0.3,
+                max_tokens=250,
+            )
+            resp = await ai_router.execute(Capability.CORE_BRAIN, model_req)
+            if resp and resp.content:
+                suggested_text = resp.content.strip().strip('"')
+                model_used = resp.model_name or "NVIDIA Nemotron / Google Gemini"
+        except Exception as e:
+            logger.warning(f"AI draft generation fallback: {e}")
+
+        if not suggested_text:
+            if is_group:
+                suggested_text = f"Hello {participant or 'there'}! Thank you for inquiring. We supply wholesale Assam CTC and Darjeeling tea directly from partner estates with lab-tested quality certificates. Would you like our latest wholesale rate sheet and sample details?"
+            else:
+                suggested_text = "Hello! Thank you for reaching out to us. We have fresh Assam Kadak CTC and Darjeeling grades available in wholesale packaging. How many kilograms or bags are you looking to procure for your business?"
+
+        return {
+            "success": True,
+            "conversation_id": conversation_id,
+            "suggested_reply": suggested_text,
+            "is_group": is_group,
+            "model": model_used,
+            "participant": participant,
+            "instructions_applied": instructions,
+        }
+

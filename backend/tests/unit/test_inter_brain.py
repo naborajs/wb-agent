@@ -187,3 +187,121 @@ async def test_friday_database_stats_and_purge(test_session: AsyncSession):
     assert "Simulation History Purged Successfully" in purge_res["reply"]
     assert purge_res["consulted_edith"] is True
 
+
+@pytest.mark.asyncio
+async def test_friday_ui_agency_actions(test_session: AsyncSession):
+    """
+    Verifies that Friday can execute universal UI actions (clicking, navigating, theme setting)
+    and log audit trails and notifications.
+    """
+    from app.services import friday_actions
+    org_id = settings.DEFAULT_ORG_ID
+
+    # 1. Click element action
+    click_res = await friday_actions.execute_action(
+        session=test_session,
+        org_id=org_id,
+        action_name="click_ui_element",
+        params={"element_query": "Suggest Reply"},
+    )
+    assert click_res["success"] is True
+    assert click_res["payload"]["action"] == "click"
+    assert click_res["payload"]["target"] == "Suggest Reply"
+
+    # 2. Navigate page action
+    nav_res = await friday_actions.execute_action(
+        session=test_session,
+        org_id=org_id,
+        action_name="navigate_page",
+        params={"path": "/conversations"},
+    )
+    assert nav_res["success"] is True
+    assert nav_res["payload"]["action"] == "navigate"
+    assert nav_res["payload"]["path"] == "/conversations"
+
+    # 3. Theme switch action
+    theme_res = await friday_actions.execute_action(
+        session=test_session,
+        org_id=org_id,
+        action_name="set_ui_theme",
+        params={"theme": "dark"},
+    )
+    assert theme_res["success"] is True
+    assert theme_res["payload"]["action"] == "theme"
+    assert theme_res["payload"]["theme"] == "dark"
+
+
+@pytest.mark.asyncio
+async def test_friday_suggest_reply_and_agency_chat(test_session: AsyncSession):
+    """
+    Verifies Friday's chat abilities to suggest replies for groups and trigger website agency commands.
+    """
+    from app.brain.inter_brain_bus import FridayBrain
+    from app.database.models import Conversation, Customer, Message
+    org_id = settings.DEFAULT_ORG_ID
+
+    customer = Customer(
+        org_id=org_id,
+        name="Siliguri Group Admin",
+        primary_phone="+919832011111",
+    )
+    test_session.add(customer)
+    await test_session.flush()
+
+    # Create a test group conversation
+    conv = Conversation(
+        org_id=org_id,
+        customer_id=customer.id,
+        channel="whatsapp",
+        channel_id="120363029999999999@g.us",
+        mode="HUMAN",
+        metadata_json={"is_group": True, "group_name": "Siliguri Wholesale Buyers"},
+    )
+    test_session.add(conv)
+    await test_session.flush()
+
+    msg = Message(
+        org_id=org_id,
+        conversation_id=conv.id,
+        direction="inbound",
+        sender_type="customer",
+        sender_id="+919832011111",
+        content="Hello, what is the best wholesale price for 200kg Assam CTC?",
+        delivery_status="received",
+    )
+    test_session.add(msg)
+    await test_session.commit()
+
+    friday = FridayBrain()
+
+    # 1. Ask Friday to suggest reply for group
+    sugg_res = await friday.chat(
+        user_message="Friday, please suggest reply for group with 5% volume discount",
+        session=test_session,
+        org_id=org_id,
+    )
+    assert sugg_res["speaker"] == "Friday"
+    assert "suggested_reply" in sugg_res
+    assert len(sugg_res["suggested_reply"]) > 10
+    assert "1-Click AI Reply Suggested" in sugg_res["reply"]
+
+    # 2. Command Friday to click an element
+    click_res = await friday.chat(
+        user_message="Click on 'Suggest Reply'",
+        session=test_session,
+        org_id=org_id,
+    )
+    assert click_res["speaker"] == "Friday"
+    assert "clicked" in click_res["reply"].lower()
+    assert click_res.get("ui_action", {}).get("action") == "click"
+
+    # 3. Command Friday to navigate to conversations
+    nav_res = await friday.chat(
+        user_message="Go to conversations",
+        session=test_session,
+        org_id=org_id,
+    )
+    assert nav_res["speaker"] == "Friday"
+    assert "/conversations" in nav_res["reply"]
+    assert nav_res.get("ui_action", {}).get("action") == "navigate"
+

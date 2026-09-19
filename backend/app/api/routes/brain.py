@@ -35,6 +35,10 @@ class BrainChatResponse(BaseModel):
     speak_text: Optional[str] = None
     delegation_flow: Optional[Dict[str, Any]] = None
     code_diagnosis: Optional[Dict[str, Any]] = None
+    suggested_reply: Optional[str] = None
+    conversation_id: Optional[str] = None
+    ui_action: Optional[Dict[str, Any]] = None
+    action_result: Optional[Dict[str, Any]] = None
 
 
 class BrainTaskRequest(BaseModel):

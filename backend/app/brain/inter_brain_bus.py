@@ -744,6 +744,148 @@ class FridayBrain:
                     "action_result": res,
                 }
 
+        # Universal Website Agency: Click elements all over website
+        is_click_cmd = any(user_lower.startswith(p) for p in [
+            "click ", "press ", "tap ", "hit button ", "push button "
+        ])
+        if is_click_cmd:
+            from app.services import friday_actions
+            query = re.sub(r"^(?:click|press|tap|hit button|push button)\s+(?:on\s+|the\s+)?", "", user_message, flags=re.IGNORECASE).strip().strip('"\'')
+            res = await friday_actions.execute_action(
+                session=session,
+                org_id=org_id,
+                action_name="click_ui_element",
+                params={"element_query": query},
+            )
+            reply = f"🖱️ I have clicked **'{query}'** for you on the screen!"
+            return {
+                "speaker": "Friday",
+                "model": "gemini-3.1-flash-live-preview",
+                "reply": reply,
+                "speak_text": f"Clicked {query}.",
+                "consulted_edith": False,
+                "ui_action": res.get("payload"),
+                "action_result": res,
+            }
+
+        # Universal Website Agency: Navigate pages
+        is_navigate_cmd = any(user_lower.startswith(p) for p in [
+            "go to ", "navigate to ", "open page ", "switch to page ", "take me to "
+        ])
+        if is_navigate_cmd:
+            from app.services import friday_actions
+            dest = re.sub(r"^(?:go to|navigate to|open page|switch to page|take me to)\s+(?:the\s+)?", "", user_message, flags=re.IGNORECASE).strip().strip('"\'')
+            route_map = {
+                "inbox": "/conversations", "conversations": "/conversations", "chats": "/conversations", "messages": "/conversations",
+                "overview": "/", "home": "/", "dashboard": "/",
+                "leads": "/leads", "proposals": "/leads",
+                "campaigns": "/campaigns", "outreach": "/campaigns",
+                "analytics": "/analytics", "reports": "/analytics",
+                "orders": "/orders", "invoices": "/orders",
+                "pricing": "/pricing", "rates": "/pricing",
+                "knowledge": "/knowledge", "rag": "/knowledge", "documents": "/knowledge",
+                "prompts": "/prompts",
+                "integrations": "/integrations", "settings": "/settings",
+                "notifications": "/notifications", "brain": "/brain", "dual brain": "/brain"
+            }
+            target_path = route_map.get(dest.lower(), dest if dest.startswith("/") else f"/{dest.lower()}")
+            res = await friday_actions.execute_action(
+                session=session,
+                org_id=org_id,
+                action_name="navigate_page",
+                params={"path": target_path},
+            )
+            reply = f"🚀 Navigating your dashboard to **{target_path}**!"
+            return {
+                "speaker": "Friday",
+                "model": "gemini-3.1-flash-live-preview",
+                "reply": reply,
+                "speak_text": f"Opening {target_path}.",
+                "consulted_edith": False,
+                "ui_action": res.get("payload"),
+                "action_result": res,
+            }
+
+        # Universal Website Agency: Theme toggle
+        is_theme_cmd = any(w in user_lower for w in [
+            "dark mode", "light mode", "toggle theme", "switch theme", "turn on dark mode", "turn on light mode"
+        ])
+        if is_theme_cmd and any(w in user_lower for w in ["switch", "turn", "enable", "change", "toggle", "set"]):
+            from app.services import friday_actions
+            theme_mode = "dark" if "dark" in user_lower else "light" if "light" in user_lower else "toggle"
+            res = await friday_actions.execute_action(
+                session=session,
+                org_id=org_id,
+                action_name="set_ui_theme",
+                params={"theme": theme_mode},
+            )
+            reply = f"🎨 Switched dashboard theme to **{theme_mode.capitalize()} Mode**!"
+            return {
+                "speaker": "Friday",
+                "model": "gemini-3.1-flash-live-preview",
+                "reply": reply,
+                "speak_text": f"Switched theme to {theme_mode} mode.",
+                "consulted_edith": False,
+                "ui_action": res.get("payload"),
+                "action_result": res,
+            }
+
+        # Reply Suggestion & Refinement Directive (Option 3 for Groups & Chats)
+        is_suggest_reply = not is_click_cmd and any(w in user_lower for w in [
+            "suggest reply", "draft reply", "suggest response", "draft response",
+            "what should i reply", "how should i reply", "refine reply", "refine suggestion",
+            "update suggestion", "suggest answer", "make reply", "help me reply",
+            "reply to group", "reply for group", "suggest draft"
+        ])
+        if is_suggest_reply:
+            from app.services import friday_actions
+            cid = None
+            conv_match = re.search(r"conv(?:ersation)?\s+([a-zA-Z0-9_\-]+)", user_lower)
+            if conv_match:
+                cid = conv_match.group(1).strip()
+
+            if not cid:
+                if "group" in user_lower:
+                    grp_stmt = select(Conversation).where(
+                        Conversation.org_id == org_id,
+                        Conversation.channel_id.contains("@g.us")
+                    ).order_by(Conversation.updated_at.desc()).limit(1)
+                    grp_conv = (await session.execute(grp_stmt)).scalar_one_or_none()
+                    if grp_conv:
+                        cid = grp_conv.id
+                if not cid:
+                    latest_stmt = select(Conversation).where(
+                        Conversation.org_id == org_id
+                    ).order_by(Conversation.updated_at.desc()).limit(1)
+                    latest_conv = (await session.execute(latest_stmt)).scalar_one_or_none()
+                    if latest_conv:
+                        cid = latest_conv.id
+
+            if cid:
+                instructions = user_message
+                res = await friday_actions.execute_action(
+                    session=session,
+                    org_id=org_id,
+                    action_name="suggest_conversation_reply",
+                    params={"conversation_id": cid, "instructions": instructions},
+                )
+                suggested_draft = res.get("suggested_reply", "")
+                reply = (
+                    f"✨ **1-Click AI Reply Suggested & Placed in Composer!**\n\n"
+                    f"\"{suggested_draft}\"\n\n"
+                    "I have injected this draft directly into your dashboard composer. You can review, refine, or click Send. As a safety rule, I will never send to groups autonomously without your review!"
+                )
+                return {
+                    "speaker": "Friday",
+                    "model": "gemini-3.1-flash-live-preview",
+                    "reply": reply,
+                    "speak_text": f"I've drafted a suggestion and placed it in your composer: {suggested_draft[:100]}",
+                    "consulted_edith": False,
+                    "suggested_reply": suggested_draft,
+                    "conversation_id": cid,
+                    "action_result": res,
+                }
+
         # Collaborative Deliberation with EDITH
         is_deliberation = any(w in user_lower for w in [
             "deliberate with edith", "discuss with edith", "ask edith what she thinks",
