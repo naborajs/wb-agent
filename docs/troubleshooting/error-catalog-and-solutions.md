@@ -213,6 +213,35 @@ HTTP/1.1 403 Forbidden - {"detail": "Webhook verification failed."}
 
 ---
 
+### 2.8 Zero-Cost NVIDIA NIM Economics, Real-Time Model Speed Benchmarking & Dynamic Task Roles (ADR 0026)
+- **Symptom**:
+  - Operator asks: *"Why do NVIDIA models show dollar costs when my NVIDIA API key has inclusive access?"*
+  - Operator asks: *"How fast is a model responding right now in milliseconds? Can I test responsiveness in 1-click?"*
+  - Operator asks: *"Can I scroll and select which model handles Friday Web, EDITH WhatsApp sales, Voice, Margin Audit, and Watchdog?"*
+  - Operator asks: *"Can I chat directly with any model in a dedicated ChatGPT/Gemini-style Playground?"*
+- **Solution & Controls**:
+  1. **Zero-Cost NVIDIA NIM Pricing**:
+     - All NVIDIA NIM models are marked strictly as **"Included / Free (NVIDIA Key)"** (`$0.00`). Dollar cost calculations are maintained solely for Google Gemini models ($0.10/1M in, $0.40/1M out, etc.).
+  2. **1-Click Live Speed Test**:
+     - In the `/integrations` Model Economics table, click the green **"⚡ Speed Test"** button on any model row.
+     - WB-Agent sends an authentic API request to Google Gemini or NVIDIA NIM, measures precise round-trip latency via `time.perf_counter()`, and displays live milliseconds with a color-coded status dot (🟢 `<1000ms`, 🟡 `<3000ms`, 🔴 `>3000ms` or error).
+     - No simulated fallbacks or fake canned token numbers (such as 84, 132) are displayed.
+  3. **Dynamic Model-to-Task Assignment**:
+     - In the **Dynamic Model-to-Task Assignment** card on `/integrations`, operators can select models for:
+       - **Friday Web Assistant**: e.g., `gemini-2.5-flash`
+       - **EDITH WhatsApp Commercial Closer**: e.g., `nvidia/nemotron-3-ultra-550b-a55b`
+       - **Friday Voice Agent**: `gemini-3.1-flash-live-preview` (Native 16kHz PCM audio stream)
+       - **Policy & Margin Auditor**: e.g., `nvidia/nemotron-4-340b-instruct`
+       - **System Watchdog Supervisor**: e.g., `nvidia/nemotron-3-nano-omni-30b-a3b-reasoning`
+     - Click **"Save Task Assignments"** to immediately update active runtime and persist settings to `.env`.
+  4. **Dedicated AI Playground (`/playground`)**:
+     - Navigate to `/playground` via the top or sidebar navigation, or click **"🚀 Playground"** on any model row in `/integrations`.
+     - Select any Google Gemini or NVIDIA model from the dropdown.
+     - Choose persona presets (**Friday Web Copilot**, **EDITH Commercial Closer**, **Policy Auditor**, or **Technical Architect**).
+     - Every turn displays live telemetry pills: `⚡ Latency ms | 📊 Prompt/Completion/Total Tokens | 💰 Cost/Free | 🏷️ Model`.
+
+---
+
 ## 🧠 3. LLM & Embedding Errors
 
 ### 3.1 `httpx.HTTPStatusError: 404 Not Found on /chat/completions`
