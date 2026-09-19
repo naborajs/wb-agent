@@ -158,3 +158,32 @@ async def test_system_diagnostics_endpoint(test_session: AsyncSession):
     assert "Google Gemini 3.1 Flash Live Preview" in diag["active_models"]["friday"]
     assert "leads" in diag["database_tables"]
     assert "inter_brain_messages" in diag["database_tables"]
+
+
+@pytest.mark.asyncio
+async def test_friday_database_stats_and_purge(test_session: AsyncSession):
+    """
+    Verifies that Friday can query live database stats and collaborate with EDITH to purge simulations.
+    """
+    friday = FridayBrain()
+
+    # 1. Ask Friday to check full database
+    res = await friday.chat(
+        user_message="Check the full database stats",
+        session=test_session,
+        org_id=settings.DEFAULT_ORG_ID,
+    )
+    assert res["speaker"] == "Friday"
+    assert "Full Database Integrity & Storage Summary" in res["reply"]
+    assert "database_stats" in res
+
+    # 2. Ask Friday to purge simulation history
+    purge_res = await friday.chat(
+        user_message="Friday, please purge simulation history",
+        session=test_session,
+        org_id=settings.DEFAULT_ORG_ID,
+    )
+    assert purge_res["speaker"] == "Friday"
+    assert "Simulation History Purged Successfully" in purge_res["reply"]
+    assert purge_res["consulted_edith"] is True
+

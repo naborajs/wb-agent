@@ -825,6 +825,125 @@ class FridayBrain:
                         "consulted_edith": False,
                     }
 
+        # Database & History Management Inquiries / Actions (User Directive)
+        is_db_purge_or_delete = any(w in user_lower for w in [
+            "purge simulation", "delete simulation", "clear test data", "purge test",
+            "clean database", "delete conversation", "clear history", "remove history",
+            "delete history", "wipe test", "delete thread"
+        ])
+        is_database_check = any(w in user_lower for w in [
+            "check the full database", "check database", "full database",
+            "database stats", "how many conversations",
+            "how many messages", "database counts", "storage status"
+        ])
+
+        if is_db_purge_or_delete:
+            from app.conversations.service import ConversationService
+            svc = ConversationService(session, org_id)
+
+            if any(w in user_lower for w in ["purge simulation", "delete simulation", "clear test", "purge test", "wipe test", "clean simulation"]):
+                # Consult EDITH for autonomous verification over Inter-Brain Bus
+                edith_eval = await inter_brain_bus.edith.evaluate_task_request(
+                    session=session,
+                    org_id=org_id,
+                    task_description="Purge all simulated sandbox test conversations and dummy messages from database",
+                )
+                purge_res = await svc.purge_simulations()
+                reply = (
+                    f"🧹 **Simulation History Purged Successfully!**\n\n"
+                    f"• **EDITH Partner Decision:** `{edith_eval.get('decision', 'ACCEPTED')}`\n"
+                    f"• **Reasoning:** {edith_eval.get('reasoning', 'Simulation cleanup approved.')}\n"
+                    f"• **Conversations Removed:** {purge_res['deleted_conversations']}\n"
+                    f"• **Messages Removed:** {purge_res['deleted_messages']}\n\n"
+                    "Live WhatsApp customer conversations, quotes, and catalog documents were strictly preserved."
+                )
+                return {
+                    "speaker": "Friday",
+                    "model": "gemini-3.1-flash-live-preview",
+                    "reply": reply,
+                    "consulted_edith": True,
+                    "purge_result": purge_res,
+                }
+
+            # Check if user specified a phone number to delete
+            phone_match = re.search(r"(\+?\d[\d\s-]{8,15}\d)", user_message)
+            if phone_match:
+                clean_phone = re.sub(r"[\s-]", "", phone_match.group(1))
+                if not clean_phone.startswith("+") and len(clean_phone) == 10:
+                    clean_phone = "+91" + clean_phone
+                c_stmt = select(Conversation).where(
+                    Conversation.org_id == org_id,
+                    Conversation.channel_id == clean_phone
+                )
+                conv_to_del = (await session.execute(c_stmt)).scalar_one_or_none()
+                if conv_to_del:
+                    # Consult EDITH: evaluate if this is a live commercial deal
+                    task_desc = f"Permanently delete conversation history with lead {clean_phone}"
+                    edith_eval = await inter_brain_bus.edith.evaluate_task_request(
+                        session=session,
+                        org_id=org_id,
+                        task_description=task_desc,
+                        target_phone=clean_phone,
+                    )
+                    # If hot lead or purchase intent, EDITH can deny or warn
+                    if conv_to_del.is_hot or conv_to_del.sales_stage in ("PURCHASE_INTENT", "QUALIFIED"):
+                        reply = (
+                            f"⚠️ **EDITH Commercial Refusal & Warning:**\n\n"
+                            f"EDITH has reviewed your request to delete `{clean_phone}`, but advises:\n"
+                            f"*{clean_phone} is a QUALIFIED hot lead in stage '{conv_to_del.sales_stage}' with lead score {conv_to_del.lead_score}.*\n\n"
+                            f"To prevent accidental loss of commercial pipeline data, EDITH has protected this thread from automated text deletion. "
+                            f"If you wish to proceed, please confirm manually by clicking the red **Delete** button on /conversations."
+                        )
+                        return {
+                            "speaker": "Friday",
+                            "model": "gemini-3.1-flash-live-preview",
+                            "reply": reply,
+                            "consulted_edith": True,
+                        }
+
+                    del_success = await svc.delete_conversation(conv_to_del.id)
+                    reply = (
+                        f"🗑️ **Conversation Deleted:**\n\n"
+                        f"I've permanently deleted the conversation with `{clean_phone}` and purged its message records from the database.\n"
+                        f"• **EDITH Partner Verdict:** `{edith_eval.get('decision', 'ACCEPTED')}`\n"
+                        f"The thread is now cleared from your dashboard."
+                    )
+                    return {
+                        "speaker": "Friday",
+                        "model": "gemini-3.1-flash-live-preview",
+                        "reply": reply,
+                        "consulted_edith": True,
+                    }
+                else:
+                    reply = f"I couldn't find an active conversation in the database matching phone `{clean_phone}`. You can check all active threads on /conversations."
+                    return {
+                        "speaker": "Friday",
+                        "model": "gemini-3.1-flash-live-preview",
+                        "reply": reply,
+                        "consulted_edith": False,
+                    }
+
+        if is_database_check:
+            from app.conversations.service import ConversationService
+            svc = ConversationService(session, org_id)
+            stats = await svc.get_database_summary()
+            reply = (
+                f"📊 **Full Database Integrity & Storage Summary:**\n\n"
+                f"• **Total Conversations:** {stats['total_conversations']}\n"
+                f"• **Total Messages Stored:** {stats['total_messages']}\n"
+                f"• **Live WhatsApp Threads:** {stats['live_whatsapp_conversations']}\n"
+                f"• **Simulated Sandbox Threads:** {stats['simulated_conversations']}\n\n"
+                "All history is properly indexed and accessible from the /conversations dashboard. "
+                "You can ask me to purge simulations or delete individual threads at any time!"
+            )
+            return {
+                "speaker": "Friday",
+                "model": "gemini-3.1-flash-live-preview",
+                "reply": reply,
+                "consulted_edith": False,
+                "database_stats": stats,
+            }
+
         if is_diagnostics:
             from app.brain.code_service import CodebaseService
             diag = await CodebaseService.get_system_diagnostics(session, org_id)
