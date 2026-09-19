@@ -43,6 +43,7 @@ from app.database.models.knowledge_request import (
 )
 from app.database.models.order import Order, OrderItem, Quote, QuoteItem
 from app.database.models.learning import SalesLearning
+from app.database.models.prompt_section import PromptSection
 from app.database.models.prompt_version import PromptVersion
 from app.database.models.watchdog import WatchdogAlert
 from app.database.models.inter_brain import InterBrainMessage
@@ -97,6 +98,7 @@ __all__ = [
     "Quote",
     "QuoteItem",
     "SalesLearning",
+    "PromptSection",
     "PromptVersion",
     "WatchdogAlert",
 ]
