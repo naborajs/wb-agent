@@ -69,7 +69,9 @@ async def prompt_client():
 
     async with session_factory() as session:
         org = Organization(id="org_default_tea", name="North Bengal Tea Co.", slug="north-bengal-tea")
+        org_def = Organization(id="org_default", name="Commercial Enterprise", slug="commercial-enterprise")
         session.add(org)
+        session.add(org_def)
         await session.commit()
 
     async def override_get_db():
