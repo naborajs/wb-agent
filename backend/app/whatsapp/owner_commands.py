@@ -230,7 +230,35 @@ class OwnerCommandHandler:
                 )
             return "\n".join(lines)
 
+        # 9. PENDING KNOWLEDGE REQUEST INTERCEPTION (Section 21)
+        # If there is a pending question EDITH couldn't answer, record owner's message as verified knowledge
+        pending_req_stmt = (
+            select(HumanKnowledgeRequest)
+            .where(
+                HumanKnowledgeRequest.org_id == org_id,
+                HumanKnowledgeRequest.status == "PENDING",
+            )
+            .order_by(HumanKnowledgeRequest.created_at.desc())
+            .limit(1)
+        )
+        pending_req = (await session.execute(pending_req_stmt)).scalars().first()
+        if pending_req:
+            from app.knowledge.unknown_manager import UnknownKnowledgeManager
+            mgr = UnknownKnowledgeManager(session, org_id)
+            candidate = await mgr.record_human_reply(
+                request_id=pending_req.id,
+                answer_text=cmd,
+                source="whatsapp_owner_reply",
+            )
+            snippet = cmd[:60] + ("..." if len(cmd) > 60 else "")
+            return (
+                f"✅ *Knowledge Recorded for EDITH!*\n\n"
+                f"❓ *Question:* \"{pending_req.question}\"\n"
+                f"💡 *Your Answer:* \"{snippet}\"\n\n"
+                f"This answer has been registered as knowledge candidate #{candidate.id[:8]} "
+                f"and will enrich EDITH's RAG brain for future customer inquiries."
+            )
+
         # NON-ADMINISTRATIVE MESSAGE: Allow owner to test sales conversation naturally
-        else:
-            logger.info(f"Owner message '{action}' is not an admin command; routing to sales consultation.")
-            return None
+        logger.info(f"Owner message '{action}' is not an admin command; routing to sales consultation.")
+        return None
