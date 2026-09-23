@@ -341,7 +341,7 @@ class PromptService:
         # Fallback if no sections in DB yet
         if not assembled_parts:
             for k in ["core_safety", "core_identity", "business_policy", "sales_style", "business_profile"]:
-                c = DEFAULT_PROMPT_SECTIONS.get(k, "")
+                c = (overrides.get(k) if overrides else None) or await self.get_active_section(k)
                 assembled_parts.append(f"=== {k.upper()} ===\n{c}")
 
         return "\n\n".join(assembled_parts)
