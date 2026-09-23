@@ -73,5 +73,5 @@ class OrgScopedMixin:
             ForeignKey("organizations.id", ondelete="CASCADE"),
             nullable=False,
             index=True,
-            default="org_default_tea"
+            default="org_default"
         )
