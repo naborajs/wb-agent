@@ -37,6 +37,7 @@ import {
   Trash2,
   Database,
 } from "lucide-react";
+import { getWebSocketUrl } from "@/lib/utils";
 
 interface ConversationItem {
   id: string;
@@ -231,9 +232,7 @@ export default function LiveInboxPage() {
     let reconnectTimer: any = null;
 
     const connectWebSocket = () => {
-      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-      const host = window.location.hostname || "localhost";
-      const wsUrl = `${protocol}//${host}:8000/api/v1/ws/conversations`;
+      const wsUrl = getWebSocketUrl("/api/v1/ws/conversations");
 
       try {
         ws = new WebSocket(wsUrl);
