@@ -363,6 +363,42 @@ class WatchdogService:
                 alerts.append(alert)
         return alerts
 
+    async def audit_dead_letter_jobs(self) -> List[WatchdogAlert]:
+        """
+        Audits asynchronous background jobs for dead_letter or repeated failures.
+        """
+        from app.database.models import Job
+
+        alerts: List[WatchdogAlert] = []
+        try:
+            stmt = (
+                select(Job)
+                .where(
+                    Job.org_id == self.org_id,
+                    Job.status.in_(["dead_letter", "failed"]),
+                )
+                .order_by(desc(Job.created_at))
+                .limit(10)
+            )
+            res = await self.session.execute(stmt)
+            failed_jobs = res.scalars().all()
+
+            for j in failed_jobs:
+                err_snippet = (j.last_error or "Unknown failure")[:120]
+                alert = await self.create_alert(
+                    severity="critical" if j.status == "dead_letter" else "warning",
+                    category="failed_job",
+                    title=f"Background job '{j.type}' failed ({j.status})",
+                    description=f"Job #{j.id[:8]} encountered error: {err_snippet}. Attempts: {j.attempts}/{j.max_attempts}.",
+                    metadata_payload={"job_id": j.id, "job_type": j.type, "status": j.status, "attempts": j.attempts},
+                    suggested_action="Inspect job error details and re-queue or purge failed job from Mission Control.",
+                )
+                alerts.append(alert)
+        except Exception as e:
+            logger.error(f"Watchdog dead-letter jobs audit error: {e}")
+
+        return alerts
+
     async def run_full_diagnostic_audit(self) -> WatchdogAuditReport:
         """
         Runs complete automated diagnostic suite:
@@ -370,42 +406,83 @@ class WatchdogService:
         2. Stalled conversation audit
         3. Safety guardrail holds audit
         4. Zero-hallucination pricing integrity audit
-        5. Deep supervisor reasoning audit via openai/gpt-oss-20b
+        5. Customer sentiment risk audit
+        6. Background job queue health audit
+        7. Deep supervisor reasoning audit via openai/gpt-oss-20b
         """
         alerts: List[WatchdogAlert] = []
+        conn_alert = None
+        stalled: List[WatchdogAlert] = []
+        holds: List[WatchdogAlert] = []
+        pricing: List[WatchdogAlert] = []
+        sentiment_alerts: List[WatchdogAlert] = []
+        job_alerts: List[WatchdogAlert] = []
 
         # Step 1: Channel check
-        conn_alert = await self.audit_channel_connectivity()
-        if conn_alert:
-            alerts.append(conn_alert)
+        try:
+            conn_alert = await self.audit_channel_connectivity()
+            if conn_alert:
+                alerts.append(conn_alert)
+        except Exception as e:
+            logger.error(f"Watchdog channel connectivity audit error: {e}")
 
         # Step 2: Stalled conversations
-        stalled = await self.audit_stalled_conversations()
-        alerts.extend(stalled)
+        try:
+            stalled = await self.audit_stalled_conversations()
+            alerts.extend(stalled)
+        except Exception as e:
+            logger.error(f"Watchdog stalled conversations audit error: {e}")
 
         # Step 3: Guardrail holds
-        holds = await self.audit_guardrail_holds()
-        alerts.extend(holds)
+        try:
+            holds = await self.audit_guardrail_holds()
+            alerts.extend(holds)
+        except Exception as e:
+            logger.error(f"Watchdog guardrail holds audit error: {e}")
 
         # Step 4: Pricing integrity
-        pricing = await self.audit_pricing_integrity()
-        alerts.extend(pricing)
+        try:
+            pricing = await self.audit_pricing_integrity()
+            alerts.extend(pricing)
+        except Exception as e:
+            logger.error(f"Watchdog pricing integrity audit error: {e}")
 
         # Step 5: Customer Sentiment Risk
-        sentiment_alerts = await self.audit_customer_sentiment()
-        alerts.extend(sentiment_alerts)
+        try:
+            sentiment_alerts = await self.audit_customer_sentiment()
+            alerts.extend(sentiment_alerts)
+        except Exception as e:
+            logger.error(f"Watchdog customer sentiment audit error: {e}")
 
-        # Step 5: Autonomous AI Supervisor Model (openai/gpt-oss-20b)
+        # Step 6: Background Dead-Letter Job Audit
+        try:
+            job_alerts = await self.audit_dead_letter_jobs()
+            alerts.extend(job_alerts)
+        except Exception as e:
+            logger.error(f"Watchdog dead-letter jobs audit error: {e}")
+
+        # Step 7: Autonomous AI Supervisor Model (openai/gpt-oss-20b)
         diag_summary = {
             "active_unresolved_alerts_count": len(alerts),
             "stalled_conversations_count": len(stalled),
             "pending_guardrail_holds_count": len(holds),
             "pricing_alerts_count": len(pricing),
+            "failed_jobs_count": len(job_alerts),
             "channel_connected": conn_alert is None,
             "timestamp": utc_now().isoformat(),
         }
 
-        ai_report = await ai_router.audit_system_diagnostics(diag_summary)
+        try:
+            ai_report = await ai_router.audit_system_diagnostics(diag_summary)
+        except Exception as e:
+            logger.warning(f"AI supervisor diagnostic audit fallback: {e}")
+            from app.ai.types import WatchdogAuditReport, WatchdogIssue
+            ai_report = WatchdogAuditReport(
+                overall_health="HEALTHY" if not alerts else "DEGRADED",
+                system_verdict="Watchdog local diagnostic cycle completed; AI supervisor unreachable.",
+                issues_found=[],
+                model_used="local_watchdog",
+            )
 
         # Convert AI-identified critical or warning issues into alerts
         for issue in (ai_report.issues_found or []):
