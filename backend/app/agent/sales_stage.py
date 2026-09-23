@@ -9,6 +9,7 @@ HUMAN_HANDOFF -> WON / LOST / OPTED_OUT / PAUSED.
 
 from typing import Dict, List, Optional, Set
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.config import settings
 from app.database.models import Conversation, SalesEvent
 from app.utils.logging import logger
 
@@ -75,7 +76,7 @@ class SalesStageManager:
         target_stage: str,
         reason: str,
         score_delta: int = 0,
-        org_id: str = "org_default_tea",
+        org_id: Optional[str] = None,
     ) -> Conversation:
         """
         Executes an authorized sales stage transition and records an immutable event.
@@ -94,7 +95,7 @@ class SalesStageManager:
         if target_stage in ("PURCHASE_INTENT", "QUALIFIED") or conversation.lead_score >= 80:
             conversation.is_hot = True
 
-        effective_org_id = getattr(conversation, "org_id", None) or org_id
+        effective_org_id = getattr(conversation, "org_id", None) or org_id or settings.DEFAULT_ORG_ID
         event = SalesEvent(
             org_id=effective_org_id,
             conversation_id=conversation.id,
