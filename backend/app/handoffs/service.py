@@ -6,6 +6,7 @@ from typing import List, Optional
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+from app.config import settings
 from app.database.base import utc_now
 from app.database.models import Conversation, Customer, Handoff, Notification
 from app.utils.logging import logger
@@ -53,9 +54,10 @@ class HandoffService:
         self.session.add(handoff)
 
         if notify_owner:
+            owner_phone = getattr(settings, "OWNER_WHATSAPP_NUMBER", None) or "+918900653250"
             owner_alert = Notification(
                 org_id=self.org_id,
-                recipient="+918900653250",
+                recipient=owner_phone,
                 channel="whatsapp",
                 notification_type="HUMAN_HELP_REQUIRED",
                 content=(
