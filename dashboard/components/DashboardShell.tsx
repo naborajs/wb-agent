@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import VoiceAgent from "./VoiceAgent";
 import { SystemHealthBadge } from "./SystemHealthBadge";
 import { clickElement, typeText, setColorTheme } from "./voice/domActions";
+import { getWebSocketUrl } from "@/lib/utils";
 import {
   Inbox,
   Users,
@@ -155,9 +156,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
     const connectWs = () => {
       if (!isMounted) return;
       try {
-        const host = typeof window !== "undefined" ? (window.location.hostname || "127.0.0.1") : "127.0.0.1";
-        const proto = typeof window !== "undefined" && window.location.protocol === "https:" ? "wss:" : "ws:";
-        const wsUrl = `${proto}//${host}:8000/api/v1/ws`;
+        const wsUrl = getWebSocketUrl("/api/v1/ws");
         ws = new WebSocket(wsUrl);
 
         ws.onopen = () => {
@@ -251,10 +250,21 @@ export default function DashboardShell({ children }: { children: React.ReactNode
       }
     };
 
+    const handleThemeChange = (e: any) => {
+      const newTheme = e?.detail?.theme;
+      if (newTheme === "dark") {
+        document.documentElement.classList.add("dark");
+      } else if (newTheme === "light") {
+        document.documentElement.classList.remove("dark");
+      }
+    };
+    window.addEventListener("theme_change", handleThemeChange);
+
     connectWs();
 
     return () => {
       isMounted = false;
+      window.removeEventListener("theme_change", handleThemeChange);
       if (pingInterval) clearInterval(pingInterval);
       if (retryTimeout) clearTimeout(retryTimeout);
       if (ws) {
