@@ -63,6 +63,7 @@ class Settings(BaseSettings):
     NVIDIA_NIM_API_KEY_PRIMARY: str = ""
     NVIDIA_NIM_API_KEY_FALLBACK: str = ""
     NVIDIA_API_KEY: str = "nvapi-mock-key-for-local-dev"
+    NVIDIA_API_KEY_FALLBACK: str = ""
     NVIDIA_FALLBACK_API_KEY: str = ""
     NVIDIA_BASE_URL: str = "https://integrate.api.nvidia.com/v1"
     NVIDIA_MODEL: str = "nvidia/nemotron-3-super-120b-a12b"
@@ -78,10 +79,12 @@ class Settings(BaseSettings):
     AI_CIRCUIT_BREAKER_FAILURE_THRESHOLD: int = 3
     ENABLE_MINIMAX_M3: bool = False  # TODO: remove minimaxai/minimax-m3 deprecated model
     GEMINI_API_KEY: str = ""
-    GEMINI_MODEL: str = "gemini-3.1-flash-live-preview"
+    GEMINI_API_KEY_FALLBACK: str = ""
+    GEMINI_MODEL: str = "gemini-2.5-flash"
+    GEMINI_LIVE_MODEL: str = "gemini-3.1-flash-live-preview"
 
     # Dynamic Dual-Brain Model Role Assignments
-    FRIDAY_WEB_MODEL: str = "gemini-3.1-flash-live-preview"
+    FRIDAY_WEB_MODEL: str = "gemini-2.5-flash"
     EDITH_SALES_MODEL: str = "meta/llama-3.3-70b-instruct"
     FRIDAY_VOICE_MODEL: str = "gemini-3.1-flash-live-preview"
     EDITH_POLICY_MODEL: str = "nvidia/nemotron-3-super-120b-a12b"
@@ -93,7 +96,15 @@ class Settings(BaseSettings):
 
     @property
     def nvidia_fallback_key(self) -> str:
-        return self.NVIDIA_NIM_API_KEY_FALLBACK or self.NVIDIA_FALLBACK_API_KEY or ""
+        return self.NVIDIA_API_KEY_FALLBACK or self.NVIDIA_NIM_API_KEY_FALLBACK or self.NVIDIA_FALLBACK_API_KEY or ""
+
+    @property
+    def gemini_primary_key(self) -> str:
+        return self.GEMINI_API_KEY or ""
+
+    @property
+    def gemini_fallback_key(self) -> str:
+        return self.GEMINI_API_KEY_FALLBACK or ""
 
     # WhatsApp Channel Configuration
     # Options: 'simulator', 'bridge', 'meta_cloud'
