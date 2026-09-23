@@ -37,6 +37,7 @@ import {
   Printer,
   FileCode,
 } from "lucide-react";
+import { getWebSocketUrl } from "@/lib/utils";
 
 interface KnowledgeItemRecord {
   id: string;
@@ -684,10 +685,7 @@ function KnowledgeHubMain() {
 
     let ws: WebSocket | null = null;
     try {
-      const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
-      const host = window.location.hostname;
-      const port = "8000";
-      ws = new WebSocket(`${proto}//${host}:${port}/api/v1/ws`);
+      ws = new WebSocket(getWebSocketUrl("/api/v1/ws"));
 
       ws.onmessage = (event) => {
         try {
