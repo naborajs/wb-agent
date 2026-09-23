@@ -60,10 +60,13 @@ export default function LeadsPage() {
 
   const loadLeads = () => {
     fetch("/api/v1/leads")
-      .then((r) => r.ok && r.json())
+      .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
-        if (data && data.items && data.items.length > 0) {
+        if (!data) return;
+        if (Array.isArray(data.items)) {
           setLeads(data.items);
+        } else if (Array.isArray(data)) {
+          setLeads(data);
         }
       })
       .catch(() => {});
