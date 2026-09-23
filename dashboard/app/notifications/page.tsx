@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { getWebSocketUrl } from "@/lib/utils";
 import {
   Bell,
   CheckCircle2,
@@ -62,11 +63,9 @@ export default function NotificationsPage() {
     fetchNotifications();
 
     // Listen to real-time agent notifications over WebSocket
-    const host = typeof window !== "undefined" ? (window.location.hostname || "127.0.0.1") : "127.0.0.1";
-    const proto = typeof window !== "undefined" && window.location.protocol === "https:" ? "wss:" : "ws:";
     let ws: WebSocket | null = null;
     try {
-      ws = new WebSocket(`${proto}//${host}:8000/api/v1/ws`);
+      ws = new WebSocket(getWebSocketUrl("/api/v1/ws"));
       ws.onmessage = (event) => {
         try {
           const msg = JSON.parse(event.data);
