@@ -137,9 +137,9 @@ async def test_prompt_api_endpoints(prompt_test_client):
     assert prune_res.status_code == 200
     assert prune_res.json()["deleted_count"] == 2
 
-    # Verify only active v3 remains
+    # Verify only active v4 remains
     hist_res3 = await client.get("/api/v1/prompts/business_policy/history")
     assert len(hist_res3.json()["history"]) == 1
-    assert hist_res3.json()["history"][0]["version"] == 3
+    assert hist_res3.json()["history"][0]["version"] == 4
     assert hist_res3.json()["history"][0]["is_active"] is True
 
