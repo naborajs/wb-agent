@@ -202,13 +202,7 @@ async def list_knowledge_items(
     session: AsyncSession = Depends(get_db),
 ):
     """Lists unified knowledge items with category filtering and search."""
-    stmt = select(KnowledgeItem).where(
-        or_(
-            KnowledgeItem.org_id == settings.DEFAULT_ORG_ID,
-            KnowledgeItem.org_id == "org_default_tea",
-            KnowledgeItem.org_id == "org_default",
-        )
-    )
+    stmt = select(KnowledgeItem).where(KnowledgeItem.org_id == settings.DEFAULT_ORG_ID)
 
     if isinstance(category, str) and category != "all" and category.strip():
         stmt = stmt.where(KnowledgeItem.category == category.strip())
@@ -313,11 +307,7 @@ async def update_knowledge_item(
     """Updates an existing KnowledgeItem and refreshes its chunks and relational sync."""
     stmt = select(KnowledgeItem).where(
         KnowledgeItem.id == item_id,
-        or_(
-            KnowledgeItem.org_id == settings.DEFAULT_ORG_ID,
-            KnowledgeItem.org_id == "org_default",
-            KnowledgeItem.org_id == "org_default_tea",
-        ),
+        KnowledgeItem.org_id == settings.DEFAULT_ORG_ID,
     )
     item = (await session.execute(stmt)).scalar_one_or_none()
     if not item:
@@ -394,11 +384,7 @@ async def toggle_item_active(
     """Toggles active status of a KnowledgeItem."""
     stmt = select(KnowledgeItem).where(
         KnowledgeItem.id == item_id,
-        or_(
-            KnowledgeItem.org_id == settings.DEFAULT_ORG_ID,
-            KnowledgeItem.org_id == "org_default",
-            KnowledgeItem.org_id == "org_default_tea",
-        ),
+        KnowledgeItem.org_id == settings.DEFAULT_ORG_ID,
     )
     item = (await session.execute(stmt)).scalar_one_or_none()
     if not item:
@@ -422,11 +408,7 @@ async def delete_knowledge_item(
     """Cascading deletion of a KnowledgeItem and all associated chunks."""
     stmt = select(KnowledgeItem).where(
         KnowledgeItem.id == item_id,
-        or_(
-            KnowledgeItem.org_id == settings.DEFAULT_ORG_ID,
-            KnowledgeItem.org_id == "org_default",
-            KnowledgeItem.org_id == "org_default_tea",
-        ),
+        KnowledgeItem.org_id == settings.DEFAULT_ORG_ID,
     )
     item = (await session.execute(stmt)).scalar_one_or_none()
     if not item:
@@ -434,7 +416,6 @@ async def delete_knowledge_item(
 
     await session.delete(item)
     await session.commit()
-
 
     await ws_manager.broadcast_to_org(settings.DEFAULT_ORG_ID, "knowledge_item_deleted", {
         "item_id": item_id,
@@ -446,11 +427,7 @@ async def delete_knowledge_item(
 async def get_knowledge_stats(session: AsyncSession = Depends(get_db)):
     """Returns asset counts and category breakdown across the unified hub."""
     stmt = select(KnowledgeItem.category, func.count(KnowledgeItem.id)).where(
-        or_(
-            KnowledgeItem.org_id == settings.DEFAULT_ORG_ID,
-            KnowledgeItem.org_id == "org_default_tea",
-            KnowledgeItem.org_id == "org_default",
-        ),
+        KnowledgeItem.org_id == settings.DEFAULT_ORG_ID,
         KnowledgeItem.is_active == True,
     ).group_by(KnowledgeItem.category)
     res = await session.execute(stmt)
@@ -461,12 +438,11 @@ async def get_knowledge_stats(session: AsyncSession = Depends(get_db)):
     if total == 0:
         try:
             await run_knowledge_hub_migration(session, settings.DEFAULT_ORG_ID)
-            await run_knowledge_hub_migration(session, "org_default_tea")
             res = await session.execute(stmt)
             counts = dict(res.all())
             total = sum(counts.values())
         except Exception as e:
-            logger.warning(f"Auto-migration in get_knowledge_stats skipped: {e}")
+            logger.warning(f"Knowledge stats auto-migration notice: {e}")
 
     return {
         "total": total,
@@ -628,11 +604,11 @@ async def query_knowledge_with_ai(req: RAGQueryRequest, session: AsyncSession = 
             temperature=0.2,
             max_tokens=250,
         )
-        ai_resp = await ai_router.execute_with_retry(model_req, preferred_capability=Capability.CHAT)
+        ai_resp = await ai_router.execute_with_retry(model_req, preferred_capability=Capability.CORE_BRAIN)
         if ai_resp and ai_resp.content and ai_resp.content.strip():
             answer_text = ai_resp.content.strip()
-            if hasattr(ai_resp, "model_name") and ai_resp.model_name:
-                model_name = f"{ai_resp.model_name} (RAG)"
+            if getattr(ai_resp, "model", None):
+                model_name = f"{ai_resp.model} (RAG)"
     except Exception as e:
         logger.warning(f"AI Router RAG synthesis notice (falling back to deterministic answer): {e}")
 
