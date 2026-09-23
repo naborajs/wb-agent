@@ -12,6 +12,7 @@ from typing import Any, Dict
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.database.base import utc_now
 from app.database.models import Conversation, ConversationAnalysis, Customer, FollowupJob, SalesLearning
 from app.utils.logging import logger
@@ -25,7 +26,7 @@ async def handle_background_analysis(*args, **kwargs) -> Dict[str, Any]:
     """
     session = kwargs.get("session")
     payload = kwargs.get("payload")
-    org_id = kwargs.get("org_id", "org_default_tea")
+    org_id = kwargs.get("org_id") or getattr(settings, "DEFAULT_ORG_ID", "org_default")
 
     if args:
         if isinstance(args[0], AsyncSession):
