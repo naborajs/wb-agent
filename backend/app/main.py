@@ -56,7 +56,7 @@ async def lifespan(app: FastAPI):
         from app.database.session import get_db_context
         from app.database.migrations.migrate_to_dynamic_prompt_sections import run_prompt_sections_migration
         async with get_db_context() as session:
-            await run_prompt_sections_migration(session)
+            await run_prompt_sections_migration(session, org_id=settings.DEFAULT_ORG_ID)
         logger.info("FastAPI Lifespan: Dynamic modular prompt sections verified and seeded.")
     except Exception as e:
         logger.warning(f"FastAPI Lifespan: Database schema init notice: {e}")
