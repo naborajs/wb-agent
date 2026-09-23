@@ -98,7 +98,8 @@ def _count_tokens_exact(content: str) -> int:
         return max(1, len(content) // 4)
 
 
-async def run_prompt_sections_migration(session: AsyncSession, org_id: str = "org_default_tea") -> Dict[str, Any]:
+async def run_prompt_sections_migration(session: AsyncSession, org_id: str = None) -> Dict[str, Any]:
+    org_id = org_id or settings.DEFAULT_ORG_ID
     """
     Executes idempotent migration:
     1. Ensures tables exist.
