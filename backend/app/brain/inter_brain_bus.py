@@ -1730,12 +1730,17 @@ class FridayBrain:
             }
 
         # General Executive Assistance Chat via Gemini (or simulated intelligent response if offline)
-        api_key = getattr(settings, "GEMINI_API_KEY", "")
-        gemini_model = getattr(settings, "GEMINI_MODEL", "gemini-3.1-flash-live-preview")
-        if api_key and not api_key.startswith("mock"):
+        api_key = getattr(settings, "gemini_primary_key", "") or getattr(settings, "GEMINI_API_KEY", "")
+        fallback_key = getattr(settings, "gemini_fallback_key", "")
+        gemini_model = getattr(settings, "FRIDAY_WEB_MODEL", getattr(settings, "GEMINI_MODEL", "gemini-2.5-flash"))
+        if gemini_model == "gemini-3.1-flash-live-preview":
+            gemini_model = "gemini-2.5-flash"
+
+        keys_to_try = [k for k in [api_key, fallback_key] if k and not k.startswith("mock")]
+        for active_key in keys_to_try:
             try:
                 import httpx
-                url = f"https://generativelanguage.googleapis.com/v1beta/models/{gemini_model}:generateContent?key={api_key}"
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/{gemini_model}:generateContent?key={active_key}"
                 prompt_text = f"{self.get_system_prompt()}\n\nOperator: {user_message}\nFriday:"
                 payload = {
                     "contents": [{"parts": [{"text": prompt_text}]}],
@@ -1753,7 +1758,7 @@ class FridayBrain:
                         "consulted_edith": False,
                     }
             except Exception as e:
-                logger.warning(f"[Friday Brain] Gemini call fallback: {e}")
+                logger.warning(f"[Friday Brain] Gemini call notice on active key: {e}")
 
         # Check if user requested an unhandled action / capability gap
         is_action_request = any(user_lower.startswith(prefix) for prefix in [
@@ -2425,11 +2430,7 @@ class InterBrainBus:
             from app.database.models import KnowledgeItem
             from sqlalchemy import select, or_
             stmt = select(KnowledgeItem).where(
-                or_(
-                    KnowledgeItem.org_id == org_id,
-                    KnowledgeItem.org_id == "org_default_tea",
-                    KnowledgeItem.org_id == "org_default",
-                ),
+                KnowledgeItem.org_id == org_id,
                 KnowledgeItem.is_active == True,
             ).order_by(KnowledgeItem.category, KnowledgeItem.title)
             res = await session.execute(stmt)
@@ -2603,13 +2604,7 @@ class InterBrainBus:
             action = "pause" if "pause" in text_lower else "activate" if "activate" in text_lower else "delete"
             from app.database.models import KnowledgeItem
             from sqlalchemy import select, or_
-            res = await session.execute(select(KnowledgeItem).where(
-                or_(
-                    KnowledgeItem.org_id == org_id,
-                    KnowledgeItem.org_id == "org_default_tea",
-                    KnowledgeItem.org_id == "org_default",
-                )
-            ))
+            res = await session.execute(select(KnowledgeItem).where(KnowledgeItem.org_id == org_id))
             all_items = res.scalars().all()
             target_item = None
             for it in all_items:
@@ -2844,13 +2839,7 @@ class InterBrainBus:
         # 2. Process Actions: PAUSE / ACTIVATE / DELETE
         if action in ("pause", "activate", "delete"):
             target_term = item_id_or_title or instruction
-            search_stmt = select(KnowledgeItem).where(
-                or_(
-                    KnowledgeItem.org_id == org_id,
-                    KnowledgeItem.org_id == "org_default",
-                    KnowledgeItem.org_id == "org_default_tea",
-                )
-            )
+            search_stmt = select(KnowledgeItem).where(KnowledgeItem.org_id == org_id)
             if item_id_or_title:
                 search_stmt = search_stmt.where(
                     or_(
