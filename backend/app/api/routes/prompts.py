@@ -395,6 +395,8 @@ async def get_section_history_api(
                 "token_count": v.token_count if v.token_count > 0 else count_tokens(v.content),
                 "quality_score": v.quality_score or (v.test_results or {}).get("rating_score"),
                 "quality_grade": v.quality_grade or (v.test_results or {}).get("rating_grade"),
+                "rating_score": v.quality_score or (v.test_results or {}).get("rating_score"),
+                "rating_grade": v.quality_grade or (v.test_results or {}).get("rating_grade"),
                 "rating_breakdown": (v.test_results or {}).get("rating_breakdown") or {
                     "clarity": v.clarity_score,
                     "constraint_strength": v.constraint_score,
@@ -804,6 +806,37 @@ async def get_all_prompt_sections_legacy(response: Response, session: AsyncSessi
     prompt_svc = PromptService(session, org_id=settings.DEFAULT_ORG_ID)
     sections = await prompt_svc.list_sections(include_archived=False)
 
+    if not sections:
+        out = {}
+        for k, default_text in DEFAULT_PROMPT_SECTIONS.items():
+            content = await prompt_svc.get_active_section(k)
+            stmt = (
+                select(PromptVersion)
+                .where(
+                    PromptVersion.org_id == settings.DEFAULT_ORG_ID,
+                    PromptVersion.section_name == k,
+                    PromptVersion.is_active == True,
+                )
+                .order_by(desc(PromptVersion.version))
+                .limit(1)
+            )
+            v_obj = (await session.execute(stmt)).scalar_one_or_none()
+            out[k] = {
+                "name": k,
+                "display_name": k.replace("_", " ").title(),
+                "version": v_obj.version if v_obj else 1,
+                "content": content,
+                "is_default": content == default_text,
+                "is_system": True,
+                "is_active": True,
+                "author": v_obj.author if v_obj else "system",
+                "token_count": count_tokens(content),
+                "rating_score": v_obj.quality_score if v_obj else None,
+                "rating_grade": v_obj.quality_grade if v_obj else None,
+                "change_summary": v_obj.change_summary if v_obj else None,
+            }
+        return {"sections": out}
+
     out = {}
     for sec in sections:
         content = await prompt_svc.get_active_section(sec.key)
@@ -895,6 +928,8 @@ async def update_prompt_section_content_legacy(
         "version": new_ver.version,
         "is_active": new_ver.is_active,
         "token_count": new_ver.token_count,
+        "rating_score": req.rating_score or new_ver.quality_score,
+        "rating_grade": req.rating_grade or new_ver.quality_grade,
     }
 
 
@@ -906,3 +941,35 @@ async def rollback_prompt_legacy(
 ):
     """Legacy rollback endpoint."""
     return await activate_prompt_version(section, version, req=None, session=session)
+
+
+@router.delete("/{section}/history/{version}")
+async def delete_prompt_version_legacy(
+    section: str,
+    version: int,
+    session: AsyncSession = Depends(get_db),
+):
+    """Legacy delete single version endpoint."""
+    prompt_svc = PromptService(session, org_id=settings.DEFAULT_ORG_ID)
+    success, msg = await prompt_svc.delete_version(section, version)
+    if not success:
+        if "not found" in msg.lower():
+            raise HTTPException(status_code=404, detail=msg)
+        raise HTTPException(status_code=400, detail=msg)
+    return {"success": True, "deleted_version": version, "message": msg}
+
+
+@router.delete("/{section}/history")
+async def prune_prompt_history_legacy(
+    section: str,
+    keep_latest: int = Query(0, ge=0),
+    session: AsyncSession = Depends(get_db),
+):
+    """Legacy prune unpinned inactive versions endpoint."""
+    prompt_svc = PromptService(session, org_id=settings.DEFAULT_ORG_ID)
+    deleted_count = await prompt_svc.prune_inactive_history(section, keep_latest=keep_latest)
+    return {
+        "success": True,
+        "deleted_count": deleted_count,
+        "message": f"Pruned {deleted_count} unpinned inactive versions.",
+    }
