@@ -55,6 +55,7 @@ import {
 } from "@/components/ui/radar-chart";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { getWebSocketUrl } from "@/lib/utils";
 
 const brainRadarConfig = {
   friday: {
@@ -246,9 +247,7 @@ export default function DualBrainPage() {
 
   // Helper for resilient WebSocket URL resolution
   const getWsUrl = () => {
-    const host = typeof window !== "undefined" ? (window.location.hostname || "127.0.0.1") : "127.0.0.1";
-    const proto = typeof window !== "undefined" && window.location.protocol === "https:" ? "wss:" : "ws:";
-    return `${proto}//${host}:8000/api/v1/ws?org_id=org_default`;
+    return getWebSocketUrl("/api/v1/ws?org_id=org_default");
   };
 
   // Fetch initial dialogue history
