@@ -7,6 +7,7 @@ from decimal import Decimal
 from typing import Any, Dict
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.config import settings
 from app.database.base import Base
 from app.database.session import get_engine
 from app.database.models import (
@@ -21,7 +22,8 @@ from app.knowledge.embeddings import LocalMockEmbeddingProvider
 from app.utils.logging import logger
 
 
-async def run_knowledge_hub_migration(session: AsyncSession, org_id: str = "org_default_tea") -> Dict[str, Any]:
+async def run_knowledge_hub_migration(session: AsyncSession, org_id: str = None) -> Dict[str, Any]:
+    org_id = org_id or settings.DEFAULT_ORG_ID
     """
     Executes an idempotent, zero-data-loss migration into knowledge_items.
     """
