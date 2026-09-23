@@ -344,42 +344,44 @@ $env:PYTHONPATH="backend"; python -m pytest backend/tests/unit -v
 
 ---
 
-## 📂 Detailed Documentation Directory
+## 📂 Detailed Documentation Directory (assets docs)
 
-All comprehensive architectural design records, operational runbooks, API schemas, and setup guides are organized inside the **[`docs/`](docs/)** folder:
+All comprehensive architectural design records, operational runbooks, API schemas, and setup guides are organized inside the **[`assets docs/`](assets%20docs/)** folder:
 
 ### 🏛️ Architecture & Decisions
-- **[System Architecture Overview](docs/architecture.md)**: High-level data flows, worker loops, and component diagrams.
-- **[Dashboard Visual Operations Tour](docs/visual-tour.md)**: Complete high-resolution visual documentation of all 12 operational pages.
-- **[Architecture Decision Records (ADRs)](docs/decisions/)**:
-  - [ADR-0001: PostgreSQL & pgvector as Primary Storage](docs/decisions/0001-postgresql-primary-storage.md)
-  - [ADR-0002: Modular Monolith Architecture](docs/decisions/0002-modular-monolith-architecture.md)
-  - [ADR-0003: Database-Backed Durable Job Queue](docs/decisions/0003-database-backed-queue.md)
-  - [ADR-0004: Conversation-Level Distributed Locking](docs/decisions/0004-conversation-concurrency.md)
-  - [ADR-0005: Multi-Provider LLM Abstraction](docs/decisions/0005-provider-abstraction.md)
-  - [ADR-0006: Multi-Tier Memory & Fact Provenance](docs/decisions/0006-memory-architecture.md)
-  - [ADR-0007: Knowledge Grounding & Authority Hierarchy](docs/decisions/0007-knowledge-rag-authority.md)
-  - [ADR-0008: Atomic Pre-Send Human Takeover Protection](docs/decisions/0008-human-takeover-race-prevention.md)
-  - [ADR-0009: Context-Aware Follow-Up Cancellation](docs/decisions/0009-followup-engine-cancellation.md)
-  - [ADR-0010: Local-First Modular Monolith Deployment](docs/decisions/0010-local-first-architecture.md)
-  - [ADR-0011: Dual WhatsApp Provider Architecture (Baileys + Meta Cloud)](docs/decisions/0011-whatsapp-adapter-architecture.md)
-  - [ADR-0012: Operator Correction Learning](docs/decisions/0012-operator-correction-learning.md)
-  - [ADR-0013: Modular Prompt Versioning & Rollback](docs/decisions/0013-modular-prompt-versioning.md)
-  - [ADR-0014: Auditable Commercial Quotes](docs/decisions/0014-auditable-commercial-quotes.md)
-  - [ADR-0015: Dual-Brain Bidirectional Agency, Refusal Rights & Autonomous Fallback](docs/decisions/0015-dual-brain-bidirectional-agency-and-refusal.md)
-  - [ADR-0016: Campaign Orchestration, Rate-Limiting Jitter & Anti-Ban Cold Outreach Guards](docs/decisions/0016-campaign-orchestration-and-anti-ban-guards.md)
+- **[Master Knowledge Base Index](assets%20docs/index.md)**: Master Obsidian Map of Content (MOC) with interconnected graph navigation.
+- **[System Architecture Deep Dive](assets%20docs/architecture.md)**: High-level data flows, worker loops, and component diagrams.
+- **[Dashboard Visual Operations Tour](assets%20docs/visual-tour.md)**: Complete high-resolution visual documentation of all 17 operational pages.
+- **[Architecture Decision Records (ADRs 0001–0026)](assets%20docs/decisions/)**:
+  - [ADR-0001: PostgreSQL & pgvector as Primary Storage](assets%20docs/decisions/0001-postgresql-primary-storage.md)
+  - [ADR-0002: Modular Monolith Architecture](assets%20docs/decisions/0002-modular-monolith-architecture.md)
+  - [ADR-0003: Database-Backed Durable Job Queue](assets%20docs/decisions/0003-database-backed-queue.md)
+  - [ADR-0004: Conversation-Level Distributed Locking](assets%20docs/decisions/0004-conversation-concurrency.md)
+  - [ADR-0005: Multi-Provider LLM Abstraction](assets%20docs/decisions/0005-provider-abstraction.md)
+  - [ADR-0006: Multi-Tier Memory & Fact Provenance](assets%20docs/decisions/0006-memory-architecture.md)
+  - [ADR-0007: Knowledge Grounding & Authority Hierarchy](assets%20docs/decisions/0007-knowledge-rag-authority.md)
+  - [ADR-0008: Atomic Pre-Send Human Takeover Protection](assets%20docs/decisions/0008-human-takeover-race-prevention.md)
+  - [ADR-0009: Context-Aware Follow-Up Cancellation](assets%20docs/decisions/0009-followup-engine-cancellation.md)
+  - [ADR-0010: Local-First Modular Monolith Deployment](assets%20docs/decisions/0010-local-first-architecture.md)
+  - [ADR-0011: Dual WhatsApp Provider Architecture (Baileys + Meta Cloud)](assets%20docs/decisions/0011-whatsapp-adapter-architecture.md)
+  - [ADR-0012: Operator Correction Learning](assets%20docs/decisions/0012-operator-correction-learning.md)
+  - [ADR-0013: Modular Prompt Versioning & Rollback](assets%20docs/decisions/0013-modular-prompt-versioning.md)
+  - [ADR-0014: Auditable Commercial Quotes](assets%20docs/decisions/0014-auditable-commercial-quotes.md)
+  - [ADR-0015: Dual-Brain Bidirectional Agency, Refusal Rights & Autonomous Fallback](assets%20docs/decisions/0015-dual-brain-bidirectional-agency-and-refusal.md)
+  - [ADR-0016: Campaign Orchestration, Rate-Limiting Jitter & Anti-Ban Cold Outreach Guards](assets%20docs/decisions/0016-campaign-orchestration-and-anti-ban-guards.md)
+  - [ADR-0026: Dynamic Model Assignment & Zero-Cost NVIDIA NIM Playground](assets%20docs/decisions/0026-dynamic-model-assignment-and-zero-cost-nvidia-playground.md)
 
 ### 🛠️ Setup & Operations Runbooks
-- **[Prerequisites & System Requirements](docs/setup/01-prerequisites-and-system-requirements.md)**
-- **[Database & pgvector Setup](docs/setup/02-database-and-pgvector-setup.md)**
-- **[Backend Fast Start Runbook](docs/setup/03-backend-setup.md)**
-- **[Dashboard Frontend Setup & Visual Tour](docs/setup/04-dashboard-frontend-setup.md)**
-- **[WhatsApp Integration Guide](docs/setup/05-whatsapp-integration-guide.md)**
-- **[NVIDIA Nemotron & LLM Configuration](docs/setup/06-nvidia-nemotron-and-llm-setup.md)**
-- **[Owner Escalation Setup](docs/setup/07-owner-escalation-channel.md)**
-- **[End-to-End Verification Runbook](docs/setup/08-end-to-end-verification.md)**
-- **[API Reference Documentation](docs/api-reference.md)**
-- **[Troubleshooting & Error Solutions Catalog](docs/troubleshooting/error-catalog-and-solutions.md)**
+- **[Prerequisites & System Requirements](assets%20docs/setup/01-prerequisites-and-system-requirements.md)**
+- **[Database & pgvector Setup](assets%20docs/setup/02-database-and-pgvector-setup.md)**
+- **[Backend Fast Start Runbook](assets%20docs/setup/03-backend-setup.md)**
+- **[Dashboard Frontend Setup & Visual Tour](assets%20docs/setup/04-dashboard-frontend-setup.md)**
+- **[WhatsApp Integration Guide](assets%20docs/setup/05-whatsapp-integration-guide.md)**
+- **[NVIDIA Nemotron & LLM Configuration](assets%20docs/setup/06-nvidia-nemotron-and-llm-setup.md)**
+- **[Owner Escalation Setup](assets%20docs/setup/07-owner-escalation-channel.md)**
+- **[End-to-End Verification Runbook](assets%20docs/setup/08-end-to-end-verification.md)**
+- **[API Reference Documentation](assets%20docs/api-reference.md)**
+- **[Troubleshooting & Error Solutions Catalog](assets%20docs/troubleshooting/error-catalog-and-solutions.md)**
 
 ---
 
