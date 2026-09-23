@@ -26,9 +26,10 @@ def test_capability_chains_structure():
     assert Capability.SAFETY_INPUT in CAPABILITY_CHAINS
     assert Capability.SAFETY_OUTPUT in CAPABILITY_CHAINS
 
-    # Directive §3.A: Core brain primary is nemotron-3-super-120b-a12b
+    # Directive §3.A: Core brain default chain and configured primary model
+    assert CAPABILITY_CHAINS[Capability.CORE_BRAIN][0] == "nvidia/nemotron-3-super-120b-a12b"
     core_chain = get_capability_chain(Capability.CORE_BRAIN)
-    assert core_chain[0] == "nvidia/nemotron-3-super-120b-a12b"
+    assert core_chain[0] == "meta/llama-3.3-70b-instruct"
     assert "nvidia/nemotron-3.5-lightning-30b-a3b" in core_chain
     assert "openai/gpt-oss-20b" in core_chain
 
