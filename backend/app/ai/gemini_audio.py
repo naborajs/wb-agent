@@ -17,11 +17,12 @@ class GeminiAudioClient:
     Permitted only as a first-class voice fallback (§3.D) or true last-resort emergency fallback (§5).
     """
 
-    DEFAULT_MODEL = "gemini-3.1-flash-live-preview"
+    DEFAULT_MODEL = "gemini-2.5-flash"
     FALLBACK_MODEL = "gemini-1.5-flash"
 
     def __init__(self, api_key: Optional[str] = None):
-        self.api_key = api_key or getattr(settings, "GEMINI_API_KEY", "")
+        self.api_key = api_key or getattr(settings, "gemini_primary_key", "") or getattr(settings, "GEMINI_API_KEY", "")
+        self.fallback_key = getattr(settings, "gemini_fallback_key", "")
 
     async def transcribe_audio(
         self,
@@ -32,7 +33,8 @@ class GeminiAudioClient:
         """
         Transcribes audio bytes into text using Google Gemini Multimodal API.
         """
-        if not self.api_key or not self.api_key.strip():
+        keys_to_try = [k for k in [self.api_key, self.fallback_key] if k and k.strip() and not k.startswith("mock")]
+        if not keys_to_try:
             logger.info("Gemini API key not configured; skipping Gemini audio fallback.")
             return ""
 
@@ -42,7 +44,6 @@ class GeminiAudioClient:
             clean_mime = "audio/ogg"
 
         b64_audio = base64.b64encode(audio_bytes).decode("utf-8")
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{target_model}:generateContent?key={self.api_key}"
 
         prompt = (
             "You are an expert transcriber for wholesale B2B WhatsApp voice notes in India. "
@@ -72,23 +73,29 @@ class GeminiAudioClient:
             },
         }
 
-        try:
-            async with httpx.AsyncClient(timeout=25.0) as client:
-                resp = await client.post(url, json=payload)
-                if resp.status_code == 200:
-                    data = resp.json()
-                    candidates = data.get("candidates", [])
-                    if candidates:
-                        parts = candidates[0].get("content", {}).get("parts", [])
-                        if parts:
-                            return parts[0].get("text", "").strip()
-                elif resp.status_code == 404 and target_model != self.FALLBACK_MODEL:
-                    # Model not found on preview endpoint -> try stable fallback model
-                    logger.info(f"Model {target_model} 404'd, attempting fallback model {self.FALLBACK_MODEL}")
+        for active_key in keys_to_try:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{target_model}:generateContent?key={active_key}"
+            try:
+                async with httpx.AsyncClient(timeout=25.0) as client:
+                    resp = await client.post(url, json=payload)
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        candidates = data.get("candidates", [])
+                        if candidates:
+                            parts = candidates[0].get("content", {}).get("parts", [])
+                            if parts:
+                                return parts[0].get("text", "").strip()
+                    elif resp.status_code in (404, 429, 500, 502, 503) and target_model != self.FALLBACK_MODEL:
+                        logger.info(f"Model {target_model} returned {resp.status_code}, attempting fallback model {self.FALLBACK_MODEL}")
+                        return await self.transcribe_audio(audio_bytes, mime_type=mime_type, model=self.FALLBACK_MODEL)
+                    else:
+                        logger.warning(f"Gemini API returned status {resp.status_code}: {resp.text[:200]}")
+            except (httpx.TimeoutException, httpx.NetworkError) as e:
+                if target_model != self.FALLBACK_MODEL:
+                    logger.info(f"Gemini network issue with {target_model}, attempting fallback model {self.FALLBACK_MODEL}")
                     return await self.transcribe_audio(audio_bytes, mime_type=mime_type, model=self.FALLBACK_MODEL)
-                else:
-                    logger.warning(f"Gemini API returned status {resp.status_code}: {resp.text[:200]}")
-        except Exception as e:
-            logger.warning(f"Gemini audio transcription failed: {e}")
+                logger.warning(f"Gemini audio transcription failed: {e}")
+            except Exception as e:
+                logger.warning(f"Gemini audio transcription unexpected error: {e}")
 
         return ""
