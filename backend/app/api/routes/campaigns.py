@@ -456,6 +456,93 @@ async def delete_campaign(
 
 
 # ---------------------------------------------------------------------------
+# GET /campaigns/followups — List scheduled follow-up jobs with lead details
+# ---------------------------------------------------------------------------
+
+@router.get("/followups")
+async def list_followups(
+    status: Optional[str] = Query(None, description="Filter by status: scheduled, sent, cancelled, suppressed, failed"),
+    session: AsyncSession = Depends(get_db),
+):
+    """
+    Returns all scheduled and historic follow-up sequence jobs with customer and conversation metadata.
+    """
+    org_id = settings.DEFAULT_ORG_ID
+    from app.database.models import FollowupJob, Customer, Conversation
+
+    stmt = (
+        select(
+            FollowupJob,
+            Customer.name.label("customer_name"),
+            Customer.primary_phone.label("customer_phone"),
+            Customer.company_name.label("company_name"),
+            Conversation.sales_stage.label("sales_stage"),
+        )
+        .outerjoin(Customer, FollowupJob.customer_id == Customer.id)
+        .outerjoin(Conversation, FollowupJob.conversation_id == Conversation.id)
+        .where(FollowupJob.org_id == org_id)
+    )
+
+    if status:
+        stmt = stmt.where(FollowupJob.status == status)
+
+    stmt = stmt.order_by(FollowupJob.scheduled_for.asc()).limit(100)
+    res = await session.execute(stmt)
+    rows = res.all()
+
+    followups = []
+    for f, cust_name, cust_phone, comp_name, stage in rows:
+        followups.append({
+            "id": f.id,
+            "conversation_id": f.conversation_id,
+            "customer_id": f.customer_id,
+            "campaign_id": f.campaign_id,
+            "scheduled_for": f.scheduled_for.isoformat() if f.scheduled_for else None,
+            "step": f.step,
+            "status": f.status,
+            "cancel_reason": f.cancel_reason,
+            "template_id": f.template_id,
+            "attempt_count": f.attempt_count,
+            "max_attempts": f.max_attempts,
+            "customer_name": cust_name or "Lead",
+            "customer_phone": cust_phone or "",
+            "company_name": comp_name or "Commercial Account",
+            "sales_stage": stage or "NEW",
+            "created_at": f.created_at.isoformat() if f.created_at else None,
+        })
+
+    return {"followups": followups, "total": len(followups)}
+
+
+# ---------------------------------------------------------------------------
+# POST /campaigns/followups/{id}/cancel — Cancel a scheduled follow-up
+# ---------------------------------------------------------------------------
+
+@router.post("/followups/{followup_id}/cancel")
+async def cancel_followup(
+    followup_id: str,
+    reason: Optional[str] = Query("operator_cancelled", description="Reason for cancellation"),
+    session: AsyncSession = Depends(get_db),
+):
+    """
+    Cancels a scheduled follow-up job to prevent autonomous dispatch.
+    """
+    org_id = settings.DEFAULT_ORG_ID
+    from app.database.models import FollowupJob
+
+    stmt = select(FollowupJob).where(FollowupJob.id == followup_id, FollowupJob.org_id == org_id)
+    f = (await session.execute(stmt)).scalar_one_or_none()
+    if not f:
+        raise HTTPException(status_code=404, detail="Followup job not found.")
+
+    f.status = "cancelled"
+    f.cancel_reason = reason
+    await session.commit()
+
+    return {"success": True, "id": followup_id, "status": "cancelled", "reason": reason}
+
+
+# ---------------------------------------------------------------------------
 # Helper: Convert Campaign model + stats dict to CampaignResponse
 # ---------------------------------------------------------------------------
 
