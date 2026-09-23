@@ -357,6 +357,7 @@ async def restore_prompt_section(
 # Version History, Git Diff, Rollback & Pinning
 # -------------------------------------------------------------
 @router.get("/sections/{identifier}/history")
+@router.get("/{identifier}/history")
 async def get_section_history_api(
     identifier: str,
     response: Response,
