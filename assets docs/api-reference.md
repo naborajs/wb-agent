@@ -29,8 +29,10 @@ All endpoints are versioned under `/api/v1`. Interactive OpenAPI documentation i
 - `GET /api/v1/pricing/rules`: Active volume tier rules.
 - `POST /api/v1/pricing/calculate`: Computes deterministic quote with discount bounds and MOQ enforcement.
 
-## 6. Realtime Streaming
-- `WS /api/v1/ws?org_id={org_id}`: Real-time WebSocket connection broadcasting `new_message`, `stage_changed`, `hot_lead`, and `handoff_requested`.
+## 6. Realtime Streaming & WebSockets
+- `WS /api/v1/ws?org_id={org_id}`: Primary organization event bus broadcasting `new_message`, `stage_changed`, `hot_lead`, `handoff_requested`, `message_status_update`, `watchdog_alert`, `watchdog_alert_resolved`, `agent_notification`, and `friday_ui_action`.
+- `WS /api/v1/ws/conversations`: Dedicated live chat stream carrying `agent_thinking` status, model deliberation, and streaming tokens.
+- **Client Protocol Helper**: Frontend uses `getWebSocketUrl(path)` from `@/lib/utils` to dynamically negotiate `wss://` / `ws://` across reverse proxies and cloud deployments.
 
 ## 7. Webhooks
 - `GET /api/v1/webhooks/whatsapp`: Meta GET verification challenge.
@@ -62,6 +64,8 @@ All endpoints are versioned under `/api/v1`. Interactive OpenAPI documentation i
 - `POST /api/v1/campaigns/{id}/resume`: Resumes suspended campaign dispatch.
 - `GET /api/v1/campaigns/{id}/leads`: Detailed per-lead dispatch roster with personalized messages and delivery receipts.
 - `GET /api/v1/campaigns/segments`: Returns distinct company types and lead counts from the database for targeting.
+- `GET /api/v1/campaigns/followups`: Returns scheduled and historic follow-up sequence jobs with customer, conversation, and preflight policy metadata.
+- `POST /api/v1/campaigns/followups/{id}/cancel`: Cancels a scheduled follow-up job to prevent autonomous dispatch.
 - `DELETE /api/v1/campaigns/{id}`: Removes or archives campaign.
 
 ---
@@ -117,9 +121,20 @@ All endpoints are versioned under `/api/v1`. Interactive OpenAPI documentation i
 ---
 
 ## 17. Voice Agent & Speech Processing
-- `POST /api/v1/voice/session-token`: Mints ephemeral WebSocket session tokens for browser-based real-time voice streaming with Gemini Live.
+- `POST /api/v1/voice/session-token`: Mints ephemeral WebSocket session tokens for browser-based real-time voice streaming with Gemini Live (`gemini-3.1-flash-live-preview`).
 - `POST /api/v1/audio/transcribe`: Ingests inbound WhatsApp voice notes (OGG/Opus, MP3, WAV) and returns normalized text transcripts.
 - `POST /api/v1/audio/synthesize`: Synthesizes outbound audio voice responses for hands-free audio debriefs.
+
+---
+
+## 18. Modular Prompts & Architecture Copilot
+- `GET /api/v1/prompts`: Returns active versions of all 7 dynamic system prompt sections (`identity_role`, `safety_policy`, `sales_style`, `product_catalog`, `pricing_rules`, `objection_handling`, `closing_rules`).
+- `GET /api/v1/prompts/{identifier}`: Returns details of a specific prompt section.
+- `GET /api/v1/prompts/{identifier}/history`: Returns complete rollback version history with quality scores, letter grades (`A+`, `A`, `B+`), and author metadata.
+- `POST /api/v1/prompts/{identifier}/ai-optimize`: Autonomous prompt engineering synthesis using NemoTron-3-Super-120B.
+- `PUT /api/v1/prompts/{identifier}`: Deploys a new version of the specified prompt section.
+- `POST /api/v1/prompts/{identifier}/rollback/{version}`: Rolls back to any historic version atomically.
+- `DELETE /api/v1/prompts/{identifier}/history`: Prunes inactive versions while preserving the active production version.
 
 
 
