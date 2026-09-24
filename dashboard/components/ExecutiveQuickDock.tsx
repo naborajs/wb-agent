@@ -15,6 +15,7 @@ import {
   X,
   Play,
 } from "lucide-react";
+import MessageLoading from "@/components/ui/MessageLoading";
 
 interface ExecutiveQuickDockProps {
   onTestDiscountPolicy: (prompt: string) => void;
@@ -160,7 +161,7 @@ export default function ExecutiveQuickDock({
             title="Sends an instant diagnostic ping to the WhatsApp bridge"
           >
             {isSendingPing ? (
-              <RefreshCw className="w-3.5 h-3.5 animate-spin text-sky-500" />
+              <MessageLoading className="w-3.5 h-3.5 text-sky-500" />
             ) : (
               <Radio className="w-3.5 h-3.5 text-sky-500" />
             )}
@@ -288,7 +289,7 @@ export default function ExecutiveQuickDock({
                   disabled={isAddingRule}
                   className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold flex items-center gap-1.5 shadow-md disabled:opacity-50"
                 >
-                  {isAddingRule ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+                  {isAddingRule ? <MessageLoading className="w-3.5 h-3.5 text-white" /> : <Plus className="w-3.5 h-3.5" />}
                   Submit to EDITH
                 </button>
               </div>
