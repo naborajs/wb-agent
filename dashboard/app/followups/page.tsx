@@ -16,6 +16,7 @@ import {
   AlertCircle,
   Sparkles,
 } from "lucide-react";
+import MessageLoading from "@/components/ui/MessageLoading";
 
 interface FollowupRecord {
   id: string;
@@ -126,7 +127,11 @@ export default function FollowupsPage() {
             disabled={loading}
             className="ed-press ed-focus-ring flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold text-[var(--ed-text-primary)] border border-[var(--ed-border)] hover:bg-[var(--ed-bg)] transition-colors"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
+            {loading ? (
+              <MessageLoading className="w-3.5 h-3.5 text-[var(--ed-accent)]" />
+            ) : (
+              <RefreshCw className="w-3.5 h-3.5" />
+            )}
             Refresh
           </button>
         </div>
@@ -205,7 +210,7 @@ export default function FollowupsPage() {
               {loading && followups.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-5 py-10 text-center text-xs text-[var(--ed-text-muted)]">
-                    <RefreshCw className="w-4 h-4 animate-spin mx-auto mb-2 text-[var(--ed-accent)]" />
+                    <MessageLoading className="w-5 h-5 mx-auto mb-2 text-[var(--ed-accent)]" />
                     Loading sequence jobs from backend...
                   </td>
                 </tr>
