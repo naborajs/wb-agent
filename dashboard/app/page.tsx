@@ -42,6 +42,7 @@ import {
 import StrokeMultipleRadarChart from "@/components/ui/demo";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import MessageLoading from "@/components/ui/MessageLoading";
 
 const funnelRadarConfig = {
   leads: {
@@ -808,7 +809,7 @@ export default function DashboardOverview() {
                       disabled={isPairingLoading}
                       className="px-4 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 dark:bg-[#00D2FE] dark:hover:bg-sky-400 text-white dark:text-slate-950 font-mono font-bold text-xs transition-all disabled:opacity-50 flex items-center gap-1.5 shrink-0 shadow-sm"
                     >
-                      {isPairingLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : "Get Code"}
+                      {isPairingLoading ? <MessageLoading className="w-3.5 h-3.5 text-white dark:text-slate-950" /> : "Get Code"}
                     </button>
                   </div>
                 </form>
@@ -891,7 +892,7 @@ export default function DashboardOverview() {
               disabled={isSendingPing}
               className="px-3 py-1.5 rounded-lg text-xs font-mono font-semibold bg-[var(--ed-surface)] hover:bg-[var(--ed-bg)] border border-[var(--ed-border)] text-[var(--ed-text-primary)] transition-all flex items-center gap-1.5"
             >
-              {isSendingPing ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5 text-sky-500" />}
+              {isSendingPing ? <MessageLoading className="w-3.5 h-3.5 text-sky-500" /> : <Send className="w-3.5 h-3.5 text-sky-500" />}
               {pingStatus || "Send Diagnostic Ping"}
             </button>
             <Link
@@ -1125,7 +1126,7 @@ export default function DashboardOverview() {
               >
                 {isSimulating ? (
                   <>
-                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <MessageLoading className="w-4 h-4 text-slate-950" />
                     <span>Transmitting Across Inter-Brain Bus...</span>
                   </>
                 ) : (
