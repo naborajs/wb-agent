@@ -28,6 +28,7 @@ import {
   Layers,
   HelpCircle,
 } from "lucide-react";
+import MessageLoading from "@/components/ui/MessageLoading";
 
 interface CampaignLeadStats {
   total_leads: number;
@@ -483,7 +484,7 @@ export default function CampaignsPage() {
             >
               {chatLoading ? (
                 <>
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin" /> Drafting...
+                  <MessageLoading className="w-3.5 h-3.5 text-white" /> Friday Drafting...
                 </>
               ) : (
                 <>
@@ -598,7 +599,7 @@ export default function CampaignsPage() {
                 >
                   {launchingDraft ? (
                     <>
-                      <RefreshCw className="w-3.5 h-3.5 animate-spin" /> Enrolling Leads & Launching...
+                      <MessageLoading className="w-3.5 h-3.5 text-white" /> Enrolling Leads & Launching...
                     </>
                   ) : (
                     <>
@@ -1168,7 +1169,7 @@ export default function CampaignsPage() {
                 >
                   {creating ? (
                     <>
-                      <RefreshCw className="w-3.5 h-3.5 animate-spin" /> Launching...
+                      <MessageLoading className="w-3.5 h-3.5 text-white" /> Launching...
                     </>
                   ) : (
                     "Launch Drip Campaign"
