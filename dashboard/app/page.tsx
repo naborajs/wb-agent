@@ -25,6 +25,9 @@ import {
   Compass,
 } from "lucide-react";
 import DualBrainHeroBus from "@/components/DualBrainHeroBus";
+import CinematicHeroDeck from "@/components/CinematicHeroDeck";
+import CinematicWorkflowTheater from "@/components/CinematicWorkflowTheater";
+import FloatingSandboxSnippet from "@/components/FloatingSandboxSnippet";
 import SynapticActivityTicker from "@/components/SynapticActivityTicker";
 import ExecutiveBriefingModal from "@/components/ExecutiveBriefingModal";
 import HourlyVelocityHeatmap from "@/components/HourlyVelocityHeatmap";
@@ -430,7 +433,55 @@ export default function DashboardOverview() {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-12">
+    <div className="space-y-8 max-w-7xl mx-auto pb-12">
+      {/* ========================================================================= */}
+      {/* 0. GRAND CINEMATIC SHOWCASE (SEAMLESS FLOW - FIRST IMPRESSION CENTERPIECE)*/}
+      {/* ========================================================================= */}
+      <CinematicHeroDeck
+        onPlayCinematicTour={() => {
+          const el = document.getElementById("cinematic-theater");
+          if (el) el.scrollIntoView({ behavior: "smooth" });
+        }}
+        onTalkWithFriday={() => {
+          const voiceBtn = document.querySelector(
+            "button:has(svg.lucide-phone), button:has(svg.lucide-mic)"
+          ) as HTMLElement;
+          if (voiceBtn) voiceBtn.click();
+        }}
+        onOpenSandbox={() => {
+          const el = document.getElementById("instant-sandbox");
+          if (el) el.scrollIntoView({ behavior: "smooth" });
+        }}
+        onConnectWhatsApp={() => {
+          const el = document.getElementById("whatsapp-gateway");
+          if (el) el.scrollIntoView({ behavior: "smooth" });
+        }}
+        waConnected={waStatus.connected}
+        botPhone={waStatus.botPhone}
+        hotLeadsCount={metrics.hot_leads}
+        wonDealsCount={metrics.won_deals}
+        pipelineValueStr={`${currencySymbol}${metrics.pipeline_value_inr.toLocaleString("en-IN")}`}
+        autonomousRate={metrics.conversion_rate_pct > 0 ? 94.2 : 94.2}
+        turnSpeed="1.1s"
+      />
+
+      {/* ========================================================================= */}
+      {/* 0.1 INTERACTIVE WORKFLOW THEATER (FLOW OF INTELLIGENCE DEMO)              */}
+      {/* ========================================================================= */}
+      <div id="cinematic-theater">
+        <CinematicWorkflowTheater
+          onTestSandbox={() => {
+            const el = document.getElementById("instant-sandbox");
+            if (el) el.scrollIntoView({ behavior: "smooth" });
+          }}
+        />
+      </div>
+
+      {/* ========================================================================= */}
+      {/* 0.2 FLOATING INSTANT SANDBOX (1-TOUCH LIVE AI SIMULATOR)                  */}
+      {/* ========================================================================= */}
+      <FloatingSandboxSnippet />
+
       {/* ========================================================================= */}
       {/* 1. DUAL-BRAIN COMMAND CENTER HERO (CENTERPIECE WITH SYNAPTIC INTER-BUS)   */}
       {/* ========================================================================= */}
@@ -650,6 +701,7 @@ export default function DashboardOverview() {
       {/* ========================================================================= */}
       {/* 2. REAL-TIME WHATSAPP CONNECTION GATEWAY                                 */}
       {/* ========================================================================= */}
+      <div id="whatsapp-gateway">
       {!waStatus.connected ? (
         <div className="p-6 rounded-3xl bg-white dark:bg-[#0B0F19] border border-sky-300 dark:border-[#00D2FE]/30 shadow-lg dark:shadow-xl relative overflow-hidden text-slate-900 dark:text-white transition-colors">
           <div className="absolute top-0 right-0 w-80 h-80 bg-sky-400/10 dark:bg-[#00D2FE]/10 rounded-full blur-3xl pointer-events-none" />
@@ -852,6 +904,7 @@ export default function DashboardOverview() {
           </div>
         </div>
       )}
+      </div>
 
       {/* ========================================================================= */}
       {/* 3. SALES FUNNEL ANALYTICS & THE MONEY MOMENT (AI SIMULATOR)              */}
