@@ -1545,7 +1545,11 @@ function PlaygroundInner() {
                         : "text-zinc-600 hover:text-zinc-900 hover:bg-black/5"
                     }`}
                   >
-                    <Sparkles className={`w-4 h-4 text-orange-500 ${isUpgradingPrompt ? "animate-spin" : ""}`} />
+                    {isUpgradingPrompt ? (
+                      <MessageLoading size={16} className="text-orange-500" />
+                    ) : (
+                      <Sparkles className="w-4 h-4 text-orange-500" />
+                    )}
                     <span className={`hidden sm:inline text-[11px] font-semibold ${
                       isDark ? "text-zinc-300" : "text-zinc-700"
                     }`}>
