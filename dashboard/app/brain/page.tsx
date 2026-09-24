@@ -784,7 +784,11 @@ export default function DualBrainPage() {
               disabled={loading || telemetryLoading}
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-zinc-700/50 shadow-sm transition-all"
             >
-              <RefreshCw className={`w-4 h-4 ${loading || telemetryLoading ? "animate-spin text-sky-500" : ""}`} />
+              {loading || telemetryLoading ? (
+                <MessageLoading className="w-4 h-4 text-sky-500" />
+              ) : (
+                <RefreshCw className="w-4 h-4" />
+              )}
               Refresh Bus & Tokens
             </button>
           </div>
