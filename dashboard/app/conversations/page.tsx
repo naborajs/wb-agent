@@ -2174,8 +2174,8 @@ export default function LiveInboxPage() {
                       <span className="text-[11px]">Generating fresh QR Code...</span>
                     </div>
                   )}
-                  <div className="text-[10px] text-slate-500 mt-2 flex items-center gap-1">
-                    <RefreshCw className="w-3 h-3 animate-spin" /> Auto-refreshes automatically
+                  <div className="text-[10px] text-slate-500 mt-2 flex items-center gap-1.5">
+                    <MessageLoading className="w-3 h-3 text-slate-500" /> Auto-refreshes automatically
                   </div>
                 </div>
 
