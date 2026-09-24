@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { Activity, CheckCircle2, AlertTriangle, XCircle, RefreshCw } from "lucide-react";
+import MessageLoading from "./ui/MessageLoading";
 
 interface SystemInfo {
   platform: {
@@ -24,8 +25,10 @@ export const SystemHealthBadge: React.FC = () => {
   const [status, setStatus] = useState<"online" | "degraded" | "offline">("online");
   const [info, setInfo] = useState<SystemInfo | null>(null);
   const [showDetails, setShowDetails] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const fetchHealth = async () => {
+    setIsRefreshing(true);
     try {
       const res = await fetch("/api/v1/system/info");
       if (res.ok) {
@@ -37,6 +40,8 @@ export const SystemHealthBadge: React.FC = () => {
       }
     } catch {
       setStatus("offline");
+    } finally {
+      setIsRefreshing(false);
     }
   };
 
@@ -90,10 +95,15 @@ export const SystemHealthBadge: React.FC = () => {
             </span>
             <button
               onClick={fetchHealth}
-              className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1"
-              title="Refresh"
+              disabled={isRefreshing}
+              className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 transition-colors"
+              title="Refresh diagnostics"
             >
-              <RefreshCw className="w-3 h-3" />
+              {isRefreshing ? (
+                <MessageLoading className="w-3.5 h-3.5 text-indigo-500" />
+              ) : (
+                <RefreshCw className="w-3 h-3" />
+              )}
             </button>
           </div>
 
@@ -131,7 +141,10 @@ export const SystemHealthBadge: React.FC = () => {
               </div>
             </div>
           ) : (
-            <p className="text-slate-400 text-center py-2">Loading diagnostics...</p>
+            <div className="flex flex-col items-center justify-center py-3 text-slate-400 gap-1.5">
+              <MessageLoading className="text-indigo-500 w-5 h-5" />
+              <span className="text-[11px] font-mono">Pinging system telemetry...</span>
+            </div>
           )}
         </div>
       )}
