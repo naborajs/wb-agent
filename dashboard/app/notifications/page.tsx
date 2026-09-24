@@ -20,6 +20,7 @@ import {
   Bot,
   Cpu,
 } from "lucide-react";
+import MessageLoading from "@/components/ui/MessageLoading";
 
 interface NotificationItem {
   id: string;
@@ -142,7 +143,11 @@ export default function NotificationsPage() {
             disabled={loading}
             className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-zinc-700/50 transition-colors shadow-sm"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin text-sky-500" : ""}`} />
+            {loading ? (
+              <MessageLoading className="w-3.5 h-3.5 text-sky-500" />
+            ) : (
+              <RefreshCw className="w-3.5 h-3.5" />
+            )}
             Refresh
           </button>
 
@@ -251,7 +256,13 @@ export default function NotificationsPage() {
 
       {/* Notifications List */}
       <div className="space-y-3">
-        {filtered.length === 0 ? (
+        {loading && notifications.length === 0 ? (
+          <div className="p-16 text-center rounded-3xl border border-gray-200 dark:border-zinc-800 text-gray-400 space-y-3">
+            <MessageLoading className="text-sky-500 w-8 h-8 mx-auto" />
+            <p className="text-sm font-medium text-slate-700 dark:text-slate-300">Syncing Autonomous Agent Dispatches...</p>
+            <p className="text-xs text-gray-500">Retrieving real-time alerts and commercial decisions from EDITH & FRIDAY.</p>
+          </div>
+        ) : filtered.length === 0 ? (
           <div className="p-16 text-center rounded-3xl border border-dashed border-gray-200 dark:border-zinc-800 text-gray-400 space-y-2">
             <Bell className="w-10 h-10 mx-auto text-gray-300 dark:text-zinc-600" />
             <p className="text-sm font-medium">No notifications matching this filter.</p>
