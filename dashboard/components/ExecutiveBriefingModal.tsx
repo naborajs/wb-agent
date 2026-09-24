@@ -18,6 +18,7 @@ import {
   Cpu,
   Compass,
 } from "lucide-react";
+import MessageLoading from "@/components/ui/MessageLoading";
 
 interface BriefingData {
   timeframe: string;
@@ -395,39 +396,60 @@ export default function ExecutiveBriefingModal({
         <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-50 via-purple-50/20 to-sky-50/20 dark:from-[#0E1322] dark:to-[#111726] border border-purple-200/80 dark:border-[#8B5CF6]/25">
           <div className="flex items-center justify-between mb-2 text-xs font-mono">
             <span className="text-purple-600 dark:text-[#A855F7] font-bold flex items-center gap-1.5">
-              <Radio className={`w-3.5 h-3.5 ${isPlaying ? "animate-pulse" : ""}`} />
-              {isPlaying ? `Friday explaining: ${currentTopicData.title}` : "Playback Ready"}
+              <Radio className={`w-3.5 h-3.5 ${isPlaying || isLoading ? "animate-pulse" : ""}`} />
+              {isLoading ? (
+                <span className="inline-flex items-center gap-1.5">
+                  Friday synthesizing briefing
+                  <MessageLoading className="text-purple-500 w-4 h-4" />
+                </span>
+              ) : isPlaying ? (
+                `Friday explaining: ${currentTopicData.title}`
+              ) : (
+                "Playback Ready"
+              )}
             </span>
-            <span className="text-slate-500">{playbackProgress}%</span>
+            <span className="text-slate-500">{isLoading ? "Syncing..." : `${playbackProgress}%`}</span>
           </div>
 
-          {/* Animated Waveform Bars */}
-          <div className="flex items-center justify-center gap-1.5 h-10 py-1">
-            {[40, 65, 85, 45, 95, 70, 50, 80, 100, 60, 90, 75, 55, 85, 65, 40, 70, 90, 60, 45, 80].map(
-              (h, i) => (
-                <div
-                  key={i}
-                  className={`w-1.5 rounded-full transition-all duration-150 ${
-                    isPlaying
-                      ? "bg-gradient-to-t from-purple-600 to-sky-400"
-                      : "bg-slate-300 dark:bg-slate-700"
-                  }`}
-                  style={{
-                    height: isPlaying ? `${Math.max(12, (h * ((i + 1) % 4 + 1)) % 40)}px` : "6px",
-                  }}
-                />
-              )
-            )}
-          </div>
+          {/* Animated Waveform Bars or Friday Thinking Wave */}
+          {isLoading ? (
+            <div className="flex items-center justify-center gap-3 h-10 py-1 text-xs font-mono text-purple-600 dark:text-purple-400">
+              <MessageLoading className="text-purple-500 scale-125" />
+              <span className="font-semibold tracking-wide">Querying live brain telemetry & compiling debrief...</span>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center gap-1.5 h-10 py-1">
+              {[40, 65, 85, 45, 95, 70, 50, 80, 100, 60, 90, 75, 55, 85, 65, 40, 70, 90, 60, 45, 80].map(
+                (h, i) => (
+                  <div
+                    key={i}
+                    className={`w-1.5 rounded-full transition-all duration-150 ${
+                      isPlaying
+                        ? "bg-gradient-to-t from-purple-600 to-sky-400"
+                        : "bg-slate-300 dark:bg-slate-700"
+                    }`}
+                    style={{
+                      height: isPlaying ? `${Math.max(12, (h * ((i + 1) % 4 + 1)) % 40)}px` : "6px",
+                    }}
+                  />
+                )
+              )}
+            </div>
+          )}
 
           {/* Audio Controls Bar */}
           <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-200 dark:border-slate-800/80">
             <div className="flex items-center gap-2">
               <button
                 onClick={togglePlayPause}
-                className="px-4 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-mono font-bold flex items-center gap-2 transition-all shadow-md"
+                disabled={isLoading}
+                className="px-4 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white text-xs font-mono font-bold flex items-center gap-2 transition-all shadow-md"
               >
-                {isPlaying ? (
+                {isLoading ? (
+                  <>
+                    <MessageLoading className="w-3.5 h-3.5 text-white" /> Synthesizing...
+                  </>
+                ) : isPlaying ? (
                   <>
                     <Pause className="w-3.5 h-3.5 fill-current" /> Pause
                   </>
