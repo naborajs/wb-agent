@@ -22,6 +22,7 @@ import {
   ChevronLeft,
   Globe,
 } from "lucide-react";
+import { MessageLoading } from "./ui/MessageLoading";
 import { AudioStreamer } from "./voice/audioStreamer";
 import {
   SITE_MAP,
@@ -2271,17 +2272,22 @@ export default function VoiceAgent() {
               {/* Status Text (e.g. "Speaking...", "Listening...") */}
               <div className="text-center px-4">
                 <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
-                  {connectionState === "disconnected"
-                    ? "Discover the capabilities of Friday — Personal AI Assistant"
-                    : muted
-                    ? "Microphone Muted"
-                    : agentState === "speaking"
-                    ? "Speaking..."
-                    : agentState === "listening"
-                    ? "Listening..."
-                    : agentState === "thinking"
-                    ? "Thinking..."
-                    : "Listening..."}
+                  {connectionState === "disconnected" ? (
+                    "Discover the capabilities of Friday — Personal AI Assistant"
+                  ) : muted ? (
+                    "Microphone Muted"
+                  ) : agentState === "speaking" ? (
+                    "Speaking..."
+                  ) : agentState === "listening" ? (
+                    "Listening..."
+                  ) : agentState === "thinking" ? (
+                    <span className="inline-flex items-center gap-2">
+                      <span>Friday is thinking</span>
+                      <MessageLoading size={18} className="text-sky-500" />
+                    </span>
+                  ) : (
+                    "Listening..."
+                  )}
                 </span>
               </div>
             </div>
@@ -2328,6 +2334,14 @@ export default function VoiceAgent() {
                       )}
                     </div>
                   ))
+                )}
+                {agentState === "thinking" && (
+                  <div className="flex flex-col items-start transition-all duration-200 animate-in fade-in slide-in-from-bottom-2">
+                    <div className="bg-[#f4f4f5] dark:bg-zinc-800 text-gray-900 dark:text-white rounded-[24px] px-4 py-2.5 shadow-sm flex items-center gap-2.5 text-[13px]">
+                      <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Friday is thinking</span>
+                      <MessageLoading size={18} className="text-sky-500" />
+                    </div>
+                  </div>
                 )}
                 <div ref={transcriptsEndRef} />
               </div>
@@ -2458,16 +2472,26 @@ export default function VoiceAgent() {
             <span className="text-sm font-semibold text-gray-900 dark:text-white leading-tight">
               Voice chat
             </span>
-            <span className="text-xs font-medium text-sky-500 leading-tight">
-              {muted
-                ? "Muted"
-                : agentState === "speaking"
-                ? "Speaking..."
-                : agentState === "listening"
-                ? "Listening..."
-                : connectionState === "connecting"
-                ? "Connecting..."
-                : "Click to talk"}
+            <span className="text-xs font-medium text-sky-500 leading-tight flex items-center gap-1.5">
+              {muted ? (
+                "Muted"
+              ) : agentState === "speaking" ? (
+                "Speaking..."
+              ) : agentState === "listening" ? (
+                "Listening..."
+              ) : agentState === "thinking" ? (
+                <>
+                  <span>Thinking</span>
+                  <MessageLoading size={14} className="text-sky-500" />
+                </>
+              ) : connectionState === "connecting" ? (
+                <>
+                  <span>Connecting</span>
+                  <MessageLoading size={14} className="text-sky-500" />
+                </>
+              ) : (
+                "Click to talk"
+              )}
             </span>
           </div>
         </div>
