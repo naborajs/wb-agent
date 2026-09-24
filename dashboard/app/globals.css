@@ -422,3 +422,77 @@ body {
   background-size: 200% 100%;
   animation: neuralBeamWave 2s linear infinite;
 }
+
+/* ============================================================
+   Subtle Luxury Glass & Floating Cinematic System
+   ============================================================ */
+.ed-glass-luxury {
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  box-shadow: 0 10px 35px -10px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.dark .ed-glass-luxury {
+  background: rgba(13, 17, 28, 0.70);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 16px 45px -12px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.ed-glass-card {
+  position: relative;
+  border-radius: 1.5rem;
+  overflow: hidden;
+  transition: transform 300ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 300ms ease-out, border-color 300ms ease-out;
+}
+
+.ed-glass-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(56, 189, 248, 0.35);
+  box-shadow: 0 20px 48px -12px rgba(56, 189, 248, 0.12), 0 0 24px -4px rgba(168, 85, 247, 0.08);
+}
+
+@keyframes floatSubtle {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-7px);
+  }
+}
+
+@keyframes floatSubtleDelayed {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-9px);
+  }
+}
+
+@keyframes pulseGlowRing {
+  0%, 100% {
+    opacity: 0.4;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.04);
+  }
+}
+
+.animate-float-subtle {
+  animation: floatSubtle 5.5s ease-in-out infinite;
+}
+
+.animate-float-delayed {
+  animation: floatSubtleDelayed 6.5s ease-in-out 1.2s infinite;
+}
+
+.animate-glow-ring {
+  animation: pulseGlowRing 3s ease-in-out infinite;
+}
+
