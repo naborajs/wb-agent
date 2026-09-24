@@ -20,7 +20,9 @@ import {
   ChevronRight,
   Volume2,
 } from "lucide-react";
+import { motion } from "framer-motion";
 import LiquidNebulaCanvas from "./ui/LiquidNebulaCanvas";
+import { FloatingPaths } from "./ui/FloatingPathsBackground";
 import NativeFridayOrb3D from "./3d/NativeFridayOrb3D";
 import NativeEdithCore3D from "./3d/NativeEdithCore3D";
 
@@ -55,8 +57,12 @@ export default function CinematicHeroDeck({
 
   return (
     <div className="relative w-full rounded-3xl overflow-hidden border border-slate-200/80 dark:border-white/10 shadow-2xl transition-all duration-300">
-      {/* 1. Subtle Ambient Liquid Nebula Canvas */}
-      <LiquidNebulaCanvas className="opacity-40 dark:opacity-60" />
+      {/* 1. Subtle Ambient Liquid Nebula Canvas & Floating Paths */}
+      <LiquidNebulaCanvas className="opacity-30 dark:opacity-50" />
+      <div className="absolute inset-0 opacity-35 dark:opacity-45 pointer-events-none">
+        <FloatingPaths position={1} count={24} />
+        <FloatingPaths position={-1} count={24} />
+      </div>
 
       {/* 2. Top Specular Ambient Gradients */}
       <div className="absolute -top-32 -left-32 w-96 h-96 bg-sky-500/15 dark:bg-[#00D2FE]/15 rounded-full blur-3xl pointer-events-none" />
@@ -75,7 +81,26 @@ export default function CinematicHeroDeck({
               <span className="text-purple-600 dark:text-[#A855F7]">GEMINI 3.1 LIVE & NEMOTRON 3.5</span>
             </div>
             <h1 className="text-2xl sm:text-4xl font-extrabold font-mono tracking-tight text-slate-900 dark:text-white">
-              Autonomous AI Commercial Operating System
+              {"Autonomous AI Commercial Operating System".split(" ").map((word, wordIndex) => (
+                <span key={wordIndex} className="inline-block mr-2.5 last:mr-0">
+                  {word.split("").map((letter, letterIndex) => (
+                    <motion.span
+                      key={`${wordIndex}-${letterIndex}`}
+                      initial={{ y: 24, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      transition={{
+                        delay: wordIndex * 0.05 + letterIndex * 0.015,
+                        type: "spring",
+                        stiffness: 140,
+                        damping: 24,
+                      }}
+                      className="inline-block"
+                    >
+                      {letter}
+                    </motion.span>
+                  ))}
+                </span>
+              ))}
             </h1>
             <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 max-w-3xl leading-relaxed">
               Experience the symphony of two specialized artificial intelligences working in sub-12ms consensus:
