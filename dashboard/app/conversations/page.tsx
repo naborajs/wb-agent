@@ -38,6 +38,7 @@ import {
   Database,
 } from "lucide-react";
 import { getWebSocketUrl } from "@/lib/utils";
+import { MessageLoading } from "@/components/ui/MessageLoading";
 
 interface ConversationItem {
   id: string;
@@ -1408,7 +1409,11 @@ export default function LiveInboxPage() {
                     }`}
                     title="1-Click AI Draft: Friday & EDITH generate an accurate reply suggestion directly into your composer"
                   >
-                    <Sparkles className={`w-3.5 h-3.5 ${isSuggesting ? "animate-spin text-amber-300" : "text-amber-400"}`} />
+                    {isSuggesting ? (
+                      <MessageLoading size={14} className="text-amber-300" />
+                    ) : (
+                      <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                    )}
                     <span>{isSuggesting ? "Friday Drafting..." : "✨ Suggest Reply"}</span>
                   </button>
                 </div>
@@ -2192,7 +2197,7 @@ export default function LiveInboxPage() {
                       disabled={isPairingLoading}
                       className="px-3 py-1.5 rounded-lg bg-sky-500 hover:bg-sky-600 text-white font-semibold text-xs transition-all disabled:opacity-50 flex items-center gap-1 shrink-0"
                     >
-                      {isPairingLoading ? <RefreshCw className="w-3 h-3 animate-spin" /> : "Get Code"}
+                      {isPairingLoading ? <MessageLoading size={14} className="text-white" /> : "Get Code"}
                     </button>
                   </form>
                   {pairingMsg && (
