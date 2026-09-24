@@ -1,0 +1,9 @@
+[package]
+name = "wb-agent-3d-models"
+version = "0.1.0"
+edition = "2021"
+authors = ["NS <dev@wb-agent.ai>"]
+description = "Procedural 3D model generator written in Rust for EDITH & FRIDAY Dual-Brain architecture"
+
+[dependencies]
+# Zero external dependencies for pure, deterministic procedural 3D math and OBJ/GLTF generation
