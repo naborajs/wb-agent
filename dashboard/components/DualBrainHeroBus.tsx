@@ -30,6 +30,7 @@ import {
   type CircuitNode,
   type CircuitConnection,
 } from "@/components/ui/circuit-board";
+import { MessageLoading } from "./ui/MessageLoading";
 
 interface DualBrainHeroBusProps {
   onPlayBriefing?: () => void;
@@ -1049,11 +1050,16 @@ export default function DualBrainHeroBus({
                       }`}
                     />
                     <span>
-                      {isSimulatingTurn
-                        ? "TRANSMITTING TURN"
-                        : queueDepth > 0
-                        ? `SURGE (${queueDepth} QUEUED)`
-                        : "IDLE // SYNAPSE OPEN"}
+                      {isSimulatingTurn ? (
+                        <span className="inline-flex items-center gap-1.5 text-amber-500">
+                          <span>TRANSMITTING TURN</span>
+                          <MessageLoading size={14} className="text-amber-500" />
+                        </span>
+                      ) : queueDepth > 0 ? (
+                        `SURGE (${queueDepth} QUEUED)`
+                      ) : (
+                        "IDLE // SYNAPSE OPEN"
+                      )}
                     </span>
                   </div>
                 </div>
