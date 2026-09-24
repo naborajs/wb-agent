@@ -35,6 +35,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import FloatingPathsBackground from "./ui/FloatingPathsBackground";
+import MessageLoading from "./ui/MessageLoading";
 
 const navigation = [
   { name: "Overview", href: "/", icon: BarChart3 },
@@ -613,9 +614,13 @@ export default function DashboardShell({ children }: { children: React.ReactNode
                     <button
                       onClick={runAuditNow}
                       disabled={auditing}
-                      className="ed-press px-2.5 py-1 rounded-md text-[11px] font-medium border border-[var(--ed-border)] bg-[var(--ed-surface)] text-[var(--ed-text-primary)] hover:bg-[var(--ed-border)] transition-all flex items-center gap-1 disabled:opacity-50"
+                      className="ed-press px-2.5 py-1 rounded-md text-[11px] font-medium border border-[var(--ed-border)] bg-[var(--ed-surface)] text-[var(--ed-text-primary)] hover:bg-[var(--ed-border)] transition-all flex items-center gap-1.5 disabled:opacity-50"
                     >
-                      <RefreshCw className={`w-3 h-3 ${auditing ? "animate-spin text-[var(--ed-accent)]" : ""}`} />
+                      {auditing ? (
+                        <MessageLoading className="w-3.5 h-3.5 text-[var(--ed-accent)]" />
+                      ) : (
+                        <RefreshCw className="w-3 h-3 text-[var(--ed-accent)]" />
+                      )}
                       {auditing ? "Auditing..." : "Audit Now"}
                     </button>
                   </div>
