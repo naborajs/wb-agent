@@ -39,6 +39,7 @@ import {
   Bot,
   Send,
 } from "lucide-react";
+import MessageLoading from "@/components/ui/MessageLoading";
 
 interface ModelInfo {
   id: string;
@@ -717,8 +718,8 @@ export default function IntegrationsPage() {
                       {speedTest && (
                         <div className="mt-1">
                           {speedTest.loading ? (
-                            <span className="inline-flex items-center gap-1 text-[10px] text-amber-500 font-mono font-semibold">
-                              <RefreshCw className="w-2.5 h-2.5 animate-spin" /> Pinging...
+                            <span className="inline-flex items-center gap-1.5 text-[10px] text-amber-500 font-mono font-semibold">
+                              <MessageLoading className="w-3 h-3 text-amber-500" /> Pinging...
                             </span>
                           ) : speedTest.error ? (
                             <span
@@ -752,10 +753,14 @@ export default function IntegrationsPage() {
                         <button
                           onClick={() => handleRowSpeedTest(m.id)}
                           disabled={speedTest?.loading}
-                          className="px-2.5 py-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 transition-all ed-press inline-flex items-center gap-1 shrink-0 disabled:opacity-50"
+                          className="px-2.5 py-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 transition-all ed-press inline-flex items-center gap-1.5 shrink-0 disabled:opacity-50"
                           title="Run authentic live API latency benchmark"
                         >
-                          <Zap className={`w-3 h-3 ${speedTest?.loading ? "animate-spin text-amber-400" : ""}`} />
+                          {speedTest?.loading ? (
+                            <MessageLoading className="w-3 h-3 text-amber-400" />
+                          ) : (
+                            <Zap className="w-3 h-3" />
+                          )}
                           Speed Test
                         </button>
                         <Link
