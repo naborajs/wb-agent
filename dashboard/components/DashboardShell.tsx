@@ -34,6 +34,7 @@ import {
   Activity,
   Sparkles,
 } from "lucide-react";
+import FloatingPathsBackground from "./ui/FloatingPathsBackground";
 
 const navigation = [
   { name: "Overview", href: "/", icon: BarChart3 },
@@ -750,8 +751,9 @@ export default function DashboardShell({ children }: { children: React.ReactNode
         </header>
 
         {/* Page Viewport */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 ed-bg-texture transition-colors duration-200">
-          {children}
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 ed-bg-texture transition-colors duration-200 relative">
+          <FloatingPathsBackground />
+          <div className="relative z-10">{children}</div>
         </main>
       </div>
 
