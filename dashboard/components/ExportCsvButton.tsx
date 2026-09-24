@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import { Download, Loader2 } from "lucide-react";
+import { Download } from "lucide-react";
+import MessageLoading from "./ui/MessageLoading";
 
 interface ExportCsvButtonProps {
   endpoint: string;
@@ -49,7 +50,7 @@ export const ExportCsvButton: React.FC<ExportCsvButtonProps> = ({
       title="Download CSV export"
     >
       {loading ? (
-        <Loader2 className="w-3.5 h-3.5 animate-spin text-slate-400" />
+        <MessageLoading className="w-3.5 h-3.5 text-slate-400" />
       ) : (
         <Download className="w-3.5 h-3.5 text-slate-500" />
       )}
