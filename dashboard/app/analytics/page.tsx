@@ -23,6 +23,7 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/radar-chart";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import MessageLoading from "@/components/ui/MessageLoading";
 import { Badge } from "@/components/ui/badge";
 
 const objectionRadarConfig = {
@@ -141,7 +142,11 @@ export default function AnalyticsPage() {
             className="p-2 rounded-xl border border-[var(--ed-border)] hover:bg-[var(--ed-surface)] text-[var(--ed-text-muted)] hover:text-[var(--ed-text-primary)] transition-all"
             title="Refresh Analytics"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+            {loading ? (
+              <MessageLoading className="w-4 h-4 text-[var(--ed-accent)]" />
+            ) : (
+              <RefreshCw className="w-4 h-4" />
+            )}
           </button>
           <a
             href="/api/v1/analytics/export?format=csv"
