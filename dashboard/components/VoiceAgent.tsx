@@ -2461,7 +2461,7 @@ export default function VoiceAgent() {
             }}
           >
             {connectionState === "connecting" ? (
-              <RefreshCw className="w-4 h-4 text-white animate-spin" />
+              <MessageLoading size={14} className="text-white" />
             ) : connectionState === "disconnected" ? (
               <Phone className="w-4 h-4 text-black/80" />
             ) : null}
