@@ -41,6 +41,7 @@ import {
   Info,
   Plus,
 } from "lucide-react";
+import { MessageLoading } from "@/components/ui/MessageLoading";
 
 interface PlaygroundModel {
   id: string;
@@ -1263,8 +1264,8 @@ function PlaygroundInner() {
             ))}
 
             {isGenerating && (
-              <div className="flex gap-3 items-center text-xs text-orange-500 pl-1">
-                <RefreshCw className="w-4 h-4 animate-spin text-orange-500" />
+              <div className="flex gap-2.5 items-center text-xs text-orange-500 pl-1 font-mono">
+                <MessageLoading size={20} className="text-orange-500" />
                 <span>Generating response from {currentModel.name}...</span>
               </div>
             )}
@@ -1564,7 +1565,7 @@ function PlaygroundInner() {
                     }`}
                   >
                     {isGenerating ? (
-                      <RefreshCw className="w-4 h-4 animate-spin text-white" />
+                      <MessageLoading size={16} className="text-white" />
                     ) : (
                       <Send className="w-3.5 h-3.5 text-white fill-white/25" />
                     )}
