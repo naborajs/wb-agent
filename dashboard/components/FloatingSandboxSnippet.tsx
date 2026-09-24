@@ -14,6 +14,7 @@ import {
   ArrowRight,
   Terminal,
 } from "lucide-react";
+import { MessageLoading } from "./ui/MessageLoading";
 
 interface SimulationResult {
   reply: string;
@@ -168,7 +169,7 @@ export default function FloatingSandboxSnippet() {
         >
           {isLoading ? (
             <>
-              <RefreshCw className="w-4 h-4 animate-spin" />
+              <MessageLoading size={18} className="text-slate-950" />
               <span>Deliberating...</span>
             </>
           ) : (
@@ -179,6 +180,17 @@ export default function FloatingSandboxSnippet() {
           )}
         </button>
       </form>
+
+      {/* Real-Time Processing State */}
+      {isLoading && (
+        <div className="p-4 rounded-2xl bg-sky-50/80 dark:bg-sky-950/20 border border-sky-300/40 dark:border-sky-500/30 flex items-center justify-between gap-3 text-xs font-mono animate-in fade-in">
+          <div className="flex items-center gap-2.5 text-sky-700 dark:text-[#00D2FE] font-bold">
+            <MessageLoading size={20} className="text-sky-500" />
+            <span>Inter-Brain Bus Deliberation Active...</span>
+          </div>
+          <span className="text-[11px] text-slate-500 dark:text-slate-400">Verifying margin policy ceiling</span>
+        </div>
+      )}
 
       {/* Real-Time Result Box */}
       {result && (
