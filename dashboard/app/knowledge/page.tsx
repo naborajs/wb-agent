@@ -38,6 +38,7 @@ import {
   FileCode,
 } from "lucide-react";
 import { getWebSocketUrl } from "@/lib/utils";
+import MessageLoading from "@/components/ui/MessageLoading";
 
 interface KnowledgeItemRecord {
   id: string;
@@ -1543,10 +1544,18 @@ function KnowledgeHubMain() {
                 disabled={ragLoading || !ragQuery.trim()}
                 className="px-5 py-2.5 bg-red-600 hover:bg-red-500 text-white rounded-xl text-sm font-medium transition disabled:opacity-50 flex items-center gap-2 shadow-md shadow-red-500/20"
               >
-                {ragLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-                Query RAG
+                {ragLoading ? <MessageLoading className="w-4 h-4 text-white" /> : <Search className="w-4 h-4" />}
+                {ragLoading ? "Thinking..." : "Query RAG"}
               </button>
             </form>
+
+            {/* Thinking / Processing Animation */}
+            {ragLoading && (
+              <div className="bg-slate-50 dark:bg-slate-950 rounded-xl p-4 border border-red-500/30 flex items-center gap-3 text-xs text-red-600 dark:text-red-400">
+                <MessageLoading className="text-red-500 w-4 h-4" />
+                <span className="font-mono">Friday & EDITH searching vector embeddings & reasoning answer...</span>
+              </div>
+            )}
 
             {/* Answer Display */}
             {ragResult && (
@@ -2595,8 +2604,8 @@ function KnowledgeHubMain() {
                   disabled={creating || !createTitle.trim()}
                   className="px-5 py-2 bg-red-600 hover:bg-red-500 text-white rounded-xl text-sm font-semibold transition disabled:opacity-50 flex items-center gap-2 shadow-md shadow-red-500/20"
                 >
-                  {creating ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                  {creating ? "Creating & Embedding..." : "Create Asset"}
+                  {creating ? <MessageLoading className="w-4 h-4 text-white" /> : <Plus className="w-4 h-4" />}
+                  {creating ? "Embedding & Storing..." : "Create Asset"}
                 </button>
               </div>
             </form>
@@ -2667,7 +2676,7 @@ function KnowledgeHubMain() {
                   disabled={!uploadFile || uploading}
                   className="px-5 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl text-sm font-semibold transition disabled:opacity-50 flex items-center gap-2 shadow-md shadow-cyan-500/20"
                 >
-                  {uploading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                  {uploading ? <MessageLoading className="w-4 h-4 text-white" /> : <Upload className="w-4 h-4" />}
                   {uploading ? "Ingesting..." : "Upload & Index"}
                 </button>
               </div>
