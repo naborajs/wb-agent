@@ -44,6 +44,7 @@ import {
   Bookmark,
   ExternalLink,
 } from "lucide-react";
+import MessageLoading from "@/components/ui/MessageLoading";
 
 interface DynamicSection {
   id: string;
@@ -679,7 +680,11 @@ export default function PromptsPage() {
             disabled={isRefreshing}
             className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-[var(--ed-surface)] border border-[var(--ed-border)] text-[var(--ed-text-primary)] hover:bg-[var(--ed-bg)] transition-all ed-press"
           >
-            <RefreshCw className={`w-3.5 h-3.5 text-[var(--ed-accent)] ${isRefreshing ? "animate-spin" : ""}`} />
+            {isRefreshing ? (
+              <MessageLoading className="w-3.5 h-3.5 text-[var(--ed-accent)]" />
+            ) : (
+              <RefreshCw className="w-3.5 h-3.5 text-[var(--ed-accent)]" />
+            )}
             Refresh
           </button>
         </div>
