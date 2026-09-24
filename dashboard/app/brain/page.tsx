@@ -56,6 +56,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { getWebSocketUrl } from "@/lib/utils";
+import { MessageLoading } from "@/components/ui/MessageLoading";
 
 const brainRadarConfig = {
   friday: {
@@ -1464,9 +1465,9 @@ export default function DualBrainPage() {
 
                     {/* Processing State */}
                     {turn.status === "processing" && (
-                      <div className="flex items-center gap-2 pl-9 text-xs text-sky-600 dark:text-sky-400 animate-pulse">
-                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                        Friday is evaluating instruction across Inter-Brain Bus...
+                      <div className="flex items-center gap-2 pl-9 text-xs text-sky-600 dark:text-sky-400 font-mono">
+                        <MessageLoading size={18} className="text-sky-500" />
+                        <span>Friday is evaluating instruction across Inter-Brain Bus...</span>
                       </div>
                     )}
                   </div>
