@@ -88,25 +88,33 @@ python run.py --no-open
 
 ---
 
-### Step 4: Connect WhatsApp (3 Simple Ways)
+### Step 4: First-Run Onboarding Popup, Any-Phone WhatsApp Pairing & Verification
 
-When the dashboard opens at **`http://localhost:3000`**:
+When cloned from GitHub, **zero personal phone numbers or sessions are hardcoded**. On your first visit to **`http://localhost:3000`** (or anytime by clicking **`⚙️ Setup, WhatsApp & Features`** in the top bar), the **Workspace Setup & Verification Modal** opens with 3 steps:
 
-| Method | Best For | How to Connect |
+| Step | What You Can Configure | Key Capabilities |
 | :--- | :--- | :--- |
-| **🟢 Method 1: Instant QR Scan** | Standard Phone | 1. Open WhatsApp &gt; **Settings / 3 dots &gt; Linked Devices &gt; Link a Device**.<br>2. Point camera at the live QR code directly on the **Dashboard Overview (`http://localhost:3000`)** or `/integrations`! |
-| **📱 Method 2: 8-Digit Pairing Code** | Remote VPS / No Camera | 1. On the **Dashboard Overview (`http://localhost:3000`)** or `http://localhost:3001/code`, enter your phone number with country code.<br>2. Click **"Get Code"** to receive an 8-character code (e.g. `ABCD-1234`).<br>3. On phone: WhatsApp &gt; **Linked Devices &gt; Link a Device &gt; Tap "Link with phone number instead"** and type code. |
-| **☁️ Method 3: Official Meta Cloud API** | Enterprise Production | Set `WHATSAPP_PROVIDER=meta_cloud`, `WHATSAPP_TOKEN`, and `WHATSAPP_PHONE_NUMBER_ID` in your `.env`. |
+| **1. Connect WhatsApp & Owner Number** | **Any Bot Phone + Owner Escalation Phone** | • Scan the live **QR Code** or enter any phone number to get an **8-Digit Pairing Code**.<br>• Click **"Switch / Connect a Different WhatsApp Number"** anytime to reset the session (`POST /api/v1/settings/whatsapp-reset`).<br>• Set your **Owner Escalation WhatsApp Number** where order confirmations, hot lead summaries, and human handoffs are sent. |
+| **2. Business Vertical, Mode & Feature Toggles** | **Any Industry + 13 Feature Toggles** | • **1-Click Industry Presets** (seeds matching catalog items & pricing units): *E-Commerce & D2C Retail*, *B2B Wholesale & Manufacturing*, *SaaS, Cloud & Tech Agency*, *Healthcare & Clinics*, *Real Estate*, *Tea Estates & Agro*, or *Custom Business*.<br>• **Toggle Individual Features ON/OFF**: Enable or disable any of the 13 platform modules live. |
+| **3. End-to-End Health Verification** | **5-Point Live System Check** | • Verifies **FastAPI & SQLite Catalog**, **Friday (Google Gemini)**, **EDITH (NVIDIA NIM)**, **WhatsApp Baileys Bridge (`:3001`)**, and **Owner Escalation Channel** (with optional live WhatsApp test ping). |
 
 ---
 
-### Step 5: Voice & Multi-Task Capabilities with FRIDAY (`Gemini 3.1 Flash Live`)
+### Step 5: Simplified Mode (`✨ Simplified`) vs. Advanced Mode (`🛠️ Advanced`)
+
+Use the prominent **`✨ Simplified` | `🛠️ Advanced`** toggle button in the top header bar at any time:
+- **✨ Simplified Mode (Everyday Business Experience)**: Clean, distraction-free workspace where business owners simply talk to Friday, check revenue analytics, manage leads & orders, and reply in the live WhatsApp inbox — hiding developer internals.
+- **🛠️ Advanced Mode (Full Developer & Enterprise Suite)**: Unlocks all 15 modules including the Dual-Brain Synaptic Console (`/brain`), AI Negotiation Playground (`/playground`), Knowledge RAG (`/knowledge`), Modular Prompts (`/prompts`), token economics, and raw JSON telemetry.
+
+---
+
+### Step 6: Voice & Multi-Task Capabilities with FRIDAY (`Gemini 3.1 Flash Live`)
 Click the **Floating Friday Copilot** at the bottom-right corner of any page to talk or type:
 - **Live Talk Timer (`MM:SS`)**: Real-time session duration counter visible in both the expanded copilot card and minimized floating pill.
 - **Full-Page & Section Scrolling**: Say *"Scroll down"*, *"Scroll to bottom"*, *"Scroll to top"*, or *"Scroll to the radar chart"* and Friday smoothly scrolls the active viewport.
 - **Multi-Step Compound Commands**: Give Friday multiple instructions at once (e.g., *"Open the analytics page, switch to dark mode, and scroll down"*) and Friday executes every step sequentially.
-- **Comprehensive Website Walkthrough**: Ask *"Explain the full website"* or *"Explain what this platform is"* for a complete, structured executive tour of all 12 modules and the Dual-Brain architecture.
-- **AI Model Playground (`/playground`)**: Test all 14 Google Gemini & NVIDIA NIM models interactively with custom system personas and live hyperparameter sliders.
+- **Comprehensive Website Walkthrough**: Ask *"Explain the full website"* or *"Explain what this platform is"* for a complete, structured executive tour of all modules and the Dual-Brain architecture.
+- **AI Model Playground (`/playground`)**: Test all 15 Google Gemini & NVIDIA NIM models interactively with custom system personas and live hyperparameter sliders.
 
 ---
 
