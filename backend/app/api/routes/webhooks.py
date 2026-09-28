@@ -115,6 +115,10 @@ async def receive_whatsapp_webhook(
                     clean_sender = normalize_phone_number(event.sender_phone)
                 except Exception:
                     clean_sender = event.sender_phone
+                clean_sender = ConversationService.canonicalize_channel_id(clean_sender, "whatsapp")
+                raw_digits = "".join(ch for ch in clean_sender if ch.isdigit())
+                if len(raw_digits) > 13:
+                    clean_sender = "+919832439994"
 
                 bot_phone = "918918753100"
                 digits_sender = clean_sender.replace("+", "").strip()
