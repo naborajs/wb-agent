@@ -30,7 +30,7 @@ flowchart LR
 
 ---
 
-### Step 1: Clone & Enter the Repository
+### Step 1: Clone & Enter the Repository from GitHub
 ```bash
 git clone https://github.com/naborajs/wb-agent.git
 cd wb-agent
@@ -38,12 +38,19 @@ cd wb-agent
 
 ---
 
-### Step 2: (Optional) Configure Your `.env`
-If you want to use live LLMs (Google Gemini 3.1 Live or NVIDIA NIM), copy the template:
+### Step 2: Configure Your `.env` (Or Run Zero-Config)
+If you want to use live LLMs (**Google Gemini 3.1 Flash Live** for Friday & **NVIDIA NIM Nemotron-3 Ultra 550B / Llama 3.3 70B** for EDITH), copy the template and add your keys:
 ```bash
 cp .env.example .env
 ```
-*(💡 **Beginner Friendly:** You can skip this step! Without a `.env`, the system automatically runs with smart built-in fallback personas and local simulation mode so you can start right away).*
+Key environment variables in `.env`:
+```env
+GEMINI_API_KEY=your_google_gemini_api_key
+NVIDIA_API_KEY=nvapi-your_nvidia_nim_api_key
+WHATSAPP_BRIDGE_URL=http://localhost:3001
+NEXT_PUBLIC_API_URL=http://localhost:8000
+```
+*(💡 **Zero-Config Ready:** Even without a `.env` file, `python run.py` automatically runs with deterministic catalog pricing and built-in fallback intelligence so you can present or test immediately).*
 
 ---
 
@@ -54,15 +61,30 @@ python run.py
 ```
 
 #### What `run.py` does automatically:
-1. **Preflight Diagnostics**: Verifies Python and Node.js runtimes.
-2. **Auto-Install Missing Dependencies**: Installs Python backend packages, WhatsApp bridge modules, and Next.js dependencies.
-3. **Database Initialization**: Sets up SQLite database and seeds default commercial catalog rules, pricing tiers, and policies.
+1. **Preflight Diagnostics & Port Cleanup**: Verifies Python and Node.js runtimes and frees ports `3000`, `3001`, and `8000` if any stale process is lingering.
+2. **Auto-Install Missing Dependencies**: Installs Python backend packages (`backend/requirements.txt`), WhatsApp Baileys bridge modules (`whatsapp-bridge`), and Next.js dependencies (`dashboard`).
+3. **Database & Catalog Initialization**: Sets up SQLite (`wb_agent.db`) in WAL mode, seeds verified wholesale catalog products (`Darjeeling First Flush ₹1,850/kg`, `Assam Gold CTC ₹320/kg`, `Siliguri Masala Chai ₹380/kg`), volume discount rules, and deduplicates any multi-device WhatsApp `@lid` threads into canonical phone numbers.
 4. **Boots All 4 Services Simultaneously**:
    - 💻 **Next.js Operator Dashboard**: `http://localhost:3000` (auto-opens in your browser)
    - ⚡ **FastAPI Backend & API Docs**: `http://localhost:8000/api/v1/docs`
    - 📱 **WhatsApp Baileys Bridge**: `http://localhost:3001`
-   - 🧠 **Dual-Brain Deliberation Bus**: FRIDAY (Gemini Live) & EDITH (NVIDIA NIM)
+   - 🧠 **Dual-Brain Deliberation Bus**: FRIDAY (Gemini 3.1 Flash Live) & EDITH (NVIDIA NIM)
 5. **Unified Multiplexed Logs**: Color-coded logs stream in your terminal. Press `Ctrl+C` anytime for a clean, graceful shutdown.
+
+---
+
+### 🌐 Deploying Directly from GitHub (VPS / Cloud / Teacher Presentation)
+To deploy or run the latest version on any new machine or cloud server:
+```bash
+# 1. Pull latest production commits from GitHub
+git pull origin main
+
+# 2. Launch with automatic dependency & database migration check
+python run.py
+
+# Or on a headless Linux VPS / server (without opening a browser window):
+python run.py --no-open
+```
 
 ---
 
@@ -72,22 +94,19 @@ When the dashboard opens at **`http://localhost:3000`**:
 
 | Method | Best For | How to Connect |
 | :--- | :--- | :--- |
-| **🟢 Method 1: Instant QR Scan** | Standard Phone | 1. Open WhatsApp &gt; **Settings / 3 dots &gt; Linked Devices &gt; Link a Device**.<br>2. Point camera at the live QR code directly on the **Dashboard Overview (`http://localhost:3000`)** or the terminal ASCII QR! |
+| **🟢 Method 1: Instant QR Scan** | Standard Phone | 1. Open WhatsApp &gt; **Settings / 3 dots &gt; Linked Devices &gt; Link a Device**.<br>2. Point camera at the live QR code directly on the **Dashboard Overview (`http://localhost:3000`)** or `/integrations`! |
 | **📱 Method 2: 8-Digit Pairing Code** | Remote VPS / No Camera | 1. On the **Dashboard Overview (`http://localhost:3000`)** or `http://localhost:3001/code`, enter your phone number with country code.<br>2. Click **"Get Code"** to receive an 8-character code (e.g. `ABCD-1234`).<br>3. On phone: WhatsApp &gt; **Linked Devices &gt; Link a Device &gt; Tap "Link with phone number instead"** and type code. |
 | **☁️ Method 3: Official Meta Cloud API** | Enterprise Production | Set `WHATSAPP_PROVIDER=meta_cloud`, `WHATSAPP_TOKEN`, and `WHATSAPP_PHONE_NUMBER_ID` in your `.env`. |
 
 ---
 
-### Step 5: Test Instantly (Even Without a Phone!)
-You don't even need a phone connected to start testing:
-- **Instant AI Simulator**: Test customer inquiries directly on the Overview page (`http://localhost:3000`) with real-time reasoning and quote generation.
-- **Dual-Brain Console**: Open `http://localhost:3000/brain` to chat or talk via live voice with FRIDAY and delegate tasks to EDITH.
-- **Knowledge Hub RAG**: Open `http://localhost:3000/knowledge` to inspect catalog policies, or chat with EDITH to create and adjust pricing tiers.
-- **Run Automated Verification**:
-  ```bash
-  python backend/scripts/verify_dual_brain_endpoints.py # Verifies dual-brain refusal, fallback, briefing, and 24h velocity
-  python backend/scripts/verify_edith_chat_brain.py    # Verifies EDITH catalog & knowledge chat
-  ```
+### Step 5: Voice & Multi-Task Capabilities with FRIDAY (`Gemini 3.1 Flash Live`)
+Click the **Floating Friday Copilot** at the bottom-right corner of any page to talk or type:
+- **Live Talk Timer (`MM:SS`)**: Real-time session duration counter visible in both the expanded copilot card and minimized floating pill.
+- **Full-Page & Section Scrolling**: Say *"Scroll down"*, *"Scroll to bottom"*, *"Scroll to top"*, or *"Scroll to the radar chart"* and Friday smoothly scrolls the active viewport.
+- **Multi-Step Compound Commands**: Give Friday multiple instructions at once (e.g., *"Open the analytics page, switch to dark mode, and scroll down"*) and Friday executes every step sequentially.
+- **Comprehensive Website Walkthrough**: Ask *"Explain the full website"* or *"Explain what this platform is"* for a complete, structured executive tour of all 12 modules and the Dual-Brain architecture.
+- **AI Model Playground (`/playground`)**: Test all 14 Google Gemini & NVIDIA NIM models interactively with custom system personas and live hyperparameter sliders.
 
 ---
 
