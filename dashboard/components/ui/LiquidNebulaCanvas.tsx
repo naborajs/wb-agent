@@ -161,10 +161,7 @@ export default function LiquidNebulaCanvas({
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
         ctx.fillStyle = `${p.color}${Math.max(0.05, Math.min(0.85, alpha))})`;
-        ctx.shadowColor = `${p.color}0.8)`;
-        ctx.shadowBlur = p.size * 3.5;
         ctx.fill();
-        ctx.shadowBlur = 0;
       });
 
       animFrameRef.current = requestAnimationFrame(render);
@@ -215,24 +212,10 @@ export default function LiquidNebulaCanvas({
     };
   }, [initCanvas]);
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!interactive || !canvasRef.current) return;
-    const rect = canvasRef.current.getBoundingClientRect();
-    mouseRef.current.targetX = e.clientX - rect.left;
-    mouseRef.current.targetY = e.clientY - rect.top;
-  };
-
-  const handleMouseLeave = () => {
-    mouseRef.current.targetX = -1000;
-    mouseRef.current.targetY = -1000;
-  };
-
   return (
     <canvas
       ref={canvasRef}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
-      className={`absolute inset-0 w-full h-full pointer-events-auto select-none ${className}`}
+      className={`absolute inset-0 w-full h-full pointer-events-none select-none ${className}`}
       aria-hidden="true"
     />
   );

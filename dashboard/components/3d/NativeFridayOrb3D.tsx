@@ -157,12 +157,23 @@ export default function NativeFridayOrb3D({
     container.addEventListener("mouseenter", onMouseEnter);
     container.addEventListener("mouseleave", onMouseLeave);
 
-    // 7. Animation Loop
+    // 7. Animation Loop (Paused when scrolled out of viewport)
     let animId: number;
-    let clock = new THREE.Clock();
+    let isVisible = true;
+    const clock = new THREE.Clock();
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        isVisible = entry.isIntersecting;
+      },
+      { threshold: 0.05 }
+    );
+    observer.observe(container);
 
     const animate = () => {
       animId = requestAnimationFrame(animate);
+      if (!isVisible || document.hidden) return;
+
       const elapsed = clock.getElapsedTime();
       const speedMult = isHoveredRef.current ? 1.6 : 1.0;
 
@@ -194,6 +205,7 @@ export default function NativeFridayOrb3D({
     animate();
 
     return () => {
+      observer.disconnect();
       cancelAnimationFrame(animId);
       container.removeEventListener("mousemove", onMouseMove);
       container.removeEventListener("mouseenter", onMouseEnter);

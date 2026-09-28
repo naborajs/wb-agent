@@ -178,7 +178,7 @@ export default function CinematicHeroDeck({
                 )}
 
                 {/* Pulsing Audio Waveform Indicator */}
-                <div className="absolute bottom-1 inset-x-4 p-2 rounded-xl bg-white/70 dark:bg-black/40 backdrop-blur-md border border-slate-200/80 dark:border-white/10 flex items-center justify-between text-[11px] font-mono text-slate-600 dark:text-slate-300">
+                <div className="absolute bottom-1 inset-x-4 p-2 rounded-xl bg-white/95 dark:bg-zinc-950/90 border border-slate-200/80 dark:border-white/10 flex items-center justify-between text-[11px] font-mono text-slate-600 dark:text-slate-300">
                   <div className="flex items-center gap-1.5">
                     <Volume2 className="w-3.5 h-3.5 text-purple-500 animate-pulse" />
                     <span>Live 16kHz Audio Stream</span>
@@ -330,7 +330,7 @@ export default function CinematicHeroDeck({
                 )}
 
                 {/* Margin Ceiling Dial Indicator */}
-                <div className="absolute bottom-1 inset-x-4 p-2 rounded-xl bg-white/70 dark:bg-black/40 backdrop-blur-md border border-slate-200/80 dark:border-white/10 flex items-center justify-between text-[11px] font-mono text-slate-600 dark:text-slate-300">
+                <div className="absolute bottom-1 inset-x-4 p-2 rounded-xl bg-white/95 dark:bg-zinc-950/90 border border-slate-200/80 dark:border-white/10 flex items-center justify-between text-[11px] font-mono text-slate-600 dark:text-slate-300">
                   <div className="flex items-center gap-1.5">
                     <Shield className="w-3.5 h-3.5 text-amber-500" />
                     <span>Margin Defense Ceiling</span>
