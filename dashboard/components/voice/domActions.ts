@@ -554,3 +554,135 @@ export function typeText(targetQuery: string, text: string, submit = false): { s
     message: `Successfully typed "${text}" into ${targetQuery}.`,
   };
 }
+
+/**
+ * Smoothly scrolls the current page or active scrollable container up, down,
+ * to the top, to the bottom, or directly to a named section/heading.
+ */
+export function scrollPage(
+  direction: string = "down",
+  amount?: string | number,
+  targetSection?: string
+): { success: boolean; message: string } {
+  if (typeof window === "undefined" || typeof document === "undefined") {
+    return { success: false, message: "Window not available for scrolling." };
+  }
+
+  const dir = (direction || "down").trim().toLowerCase();
+  const targetQuery = (targetSection || "").trim().toLowerCase();
+
+  // 1. If a specific section, heading, or element is targeted, scroll directly to it
+  if (
+    targetQuery &&
+    !["up", "down", "top", "bottom", "page_up", "page_down", "start", "end"].includes(targetQuery)
+  ) {
+    const candidates = Array.from(
+      document.querySelectorAll<HTMLElement>("h1, h2, h3, h4, section, [id], [data-section], button, div.rounded-2xl, div.rounded-3xl")
+    );
+    for (const el of candidates) {
+      if (el.offsetParent === null) continue;
+      const text = (el.innerText || el.getAttribute("aria-label") || el.id || "").trim().toLowerCase();
+      const firstLine = text.split("\n")[0] || "";
+      if (
+        el.id?.toLowerCase() === targetQuery ||
+        firstLine.includes(targetQuery) ||
+        (text.length < 160 && text.includes(targetQuery))
+      ) {
+        highlightElement(el, "#10b981", 1800);
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        return {
+          success: true,
+          message: `Scrolled smoothly to section "${firstLine || targetSection}".`,
+        };
+      }
+    }
+
+    const fallbackEl = findMatchingElement(targetQuery);
+    if (fallbackEl) {
+      highlightElement(fallbackEl, "#10b981", 1800);
+      fallbackEl.scrollIntoView({ behavior: "smooth", block: "center" });
+      return {
+        success: true,
+        message: `Scrolled to "${targetSection}".`,
+      };
+    }
+  }
+
+  // 2. Collect all active scrollable targets (window + main + inner scrollable viewports)
+  const scrollTargets: Array< HTMLElement | Window > = [window];
+  const scrollingEl = document.scrollingElement as HTMLElement | null;
+  if (scrollingEl) scrollTargets.push(scrollingEl);
+
+  const mainEl = document.querySelector<HTMLElement>("main");
+  if (mainEl && mainEl.scrollHeight > mainEl.clientHeight + 10) {
+    scrollTargets.push(mainEl);
+  }
+
+  const scrollableDivs = Array.from(
+    document.querySelectorAll<HTMLElement>("div.overflow-y-auto, div.custom-scrollbar, [data-scroll-container]")
+  ).filter((el) => el.offsetParent !== null && el.scrollHeight > el.clientHeight + 20 && el.clientHeight > 180);
+
+  // Sort by largest visible area so primary viewport scrolls first
+  scrollableDivs.sort((a, b) => b.clientWidth * b.clientHeight - a.clientWidth * a.clientHeight);
+  if (scrollableDivs.length > 0) {
+    scrollTargets.push(scrollableDivs[0]);
+  }
+
+  // 3. Calculate scroll behavior
+  if (dir === "top" || dir === "start" || targetQuery === "top") {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    scrollTargets.forEach((t) => {
+      if (t !== window && "scrollTo" in t) {
+        (t as HTMLElement).scrollTo({ top: 0, behavior: "smooth" });
+      }
+    });
+    return { success: true, message: "Scrolled to the top of the page." };
+  }
+
+  if (dir === "bottom" || dir === "end" || targetQuery === "bottom") {
+    const docHeight = Math.max(
+      document.body.scrollHeight,
+      document.documentElement.scrollHeight
+    );
+    window.scrollTo({ top: docHeight, behavior: "smooth" });
+    scrollTargets.forEach((t) => {
+      if (t !== window && "scrollTo" in t) {
+        const h = (t as HTMLElement).scrollHeight;
+        (t as HTMLElement).scrollTo({ top: h, behavior: "smooth" });
+      }
+    });
+    return { success: true, message: "Scrolled to the bottom of the page." };
+  }
+
+  // Pixel amount calculation
+  let pixels = 520;
+  if (typeof amount === "number" && !Number.isNaN(amount)) {
+    pixels = Math.abs(amount);
+  } else if (typeof amount === "string") {
+    const parsed = parseInt(amount, 10);
+    if (!Number.isNaN(parsed)) {
+      pixels = Math.abs(parsed);
+    } else if (amount.toLowerCase().includes("lot") || amount.toLowerCase().includes("page") || amount.toLowerCase().includes("far")) {
+      pixels = Math.round(window.innerHeight * 0.82);
+    } else if (amount.toLowerCase().includes("little") || amount.toLowerCase().includes("slightly")) {
+      pixels = 260;
+    }
+  } else if (dir.includes("page")) {
+    pixels = Math.round(window.innerHeight * 0.82);
+  }
+
+  const delta = dir.includes("up") ? -pixels : pixels;
+
+  window.scrollBy({ top: delta, behavior: "smooth" });
+  scrollTargets.forEach((t) => {
+    if (t !== window && "scrollBy" in t) {
+      (t as HTMLElement).scrollBy({ top: delta, behavior: "smooth" });
+    }
+  });
+
+  return {
+    success: true,
+    message: `Scrolled ${delta < 0 ? "up" : "down"} by ${Math.abs(delta)}px.`,
+  };
+}
+
