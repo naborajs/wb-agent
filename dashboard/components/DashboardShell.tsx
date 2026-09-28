@@ -33,25 +33,33 @@ import {
   RefreshCw,
   Activity,
   Sparkles,
+  Sliders,
 } from "lucide-react";
 import FloatingPathsBackground from "./ui/FloatingPathsBackground";
 import MessageLoading from "./ui/MessageLoading";
+import OnboardingAndModeModal, { WorkspaceConfigState } from "./OnboardingAndModeModal";
 
-const navigation = [
+const navigation: Array<{
+  name: string;
+  href: string;
+  icon: any;
+  featureKey?: string;
+  advancedOnly?: boolean;
+}> = [
   { name: "Overview", href: "/", icon: BarChart3 },
-  { name: "Dual Brains", href: "/brain", icon: Cpu },
-  { name: "Playground", href: "/playground", icon: Sparkles },
+  { name: "Dual Brains", href: "/brain", icon: Cpu, featureKey: "dual_brain_console", advancedOnly: true },
+  { name: "Playground", href: "/playground", icon: Sparkles, featureKey: "ai_playground", advancedOnly: true },
   { name: "Notifications", href: "/notifications", icon: Bell },
-  { name: "Live Inbox", href: "/conversations", icon: Inbox },
-  { name: "Leads", href: "/leads", icon: Users },
-  { name: "Campaigns", href: "/campaigns", icon: Send },
-  { name: "Analytics", href: "/analytics", icon: TrendingUp },
-  { name: "Orders", href: "/orders", icon: ShoppingBag },
-  { name: "Knowledge Hub RAG", href: "/knowledge", icon: ShieldCheck },
-  { name: "Modular Prompts", href: "/prompts", icon: BookOpen },
+  { name: "Live Inbox", href: "/conversations", icon: Inbox, featureKey: "conversations_inbox" },
+  { name: "Leads", href: "/leads", icon: Users, featureKey: "leads_crm" },
+  { name: "Campaigns", href: "/campaigns", icon: Send, featureKey: "campaigns" },
+  { name: "Analytics", href: "/analytics", icon: TrendingUp, featureKey: "analytics" },
+  { name: "Orders", href: "/orders", icon: ShoppingBag, featureKey: "orders_invoices" },
+  { name: "Knowledge Hub RAG", href: "/knowledge", icon: ShieldCheck, featureKey: "knowledge_rag", advancedOnly: true },
+  { name: "Modular Prompts", href: "/prompts", icon: BookOpen, featureKey: "modular_prompts", advancedOnly: true },
   { name: "Integrations", href: "/integrations", icon: Radio },
-  { name: "Follow-ups", href: "/followups", icon: Calendar },
-  { name: "Handoffs", href: "/handoffs", icon: AlertTriangle },
+  { name: "Follow-ups", href: "/followups", icon: Calendar, featureKey: "followups", advancedOnly: true },
+  { name: "Handoffs", href: "/handoffs", icon: AlertTriangle, featureKey: "handoffs", advancedOnly: true },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
 
@@ -101,8 +109,63 @@ export default function DashboardShell({ children }: { children: React.ReactNode
   const [watchdogOpen, setWatchdogOpen] = useState(false);
   const [auditing, setAuditing] = useState(false);
   const watchdogRef = useRef<HTMLDivElement>(null);
-  const [businessName, setBusinessName] = useState("WhatsApp AI Agent by NS");
+  const [businessName, setBusinessName] = useState("Enterprise AI Operations");
   const [agentName, setAgentName] = useState("EDITH");
+  const [setupModalOpen, setSetupModalOpen] = useState(false);
+  const [setupModalTab, setSetupModalTab] = useState<"whatsapp_owner" | "industry_features" | "verification">("whatsapp_owner");
+  const [workspaceConfig, setWorkspaceConfig] = useState<WorkspaceConfigState>({
+    ui_mode: "advanced",
+    onboarding_completed: false,
+    industry_preset_id: "ecommerce_retail",
+    business_name: "Enterprise AI Operations",
+    business_industry: "Multi-Industry B2B & Retail Commerce",
+    business_tagline: "Autonomous Dual-Brain Sales, Support & Operations",
+    catalog_unit: "unit",
+    currency_symbol: "₹",
+    owner_whatsapp_number: "",
+    whatsapp_connected: false,
+    bot_whatsapp_number: "",
+    qr_available: false,
+    feature_toggles: {
+      voice_copilot: true,
+      conversations_inbox: true,
+      leads_crm: true,
+      orders_invoices: true,
+      analytics: true,
+      campaigns: true,
+      followups: true,
+      handoffs: true,
+      dynamic_pricing: true,
+      knowledge_rag: true,
+      ai_playground: true,
+      dual_brain_console: true,
+      modular_prompts: true,
+    },
+  });
+
+  const applyWorkspaceConfigState = (cfg: WorkspaceConfigState) => {
+    setWorkspaceConfig(cfg);
+    if (cfg.business_name) setBusinessName(cfg.business_name);
+    try {
+      window.dispatchEvent(new CustomEvent("workspace_config_change", { detail: cfg }));
+    } catch {}
+  };
+
+  const handleQuickModeToggle = async (targetMode: "simplified" | "advanced") => {
+    const optimistic = { ...workspaceConfig, ui_mode: targetMode };
+    applyWorkspaceConfigState(optimistic);
+    try {
+      const res = await fetch("/api/v1/settings/workspace-config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ui_mode: targetMode }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.config) applyWorkspaceConfigState(data.config);
+      }
+    } catch {}
+  };
 
   useEffect(() => {
     fetch("/api/v1/settings")
@@ -114,6 +177,27 @@ export default function DashboardShell({ children }: { children: React.ReactNode
         if (data?.agent_name) setAgentName(data.agent_name);
       })
       .catch(() => {});
+
+    fetch("/api/v1/settings/workspace-config")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((cfg) => {
+        if (cfg) {
+          applyWorkspaceConfigState(cfg);
+          const localDone = typeof window !== "undefined" ? localStorage.getItem("wb_onboarding_completed") : null;
+          if (!cfg.onboarding_completed && localDone !== "true") {
+            setSetupModalTab("whatsapp_owner");
+            setSetupModalOpen(true);
+          }
+        }
+      })
+      .catch(() => {});
+
+    const handleOpenModalEvent = (e: any) => {
+      if (e?.detail?.tab) setSetupModalTab(e.detail.tab);
+      setSetupModalOpen(true);
+    };
+    window.addEventListener("open_setup_modal", handleOpenModalEvent);
+    return () => window.removeEventListener("open_setup_modal", handleOpenModalEvent);
   }, []);
 
   useEffect(() => {
@@ -221,6 +305,8 @@ export default function DashboardShell({ children }: { children: React.ReactNode
               }
             } else if (msg.event === "friday_draft_reply" && msg.data) {
               window.dispatchEvent(new CustomEvent("friday_draft_reply", { detail: msg.data }));
+            } else if (msg.event === "workspace_config_updated" && msg.data) {
+              applyWorkspaceConfigState(msg.data);
             }
           } catch {}
         };
@@ -339,6 +425,26 @@ export default function DashboardShell({ children }: { children: React.ReactNode
     }
   };
 
+  const visibleNavigation = navigation.filter((item) => {
+    if (workspaceConfig.ui_mode === "simplified" && item.advancedOnly) {
+      return false;
+    }
+    if (item.featureKey && workspaceConfig.feature_toggles?.[item.featureKey] === false) {
+      return false;
+    }
+    return true;
+  });
+
+  const formattedOwnerPhone = workspaceConfig.owner_whatsapp_number
+    ? `+${workspaceConfig.owner_whatsapp_number.replace(/^\+/, "")}`
+    : "Click to Set Owner #";
+
+  const formattedBotPhone = workspaceConfig.bot_whatsapp_number
+    ? `+${workspaceConfig.bot_whatsapp_number.replace(/^\+/, "")}`
+    : workspaceConfig.whatsapp_connected
+    ? "Connected (Linked)"
+    : "Not Paired — Click Setup";
+
   const sidebarContent = (
     <div className="flex flex-col h-full justify-between overflow-hidden">
       <div className="flex flex-col min-h-0 flex-1 overflow-hidden">
@@ -361,22 +467,22 @@ export default function DashboardShell({ children }: { children: React.ReactNode
                 {agentName}
               </h1>
               <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/30">
-                AI OS
+                {workspaceConfig.ui_mode === "simplified" ? "SIMPLE" : "PRO OS"}
               </span>
             </div>
             <div className="text-[11px] text-[var(--ed-text-muted)] truncate font-medium mt-0.5" title={businessName}>
               {businessName}
             </div>
-            <span className="text-[10px] font-medium text-[var(--ed-success)] flex items-center gap-1 mt-0.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-[var(--ed-success)]"></span>
-              Autonomous Active
+            <span className="text-[10px] font-medium text-[var(--ed-success)] flex items-center gap-1 mt-0.5 truncate">
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--ed-success)] shrink-0"></span>
+              <span className="truncate">{workspaceConfig.business_industry || "Autonomous Active"}</span>
             </span>
           </div>
         </div>
 
         {/* Navigation Links with Smooth Scroll for mobile & smaller screens */}
         <nav className="p-3 space-y-0.5 overflow-y-auto flex-1">
-          {navigation.map((item) => {
+          {visibleNavigation.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href;
             return (
@@ -398,18 +504,27 @@ export default function DashboardShell({ children }: { children: React.ReactNode
       </div>
 
       {/* Owner Notification Channel Footer */}
-      <div className="p-4 border-t border-[var(--ed-border)] shrink-0" style={{ background: "var(--ed-bg)" }}>
-        <div className="text-[10px] text-[var(--ed-text-muted)] font-semibold mb-1">
-          Owner Command Channel
+      <button
+        onClick={() => {
+          setSetupModalTab("whatsapp_owner");
+          setSetupModalOpen(true);
+        }}
+        className="p-4 border-t border-[var(--ed-border)] shrink-0 text-left w-full hover:opacity-90 transition-opacity cursor-pointer"
+        style={{ background: "var(--ed-bg)" }}
+        title="Click to configure WhatsApp Bot & Owner Escalation numbers"
+      >
+        <div className="flex items-center justify-between text-[10px] text-[var(--ed-text-muted)] font-semibold mb-1">
+          <span>Owner Escalation Channel</span>
+          <span className="text-sky-500 underline">Configure</span>
         </div>
         <div className="text-xs font-semibold text-[var(--ed-text-primary)] flex items-center gap-1.5 font-data">
-          <Radio className="w-3.5 h-3.5 text-[var(--ed-success)]" />
-          +91 89006 53250
+          <Radio className={`w-3.5 h-3.5 ${workspaceConfig.owner_whatsapp_number ? "text-[var(--ed-success)]" : "text-amber-500"}`} />
+          {formattedOwnerPhone}
         </div>
-        <div className="text-[11px] text-[var(--ed-text-muted)] mt-0.5">
-          Baileys Bridge v20.0
+        <div className="text-[11px] text-[var(--ed-text-muted)] mt-0.5 truncate">
+          Bot: {formattedBotPhone}
         </div>
-      </div>
+      </button>
     </div>
   );
 
@@ -469,12 +584,47 @@ export default function DashboardShell({ children }: { children: React.ReactNode
               <span className="font-bold text-sm tracking-tight text-[var(--ed-text-primary)]">EDITH</span>
             </div>
 
-            <div className="hidden sm:flex items-center gap-2 text-xs font-medium text-[var(--ed-text-muted)]">
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[var(--ed-surface)] border border-[var(--ed-border)] text-[11px]">
-                <ShieldCheck className="w-3.5 h-3.5 text-[var(--ed-success)]" />
-                <span>Deterministic Pricing & Policy Engine</span>
-              </div>
+            {/* Prominent Main Simplified vs Advanced Mode Toggle */}
+            <div
+              className="flex items-center p-0.5 rounded-xl border border-[var(--ed-border)]"
+              style={{ background: "var(--ed-bg)" }}
+              title="Switch between Simplified Business Mode and Advanced Developer Mode"
+            >
+              <button
+                onClick={() => handleQuickModeToggle("simplified")}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1 ${
+                  workspaceConfig.ui_mode === "simplified"
+                    ? "bg-emerald-500 text-white shadow-sm"
+                    : "text-[var(--ed-text-muted)] hover:text-[var(--ed-text-primary)]"
+                }`}
+              >
+                ✨ Simplified
+              </button>
+              <button
+                onClick={() => handleQuickModeToggle("advanced")}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1 ${
+                  workspaceConfig.ui_mode === "advanced"
+                    ? "bg-sky-600 text-white shadow-sm"
+                    : "text-[var(--ed-text-muted)] hover:text-[var(--ed-text-primary)]"
+                }`}
+              >
+                🛠️ Advanced
+              </button>
             </div>
+
+            {/* Setup, WhatsApp Pairing & Feature Toggles Button */}
+            <button
+              onClick={() => {
+                setSetupModalTab("whatsapp_owner");
+                setSetupModalOpen(true);
+              }}
+              className="ed-press flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-emerald-500/35 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[11px] font-bold hover:bg-emerald-500/20 transition-all"
+              title="Connect WhatsApp Number, Set Owner Escalation Phone, Choose Industry & Toggle Features"
+            >
+              <Sliders className="w-3.5 h-3.5" />
+              <span className="hidden lg:inline">Setup, WhatsApp &amp; Features</span>
+              <span className="lg:hidden">Setup</span>
+            </button>
           </div>
 
           <div className="flex items-center gap-1.5 sm:gap-2.5">
@@ -704,10 +854,12 @@ export default function DashboardShell({ children }: { children: React.ReactNode
                         <div className="text-sm font-bold text-[var(--ed-text-primary)] flex items-center gap-1.5">
                           EDITH OS
                           <span className="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
-                            Online
+                            {workspaceConfig.whatsapp_connected ? "Online" : "Setup Ready"}
                           </span>
                         </div>
-                        <div className="text-[11px] text-[var(--ed-text-muted)]">Autonomous AI Sales System</div>
+                        <div className="text-[11px] text-[var(--ed-text-muted)] truncate">
+                          {workspaceConfig.business_industry}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -717,31 +869,40 @@ export default function DashboardShell({ children }: { children: React.ReactNode
                     <div className="flex items-center gap-2.5">
                       <Smartphone className="w-3.5 h-3.5 text-[var(--ed-text-muted)]" />
                       <div>
-                        <div className="text-[10px] text-[var(--ed-text-muted)]">Bot WhatsApp</div>
-                        <div className="font-data font-semibold text-[var(--ed-text-primary)]">+91 89187 53100</div>
+                        <div className="text-[10px] text-[var(--ed-text-muted)]">Bot WhatsApp (Auto-Detected)</div>
+                        <div className="font-data font-semibold text-[var(--ed-text-primary)]">{formattedBotPhone}</div>
                       </div>
                     </div>
                     <div className="flex items-center gap-2.5">
                       <User className="w-3.5 h-3.5 text-[var(--ed-text-muted)]" />
                       <div>
-                        <div className="text-[10px] text-[var(--ed-text-muted)]">Owner WhatsApp</div>
-                        <div className="font-data font-semibold text-[var(--ed-text-primary)]">+91 89006 53250</div>
+                        <div className="text-[10px] text-[var(--ed-text-muted)]">Owner Escalation WhatsApp</div>
+                        <div className="font-data font-semibold text-[var(--ed-text-primary)]">{formattedOwnerPhone}</div>
                       </div>
                     </div>
                     <div className="flex items-center gap-2.5">
                       <Cpu className="w-3.5 h-3.5 text-[var(--ed-text-muted)]" />
                       <div>
-                        <div className="text-[10px] text-[var(--ed-text-muted)]">System Version</div>
-                        <div className="font-semibold text-[var(--ed-text-primary)]">EDITH v2.0.0 · Baileys v20.0</div>
+                        <div className="text-[10px] text-[var(--ed-text-muted)]">Experience Mode</div>
+                        <div className="font-semibold text-[var(--ed-text-primary)]">
+                          {workspaceConfig.ui_mode === "simplified" ? "✨ Simplified Business" : "🛠️ Advanced Developer"}
+                        </div>
                       </div>
                     </div>
                   </div>
 
-                  {/* Sign out */}
-                  <div className="p-3 border-t border-[var(--ed-border)]">
-                    <button className="ed-press ed-focus-ring w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-xs font-semibold text-[var(--ed-danger)] border border-[var(--ed-danger)]/20 hover:bg-[var(--ed-danger)]/5 transition-colors">
-                      <LogOut className="w-3.5 h-3.5" />
-                      Sign Out
+                  {/* Configure / Switch WhatsApp Button */}
+                  <div className="p-3 border-t border-[var(--ed-border)] space-y-2">
+                    <button
+                      onClick={() => {
+                        setProfileOpen(false);
+                        setSetupModalTab("whatsapp_owner");
+                        setSetupModalOpen(true);
+                      }}
+                      className="ed-press ed-focus-ring w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-xs font-semibold text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/10 transition-colors"
+                    >
+                      <Sliders className="w-3.5 h-3.5" />
+                      Pair WhatsApp / Verify Setup
                     </button>
                   </div>
                 </div>
@@ -759,8 +920,17 @@ export default function DashboardShell({ children }: { children: React.ReactNode
         </div>
       </div>
 
-      {/* Real-Time Voice-Driven Agentic Control Layer */}
-      <VoiceAgent />
+      {/* Real-Time Voice-Driven Agentic Control Layer (respects feature toggle) */}
+      {workspaceConfig.feature_toggles?.voice_copilot !== false && <VoiceAgent />}
+
+      {/* First-Run Onboarding, WhatsApp Pairing, Industry & Feature Control Modal */}
+      <OnboardingAndModeModal
+        isOpen={setupModalOpen}
+        onClose={() => setSetupModalOpen(false)}
+        config={workspaceConfig}
+        onConfigUpdated={applyWorkspaceConfigState}
+        initialTab={setupModalTab}
+      />
     </div>
   );
 }
