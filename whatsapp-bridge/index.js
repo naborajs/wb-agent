@@ -15,7 +15,8 @@ import qrcodeTerminal from "qrcode-terminal";
 import fs from "fs";
 
 const PORT = 3001;
-const BOT_PHONE = "918918753100";
+let activeBotPhone = (process.env.BOT_PHONE || "").replace(/[^0-9]/g, "");
+let activeOwnerPhone = (process.env.OWNER_WHATSAPP_NUMBER || "").replace(/[^0-9]/g, "");
 const WEBHOOK_URL = "http://localhost:8000/api/v1/webhooks/whatsapp";
 const AUTH_DIR = "./auth_info_baileys";
 
@@ -47,7 +48,8 @@ app.get(["/health", "/api/v1/health"], (req, res) => {
     connected: isConnected,
     isReady: isConnected,
     authenticated: isConnected,
-    botPhone: BOT_PHONE,
+    botPhone: isConnected ? activeBotPhone : (activeBotPhone || null),
+    ownerPhone: activeOwnerPhone || null,
     hasQR: !!latestQR,
     pairingCode: latestPairingCode,
   });
@@ -56,7 +58,8 @@ app.get(["/health", "/api/v1/health"], (req, res) => {
 app.get("/status", (req, res) => {
   res.json({
     connected: isConnected,
-    botPhone: BOT_PHONE,
+    botPhone: isConnected ? activeBotPhone : (activeBotPhone || null),
+    ownerPhone: activeOwnerPhone || null,
     hasQR: !!latestQR,
     pairingCode: latestPairingCode,
   });
@@ -65,14 +68,14 @@ app.get("/status", (req, res) => {
 // 1b. QR Data URL JSON API for in-dashboard modal display
 app.get("/qr-data", async (req, res) => {
   if (isConnected) {
-    return res.json({ connected: true, botPhone: BOT_PHONE, qrDataUrl: null });
+    return res.json({ connected: true, botPhone: activeBotPhone, ownerPhone: activeOwnerPhone, qrDataUrl: null });
   }
   if (!latestQR) {
-    return res.json({ connected: false, botPhone: BOT_PHONE, qrDataUrl: null, waiting: true });
+    return res.json({ connected: false, botPhone: activeBotPhone || null, ownerPhone: activeOwnerPhone, qrDataUrl: null, waiting: true });
   }
   try {
     const qrDataUrl = await QRCode.toDataURL(latestQR);
-    return res.json({ connected: false, botPhone: BOT_PHONE, qrDataUrl, waiting: false });
+    return res.json({ connected: false, botPhone: activeBotPhone || null, ownerPhone: activeOwnerPhone, qrDataUrl, waiting: false });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
@@ -85,7 +88,7 @@ app.get("/qr", async (req, res) => {
       <html>
         <body style="font-family:sans-serif; text-align:center; padding:50px; background:#0f172a; color:#22c55e;">
           <h1>✅ WhatsApp is Connected!</h1>
-          <p style="color:#f8fafc;">Bot number: +${BOT_PHONE} is live and active.</p>
+          <p style="color:#f8fafc;">Bot number: +${activeBotPhone || "Linked Device"} is live and active.</p>
         </body>
       </html>
     `);
@@ -125,13 +128,13 @@ app.get("/qr", async (req, res) => {
         <body>
           <div class="card">
             <div class="badge">WHATSAPP MULTI-DEVICE</div>
-            <h2 style="margin: 0 0 8px;">Scan to Connect Bot</h2>
-            <p style="color: #94a3b8; font-size: 14px; margin-bottom: 20px;">Link WhatsApp number: <strong>+${BOT_PHONE}</strong></p>
+            <h2 style="margin: 0 0 8px;">Scan to Connect Your WhatsApp</h2>
+            <p style="color: #94a3b8; font-size: 14px; margin-bottom: 20px;">Scan with any WhatsApp account you want to use as the AI Bot</p>
             <div class="qr-wrapper">
               <img src="${qrImage}" width="260" height="260" alt="WhatsApp QR Code" />
             </div>
             <ol>
-              <li>Open WhatsApp on phone: <strong>+${BOT_PHONE}</strong></li>
+              <li>Open WhatsApp on your phone</li>
               <li>Tap <strong>Settings / 3-dots</strong> &gt; <strong>Linked Devices</strong></li>
               <li>Tap <strong>Link a Device</strong></li>
               <li>Point phone camera at this QR code</li>
@@ -147,10 +150,10 @@ app.get("/qr", async (req, res) => {
   }
 });
 
-// 3. Pairing Code endpoint (Supports custom ?phone=... or defaults to BOT_PHONE)
+// 3. Pairing Code endpoint (Supports custom ?phone=... for any user)
 app.get("/code", async (req, res) => {
-  const queryPhone = req.query.phone || process.env.BOT_PHONE || BOT_PHONE;
-  const cleanPhone = String(queryPhone).replace(/[^0-9]/g, "");
+  const queryPhone = req.query.phone || process.env.BOT_PHONE || activeBotPhone;
+  const cleanPhone = String(queryPhone || "").replace(/[^0-9]/g, "");
 
   if (!sock) {
     return res.send(`
@@ -164,6 +167,10 @@ app.get("/code", async (req, res) => {
   }
 
   try {
+    if (!cleanPhone || cleanPhone.length < 8) {
+      throw new Error("Please enter your WhatsApp phone number with country code (e.g. 919876543210).");
+    }
+    activeBotPhone = cleanPhone;
     const code = await sock.requestPairingCode(cleanPhone);
     latestPairingCode = code;
     return res.send(`
@@ -213,7 +220,7 @@ app.get("/code", async (req, res) => {
       <!DOCTYPE html>
       <html>
         <head>
-          <title>Pairing Code Error - WB-Agent</title>
+          <title>Pairing Code - WB-Agent</title>
           <style>
             body { font-family: sans-serif; text-align: center; padding: 40px; background: #0b1329; color: #f8fafc; }
             .card { background: #1e293b; padding: 30px; border-radius: 16px; display: inline-block; max-width: 440px; }
@@ -223,10 +230,10 @@ app.get("/code", async (req, res) => {
         </head>
         <body>
           <div class="card">
-            <h3>Enter Phone Number for Pairing</h3>
-            <p style="color: #ef4444; font-size: 13px;">${err.message}</p>
+            <h3>Enter Your Phone Number for Pairing</h3>
+            <p style="color: #94a3b8; font-size: 13px;">${err.message}</p>
             <form method="GET" action="/code" style="margin: 20px 0;">
-              <input class="input" type="text" name="phone" placeholder="e.g. 918918753100" value="${cleanPhone}" required />
+              <input class="input" type="text" name="phone" placeholder="e.g. 919876543210" value="${cleanPhone}" required />
               <button class="btn" type="submit">Submit</button>
             </form>
             <p><a href="/qr" class="btn" style="background:#475569; color:#fff;">Back to QR Code</a></p>
@@ -243,11 +250,12 @@ app.post("/pair", async (req, res) => {
     if (!sock) {
       return res.status(503).json({ success: false, error: "WhatsApp socket initializing... retry shortly." });
     }
-    const rawPhone = req.body?.phone || req.query?.phone || process.env.BOT_PHONE || BOT_PHONE;
-    const targetPhone = String(rawPhone).replace(/[^0-9]/g, "");
+    const rawPhone = req.body?.phone || req.query?.phone || process.env.BOT_PHONE || activeBotPhone;
+    const targetPhone = String(rawPhone || "").replace(/[^0-9]/g, "");
     if (!targetPhone || targetPhone.length < 8) {
       return res.status(400).json({ success: false, error: "Valid phone number with country code required." });
     }
+    activeBotPhone = targetPhone;
     const code = await sock.requestPairingCode(targetPhone);
     latestPairingCode = code;
     return res.json({ success: true, pairing_code: code, phone: targetPhone });
@@ -256,7 +264,52 @@ app.post("/pair", async (req, res) => {
   }
 });
 
-const OWNER_PHONE = (process.env.OWNER_WHATSAPP_NUMBER || "918900653250").replace(/[^0-9]/g, "");
+// Dynamic runtime configuration endpoint (updates Owner & Bot numbers without restart)
+app.post("/config", (req, res) => {
+  const { ownerPhone, botPhone } = req.body || {};
+  if (ownerPhone !== undefined) {
+    activeOwnerPhone = String(ownerPhone).replace(/[^0-9]/g, "");
+  }
+  if (botPhone !== undefined && !isConnected) {
+    activeBotPhone = String(botPhone).replace(/[^0-9]/g, "");
+  }
+  return res.json({
+    success: true,
+    connected: isConnected,
+    botPhone: activeBotPhone || null,
+    ownerPhone: activeOwnerPhone || null,
+  });
+});
+
+// Session Reset / Logout endpoint so any new user can connect a fresh WhatsApp number
+app.post(["/reset-session", "/logout"], async (req, res) => {
+  try {
+    console.log("[BRIDGE] Resetting WhatsApp session for new phone pairing...");
+    isConnected = false;
+    activeBotPhone = "";
+    latestQR = null;
+    latestPairingCode = null;
+    if (sock) {
+      try {
+        await sock.logout();
+      } catch (e) {}
+      try {
+        sock.end(undefined);
+      } catch (e) {}
+      sock = null;
+    }
+    try {
+      fs.rmSync(AUTH_DIR, { recursive: true, force: true });
+    } catch (e) {}
+    setTimeout(startSocket, 800);
+    return res.json({
+      success: true,
+      message: "WhatsApp session cleared. Generating fresh QR code for new number.",
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
 
 // Bi-directional LID <-> Real Phone Number mappings (solves WhatsApp Multi-Device LID privacy identifier)
 const lidToPhoneMap = new Map();
@@ -264,10 +317,12 @@ const phoneToLidMap = new Map();
 const jidMap = new Map();
 const recentOutbounds = new Map();
 
-// Pre-seed known owner mapping
-lidToPhoneMap.set("249808719728891", OWNER_PHONE);
-phoneToLidMap.set(OWNER_PHONE, "249808719728891@lid");
-jidMap.set(OWNER_PHONE, "249808719728891@lid");
+// Pre-seed known owner mapping if configured
+if (activeOwnerPhone) {
+  lidToPhoneMap.set("249808719728891", activeOwnerPhone);
+  phoneToLidMap.set(activeOwnerPhone, "249808719728891@lid");
+  jidMap.set(activeOwnerPhone, "249808719728891@lid");
+}
 jidMap.set("249808719728891", "249808719728891@lid");
 
 // User test contact (DEV SPACE / +919832439994)
@@ -444,8 +499,15 @@ async function startSocket() {
       isConnected = true;
       latestQR = null;
       latestPairingCode = null;
+      const connectedUserJid = sock?.user?.id || "";
+      if (connectedUserJid) {
+        const detectedPhone = connectedUserJid.split(":")[0].split("@")[0].replace(/[^0-9]/g, "");
+        if (detectedPhone) {
+          activeBotPhone = detectedPhone;
+        }
+      }
       console.log("\n" + "=".repeat(70));
-      console.log(`[+] WHATSAPP CONNECTED SUCCESSFULLY ON BOT NUMBER: +${BOT_PHONE}`);
+      console.log(`[+] WHATSAPP CONNECTED SUCCESSFULLY ON BOT NUMBER: +${activeBotPhone || "LINKED_DEVICE"}`);
       console.log("=".repeat(70) + "\n");
     }
   });
@@ -478,7 +540,7 @@ async function startSocket() {
           if (rawPart) {
             participantPhone = `+${rawPart}`;
             // If the participant in group is the bot itself, ignore
-            if (rawPart === BOT_PHONE || rawPart.endsWith(BOT_PHONE) || BOT_PHONE.endsWith(rawPart)) {
+            if (activeBotPhone && (rawPart === activeBotPhone || rawPart.endsWith(activeBotPhone) || activeBotPhone.endsWith(rawPart))) {
               console.log(`[IGNORE GROUP BOT] Suppressed message sent by bot in group ${remoteJid}`);
               continue;
             }
@@ -497,7 +559,7 @@ async function startSocket() {
       } else {
         senderPhone = remoteJid.split("@")[0].replace(/[^0-9]/g, "");
         // CRITICAL SELF-CHAT GUARD: Never forward messages originating from or addressed to the bot's own number!
-        if (senderPhone === BOT_PHONE || senderPhone.endsWith(BOT_PHONE) || BOT_PHONE.endsWith(senderPhone)) {
+        if (activeBotPhone && (senderPhone === activeBotPhone || senderPhone.endsWith(activeBotPhone) || activeBotPhone.endsWith(senderPhone))) {
           console.log(`[IGNORE] Suppressed self-message loop from bot phone ${senderPhone}`);
           continue;
         }
@@ -542,9 +604,9 @@ async function startSocket() {
             }
           }
 
-          // 3. Fallback to primary verified test contact rather than creating a fake 15-digit LID number
-          if (senderPhone === rawJidPhone || senderPhone.length > 13) {
-            senderPhone = USER_TEST_PHONE;
+          // 3. Fallback to configured owner phone rather than creating a fake 15-digit LID number
+          if ((senderPhone === rawJidPhone || senderPhone.length > 13) && activeOwnerPhone) {
+            senderPhone = activeOwnerPhone;
           }
 
           lidToPhoneMap.set(rawJidPhone, senderPhone);
