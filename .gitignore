@@ -47,6 +47,9 @@ venv.bak/
 *.sqlite
 *.sqlite3
 *.bak
+.workspace_config.json
+whatsapp-bridge/auth_info_baileys/
+auth_info_baileys/
 
 *.tsbuildinfo
 postgres_data/
