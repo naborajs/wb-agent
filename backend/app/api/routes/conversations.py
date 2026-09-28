@@ -40,6 +40,12 @@ async def list_conversations(
 ):
     """Lists conversations for the live inbox, optionally filtered by mode, stage, or channel."""
     org_id = settings.DEFAULT_ORG_ID
+    svc = ConversationService(session, org_id)
+    try:
+        await svc.deduplicate_and_clean_conversations()
+    except Exception as e:
+        logger.debug(f"Conversation deduplication check skipped: {e}")
+
     stmt = select(Conversation).where(Conversation.org_id == org_id)
 
     if mode:
@@ -311,6 +317,7 @@ async def initiate_conversation(
                 clean_phone = "+" + clean_phone
             else:
                 clean_phone = "+91" + clean_phone.lstrip("0")
+    clean_phone = ConversationService.canonicalize_channel_id(clean_phone, "whatsapp")
 
     # Determine simulation vs real WhatsApp channel
     is_sim = req.is_simulation or is_sandbox_test_phone(clean_phone)
