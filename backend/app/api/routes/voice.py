@@ -349,8 +349,8 @@ async def generate_promo_message(
     if req.dispatch_whatsapp and promo_text:
         try:
             provider = WhatsAppService.get_provider()
-            res = await provider.send_message(to_phone=req.target_phone, message=promo_text)
-            dispatched = True
+            res = await provider.send_message(to_phone=req.target_phone, text=promo_text)
+            dispatched = res.success
             dispatch_detail = f"Dispatched via WhatsApp provider ({type(provider).__name__})."
         except Exception as e:
             logger.warning(f"WhatsApp promo dispatch failed: {e}")
@@ -418,7 +418,7 @@ async def update_backend_setting(
                 "in_stock": prod.in_stock,
                 "moq": prod.min_order_quantity_kg,
             }
-        return {"success": false, "error": f"Product '{prod_id}' not found."}
+        return {"success": False, "error": f"Product '{prod_id}' not found."}
 
     elif cat == "pricing":
         # Toggle or create pricing rule
