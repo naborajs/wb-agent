@@ -488,3 +488,12 @@ body {
   animation: pulseGlowRing 3s ease-in-out infinite;
 }
 
+@keyframes edStageProgress {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+

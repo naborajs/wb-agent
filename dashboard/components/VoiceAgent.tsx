@@ -2120,12 +2120,12 @@ export default function VoiceAgent() {
 
       {/* Conversational Agent Card (Matching User Screenshots) */}
       <div
-        className={`fixed bottom-6 right-6 z-50 flex flex-col rounded-[36px] border border-gray-200/80 dark:border-zinc-800 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-2xl shadow-2xl transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] origin-bottom-right overflow-hidden ${
+        className={`fixed bottom-6 right-6 z-50 flex flex-col rounded-[36px] border border-gray-200/90 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-2xl transition-[transform,opacity] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] origin-bottom-right overflow-hidden [transform:translateZ(0)] [backface-visibility:hidden] ${
           cardOpen
             ? isExpanded
-              ? "w-[92vw] sm:w-[680px] max-h-[620px] scale-100 opacity-100 translate-y-0 pointer-events-auto"
-              : "w-[92vw] sm:w-[370px] max-h-[560px] scale-100 opacity-100 translate-y-0 pointer-events-auto"
-            : "scale-90 opacity-0 translate-y-8 pointer-events-none w-[360px] h-0 overflow-hidden"
+              ? "w-[92vw] sm:w-[680px] max-h-[620px] scale-100 opacity-100 translate-y-0 pointer-events-auto visible"
+              : "w-[92vw] sm:w-[370px] max-h-[560px] scale-100 opacity-100 translate-y-0 pointer-events-auto visible"
+            : "scale-90 opacity-0 translate-y-8 pointer-events-none invisible w-[360px] h-0 overflow-hidden"
         }`}
         style={{
           boxShadow:
@@ -2427,10 +2427,10 @@ export default function VoiceAgent() {
 
       {/* Minimized Floating Pill (Matching User Screenshot media_1788720243249.png) */}
       <div
-        className={`fixed bottom-6 right-6 z-40 flex items-center gap-3 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+        className={`fixed bottom-6 right-6 z-40 flex items-center gap-3 transition-[transform,opacity] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] [transform:translateZ(0)] [backface-visibility:hidden] ${
           cardOpen
-            ? "scale-90 opacity-0 pointer-events-none"
-            : "scale-100 opacity-100 pointer-events-auto"
+            ? "scale-90 opacity-0 pointer-events-none invisible"
+            : "scale-100 opacity-100 pointer-events-auto visible"
         }`}
       >
         {errorMessage && (
@@ -2446,7 +2446,7 @@ export default function VoiceAgent() {
               startVoiceSession();
             }
           }}
-          className="rounded-full border border-gray-200/90 dark:border-zinc-800 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl px-4 py-2.5 flex items-center gap-3.5 shadow-xl hover:shadow-2xl cursor-pointer hover:scale-[1.03] active:scale-95 transition-all duration-200"
+          className="rounded-full border border-gray-200/90 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-4 py-2.5 flex items-center gap-3.5 shadow-xl hover:shadow-2xl cursor-pointer hover:scale-[1.03] active:scale-95 transition-transform duration-200"
           style={{
             boxShadow: "0 10px 30px -5px rgba(0, 0, 0, 0.15)",
           }}

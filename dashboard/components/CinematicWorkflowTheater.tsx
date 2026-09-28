@@ -103,44 +103,27 @@ interface CinematicWorkflowTheaterProps {
 export default function CinematicWorkflowTheater({ onTestSandbox }: CinematicWorkflowTheaterProps) {
   const [currentStageIdx, setCurrentStageIdx] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
-  const [progress, setProgress] = useState(0);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
-
   const stageDurationMs = 5000;
-  const updateIntervalMs = 50;
 
-  // Auto-play progression loop
+  // Auto-play progression loop (advances every 5s without 50ms React state thrashing)
   useEffect(() => {
-    if (!isPlaying) {
-      if (timerRef.current) clearInterval(timerRef.current);
-      return;
-    }
+    if (!isPlaying) return;
 
-    timerRef.current = setInterval(() => {
-      setProgress((prev) => {
-        const next = prev + (updateIntervalMs / stageDurationMs) * 100;
-        if (next >= 100) {
-          setCurrentStageIdx((curr) => (curr + 1) % WORKFLOW_STAGES.length);
-          return 0;
-        }
-        return next;
-      });
-    }, updateIntervalMs);
+    const timer = setInterval(() => {
+      setCurrentStageIdx((curr) => (curr + 1) % WORKFLOW_STAGES.length);
+    }, stageDurationMs);
 
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [isPlaying]);
+    return () => clearInterval(timer);
+  }, [isPlaying, currentStageIdx]);
 
   const selectStage = (idx: number) => {
     setCurrentStageIdx(idx);
-    setProgress(0);
   };
 
   const currentStage = WORKFLOW_STAGES[currentStageIdx];
 
   return (
-    <div className="w-full rounded-3xl ed-glass-luxury border border-slate-200/80 dark:border-white/10 p-6 md:p-8 space-y-6 relative overflow-hidden transition-all">
+    <div className="w-full rounded-3xl ed-glass-luxury border border-slate-200/80 dark:border-white/10 p-6 md:p-8 space-y-6 relative overflow-hidden">
       {/* Top Ambient Glow */}
       <div className="absolute top-0 right-1/4 w-80 h-80 bg-sky-500/10 dark:bg-[#00D2FE]/10 rounded-full blur-3xl pointer-events-none" />
 
@@ -163,7 +146,7 @@ export default function CinematicWorkflowTheater({ onTestSandbox }: CinematicWor
         <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={() => setIsPlaying(!isPlaying)}
-            className="px-3 py-1.5 rounded-xl font-mono text-xs font-semibold bg-white/80 dark:bg-white/10 hover:bg-slate-100 dark:hover:bg-white/15 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-white/10 flex items-center gap-1.5 transition-all shadow-sm"
+            className="px-3 py-1.5 rounded-xl font-mono text-xs font-semibold bg-white/80 dark:bg-white/10 hover:bg-slate-100 dark:hover:bg-white/15 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-white/10 flex items-center gap-1.5 transition-colors shadow-sm"
           >
             {isPlaying ? (
               <>
@@ -180,10 +163,9 @@ export default function CinematicWorkflowTheater({ onTestSandbox }: CinematicWor
           <button
             onClick={() => {
               setCurrentStageIdx(0);
-              setProgress(0);
               setIsPlaying(true);
             }}
-            className="p-2 rounded-xl text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-all border border-slate-200 dark:border-white/10"
+            className="p-2 rounded-xl text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-colors border border-slate-200 dark:border-white/10"
             title="Restart Tour"
           >
             <RotateCcw className="w-3.5 h-3.5" />
@@ -195,23 +177,25 @@ export default function CinematicWorkflowTheater({ onTestSandbox }: CinematicWor
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
         {WORKFLOW_STAGES.map((stage, idx) => {
           const isCurrent = idx === currentStageIdx;
-          const isPassed = idx < currentStageIdx;
 
           return (
             <button
               key={stage.id}
               onClick={() => selectStage(idx)}
-              className={`p-3 rounded-2xl border text-left transition-all relative overflow-hidden ${
+              className={`p-3 rounded-2xl border text-left transition-colors relative overflow-hidden ${
                 isCurrent
                   ? "bg-white dark:bg-white/10 border-sky-400 dark:border-[#00D2FE] shadow-lg shadow-sky-500/10"
                   : "bg-slate-50/70 dark:bg-white/5 border-slate-200 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/20 opacity-80"
               }`}
             >
-              {/* Progress bar inside active pill */}
-              {isCurrent && (
+              {/* GPU-composited progress bar inside active pill */}
+              {isCurrent && isPlaying && (
                 <div
-                  className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-sky-400 to-purple-500 transition-all duration-75"
-                  style={{ width: `${progress}%` }}
+                  key={`progress-${currentStageIdx}`}
+                  className="absolute bottom-0 left-0 h-1 w-full bg-gradient-to-r from-sky-400 to-purple-500 origin-left animate-[ scaleX_5s_linear_forwards ]"
+                  style={{
+                    animation: `edStageProgress ${stageDurationMs}ms linear forwards`,
+                  }}
                 />
               )}
 
