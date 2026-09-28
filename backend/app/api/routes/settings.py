@@ -420,9 +420,9 @@ async def update_model_settings(req: ModelSettingsUpdateRequest):
 import json
 import httpx
 from sqlalchemy import select
-from app.database import get_db_session
-from app.models.product import Product
-from app.websocket.manager import ws_manager
+from app.database.session import get_db_context as get_db_session
+from app.database.models import Product
+from app.realtime.connection_manager import ws_manager
 
 WORKSPACE_CONFIG_PATH = os.path.abspath(
     os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), ".workspace_config.json")
