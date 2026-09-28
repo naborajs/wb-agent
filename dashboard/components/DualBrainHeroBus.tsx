@@ -72,7 +72,7 @@ export default function DualBrainHeroBus({
   businessName,
   businessIndustry,
   waConnected,
-  botPhone = "918918753100",
+  botPhone = "",
   hotLeadsCount,
   wonDealsCount,
   pipelineValueStr,
