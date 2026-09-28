@@ -133,7 +133,7 @@ export default function SystemSettingsPage() {
   const [autonomous, setAutonomous] = useState(true);
   const [quietHours, setQuietHours] = useState(true);
   const [ownerNotification, setOwnerNotification] = useState(true);
-  const [ownerPhone, setOwnerPhone] = useState("+918900653250");
+  const [ownerPhone, setOwnerPhone] = useState("");
   const [touch1Minutes, setTouch1Minutes] = useState(20);
   const [touch2Hours, setTouch2Hours] = useState(8);
   const [touch3Days, setTouch3Days] = useState(7);
@@ -160,7 +160,7 @@ export default function SystemSettingsPage() {
           setAutonomous(data.global_autonomous_enabled ?? true);
           setQuietHours(data.quiet_hours_enabled ?? true);
           setOwnerNotification(data.owner_notification_enabled ?? true);
-          setOwnerPhone(data.owner_whatsapp_number || "+918900653250");
+          setOwnerPhone(data.owner_whatsapp_number || "");
           setTouch1Minutes(data.followup_inactivity_minutes ?? 20);
           setTouch2Hours(data.followup_midterm_hours ?? 8);
           setTouch3Days(data.followup_final_days ?? 7);
