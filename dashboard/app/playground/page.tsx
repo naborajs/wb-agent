@@ -347,7 +347,7 @@ interface ChatMessage {
 }
 
 // Markdown Renderer for assistant chat
-function RenderMarkdown({ content }: { content: string }) {
+function RenderMarkdown({ content, isDark = true }: { content: string; isDark?: boolean }) {
   const parts = content.split(/(```[\s\S]*?```)/g);
 
   return (
@@ -360,7 +360,11 @@ function RenderMarkdown({ content }: { content: string }) {
           return (
             <div
               key={idx}
-              className="my-2 rounded-xl border border-white/10 bg-[#08080c] overflow-hidden font-mono text-[11px] sm:text-xs"
+              className={`my-2 rounded-xl border overflow-hidden font-mono text-[11px] sm:text-xs ${
+                isDark
+                  ? "border-white/10 bg-[#08080c]"
+                  : "border-zinc-200 bg-zinc-900 text-zinc-100"
+              }`}
             >
               <div className="flex items-center justify-between px-3 py-1.5 bg-white/5 border-b border-white/10 text-[10px] text-zinc-400">
                 <span>{lang || "code"}</span>
@@ -386,7 +390,7 @@ function RenderMarkdown({ content }: { content: string }) {
               const formatted = p.split(/(\*\*.*?\*\*)/g).map((sub, sIdx) => {
                 if (sub.startsWith("**") && sub.endsWith("**")) {
                   return (
-                    <strong key={sIdx} className="font-bold text-white">
+                    <strong key={sIdx} className={`font-bold ${isDark ? "text-white" : "text-zinc-950"}`}>
                       {sub.slice(2, -2)}
                     </strong>
                   );
@@ -397,7 +401,7 @@ function RenderMarkdown({ content }: { content: string }) {
               if (p.trim().startsWith("- ") || p.trim().startsWith("* ")) {
                 return (
                   <div key={pIdx} className="flex items-start gap-2 pl-2">
-                    <span className="text-orange-400 font-bold">•</span>
+                    <span className="text-orange-500 font-bold">•</span>
                     <span>{formatted}</span>
                   </div>
                 );
@@ -413,136 +417,263 @@ function RenderMarkdown({ content }: { content: string }) {
 }
 
 function FloatingRobotMascot({ isDark = true }: { isDark?: boolean }) {
-  const [imgLoaded, setImgLoaded] = useState(false);
+  const [boosted, setBoosted] = useState(false);
 
   return (
-    <div className="relative group cursor-pointer select-none">
-      {/* Soft warm ambient radial glow — adapts to theme */}
-      <div className={`absolute -inset-6 rounded-full blur-2xl opacity-60 group-hover:opacity-100 transition-opacity pointer-events-none ${
-        isDark
-          ? "bg-gradient-to-r from-orange-500/20 via-amber-500/15 to-emerald-500/15"
-          : "bg-gradient-to-r from-orange-400/10 via-amber-300/10 to-emerald-400/10"
-      }`} />
+    <div
+      onClick={() => {
+        setBoosted(true);
+        setTimeout(() => setBoosted(false), 1400);
+      }}
+      title="Click to pulse Dual-Brain Copilot"
+      className="relative group cursor-pointer select-none"
+    >
+      {/* Soft warm ambient radial glow — adapts cleanly to both Light & Dark themes */}
+      <div
+        className={`absolute -inset-6 rounded-full blur-2xl transition-all duration-500 pointer-events-none ${
+          boosted ? "opacity-100 scale-110" : "opacity-65 group-hover:opacity-100"
+        } ${
+          isDark
+            ? "bg-gradient-to-r from-orange-500/25 via-amber-500/15 to-emerald-500/20"
+            : "bg-gradient-to-r from-orange-400/20 via-amber-300/15 to-emerald-400/15"
+        }`}
+      />
 
-      {/* Mascot Container: Loads transparent PNG with instant SVG backup */}
-      <div className="relative w-28 h-36 sm:w-32 sm:h-40 md:w-36 md:h-44 flex items-center justify-center transition-transform duration-300 group-hover:scale-105">
-        {/* Transparent PNG */}
-        <img
-          src="/ai-mascot-transparent.png"
-          alt="AI Mascot"
-          onLoad={() => setImgLoaded(true)}
-          className={`w-full h-full object-contain transition-opacity duration-300 ${
+      {/* Pure 3D-Shaded Vector Robot Mascot (Zero raster background artifacts on any theme) */}
+      <div
+        className={`relative w-32 h-40 sm:w-36 sm:h-44 md:w-40 md:h-48 flex items-center justify-center transition-transform duration-500 ${
+          boosted ? "scale-110 -translate-y-1.5" : "group-hover:scale-105 group-hover:-translate-y-1"
+        }`}
+      >
+        <svg
+          viewBox="0 0 180 200"
+          className={`w-full h-full overflow-visible transition-all duration-300 ${
             isDark
-              ? "filter drop-shadow-[0_12px_24px_rgba(0,0,0,0.7)]"
-              : "filter drop-shadow-[0_8px_20px_rgba(0,0,0,0.15)]"
-          } ${imgLoaded ? "opacity-100" : "opacity-0 absolute"}`}
-        />
+              ? "filter drop-shadow-[0_14px_28px_rgba(0,0,0,0.65)]"
+              : "filter drop-shadow-[0_12px_24px_rgba(15,23,42,0.14)]"
+          }`}
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <defs>
+            {/* Pearl Ceramic Body Gradient */}
+            <linearGradient id="robotBodyGrad" x1="20%" y1="0%" x2="80%" y2="100%">
+              <stop offset="0%" stopColor="#FFFFFF" />
+              <stop offset="55%" stopColor="#F4F6FB" />
+              <stop offset="100%" stopColor="#DCE2F0" />
+            </linearGradient>
 
-        {/* Crisp Vector SVG fallback */}
-        {!imgLoaded && (
-          <svg
-            viewBox="0 0 160 180"
-            className={`w-full h-full ${
-              isDark
-                ? "filter drop-shadow-[0_12px_24px_rgba(255,107,0,0.3)]"
-                : "filter drop-shadow-[0_8px_16px_rgba(0,0,0,0.12)]"
-            }`}
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <defs>
-              <linearGradient id="robotBodyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="#FFFFFF" />
-                <stop offset="60%" stopColor="#F5F5F7" />
-                <stop offset="100%" stopColor="#E2E3E8" />
-              </linearGradient>
-              <linearGradient id="robotTitaniumGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor={isDark ? "#555866" : "#8B8FA0"} />
-                <stop offset="100%" stopColor={isDark ? "#2A2C35" : "#555866"} />
-              </linearGradient>
-              <linearGradient id="headBezelGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="#FFFFFF" />
-                <stop offset="100%" stopColor="#E0E2EC" />
-              </linearGradient>
-            </defs>
+            {/* Body Inner Chest Plate */}
+            <linearGradient id="robotChestInset" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="#FFFFFF" />
+              <stop offset="100%" stopColor="#E8ECF7" />
+            </linearGradient>
 
-            {/* Left Wing / Arm */}
-            <path
-              d="M 44 88 C 28 92 18 116 20 138 C 22 148 30 152 38 144 C 48 132 54 112 52 94 Z"
-              fill="url(#robotTitaniumGrad)"
-            />
+            {/* Metallic Cobalt-Titanium Arms & Headphones */}
+            <linearGradient id="robotTitaniumGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#5B76C7" />
+              <stop offset="55%" stopColor="#3F569C" />
+              <stop offset="100%" stopColor="#28386B" />
+            </linearGradient>
 
-            {/* Right Wing / Arm */}
-            <path
-              d="M 116 88 C 132 92 142 116 140 138 C 138 148 130 152 122 144 C 112 132 106 112 108 94 Z"
-              fill="url(#robotTitaniumGrad)"
-            />
+            {/* Glossy Head Bezel */}
+            <linearGradient id="headBezelGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="#FFFFFF" />
+              <stop offset="65%" stopColor="#EEF2FA" />
+              <stop offset="100%" stopColor="#D0D8EC" />
+            </linearGradient>
 
-            {/* White Torso / Shield Body */}
-            <path
-              d="M 46 88 C 46 88 80 88 114 88 C 122 106 122 135 106 156 C 94 170 80 176 80 176 C 80 176 66 170 54 156 C 38 135 38 106 46 88 Z"
-              fill="url(#robotBodyGrad)"
-            />
+            {/* Deep Obsidian Screen Visor */}
+            <linearGradient id="visorScreenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#121829" />
+              <stop offset="50%" stopColor="#0A0E1A" />
+              <stop offset="100%" stopColor="#060810" />
+            </linearGradient>
 
-            {/* Body 3 Dots (...) */}
-            <circle cx="68" cy="116" r="3.5" fill="#20222A" />
-            <circle cx="80" cy="116" r="3.5" fill="#20222A" />
-            <circle cx="92" cy="116" r="3.5" fill="#20222A" />
+            {/* Visor Glass Specular Sheen */}
+            <linearGradient id="visorGlassReflection" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.22" />
+              <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.0" />
+            </linearGradient>
 
-            {/* Vent bar */}
-            <rect x="70" y="130" width="20" height="4" rx="2" fill="#20222A" />
+            {/* Glowing Cyan/Orange Eye Gradient */}
+            <linearGradient id="eyeGlowGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor={boosted ? "#FF7B00" : "#38BDF8"} />
+              <stop offset="100%" stopColor={boosted ? "#F59E0B" : "#FFFFFF"} />
+            </linearGradient>
+          </defs>
 
-            {/* Left Ear / Headphone */}
-            <rect x="30" y="44" width="16" height="26" rx="8" fill="url(#robotTitaniumGrad)" />
+          {/* Subtle Hover Shadow Ellipse Beneath Robot */}
+          <ellipse
+            cx="90"
+            cy="186"
+            rx="34"
+            ry="6"
+            fill={isDark ? "rgba(0,0,0,0.45)" : "rgba(15,23,42,0.10)"}
+          />
 
-            {/* Right Ear / Headphone */}
-            <rect x="114" y="44" width="16" height="26" rx="8" fill="url(#robotTitaniumGrad)" />
+          {/* Top Signal Antenna */}
+          <line
+            x1="90"
+            y1="14"
+            x2="90"
+            y2="25"
+            stroke="#94A3B8"
+            strokeWidth="3"
+            strokeLinecap="round"
+          />
+          <circle
+            cx="90"
+            cy="12"
+            r="4.5"
+            fill={boosted ? "#10B981" : "#F97316"}
+          />
 
-            {/* Neck */}
-            <rect x="71" y="78" width="18" height="12" rx="3" fill="#A0A5B5" />
+          {/* Left Articulated Wing / Arm */}
+          <path
+            d="M 52 96 C 32 100 19 124 22 148 C 24 159 33 163 42 154 C 53 141 60 120 58 101 Z"
+            fill="url(#robotTitaniumGrad)"
+            stroke={isDark ? "rgba(255,255,255,0.18)" : "rgba(30,41,59,0.15)"}
+            strokeWidth="1.2"
+          />
 
-            {/* Head Bezel */}
-            <rect
-              x="42"
-              y="22"
-              width="76"
-              height="58"
-              rx="18"
-              fill="url(#headBezelGrad)"
-              stroke="#D2D6E2"
-              strokeWidth="1.5"
-            />
+          {/* Right Articulated Wing / Arm */}
+          <path
+            d="M 128 96 C 148 100 161 124 158 148 C 156 159 147 163 138 154 C 127 141 120 120 122 101 Z"
+            fill="url(#robotTitaniumGrad)"
+            stroke={isDark ? "rgba(255,255,255,0.18)" : "rgba(30,41,59,0.15)"}
+            strokeWidth="1.2"
+          />
 
-            {/* Head Screen */}
-            <rect x="48" y="28" width="64" height="46" rx="13" fill="#0A0C14" />
+          {/* Neck Joint */}
+          <rect
+            x="79"
+            y="83"
+            width="22"
+            height="14"
+            rx="4"
+            fill="#94A3B8"
+          />
 
-            {/* Left Eye (Smiling Curve) */}
-            <path
-              d="M 58 48 C 60 41 68 41 70 48"
-              stroke="#FFFFFF"
-              strokeWidth="3.5"
-              strokeLinecap="round"
-            />
+          {/* Pearl White Torso / Shield Body */}
+          <path
+            d="M 54 94 C 54 91 126 91 126 94 C 135 114 134 145 117 167 C 104 181 90 186 90 186 C 90 186 76 181 63 167 C 46 145 45 114 54 94 Z"
+            fill="url(#robotBodyGrad)"
+            stroke={isDark ? "rgba(255,255,255,0.4)" : "#CBD5E1"}
+            strokeWidth="1.5"
+          />
 
-            {/* Right Eye (Smiling Curve) */}
-            <path
-              d="M 82 48 C 84 41 92 41 94 48"
-              stroke="#FFFFFF"
-              strokeWidth="3.5"
-              strokeLinecap="round"
-            />
-          </svg>
-        )}
+          {/* Chest Inset Panel */}
+          <rect
+            x="66"
+            y="108"
+            width="48"
+            height="36"
+            rx="12"
+            fill="url(#robotChestInset)"
+            stroke="#E2E8F0"
+            strokeWidth="1"
+          />
+
+          {/* Body 3 Synaptic Dots (...) */}
+          <circle cx="78" cy="126" r="3.8" fill={boosted ? "#F97316" : "#28354E"} />
+          <circle cx="90" cy="126" r="3.8" fill={boosted ? "#10B981" : "#28354E"} />
+          <circle cx="102" cy="126" r="3.8" fill={boosted ? "#38BDF8" : "#28354E"} />
+
+          {/* Lower Acoustic Vent Bar */}
+          <rect x="78" y="154" width="24" height="5" rx="2.5" fill="#28354E" />
+
+          {/* Left Ear / Acoustic Pod */}
+          <rect
+            x="34"
+            y="45"
+            width="17"
+            height="30"
+            rx="8.5"
+            fill="url(#robotTitaniumGrad)"
+            stroke={isDark ? "rgba(255,255,255,0.2)" : "rgba(30,41,59,0.15)"}
+            strokeWidth="1.2"
+          />
+
+          {/* Right Ear / Acoustic Pod */}
+          <rect
+            x="129"
+            y="45"
+            width="17"
+            height="30"
+            rx="8.5"
+            fill="url(#robotTitaniumGrad)"
+            stroke={isDark ? "rgba(255,255,255,0.2)" : "rgba(30,41,59,0.15)"}
+            strokeWidth="1.2"
+          />
+
+          {/* Head Outer Ceramic Bezel */}
+          <rect
+            x="46"
+            y="24"
+            width="88"
+            height="64"
+            rx="20"
+            fill="url(#headBezelGrad)"
+            stroke={isDark ? "rgba(255,255,255,0.5)" : "#CBD5E1"}
+            strokeWidth="1.6"
+          />
+
+          {/* Head Obsidian Screen Visor */}
+          <rect
+            x="54"
+            y="31"
+            width="72"
+            height="50"
+            rx="14"
+            fill="url(#visorScreenGrad)"
+            stroke="#1E293B"
+            strokeWidth="1"
+          />
+
+          {/* Visor Top Glass Reflection Highlight */}
+          <path
+            d="M 60 34 H 120 C 122 34 123 36 123 38 V 46 C 105 52 75 52 57 46 V 38 C 57 36 58 34 60 34 Z"
+            fill="url(#visorGlassReflection)"
+          />
+
+          {/* Left Happy Cyber Eye */}
+          <path
+            d="M 66 56 C 68.5 47 78.5 47 81 56"
+            stroke="url(#eyeGlowGrad)"
+            strokeWidth="4.2"
+            strokeLinecap="round"
+          />
+
+          {/* Right Happy Cyber Eye */}
+          <path
+            d="M 99 56 C 101.5 47 111.5 47 114 56"
+            stroke="url(#eyeGlowGrad)"
+            strokeWidth="4.2"
+            strokeLinecap="round"
+          />
+
+          {/* Subtle Digital Smile Arc */}
+          <path
+            d="M 84 66 Q 90 71 96 66"
+            stroke={boosted ? "#F59E0B" : "#38BDF8"}
+            strokeWidth="2.4"
+            strokeLinecap="round"
+            opacity="0.9"
+          />
+        </svg>
       </div>
 
       {/* Online indicator — adapts to theme */}
-      <div className={`absolute -bottom-2 left-1/2 -translate-x-1/2 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border text-[9px] font-bold shadow-lg whitespace-nowrap transition-colors ${
-        isDark
-          ? "bg-[#0d0d12]/95 border-orange-500/30 text-orange-300"
-          : "bg-white/95 border-orange-400/40 text-orange-700 shadow-md"
-      }`}>
+      <div
+        className={`absolute -bottom-2 left-1/2 -translate-x-1/2 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border text-[9px] font-bold shadow-lg whitespace-nowrap transition-colors ${
+          isDark
+            ? "bg-[#0d0d12]/95 border-orange-500/30 text-orange-300"
+            : "bg-white/95 border-orange-400/40 text-orange-700 shadow-md"
+        }`}
+      >
         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
-        <span>ONLINE</span>
+        <span>{boosted ? "BOOSTED" : "ONLINE"}</span>
       </div>
     </div>
   );
@@ -1201,7 +1332,7 @@ function PlaygroundInner() {
                   }`}
                 >
                   {msg.role === "assistant" ? (
-                    <RenderMarkdown content={msg.content} />
+                    <RenderMarkdown content={msg.content} isDark={isDark} />
                   ) : (
                     <p className="whitespace-pre-wrap">{msg.content}</p>
                   )}
@@ -1489,7 +1620,7 @@ function PlaygroundInner() {
                 isDark ? "border-white/5" : "border-black/5"
               }`}>
                 {/* Left Action Controls: Circular Plus Button + Dynamic Feature Pills */}
-                <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5 max-w-[65%] sm:max-w-[70%]">
+                <div className="flex items-center gap-2 overflow-x-auto no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden py-0.5 max-w-[65%] sm:max-w-[70%]">
                   {/* Circular '+' Glass Button */}
                   <button
                     type="button"
@@ -1580,7 +1711,7 @@ function PlaygroundInner() {
           </div>
 
           {/* Categorized Test Presets Chips (Beneath Composer in Frosted Liquid Glass) */}
-          <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar pb-1 text-xs">
+          <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden pb-1 text-xs">
             <span className={`text-[10px] font-bold uppercase tracking-wider pl-1 flex-shrink-0 ${
               isDark ? "text-zinc-500" : "text-zinc-400"
             }`}>
