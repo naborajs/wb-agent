@@ -149,9 +149,12 @@ export default function DashboardOverview() {
   const [recentConvs, setRecentConvs] = useState<RecentConversation[]>([]);
   const [chartView, setChartView] = useState<"bars" | "pie" | "radar">("bars");
   const [businessName, setBusinessName] = useState("Enterprise AI Operations");
-  const [businessIndustry, setBusinessIndustry] = useState("Commercial Wholesale & B2B");
+  const [businessIndustry, setBusinessIndustry] = useState("Multi-Industry B2B & Retail Commerce");
   const [agentName, setAgentName] = useState("EDITH");
   const [currencySymbol, setCurrencySymbol] = useState("₹");
+  const [catalogUnit, setCatalogUnit] = useState("unit");
+  const [uiMode, setUiMode] = useState<"simplified" | "advanced">("advanced");
+  const [ownerPhone, setOwnerPhone] = useState("");
 
   // WhatsApp Bridge Real-Time Status & QR Pairing
   const [waStatus, setWaStatus] = useState<{
@@ -164,7 +167,7 @@ export default function DashboardOverview() {
   }>({
     connected: false,
     bridgeOnline: false,
-    botPhone: "918918753100",
+    botPhone: "",
   });
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [isRefreshingQr, setIsRefreshingQr] = useState(false);
@@ -220,7 +223,7 @@ export default function DashboardOverview() {
     return { dimensions, overallScore };
   }, [metrics, waStatus.connected]);
 
-  // Listen for voice agent / window events to trigger briefing
+  // Listen for voice agent / window events to trigger briefing & workspace mode changes
   useEffect(() => {
     if (typeof window === "undefined") return;
     const handleOpenBriefing = (e: any) => {
@@ -228,8 +231,22 @@ export default function DashboardOverview() {
       setBriefingTimeframe(tf);
       setShowBriefing(true);
     };
+    const handleWorkspaceConfigChange = (e: any) => {
+      const cfg = e?.detail;
+      if (!cfg) return;
+      if (cfg.ui_mode) setUiMode(cfg.ui_mode);
+      if (cfg.business_name) setBusinessName(cfg.business_name);
+      if (cfg.business_industry) setBusinessIndustry(cfg.business_industry);
+      if (cfg.currency_symbol) setCurrencySymbol(cfg.currency_symbol);
+      if (cfg.catalog_unit) setCatalogUnit(cfg.catalog_unit);
+      if (cfg.owner_whatsapp_number !== undefined) setOwnerPhone(cfg.owner_whatsapp_number);
+    };
     window.addEventListener("open-executive-briefing", handleOpenBriefing);
-    return () => window.removeEventListener("open-executive-briefing", handleOpenBriefing);
+    window.addEventListener("workspace_config_change", handleWorkspaceConfigChange);
+    return () => {
+      window.removeEventListener("open-executive-briefing", handleOpenBriefing);
+      window.removeEventListener("workspace_config_change", handleWorkspaceConfigChange);
+    };
   }, []);
 
   // Fetch QR Code data URL
@@ -259,7 +276,7 @@ export default function DashboardOverview() {
         setWaStatus({
           connected: !!data.connected,
           pairingCode: data.pairing_code,
-          botPhone: data.bot_phone || "918918753100",
+          botPhone: data.bot_phone || "",
           hasQR: data.has_qr,
           bridgeOnline: data.bridge_online,
           provider: data.provider,
@@ -276,9 +293,9 @@ export default function DashboardOverview() {
   // Request 8-digit Pairing Code
   const handleRequestPairing = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    const phone = (pairingPhone || waStatus.botPhone || "918918753100").replace(/[^0-9]/g, "");
+    const phone = (pairingPhone || waStatus.botPhone || "").replace(/[^0-9]/g, "");
     if (!phone || phone.length < 8) {
-      setPairingMsg({ text: "Please enter a valid phone number with country code.", isError: true });
+      setPairingMsg({ text: "Please enter your WhatsApp phone number with country code (e.g. 919876543210).", isError: true });
       return;
     }
     setIsPairingLoading(true);
@@ -371,6 +388,9 @@ export default function DashboardOverview() {
           if (data?.business_industry) setBusinessIndustry(data.business_industry);
           if (data?.agent_name) setAgentName(data.agent_name);
           if (data?.currency_symbol) setCurrencySymbol(data.currency_symbol);
+          if (data?.catalog_unit) setCatalogUnit(data.catalog_unit);
+          if (data?.ui_mode) setUiMode(data.ui_mode);
+          if (data?.owner_whatsapp_number !== undefined) setOwnerPhone(data.owner_whatsapp_number);
         })
         .catch(() => {});
     };
@@ -456,6 +476,104 @@ export default function DashboardOverview() {
   return (
     <div className="space-y-8 max-w-7xl mx-auto pb-12">
       {/* ========================================================================= */}
+      {/* SIMPLIFIED MODE QUICK COMMAND HUB (SHOWN WHEN SIMPLIFIED MODE IS ACTIVE)  */}
+      {/* ========================================================================= */}
+      {uiMode === "simplified" && (
+        <div className="p-6 rounded-3xl bg-[var(--ed-surface)] border border-emerald-500/35 shadow-lg space-y-5">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-xs font-bold mb-2">
+                <span>✨ Simplified Business Mode</span>
+                <span>•</span>
+                <span>{businessIndustry}</span>
+              </div>
+              <h1 className="text-2xl font-extrabold text-[var(--ed-text-primary)] tracking-tight">
+                Welcome to {businessName}
+              </h1>
+              <p className="text-sm text-[var(--ed-text-muted)] mt-1">
+                Streamlined workspace — talk to Friday by voice or text, check your live WhatsApp inbox, review revenue analytics, or switch to Advanced Mode anytime in the top bar.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+              <button
+                onClick={() => {
+                  const voiceBtn = document.querySelector(
+                    "button:has(svg.lucide-phone), button:has(svg.lucide-mic)"
+                  ) as HTMLElement;
+                  if (voiceBtn) voiceBtn.click();
+                }}
+                className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md transition-all"
+              >
+                🎙️ Talk to Friday Copilot
+              </button>
+              <button
+                onClick={() => {
+                  window.dispatchEvent(new CustomEvent("open_setup_modal", { detail: { tab: "whatsapp_owner" } }));
+                }}
+                className="px-4 py-2.5 rounded-xl bg-[var(--ed-bg)] border border-[var(--ed-border)] text-[var(--ed-text-primary)] text-xs font-bold hover:border-emerald-500/50 transition-all"
+              >
+                ⚙️ Pair WhatsApp / Change Business
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Link
+              href="/conversations"
+              className="p-4 rounded-2xl bg-[var(--ed-bg)] border border-[var(--ed-border)] hover:border-sky-500/50 transition-all block"
+            >
+              <div className="text-xs font-bold text-sky-500 uppercase">Live Customer Inbox</div>
+              <div className="text-2xl font-black text-[var(--ed-text-primary)] mt-1">
+                {metrics.conversations_total} Chats
+              </div>
+              <div className="text-xs text-[var(--ed-text-muted)] mt-1">
+                Reply to customers or let {agentName} handle inquiries →
+              </div>
+            </Link>
+
+            <Link
+              href="/analytics"
+              className="p-4 rounded-2xl bg-[var(--ed-bg)] border border-[var(--ed-border)] hover:border-emerald-500/50 transition-all block"
+            >
+              <div className="text-xs font-bold text-emerald-500 uppercase">Pipeline &amp; Revenue</div>
+              <div className="text-2xl font-black text-[var(--ed-text-primary)] mt-1">
+                {currencySymbol}{metrics.pipeline_value_inr.toLocaleString("en-IN")}
+              </div>
+              <div className="text-xs text-[var(--ed-text-muted)] mt-1">
+                {metrics.won_deals} Won Deals • {metrics.conversion_rate_pct}% Conversion →
+              </div>
+            </Link>
+
+            <Link
+              href="/leads"
+              className="p-4 rounded-2xl bg-[var(--ed-bg)] border border-[var(--ed-border)] hover:border-amber-500/50 transition-all block"
+            >
+              <div className="text-xs font-bold text-amber-500 uppercase">Qualified Leads CRM</div>
+              <div className="text-2xl font-black text-[var(--ed-text-primary)] mt-1">
+                {metrics.leads_total} Leads ({metrics.hot_leads} Hot)
+              </div>
+              <div className="text-xs text-[var(--ed-text-muted)] mt-1">
+                View scored prospects &amp; buyer intent →
+              </div>
+            </Link>
+
+            <Link
+              href="/orders"
+              className="p-4 rounded-2xl bg-[var(--ed-bg)] border border-[var(--ed-border)] hover:border-purple-500/50 transition-all block"
+            >
+              <div className="text-xs font-bold text-purple-500 uppercase">Orders &amp; GST Invoices</div>
+              <div className="text-2xl font-black text-[var(--ed-text-primary)] mt-1">
+                {metrics.won_deals} Active Orders
+              </div>
+              <div className="text-xs text-[var(--ed-text-muted)] mt-1">
+                Owner Alerts: {ownerPhone ? `+${ownerPhone.replace(/^\+/, "")}` : "Click Setup to configure"} →
+              </div>
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
       {/* 0. GRAND CINEMATIC SHOWCASE (SEAMLESS FLOW - FIRST IMPRESSION CENTERPIECE)*/}
       {/* ========================================================================= */}
       <CinematicHeroDeck
@@ -495,75 +613,80 @@ export default function DashboardOverview() {
         turnSpeed="1.1s"
       />
 
-      {/* ========================================================================= */}
-      {/* 0.1 INTERACTIVE WORKFLOW THEATER (FLOW OF INTELLIGENCE DEMO)              */}
-      {/* ========================================================================= */}
-      <div id="cinematic-theater">
-        <CinematicWorkflowTheater
-          onTestSandbox={() => {
-            const el = document.getElementById("instant-sandbox");
-            if (el) el.scrollIntoView({ behavior: "smooth" });
-          }}
-        />
-      </div>
+      {uiMode === "advanced" && (
+        <>
+          {/* ========================================================================= */}
+          {/* 0.1 INTERACTIVE WORKFLOW THEATER (FLOW OF INTELLIGENCE DEMO)              */}
+          {/* ========================================================================= */}
+          <div id="cinematic-theater">
+            <CinematicWorkflowTheater
+              onTestSandbox={() => {
+                const el = document.getElementById("instant-sandbox");
+                if (el) el.scrollIntoView({ behavior: "smooth" });
+              }}
+            />
+          </div>
+
+          {/* ========================================================================= */}
+          {/* 0.2 FLOATING INSTANT SANDBOX (1-TOUCH LIVE AI SIMULATOR)                  */}
+          {/* ========================================================================= */}
+          <FloatingSandboxSnippet />
+
+          {/* ========================================================================= */}
+          {/* 1. DUAL-BRAIN COMMAND CENTER HERO (CENTERPIECE WITH SYNAPTIC INTER-BUS)   */}
+          {/* ========================================================================= */}
+          <DualBrainHeroBus
+            onPlayBriefing={() => {
+              setBriefingTimeframe("today");
+              setShowBriefing(true);
+            }}
+            queueDepth={metrics.queue_depth}
+            autonomousRate={metrics.conversion_rate_pct > 0 ? 94.2 : 94.2}
+            turnSpeed="1.1s"
+            isSimulatingTurn={isSimulating}
+            businessName={businessName}
+            businessIndustry={businessIndustry}
+            waConnected={waStatus.connected}
+            botPhone={waStatus.botPhone}
+            hotLeadsCount={metrics.hot_leads}
+            wonDealsCount={metrics.won_deals}
+            pipelineValueStr={`${currencySymbol}${metrics.pipeline_value_inr.toLocaleString("en-IN")}`}
+            pendingHandoffsCount={metrics.pending_handoffs}
+            tokensSummary={metrics.tokens_summary}
+          />
+
+          {/* ========================================================================= */}
+          {/* 1.1 FEATURE 1: LIVE INTER-BRAIN ACTIVITY TICKER (REAL-TIME SYNAPTIC STREAM)*/}
+          {/* ========================================================================= */}
+          <SynapticActivityTicker />
+
+          {/* ========================================================================= */}
+          {/* 1.2 FEATURE 5: EXECUTIVE QUICK-ACTION DOCK (1-CLICK WORKFLOWS & SAFE MODE) */}
+          {/* ========================================================================= */}
+          <ExecutiveQuickDock
+            onTestDiscountPolicy={(prompt) => {
+              setSimPrompt(prompt);
+              // Auto-trigger simulation after state updates
+              setTimeout(() => {
+                const btn = document.querySelector("button:has(svg.lucide-zap)") as HTMLButtonElement;
+                if (btn) btn.click();
+              }, 150);
+            }}
+            onSendWhatsAppPing={handleSendPing}
+            isSendingPing={isSendingPing}
+          />
+
+          {/* ========================================================================= */}
+          {/* 1.3 FEATURE 4: 24-HOUR INBOUND TRAFFIC VELOCITY & RESOLUTION HEATMAP       */}
+          {/* ========================================================================= */}
+          <HourlyVelocityHeatmap />
+        </>
+      )}
 
       {/* ========================================================================= */}
-      {/* 0.2 FLOATING INSTANT SANDBOX (1-TOUCH LIVE AI SIMULATOR)                  */}
+      {/* 1.5 DUAL-BRAIN TOKEN USAGE & INFERENCE ECONOMICS PANEL (ADVANCED MODE)     */}
       {/* ========================================================================= */}
-      <FloatingSandboxSnippet />
-
-      {/* ========================================================================= */}
-      {/* 1. DUAL-BRAIN COMMAND CENTER HERO (CENTERPIECE WITH SYNAPTIC INTER-BUS)   */}
-      {/* ========================================================================= */}
-      <DualBrainHeroBus
-        onPlayBriefing={() => {
-          setBriefingTimeframe("today");
-          setShowBriefing(true);
-        }}
-        queueDepth={metrics.queue_depth}
-        autonomousRate={metrics.conversion_rate_pct > 0 ? 94.2 : 94.2}
-        turnSpeed="1.1s"
-        isSimulatingTurn={isSimulating}
-        businessName={businessName}
-        businessIndustry={businessIndustry}
-        waConnected={waStatus.connected}
-        botPhone={waStatus.botPhone}
-        hotLeadsCount={metrics.hot_leads}
-        wonDealsCount={metrics.won_deals}
-        pipelineValueStr={`${currencySymbol}${metrics.pipeline_value_inr.toLocaleString("en-IN")}`}
-        pendingHandoffsCount={metrics.pending_handoffs}
-        tokensSummary={metrics.tokens_summary}
-      />
-
-      {/* ========================================================================= */}
-      {/* 1.1 FEATURE 1: LIVE INTER-BRAIN ACTIVITY TICKER (REAL-TIME SYNAPTIC STREAM)*/}
-      {/* ========================================================================= */}
-      <SynapticActivityTicker />
-
-      {/* ========================================================================= */}
-      {/* 1.2 FEATURE 5: EXECUTIVE QUICK-ACTION DOCK (1-CLICK WORKFLOWS & SAFE MODE) */}
-      {/* ========================================================================= */}
-      <ExecutiveQuickDock
-        onTestDiscountPolicy={(prompt) => {
-          setSimPrompt(prompt);
-          // Auto-trigger simulation after state updates
-          setTimeout(() => {
-            const btn = document.querySelector("button:has(svg.lucide-zap)") as HTMLButtonElement;
-            if (btn) btn.click();
-          }, 150);
-        }}
-        onSendWhatsAppPing={handleSendPing}
-        isSendingPing={isSendingPing}
-      />
-
-      {/* ========================================================================= */}
-      {/* 1.3 FEATURE 4: 24-HOUR INBOUND TRAFFIC VELOCITY & RESOLUTION HEATMAP       */}
-      {/* ========================================================================= */}
-      <HourlyVelocityHeatmap />
-
-      {/* ========================================================================= */}
-      {/* 1.5 DUAL-BRAIN TOKEN USAGE & INFERENCE ECONOMICS PANEL                     */}
-      {/* ========================================================================= */}
+      {uiMode === "advanced" && (
       <div className="p-6 rounded-3xl bg-white/95 dark:bg-[#0B0F19] text-slate-900 dark:text-white border border-slate-200/90 dark:border-[#1E293B] shadow-md dark:shadow-xl relative overflow-hidden transition-colors">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-5 border-b border-slate-200 dark:border-[#1E293B]">
           <div className="space-y-0.5">
@@ -727,6 +850,7 @@ export default function DashboardOverview() {
           </div>
         </div>
       </div>
+      )}
 
       {/* ========================================================================= */}
       {/* 2. REAL-TIME WHATSAPP CONNECTION GATEWAY                                 */}
@@ -799,7 +923,7 @@ export default function DashboardOverview() {
               </div>
 
               <ol className="text-left w-full text-[11px] font-mono text-slate-600 dark:text-slate-400 space-y-0.5 mt-2 pl-4 list-decimal">
-                <li>Open WhatsApp on phone (<strong>+{waStatus.botPhone}</strong>)</li>
+                <li>Open WhatsApp on your phone ({waStatus.botPhone ? <strong>+{waStatus.botPhone}</strong> : <strong>Your Bot Number</strong>})</li>
                 <li>Tap <strong>Settings / 3 dots &gt; Linked Devices</strong></li>
                 <li>Tap <strong>Link a Device</strong> and point at code</li>
               </ol>
@@ -830,7 +954,7 @@ export default function DashboardOverview() {
                       type="text"
                       value={pairingPhone}
                       onChange={(e) => setPairingPhone(e.target.value)}
-                      placeholder={`e.g. ${waStatus.botPhone || "918918753100"}`}
+                      placeholder={`e.g. ${waStatus.botPhone || "919876543210"}`}
                       className="flex-1 px-3.5 py-2 rounded-xl bg-white dark:bg-[#0E1322] border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 text-sm font-mono focus:outline-none focus:border-sky-500 shadow-sm"
                     />
                     <button
@@ -1288,8 +1412,9 @@ export default function DashboardOverview() {
       </div>
 
       {/* ========================================================================= */}
-      {/* 4. QUIET GROUND-TRUTH BEDROCK (GOVERNANCE & SAFETY RULES)                 */}
+      {/* 4. QUIET GROUND-TRUTH BEDROCK (GOVERNANCE & SAFETY RULES - ADVANCED MODE) */}
       {/* ========================================================================= */}
+      {uiMode === "advanced" && (
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
         <div className="p-4 rounded-xl bg-[var(--ed-surface)] border border-[var(--ed-border)] space-y-1.5 text-xs">
           <div className="flex items-center gap-2 text-[var(--ed-text-primary)] font-bold">
@@ -1297,7 +1422,7 @@ export default function DashboardOverview() {
             Deterministic Margin Ceiling
           </div>
           <p className="text-[var(--ed-text-muted)] leading-relaxed">
-            Autonomous discounts are hard-capped at <strong>5.0%</strong>. Orders &gt;500kg automatically escalate to human operators.
+            Autonomous discounts are hard-capped at <strong>5.0%</strong>. Orders &gt;500 {catalogUnit}s automatically escalate to human operators.
           </p>
           <Link href="/knowledge" className="text-sky-500 hover:underline font-semibold block pt-0.5">
             Knowledge Hub RAG &rarr;
@@ -1330,6 +1455,7 @@ export default function DashboardOverview() {
           </Link>
         </div>
       </div>
+      )}
 
       {/* ========================================================================= */}
       {/* FEATURE 2: EXECUTIVE AUDIO BRIEFING MODAL (VOICE DEBRIEF PLAYER)          */}
