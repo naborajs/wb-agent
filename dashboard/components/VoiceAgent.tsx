@@ -21,6 +21,7 @@ import {
   MessageSquare,
   ChevronLeft,
   Globe,
+  Clock,
 } from "lucide-react";
 import { MessageLoading } from "./ui/MessageLoading";
 import { AudioStreamer } from "./voice/audioStreamer";
@@ -39,6 +40,7 @@ import {
   typeText,
   clickElement,
   listAllClickableElements,
+  scrollPage,
 } from "./voice/domActions";
 
 type ConnectionState = "disconnected" | "connecting" | "connected" | "error";
@@ -59,6 +61,12 @@ interface TranscriptMessage {
   timestamp: string;
 }
 
+function formatCallDuration(totalSeconds: number): string {
+  const mins = Math.floor(totalSeconds / 60);
+  const secs = totalSeconds % 60;
+  return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+}
+
 export default function VoiceAgent() {
   const pathname = usePathname();
   const router = useRouter();
@@ -76,6 +84,7 @@ export default function VoiceAgent() {
   const [chatInput, setChatInput] = useState("");
   const [selectedLanguage, setSelectedLanguage] = useState(SUPPORTED_LANGUAGES[0]);
   const [langMenuOpen, setLangMenuOpen] = useState(false);
+  const [callDurationSeconds, setCallDurationSeconds] = useState(0);
 
   // Transcripts
   const [transcripts, setTranscripts] = useState<TranscriptMessage[]>([]);
@@ -87,6 +96,18 @@ export default function VoiceAgent() {
   const lastDestructiveActionTime = useRef(0);
   const mutedRef = useRef(false);
   const lastUserUtterance = useRef("");
+
+  // Live talk timer when connected to Friday
+  useEffect(() => {
+    if (connectionState !== "connected") {
+      setCallDurationSeconds(0);
+      return;
+    }
+    const interval = setInterval(() => {
+      setCallDurationSeconds((prev) => prev + 1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [connectionState]);
 
   // Record audit log entry in backend for continuous improvement and error diagnostics
   const recordVoiceAuditLog = useCallback(
@@ -149,6 +170,7 @@ export default function VoiceAgent() {
     setConnectionState("disconnected");
     setAgentState("idle");
     setMicVolume(0);
+    setCallDurationSeconds(0);
   }, []);
 
   // Hardware and software synchronized mute toggle
@@ -201,7 +223,7 @@ export default function VoiceAgent() {
   }, [pathname, connectionState, sendScreenContext]);
 
   // Execute client-side tool call
-  const executeToolCall = async (callId: string, name: string, args: any) => {
+  const executeToolCall = async (callId: string, name: string, args: any, sendResponse = true): Promise<any> => {
     setAgentState("thinking");
     let result: any = { success: false };
 
@@ -233,21 +255,52 @@ export default function VoiceAgent() {
             ).join(", ")}.`,
           };
         }
-      } else if (name === "click_element") {
-        const query = args.element_id_or_label || "";
-        const clickRes = clickElement(query);
-        result = clickRes;
+      } else if (name === "scroll_page") {
+        const direction = args.direction || "down";
+        const amount = args.amount || undefined;
+        const targetSection = args.target_section || undefined;
+        const scrollRes = scrollPage(direction, amount, targetSection);
+        result = scrollRes;
         setTranscripts((prev) => [
           ...prev,
           {
             id: Math.random().toString(),
             speaker: "system",
-            text: clickRes.success
-              ? `Clicked: ${clickRes.clicked_label || query}`
-              : `Click failed: ${clickRes.message || query}`,
+            text: scrollRes.message,
             timestamp: new Date().toLocaleTimeString(),
           },
         ]);
+      } else if (name === "click_element") {
+        const query = args.element_id_or_label || "";
+        const qLower = query.trim().toLowerCase();
+        const utteranceLower = (lastUserUtterance.current || "").toLowerCase();
+        // Guard against accidental "+ New Chat" click unless user explicitly asked for a new chat
+        if (
+          (qLower.includes("new chat") || qLower.includes("start chat")) &&
+          !utteranceLower.includes("new chat") &&
+          !utteranceLower.includes("start a new") &&
+          !utteranceLower.includes("create a new chat")
+        ) {
+          result = {
+            success: false,
+            message:
+              "Blocked accidental '+ New Chat' click. Use 'select_conversation' to open an existing thread instead.",
+          };
+        } else {
+          const clickRes = clickElement(query);
+          result = clickRes;
+          setTranscripts((prev) => [
+            ...prev,
+            {
+              id: Math.random().toString(),
+              speaker: "system",
+              text: clickRes.success
+                ? `Clicked: ${clickRes.clicked_label || query}`
+                : `Click failed: ${clickRes.message || query}`,
+              timestamp: new Date().toLocaleTimeString(),
+            },
+          ]);
+        }
       } else if (name === "suggest_conversation_reply" || name === "refine_reply") {
         const instructions = args.instructions || args.directive || "";
         const tone = args.tone || "";
@@ -1227,6 +1280,86 @@ export default function VoiceAgent() {
         } catch (e: any) {
           result = { success: false, error: e?.message || "Order action failed" };
         }
+      } else if (name === "execute_multi_step_workflow") {
+        const steps = Array.isArray(args.steps) ? args.steps : [];
+        const stepResults: any[] = [];
+        for (let i = 0; i < steps.length; i++) {
+          const step = steps[i] || {};
+          const stepAction = (step.action || "").trim().toLowerCase();
+          let stepRes: any = { step: i + 1, action: stepAction, success: false };
+
+          if (stepAction === "navigate" || stepAction === "navigate_to") {
+            const target = resolveSectionRoute(step.target || step.section || "");
+            if (target) {
+              router.push(target.path);
+              stepRes = { step: i + 1, action: "navigate_to", target: target.path, success: true };
+              await new Promise((r) => setTimeout(r, 420));
+            }
+          } else if (stepAction === "scroll" || stepAction === "scroll_page") {
+            const sr = scrollPage(step.direction || step.value || "down", step.amount, step.target);
+            stepRes = { step: i + 1, action: "scroll_page", ...sr };
+            await new Promise((r) => setTimeout(r, 320));
+          } else if (stepAction === "click" || stepAction === "click_element") {
+            const cr = clickElement(step.target || step.value || "");
+            stepRes = { step: i + 1, action: "click_element", ...cr };
+            await new Promise((r) => setTimeout(r, 300));
+          } else if (stepAction === "type" || stepAction === "type_text" || stepAction === "fill_field") {
+            const tr = typeText(step.target || "input", String(step.value || ""), Boolean(step.submit));
+            stepRes = { step: i + 1, action: "type_text", ...tr };
+            await new Promise((r) => setTimeout(r, 250));
+          } else if (stepAction === "theme" || stepAction === "set_color_theme") {
+            const thr = setColorTheme(step.value || step.target || "toggle");
+            stepRes = { step: i + 1, action: "set_color_theme", ...thr };
+          } else if (stepAction === "select_conversation") {
+            const sc = selectConversationItem(step.target || step.value || "");
+            stepRes = { step: i + 1, action: "select_conversation", ...sc };
+          }
+          stepResults.push(stepRes);
+        }
+        result = {
+          success: true,
+          executed_steps: stepResults.length,
+          results: stepResults,
+          message: `Completed ${stepResults.length}-step workflow sequentially.`,
+        };
+        setTranscripts((prev) => [
+          ...prev,
+          {
+            id: Math.random().toString(),
+            speaker: "system",
+            text: `Executed ${stepResults.length} multi-task steps sequentially`,
+            timestamp: new Date().toLocaleTimeString(),
+          },
+        ]);
+      } else if (name === "explain_full_website") {
+        if (args.auto_scroll_preview) {
+          scrollPage("down", 420);
+          setTimeout(() => scrollPage("top"), 2200);
+        }
+        result = {
+          success: true,
+          platform_name: "EDITH & Friday Dual-Brain Autonomous B2B Wholesale Commerce Platform",
+          executive_summary:
+            "This platform is an enterprise-grade Dual-Brain Autonomous B2B Sales & Operations System built for wholesale tea and commodity commerce. It pairs two specialized AI brains over a <12ms Inter-Brain Synaptic Bus: (1) FRIDAY (powered by Google Gemini 3.1 Flash Live), your real-time voice-driven executive web copilot with universal DOM control, and (2) EDITH (powered by NVIDIA NIM Nemotron & Gemma), your autonomous WhatsApp B2B closer that negotiates deals, enforces deterministic margin guardrails, and generates orders 24/7.",
+          core_modules: [
+            "1. Overview Command Center (/): Live pipeline KPIs, 16-stage consultative B2B funnel, interactive 7-node circuit-board architecture schematic, WhatsApp device pairing, and turn simulator.",
+            "2. Live Conversations Inbox (/conversations): 3-panel WhatsApp & Playground console with E.164 phone deduplication, buyer intelligence drawer, lead scoring (0-100), human takeover, and 1-click AI draft co-piloting.",
+            "3. Dual-Brain Console (/brain): Live synaptic thought stream where Friday and EDITH deliberate on discounts, enforce the strict 5.0% autonomous discount shield (and 10% for 100kg+ verified orders), and manage inter-brain connectivity.",
+            "4. Agent Playground (/playground): Interactive B2B buyer sandbox with live chain-of-thought reasoning traces, token/latency telemetry, and multilingual presets.",
+            "5. Commercial & Knowledge Suite (/products, /pricing, /knowledge, /leads, /orders, /campaigns, /analytics): Grounded catalog (Assam Kadak CTC ₹340/kg, Dooars CTC ₹230/kg, Darjeeling First Flush ₹1,450/kg), deterministic rate curves, semantic vector RAG, anti-ban outreach, and Pareto objection analytics.",
+          ],
+          instruction_to_friday:
+            "Present this comprehensive overview clearly, enthusiastically, and in well-structured detail so the operator or their teacher understands the full power of the Dual-Brain architecture and every module.",
+        };
+        setTranscripts((prev) => [
+          ...prev,
+          {
+            id: Math.random().toString(),
+            speaker: "system",
+            text: "Compiled full-platform architectural & module overview",
+            timestamp: new Date().toLocaleTimeString(),
+          },
+        ]);
       } else {
         result = { success: false, error: `Unknown tool function: ${name}` };
       }
@@ -1243,8 +1376,8 @@ export default function VoiceAgent() {
       result.error
     );
 
-    // Send tool response back over WebSocket
-    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+    // Send tool response back over WebSocket (when called standalone)
+    if (sendResponse && wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       const responseMsg = {
         toolResponse: {
           functionResponses: [
@@ -1261,6 +1394,8 @@ export default function VoiceAgent() {
         console.warn("Failed to send toolResponse:", err);
       }
     }
+
+    return result;
   };
 
   // Connect to Gemini Live API session
@@ -1324,10 +1459,91 @@ export default function VoiceAgent() {
                         section: {
                           type: "STRING",
                           description:
-                            "The target section name or path (e.g., 'pricing', 'inbox', 'orders', 'catalog', 'leads', 'campaigns', 'analytics', 'settings').",
+                            "The target section name or path (e.g., 'pricing', 'inbox', 'orders', 'catalog', 'leads', 'campaigns', 'analytics', 'settings', 'brain', 'playground').",
                         },
                       },
                       required: ["section"],
+                    },
+                  },
+                  {
+                    name: "scroll_page",
+                    description:
+                      "Smoothly scrolls the current page or viewport up, down, to the top, to the bottom, or directly to a named section/heading.",
+                    parameters: {
+                      type: "OBJECT",
+                      properties: {
+                        direction: {
+                          type: "STRING",
+                          description:
+                            "Scroll direction: 'down', 'up', 'top', 'bottom', 'page_down', or 'page_up'.",
+                        },
+                        amount: {
+                          type: "STRING",
+                          description:
+                            "Optional scroll distance: pixel number (e.g. '600') or 'little', 'page', 'lot'.",
+                        },
+                        target_section: {
+                          type: "STRING",
+                          description:
+                            "Optional heading, card, or section title to scroll directly into view (e.g. 'Sales Funnel', 'Architecture', 'Knowledge', 'Regional').",
+                        },
+                      },
+                    },
+                  },
+                  {
+                    name: "execute_multi_step_workflow",
+                    description:
+                      "Executes multiple UI tasks sequentially in one turn when the user asks Friday to do multiple things at once (e.g., navigate to a page, scroll down, click a button, and fill a field).",
+                    parameters: {
+                      type: "OBJECT",
+                      properties: {
+                        steps: {
+                          type: "ARRAY",
+                          description: "Ordered list of steps to execute sequentially.",
+                          items: {
+                            type: "OBJECT",
+                            properties: {
+                              action: {
+                                type: "STRING",
+                                description:
+                                  "'navigate_to', 'scroll_page', 'click_element', 'type_text', 'set_color_theme', or 'select_conversation'.",
+                              },
+                              target: {
+                                type: "STRING",
+                                description: "Route name, button label, input target, or section heading.",
+                              },
+                              value: {
+                                type: "STRING",
+                                description: "Optional text to type, scroll direction, or theme mode.",
+                              },
+                              direction: {
+                                type: "STRING",
+                                description: "Optional scroll direction ('down', 'up', 'top', 'bottom').",
+                              },
+                            },
+                            required: ["action"],
+                          },
+                        },
+                      },
+                      required: ["steps"],
+                    },
+                  },
+                  {
+                    name: "explain_full_website",
+                    description:
+                      "Retrieves a comprehensive, structured executive overview of the entire Dual-Brain platform (Friday + EDITH), its 7-node architecture, and all 15 operational modules when the user asks to explain the full website or what this platform is.",
+                    parameters: {
+                      type: "OBJECT",
+                      properties: {
+                        focus_area: {
+                          type: "STRING",
+                          description: "Optional specific area to emphasize (e.g. 'all', 'architecture', 'commercial').",
+                        },
+                        auto_scroll_preview: {
+                          type: "BOOLEAN",
+                          description: "Whether to gently scroll the current page to showcase the UI while explaining.",
+                        },
+                      },
                     },
                   },
                   {
@@ -2010,10 +2226,38 @@ export default function VoiceAgent() {
             }
           }
 
-          // Handle Tool Calls (Function Calling)
+          // Handle Tool Calls (Function Calling) — supports single or multi-task batched calls
           if (data.toolCall && Array.isArray(data.toolCall.functionCalls)) {
-            for (const call of data.toolCall.functionCalls) {
-              await executeToolCall(call.id, call.name, call.args || {});
+            const calls = data.toolCall.functionCalls;
+            if (calls.length === 1) {
+              const call = calls[0];
+              await executeToolCall(call.id, call.name, call.args || {}, true);
+            } else if (calls.length > 1) {
+              const batchedResponses: Array<{ id: string; response: { output: any } }> = [];
+              for (let i = 0; i < calls.length; i++) {
+                const call = calls[i];
+                const out = await executeToolCall(call.id, call.name, call.args || {}, false);
+                batchedResponses.push({
+                  id: call.id,
+                  response: { output: out },
+                });
+                if (i < calls.length - 1) {
+                  await new Promise((r) => setTimeout(r, 320));
+                }
+              }
+              if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+                try {
+                  wsRef.current.send(
+                    JSON.stringify({
+                      toolResponse: {
+                        functionResponses: batchedResponses,
+                      },
+                    })
+                  );
+                } catch (err) {
+                  console.warn("Failed to send batched toolResponse:", err);
+                }
+              }
             }
           }
         } catch (e) {
@@ -2120,11 +2364,11 @@ export default function VoiceAgent() {
 
       {/* Conversational Agent Card (Matching User Screenshots) */}
       <div
-        className={`fixed bottom-6 right-6 z-50 flex flex-col rounded-[36px] border border-gray-200/90 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-2xl transition-[transform,opacity] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] origin-bottom-right overflow-hidden [transform:translateZ(0)] [backface-visibility:hidden] ${
+        className={`fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 flex flex-col rounded-[36px] border border-gray-200/90 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-2xl transition-[transform,opacity] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] origin-bottom-right overflow-hidden [transform:translateZ(0)] [backface-visibility:hidden] ${
           cardOpen
             ? isExpanded
-              ? "w-[92vw] sm:w-[680px] max-h-[620px] scale-100 opacity-100 translate-y-0 pointer-events-auto visible"
-              : "w-[92vw] sm:w-[370px] max-h-[560px] scale-100 opacity-100 translate-y-0 pointer-events-auto visible"
+              ? "w-[92vw] sm:w-[680px] max-h-[85vh] sm:max-h-[620px] scale-100 opacity-100 translate-y-0 pointer-events-auto visible"
+              : "w-[92vw] sm:w-[370px] max-h-[82vh] sm:max-h-[560px] scale-100 opacity-100 translate-y-0 pointer-events-auto visible"
             : "scale-90 opacity-0 translate-y-8 pointer-events-none invisible w-[360px] h-0 overflow-hidden"
         }`}
         style={{
@@ -2159,33 +2403,46 @@ export default function VoiceAgent() {
             </button>
           )}
 
-          {/* Top Center: Language Selection Pill (media_1788720003363.png) */}
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setLangMenuOpen((prev) => !prev)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-gray-200 dark:border-zinc-700 bg-gray-50/90 dark:bg-zinc-800/90 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors cursor-pointer shadow-sm"
-            >
-              <span>{selectedLanguage.flag}</span>
-              <span className="text-[11px] font-medium">{selectedLanguage.name}</span>
-              <ChevronDown className="w-3 h-3 text-gray-400" />
-            </button>
-            {langMenuOpen && (
-              <div className="absolute top-full mt-1.5 left-1/2 -translate-x-1/2 z-30 w-44 rounded-2xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-xl py-1 text-xs animate-in fade-in zoom-in-95">
-                {SUPPORTED_LANGUAGES.map((lang) => (
-                  <button
-                    key={lang.code}
-                    type="button"
-                    onClick={() => {
-                      setSelectedLanguage(lang);
-                      setLangMenuOpen(false);
-                    }}
-                    className="w-full px-3.5 py-2 text-left flex items-center gap-2 hover:bg-sky-50 dark:hover:bg-sky-950/40 text-gray-800 dark:text-gray-200 transition-colors"
-                  >
-                    <span>{lang.flag}</span>
-                    <span className="font-medium text-xs">{lang.name}</span>
-                  </button>
-                ))}
+          {/* Top Center: Language Selection Pill + Live Talk Timer */}
+          <div className="flex items-center gap-1.5">
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setLangMenuOpen((prev) => !prev)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-gray-200 dark:border-zinc-700 bg-gray-50/90 dark:bg-zinc-800/90 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors cursor-pointer shadow-sm"
+              >
+                <span>{selectedLanguage.flag}</span>
+                <span className="text-[11px] font-medium">{selectedLanguage.name}</span>
+                <ChevronDown className="w-3 h-3 text-gray-400" />
+              </button>
+              {langMenuOpen && (
+                <div className="absolute top-full mt-1.5 left-1/2 -translate-x-1/2 z-30 w-44 rounded-2xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-xl py-1 text-xs animate-in fade-in zoom-in-95">
+                  {SUPPORTED_LANGUAGES.map((lang) => (
+                    <button
+                      key={lang.code}
+                      type="button"
+                      onClick={() => {
+                        setSelectedLanguage(lang);
+                        setLangMenuOpen(false);
+                      }}
+                      className="w-full px-3.5 py-2 text-left flex items-center gap-2 hover:bg-sky-50 dark:hover:bg-sky-950/40 text-gray-800 dark:text-gray-200 transition-colors"
+                    >
+                      <span>{lang.flag}</span>
+                      <span className="font-medium text-xs">{lang.name}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Live Talk Timer Pill when connected */}
+            {connectionState === "connected" && (
+              <div
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-600 dark:text-emerald-400 text-[11px] font-mono font-semibold shadow-xs"
+                title="Active call duration with Friday"
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span>{formatCallDuration(callDurationSeconds)}</span>
               </div>
             )}
           </div>
@@ -2269,8 +2526,8 @@ export default function VoiceAgent() {
                 </div>
               </div>
 
-              {/* Status Text (e.g. "Speaking...", "Listening...") */}
-              <div className="text-center px-4">
+              {/* Status Text (e.g. "Speaking...", "Listening...") + Talk Duration */}
+              <div className="text-center px-4 flex flex-col items-center gap-1">
                 <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
                   {connectionState === "disconnected" ? (
                     "Discover the capabilities of Friday — Personal AI Assistant"
@@ -2289,6 +2546,12 @@ export default function VoiceAgent() {
                     "Listening..."
                   )}
                 </span>
+                {connectionState === "connected" && (
+                  <span className="inline-flex items-center gap-1.5 text-xs font-mono text-gray-400 dark:text-gray-500">
+                    <Clock className="w-3 h-3 text-emerald-500" />
+                    <span>Talk time: {formatCallDuration(callDurationSeconds)}</span>
+                  </span>
+                )}
               </div>
             </div>
           )}
@@ -2304,7 +2567,7 @@ export default function VoiceAgent() {
                       Conversation transcript ready
                     </p>
                     <p className="text-xs leading-relaxed max-w-[220px]">
-                      Say "Show pricing", "Change agent name to Rakesh", or type a message below.
+                      Say "Scroll down", "Explain the full website", or type a message below.
                     </p>
                   </div>
                 ) : (
@@ -2427,7 +2690,7 @@ export default function VoiceAgent() {
 
       {/* Minimized Floating Pill (Matching User Screenshot media_1788720243249.png) */}
       <div
-        className={`fixed bottom-6 right-6 z-40 flex items-center gap-3 transition-[transform,opacity] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] [transform:translateZ(0)] [backface-visibility:hidden] ${
+        className={`fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-40 flex items-center gap-3 transition-[transform,opacity] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] [transform:translateZ(0)] [backface-visibility:hidden] ${
           cardOpen
             ? "scale-90 opacity-0 pointer-events-none invisible"
             : "scale-100 opacity-100 pointer-events-auto visible"
@@ -2467,11 +2730,19 @@ export default function VoiceAgent() {
             ) : null}
           </div>
 
-          {/* Text labels: Voice chat / Speaking... (media_1788720243249.png) */}
+          {/* Text labels: Voice chat / Speaking... + Live Call Timer */}
           <div className="flex flex-col pr-1">
-            <span className="text-sm font-semibold text-gray-900 dark:text-white leading-tight">
-              Voice chat
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-semibold text-gray-900 dark:text-white leading-tight">
+                Voice chat
+              </span>
+              {connectionState === "connected" && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-600 dark:text-emerald-400 text-[10px] font-mono font-bold">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  {formatCallDuration(callDurationSeconds)}
+                </span>
+              )}
+            </div>
             <span className="text-xs font-medium text-sky-500 leading-tight flex items-center gap-1.5">
               {muted ? (
                 "Muted"
@@ -2499,3 +2770,4 @@ export default function VoiceAgent() {
     </>
   );
 }
+
