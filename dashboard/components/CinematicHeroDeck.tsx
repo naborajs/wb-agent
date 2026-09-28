@@ -117,7 +117,7 @@ export default function CinematicHeroDeck({
   onPlayBriefing,
   onTestDiscountPolicy,
   waConnected = false,
-  botPhone = "918918753100",
+  botPhone = "",
   hotLeadsCount = 7,
   wonDealsCount = 14,
   pipelineValueStr = "₹4,85,000",
