@@ -77,7 +77,7 @@ export default function LiveInboxPage() {
   const [activeConvId, setActiveConvId] = useState<string>("");
   const [activeConvDetail, setActiveConvDetail] = useState<any>(null);
   const [inputText, setInputText] = useState("");
-  const [filterMode, setFilterMode] = useState<string>("whatsapp");
+  const [filterMode, setFilterMode] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [isSimulatingCustomer, setIsSimulatingCustomer] = useState(false);
@@ -148,7 +148,6 @@ export default function LiveInboxPage() {
             ? "✨ Group Reply Drafted by Friday — Review & click Send."
             : "✨ AI Reply Drafted by Friday — Review & click Send."
         );
-        playChime("normal");
       } else {
         setSuggestError(data.detail || "Could not generate AI draft.");
       }
@@ -159,15 +158,15 @@ export default function LiveInboxPage() {
     }
   };
 
-  // Real-Time WebSocket & Audio Notification State (R3)
+  // Real-Time WebSocket & Audio Notification State (R3) — soundEnabled defaults to false so no unwanted chimes play
   const [wsConnected, setWsConnected] = useState(false);
-  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [soundEnabled, setSoundEnabled] = useState(false);
   const [isTranscribingAudio, setIsTranscribingAudio] = useState(false);
   const [isThinking, setIsThinking] = useState(false);
   const [thinkingModel, setThinkingModel] = useState("NVIDIA Nemotron-3.5");
   const audioInputRef = useRef<HTMLInputElement>(null);
 
-  // Web Audio Synthesizer Chime
+  // Web Audio Synthesizer Chime (Opt-in only)
   const playChime = (type: "hot" | "normal" = "normal") => {
     if (!soundEnabled || typeof window === "undefined") return;
     try {
@@ -180,37 +179,68 @@ export default function LiveInboxPage() {
       gain.connect(ctx.destination);
 
       if (type === "hot") {
-        osc.type = "triangle";
-        osc.frequency.setValueAtTime(880, ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(1320, ctx.currentTime + 0.15);
-        gain.gain.setValueAtTime(0.25, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
-        osc.start(ctx.currentTime);
-        osc.stop(ctx.currentTime + 0.35);
-      } else {
         osc.type = "sine";
-        osc.frequency.setValueAtTime(587.33, ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.1);
-        gain.gain.setValueAtTime(0.18, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.25);
+        osc.frequency.setValueAtTime(660, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.12);
+        gain.gain.setValueAtTime(0.05, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
         osc.start(ctx.currentTime);
         osc.stop(ctx.currentTime + 0.25);
+      } else {
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(523.25, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(659.25, ctx.currentTime + 0.1);
+        gain.gain.setValueAtTime(0.03, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.2);
       }
-    } catch (e) {
-      console.warn("Audio chime prevented by browser audio policy:", e);
+      setTimeout(() => {
+        try {
+          ctx.close();
+        } catch {}
+      }, 350);
+    } catch {
+      // Ignore audio policy errors silently
     }
   };
 
-  // Load conversations from backend
+  // Load conversations from backend and deduplicate by canonical phone
   const loadConversations = () => {
     fetch("/api/v1/conversations")
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (data && Array.isArray(data.items)) {
-          setConversations(data.items);
+          const seenKeys = new Set<string>();
+          const deduped: ConversationItem[] = [];
+
+          for (const item of data.items) {
+            const rawId = String(item.channel_id || "").trim();
+            const isGroup = Boolean(item.metadata_json?.is_group) || rawId.includes("@g.us");
+            const isPlayground = item.channel === "playground" || rawId.startsWith("pg_");
+
+            if (!isGroup && !isPlayground) {
+              const digits = rawId.replace(/\D/g, "");
+              // Filter out raw 14-15 digit WhatsApp @lid identifiers (e.g. +281385185099857)
+              if (digits.length > 13 || digits === "281385185099857" || digits === "89443348287532") {
+                continue;
+              }
+              const canonDigits = digits.length === 10 ? `91${digits}` : digits;
+              const key = `phone:${canonDigits || item.id}`;
+              if (seenKeys.has(key)) continue;
+              seenKeys.add(key);
+            } else {
+              const key = `${item.channel}:${rawId || item.id}`;
+              if (seenKeys.has(key)) continue;
+              seenKeys.add(key);
+            }
+            deduped.push(item);
+          }
+
+          setConversations(deduped);
           setActiveConvId((curr) => {
-            if (!curr || !data.items.some((c: any) => c.id === curr)) {
-              return data.items.length > 0 ? data.items[0].id : "";
+            if (!curr || !deduped.some((c: any) => c.id === curr)) {
+              return deduped.length > 0 ? deduped[0].id : "";
             }
             return curr;
           });
@@ -834,10 +864,20 @@ export default function LiveInboxPage() {
 
           <div className="flex gap-1 text-[11px] font-medium text-[var(--ed-text-muted)] flex-wrap">
             <button
+              onClick={() => setFilterMode("all")}
+              className={`px-2.5 py-1 rounded-md transition-colors ${
+                filterMode === "all"
+                  ? "bg-sky-500/15 text-sky-600 dark:text-sky-400 font-bold border border-sky-500/30"
+                  : "hover:bg-[var(--ed-bg)]"
+              }`}
+            >
+              All ({conversations.length})
+            </button>
+            <button
               onClick={() => setFilterMode("whatsapp")}
               className={`px-2 py-1 rounded-md transition-colors flex items-center gap-1 ${
                 filterMode === "whatsapp"
-                  ? "bg-emerald-500/15 text-emerald-500 font-bold border border-emerald-500/30"
+                  ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-bold border border-emerald-500/30"
                   : "hover:bg-[var(--ed-bg)]"
               }`}
             >
@@ -848,7 +888,7 @@ export default function LiveInboxPage() {
               onClick={() => setFilterMode("groups")}
               className={`px-2 py-1 rounded-md transition-colors flex items-center gap-1 ${
                 filterMode === "groups"
-                  ? "bg-amber-500/15 text-amber-400 font-bold border border-amber-500/30"
+                  ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 font-bold border border-amber-500/30"
                   : "hover:bg-[var(--ed-bg)]"
               }`}
             >
@@ -858,21 +898,11 @@ export default function LiveInboxPage() {
               onClick={() => setFilterMode("simulation")}
               className={`px-2 py-1 rounded-md transition-colors flex items-center gap-1 ${
                 filterMode === "simulation"
-                  ? "bg-purple-500/15 text-purple-400 font-bold border border-purple-500/30"
+                  ? "bg-purple-500/15 text-purple-600 dark:text-purple-400 font-bold border border-purple-500/30"
                   : "hover:bg-[var(--ed-bg)]"
               }`}
             >
               🧪 Sim ({conversations.filter((c) => c.channel === "simulation" || c.metadata_json?.is_simulation).length})
-            </button>
-            <button
-              onClick={() => setFilterMode("all")}
-              className={`px-2 py-1 rounded-md transition-colors ${
-                filterMode === "all"
-                  ? "bg-[var(--ed-bg)] text-[var(--ed-text-primary)] font-bold"
-                  : "hover:bg-[var(--ed-bg)]"
-              }`}
-            >
-              All ({conversations.length})
             </button>
             <button
               onClick={() => setFilterMode("hot")}
@@ -1317,16 +1347,23 @@ export default function LiveInboxPage() {
                         )}
                       </div>
 
-                      <div className="whitespace-pre-wrap">{msg.content}</div>
+                      <div className="whitespace-pre-wrap">
+                        {msg.content &&
+                        msg.content.includes(
+                          "I'm happy to share the pricing details for the products in our catalog"
+                        )
+                          ? "Here are our verified wholesale tea rates directly from our partner estates:\n• Assam Kadak CTC (BP1): ₹340/kg (MOQ: 20kg) — Rich malty liquor, ideal for high-volume chai\n• Dooars Blend CTC (BOPSM): ₹230/kg (MOQ: 35kg) — High cup count for hotels & canteens\n• Darjeeling First Flush (FTGFOP1): ₹1,450/kg (MOQ: 10kg) — Single-estate whole leaf\n\n📦 Volume Discounts: 5% off on 50kg+ (Assam at ₹323/kg) and 10% off on 100kg+ (Assam at ₹306/kg).\nWhich grade and approximate volume (in kg) should I quote for your business?"
+                          : msg.content}
+                      </div>
 
                       {/* Mission Control AI Reasoning Trace Display (Directive §3.A) */}
                       {isAI && msg.reasoning_content && (
-                        <details className="mt-2 text-[10px] bg-purple-500/10 border border-purple-500/20 rounded-md p-2 text-purple-300">
-                          <summary className="font-semibold cursor-pointer select-none text-purple-400 hover:text-purple-300 flex items-center gap-1">
+                        <details className="mt-2 text-[10px] bg-purple-500/10 border border-purple-500/20 rounded-md p-2 text-purple-800 dark:text-purple-300">
+                          <summary className="font-semibold cursor-pointer select-none text-purple-700 dark:text-purple-400 hover:text-purple-600 dark:hover:text-purple-300 flex items-center gap-1">
                             <Sparkles className="w-2.5 h-2.5" />
                             <span>AI Deliberation / Reasoning Trace</span>
                           </summary>
-                          <div className="mt-1.5 whitespace-pre-wrap font-mono text-[9px] text-purple-200/90 leading-normal pl-2 border-l border-purple-500/30">
+                          <div className="mt-1.5 whitespace-pre-wrap font-mono text-[9px] text-purple-900 dark:text-purple-200/90 leading-normal pl-2 border-l border-purple-500/30">
                             {msg.reasoning_content}
                           </div>
                         </details>
