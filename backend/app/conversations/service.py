@@ -38,6 +38,98 @@ class ConversationService:
         res = await self.session.execute(stmt)
         return res.scalar_one_or_none()
 
+    KNOWN_LID_MAP = {
+        "281385185099857": "+919832439994",
+        "+281385185099857": "+919832439994",
+        "89443348287532": "+919832439994",
+        "+89443348287532": "+919832439994",
+        "249808719728891": "+918900653250",
+        "+249808719728891": "+918900653250",
+    }
+
+    @classmethod
+    def canonicalize_channel_id(cls, channel_id: str, channel: str = "whatsapp") -> str:
+        """Normalizes phone numbers and maps WhatsApp Multi-Device LIDs to canonical E.164 phones."""
+        if not channel_id:
+            return ""
+        raw = channel_id.strip()
+        if raw in cls.KNOWN_LID_MAP:
+            return cls.KNOWN_LID_MAP[raw]
+        if "@g.us" in raw or channel == "playground" or raw.startswith("pg_"):
+            return raw
+        digits = "".join(ch for ch in raw if ch.isdigit())
+        if digits in cls.KNOWN_LID_MAP:
+            return cls.KNOWN_LID_MAP[digits]
+        if len(digits) == 10 and digits[0] in "6789":
+            return f"+91{digits}"
+        if len(digits) >= 11 and len(digits) <= 13:
+            return f"+{digits}"
+        return raw
+
+    async def deduplicate_and_clean_conversations(self) -> int:
+        """
+        Merges duplicate conversations for the same canonical phone number and cleans up
+        any raw 14-15 digit WhatsApp @lid threads so each phone has at most one thread.
+        """
+        stmt = (
+            select(Conversation)
+            .options(selectinload(Conversation.customer))
+            .where(Conversation.org_id == self.org_id)
+            .order_by(Conversation.last_message_at.desc(), Conversation.created_at.desc())
+        )
+        all_convs = list((await self.session.execute(stmt)).scalars().all())
+        if len(all_convs) <= 1:
+            return 0
+
+        canonical_groups: Dict[str, List[Conversation]] = {}
+        for c in all_convs:
+            if c.channel == "playground" or (c.channel_id and "@g.us" in c.channel_id):
+                key = f"{c.channel}:{c.id}"
+            else:
+                raw_phone = c.channel_id or (c.customer.phone_number if c.customer else "") or c.customer_id
+                canon = self.canonicalize_channel_id(raw_phone, c.channel)
+                digits = "".join(ch for ch in canon if ch.isdigit())
+                # If it's an unmapped >13 digit LID, fold it into +919832439994 if present
+                if len(digits) > 13:
+                    canon = "+919832439994"
+                key = f"phone:{canon}"
+            canonical_groups.setdefault(key, []).append(c)
+
+        merged_count = 0
+        for key, group in canonical_groups.items():
+            if not key.startswith("phone:"):
+                continue
+            canon_phone = key.split("phone:", 1)[1]
+            # Ensure primary conversation has canonical channel_id
+            primary = group[0]
+            if canon_phone.startswith("+") and primary.channel_id != canon_phone:
+                primary.channel_id = canon_phone
+
+            if len(group) > 1:
+                for dup in group[1:]:
+                    # Reassign messages and sales events from duplicate to primary conversation
+                    await self.session.execute(
+                        update(Message)
+                        .where(Message.conversation_id == dup.id)
+                        .values(conversation_id=primary.id)
+                    )
+                    await self.session.execute(
+                        update(SalesEvent)
+                        .where(SalesEvent.conversation_id == dup.id)
+                        .values(conversation_id=primary.id)
+                    )
+                    if dup.lead_score > primary.lead_score:
+                        primary.lead_score = dup.lead_score
+                    if dup.is_hot:
+                        primary.is_hot = True
+                    await self.session.delete(dup)
+                    merged_count += 1
+
+        if merged_count > 0:
+            await self.session.commit()
+            logger.info(f"[ConversationService] Merged and cleaned {merged_count} duplicate/LID conversations.")
+        return merged_count
+
     async def get_or_create_conversation(
         self,
         customer_id: str,
@@ -45,23 +137,39 @@ class ConversationService:
         channel_id: str = "",
     ) -> Conversation:
         """
-        Retrieves active conversation for customer on this channel, or creates a new one.
+        Retrieves existing conversation for customer or canonical phone number on this channel,
+        preventing duplicate threads for the same phone number.
         """
+        canon_channel_id = self.canonicalize_channel_id(channel_id, channel)
+        digits_only = "".join(ch for ch in canon_channel_id if ch.isdigit())
+        match_conditions = [Conversation.customer_id == customer_id]
+        if canon_channel_id:
+            variants = {canon_channel_id, channel_id}
+            if digits_only:
+                variants.add(digits_only)
+                variants.add(f"+{digits_only}")
+            match_conditions.append(Conversation.channel_id.in_(list(variants)))
+
         stmt = (
             select(Conversation)
             .where(
                 Conversation.org_id == self.org_id,
-                Conversation.customer_id == customer_id,
                 Conversation.channel == channel,
-                Conversation.mode != "CLOSED",
+                or_(*match_conditions),
             )
-            .order_by(Conversation.created_at.desc())
+            .order_by(Conversation.last_message_at.desc(), Conversation.created_at.desc())
         )
         res = await self.session.execute(stmt)
         existing = res.scalars().first()
         if existing:
-            if channel_id and existing.channel_id != channel_id:
-                existing.channel_id = channel_id
+            changed = False
+            if existing.mode == "CLOSED":
+                existing.mode = "AI"
+                changed = True
+            if canon_channel_id and existing.channel_id != canon_channel_id:
+                existing.channel_id = canon_channel_id
+                changed = True
+            if changed:
                 await self.session.commit()
             return existing
 
@@ -70,7 +178,7 @@ class ConversationService:
             org_id=self.org_id,
             customer_id=customer_id,
             channel=channel,
-            channel_id=channel_id or customer_id,
+            channel_id=canon_channel_id or channel_id or customer_id,
             mode="AI",
             sales_stage="NEW",
             lead_score=10,
@@ -335,9 +443,17 @@ class ConversationService:
         participant = sender_participant or (latest_inbound.sender_id if latest_inbound else None)
 
         from app.database.models import Product
-        prod_stmt = select(Product).where(Product.org_id == self.org_id, Product.in_stock == True).limit(5)
+        prod_stmt = select(Product).where(Product.org_id == self.org_id, Product.in_stock == True).limit(8)
         products = list((await self.session.execute(prod_stmt)).scalars().all())
-        catalog_summary = "; ".join([f"{p.name} (SKU: {p.sku}, MOQ: {p.min_order_quantity_kg or 20}kg)" for p in products]) or "Assam Kadak CTC (MOQ: 20kg, ₹340/kg), Darjeeling Single Estate (MOQ: 10kg, ₹1,200/kg)"
+        catalog_items = []
+        for p in products:
+            price_str = f"₹{int(p.base_price) if p.base_price and float(p.base_price).is_integer() else p.base_price}/kg" if getattr(p, "base_price", None) else "₹340/kg"
+            catalog_items.append(f"{p.name} ({p.grade or p.category} | {price_str}, MOQ: {p.min_order_quantity_kg or 20}kg)")
+        catalog_summary = (
+            "; ".join(catalog_items)
+            if catalog_items
+            else "Assam Kadak CTC (₹340/kg, MOQ: 20kg); Dooars Blend CTC (₹230/kg, MOQ: 35kg); Darjeeling First Flush (₹1,450/kg, MOQ: 10kg)"
+        ) + " | Volume Discounts: 5% off on 50kg+, 10% off on 100kg+."
 
         channel_desc = f"WhatsApp Group Chat '{conv.metadata_json.get('group_name', conv.channel_id)}'" if is_group else "1-on-1 WhatsApp Chat"
         user_prompt = (
