@@ -464,7 +464,7 @@ export default function LiveInboxPage() {
     if (e) e.preventDefault();
     const phone = pairingPhoneInput.trim().replace(/[^0-9]/g, "");
     if (!phone || phone.length < 8) {
-      setPairingMsg({ text: "Please enter a valid phone number with country code (e.g. 918918753100)", isError: true });
+      setPairingMsg({ text: "Please enter a valid phone number with country code (e.g. 919876543210)", isError: true });
       return;
     }
     setIsPairingLoading(true);
@@ -2142,7 +2142,7 @@ export default function LiveInboxPage() {
                   {waStatus?.connected ? "🟢 Online & Active" : "🔴 Disconnected"}
                 </div>
                 <div className="text-xs opacity-90 mt-1 font-mono">
-                  Bot Line: +{waStatus?.botPhone || "918918753100"}
+                  Bot Line: {waStatus?.botPhone ? `+${waStatus.botPhone}` : "Awaiting Pairing"}
                 </div>
               </div>
               <button
@@ -2169,7 +2169,7 @@ export default function LiveInboxPage() {
                     <CheckCircle className="w-4 h-4 text-emerald-500" /> WhatsApp Multi-Device Paired
                   </div>
                   <p>
-                    EDITH is actively connected on <strong>+{waStatus?.botPhone || "918918753100"}</strong>. Any buyer messaging this line receives automated consultative sales assistance with 0 latency.
+                    EDITH is actively connected on <strong>{waStatus?.botPhone ? `+${waStatus.botPhone}` : "your linked WhatsApp number"}</strong>. Any buyer messaging this line receives automated consultative sales assistance with 0 latency.
                   </p>
                 </div>
                 <div className="p-3 bg-purple-500/8 border border-purple-500/20 rounded-xl text-purple-600 dark:text-purple-400 space-y-1">
@@ -2177,7 +2177,7 @@ export default function LiveInboxPage() {
                     <Sparkles className="w-3.5 h-3.5" /> Testing Directly from Phone:
                   </div>
                   <p>
-                    Send any message from your phone (+91 89006 53250) to the bot (+91 89187 53100) to chat with EDITH live, or use the <strong>🧪 Simulate Customer</strong> toggle in this dashboard!
+                    Send any message from a customer phone to your paired Bot number ({waStatus?.botPhone ? `+${waStatus.botPhone}` : "linked device"}) to chat with EDITH live, or use the <strong>🧪 Simulate Customer</strong> toggle in this dashboard!
                   </p>
                 </div>
                 <div className="flex justify-end gap-2 pt-2">
@@ -2226,7 +2226,7 @@ export default function LiveInboxPage() {
                       type="text"
                       value={pairingPhoneInput}
                       onChange={(e) => setPairingPhoneInput(e.target.value)}
-                      placeholder="Enter phone with country code (e.g. 918918753100)"
+                      placeholder="Enter phone with country code (e.g. 919876543210)"
                       className="flex-1 px-3 py-1.5 text-xs rounded-lg border border-[var(--ed-border)] bg-[var(--ed-surface)] text-[var(--ed-text-primary)] focus:outline-none focus:ring-1 focus:ring-sky-500 font-mono"
                     />
                     <button
