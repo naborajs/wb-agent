@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import VoiceAgent from "./VoiceAgent";
 import { SystemHealthBadge } from "./SystemHealthBadge";
-import { clickElement, typeText, setColorTheme } from "./voice/domActions";
+import { clickElement, typeText, setColorTheme, scrollPage } from "./voice/domActions";
 import { getWebSocketUrl } from "@/lib/utils";
 import {
   Inbox,
@@ -186,13 +186,6 @@ export default function DashboardShell({ children }: { children: React.ReactNode
               setUnreadNotifCount((prev) => prev + 1);
               setLiveToast(notifItem);
               setTimeout(() => setLiveToast(null), 8000);
-              if (typeof window !== "undefined" && "speechSynthesis" in window) {
-                try {
-                  const u = new SpeechSynthesisUtterance(`${notifItem.sender_brain} alert: ${notifItem.title}`);
-                  u.rate = 1.05;
-                  window.speechSynthesis.speak(u);
-                } catch {}
-              }
             } else if (msg.event === "watchdog_alert") {
               const newAlert = msg.data;
               if (newAlert && newAlert.id) {
@@ -215,6 +208,8 @@ export default function DashboardShell({ children }: { children: React.ReactNode
                   typeText(uiAction.target, uiAction.text || "", Boolean(uiAction.submit));
                 } else if (uiAction.action === "navigate" && (uiAction.path || uiAction.target)) {
                   router.push(uiAction.path || uiAction.target);
+                } else if (uiAction.action === "scroll" || uiAction.action === "scroll_page") {
+                  scrollPage(uiAction.direction || "down", uiAction.amount, uiAction.target || uiAction.section);
                 } else if (uiAction.action === "theme" && (uiAction.theme || uiAction.value)) {
                   setColorTheme(uiAction.theme || uiAction.value);
                 } else if (uiAction.action === "draft_reply") {
