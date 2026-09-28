@@ -175,13 +175,11 @@ body {
     background-color: var(--ed-bg);
     background-image: radial-gradient(var(--ed-dot-color) 1px, transparent 1px), var(--ed-canvas-bg);
     background-size: 24px 24px, 100% 100%;
-    background-attachment: fixed;
   }
 
   /* Press state — scale down on active */
   .ed-press {
     transition: transform 150ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 150ms ease-out, background-color 150ms ease-out;
-    will-change: transform;
   }
   .ed-press:active {
     transform: scale(0.97);
@@ -190,7 +188,6 @@ body {
   /* Hover lift — slight translateY + shadow increase */
   .ed-lift {
     transition: transform 150ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 150ms ease-out, background-color 150ms ease-out;
-    will-change: transform;
   }
   .ed-lift:hover {
     transform: translateY(-1px);
@@ -200,7 +197,6 @@ body {
   /* Combined press + lift for interactive elements */
   .ed-interactive {
     transition: transform 150ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 150ms ease-out, background 150ms ease-out;
-    will-change: transform;
   }
   .ed-interactive:hover {
     transform: translateY(-1px);
@@ -243,11 +239,9 @@ body {
     box-shadow: 0 0 12px var(--ed-accent-glow);
   }
 
-  /* Glass surface — frosted translucent (deliberate on 2-3 key surfaces) */
+  /* Glass surface — compositor-safe surface without scroll readback flicker */
   .ed-glass {
     background: var(--ed-surface-elevated);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
     border: 1px solid var(--ed-border);
   }
 
@@ -427,19 +421,17 @@ body {
    Subtle Luxury Glass & Floating Cinematic System
    ============================================================ */
 .ed-glass-luxury {
-  background: rgba(255, 255, 255, 0.72);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.65);
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(226, 232, 240, 0.9);
   box-shadow: 0 10px 35px -10px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04);
+  backface-visibility: hidden;
 }
 
 .dark .ed-glass-luxury {
-  background: rgba(13, 17, 28, 0.70);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
+  background: rgba(13, 17, 28, 0.92);
   border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: 0 16px 45px -12px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  backface-visibility: hidden;
 }
 
 .ed-glass-card {

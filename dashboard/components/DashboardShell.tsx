@@ -756,10 +756,12 @@ export default function DashboardShell({ children }: { children: React.ReactNode
         </header>
 
         {/* Page Viewport */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 ed-bg-texture transition-colors duration-200 relative">
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden ed-bg-texture relative">
           <FloatingPathsBackground />
-          <div className="relative z-10">{children}</div>
-        </main>
+          <main className="flex-1 overflow-y-auto p-4 md:p-6 relative z-10 [transform:translateZ(0)]">
+            {children}
+          </main>
+        </div>
       </div>
 
       {/* Real-Time Voice-Driven Agentic Control Layer */}

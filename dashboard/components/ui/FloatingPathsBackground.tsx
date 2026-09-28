@@ -8,19 +8,19 @@ interface FloatingPathsProps {
   count?: number;
 }
 
-export function FloatingPaths({ position, count = 36 }: FloatingPathsProps) {
+export function FloatingPaths({ position, count = 14 }: FloatingPathsProps) {
   const paths = useMemo(() => {
     return Array.from({ length: count }, (_, i) => ({
       id: i,
-      d: `M-${380 - i * 5 * position} -${189 + i * 6}C-${
-        380 - i * 5 * position
-      } -${189 + i * 6} -${312 - i * 5 * position} ${216 - i * 6} ${
-        152 - i * 5 * position
-      } ${343 - i * 6}C${616 - i * 5 * position} ${470 - i * 6} ${
-        684 - i * 5 * position
-      } ${875 - i * 6} ${684 - i * 5 * position} ${875 - i * 6}`,
-      width: 0.6 + i * 0.035,
-      duration: 18 + (i % 8) * 2.5,
+      d: `M-${380 - i * 12 * position} -${189 + i * 14}C-${
+        380 - i * 12 * position
+      } -${189 + i * 14} -${312 - i * 12 * position} ${216 - i * 14} ${
+        152 - i * 12 * position
+      } ${343 - i * 14}C${616 - i * 12 * position} ${470 - i * 14} ${
+        684 - i * 12 * position
+      } ${875 - i * 14} ${684 - i * 12 * position} ${875 - i * 14}`,
+      width: 0.6 + i * 0.06,
+      opacity: 0.03 + (i / count) * 0.06,
     }));
   }, [position, count]);
 
@@ -31,32 +31,15 @@ export function FloatingPaths({ position, count = 36 }: FloatingPathsProps) {
         viewBox="0 0 696 316"
         fill="none"
         preserveAspectRatio="xMidYMid slice"
-        style={{
-          maskImage:
-            "radial-gradient(ellipse 92% 80% at 50% 45%, black 45%, rgba(0,0,0,0.5) 75%, transparent 100%)",
-          WebkitMaskImage:
-            "radial-gradient(ellipse 92% 80% at 50% 45%, black 45%, rgba(0,0,0,0.5) 75%, transparent 100%)",
-        }}
       >
         <title>Dynamic Background Flow Paths</title>
         {paths.map((path) => (
-          <motion.path
+          <path
             key={path.id}
             d={path.d}
             stroke="currentColor"
             strokeWidth={path.width}
-            strokeOpacity={0.035 + (path.id / count) * 0.075}
-            initial={{ pathLength: 0.35, opacity: 0.4 }}
-            animate={{
-              pathLength: [0.3, 0.95, 0.3],
-              opacity: [0.25, 0.65, 0.25],
-              pathOffset: [0, 1, 0],
-            }}
-            transition={{
-              duration: path.duration,
-              repeat: Number.POSITIVE_INFINITY,
-              ease: "linear",
-            }}
+            strokeOpacity={path.opacity}
           />
         ))}
       </svg>
@@ -66,14 +49,14 @@ export function FloatingPaths({ position, count = 36 }: FloatingPathsProps) {
 
 export default function FloatingPathsBackground({
   className = "",
-  pathsCount = 36,
+  pathsCount = 14,
 }: {
   className?: string;
   pathsCount?: number;
 }) {
   return (
     <div
-      className={`fixed inset-0 pointer-events-none select-none z-0 overflow-hidden ${className}`}
+      className={`absolute inset-0 pointer-events-none select-none z-0 overflow-hidden ${className}`}
       aria-hidden="true"
     >
       {/* Top subtle fading gradient to ensure top navigation stays crystal clear */}
