@@ -378,7 +378,21 @@ export default function DashboardOverview() {
     const loadOverview = () => {
       fetch("/api/v1/analytics/overview")
         .then((r) => r.ok && r.json())
-        .then((data) => data && setMetrics(data))
+        .then((data) => {
+          if (!data) return;
+          setMetrics((prev) => ({
+            ...data,
+            leads_total: data.leads_total > 0 ? data.leads_total : prev.leads_total,
+            conversations_total:
+              data.conversations_total > 0 ? data.conversations_total : prev.conversations_total,
+            hot_leads: data.hot_leads > 0 ? data.hot_leads : prev.hot_leads,
+            won_deals: data.won_deals > 0 ? data.won_deals : prev.won_deals,
+            pipeline_value_inr:
+              data.pipeline_value_inr > 0 ? data.pipeline_value_inr : prev.pipeline_value_inr,
+            conversion_rate_pct:
+              data.conversion_rate_pct > 0 ? data.conversion_rate_pct : prev.conversion_rate_pct,
+          }));
+        })
         .catch(() => {});
     };
 
@@ -387,7 +401,13 @@ export default function DashboardOverview() {
         .then((r) => r.ok && r.json())
         .then((data) => {
           if (data && Array.isArray(data.funnel)) {
-            setFunnel(data.funnel);
+            const totalCount = data.funnel.reduce(
+              (acc: number, item: FunnelStep) => acc + (item.count || 0),
+              0
+            );
+            if (totalCount > 0) {
+              setFunnel(data.funnel);
+            }
           }
         })
         .catch(() => {});
@@ -416,7 +436,7 @@ export default function DashboardOverview() {
       loadFunnel();
       loadRecentConvs();
       checkWaStatus();
-    }, 4000);
+    }, 12000);
 
     return () => clearInterval(interval);
   }, []);
@@ -455,6 +475,15 @@ export default function DashboardOverview() {
         }}
         onConnectWhatsApp={() => {
           const el = document.getElementById("whatsapp-gateway");
+          if (el) el.scrollIntoView({ behavior: "smooth" });
+        }}
+        onPlayBriefing={() => {
+          setBriefingTimeframe("today");
+          setShowBriefing(true);
+        }}
+        onTestDiscountPolicy={(prompt) => {
+          setSimPrompt(prompt);
+          const el = document.getElementById("instant-sandbox");
           if (el) el.scrollIntoView({ behavior: "smooth" });
         }}
         waConnected={waStatus.connected}
