@@ -702,8 +702,12 @@ def save_workspace_config(updates: Dict[str, Any]) -> Dict[str, Any]:
     return current
 
 
+def _get_bridge_url() -> str:
+    return getattr(settings, "WHATSAPP_BRIDGE_URL", "http://localhost:3001").rstrip("/")
+
+
 async def _sync_bridge_config(owner_phone: Optional[str] = None, bot_phone: Optional[str] = None) -> Dict[str, Any]:
-    """Pushes updated owner/bot phone configuration to the local Node.js WhatsApp bridge."""
+    """Pushes updated owner/bot phone configuration to the WhatsApp bridge."""
     payload: Dict[str, Any] = {}
     if owner_phone is not None:
         payload["ownerPhone"] = owner_phone
@@ -711,9 +715,10 @@ async def _sync_bridge_config(owner_phone: Optional[str] = None, bot_phone: Opti
         payload["botPhone"] = bot_phone
     if not payload:
         return {}
+    bridge_url = _get_bridge_url()
     try:
         async with httpx.AsyncClient(timeout=4.0) as client:
-            resp = await client.post("http://localhost:3001/config", json=payload)
+            resp = await client.post(f"{bridge_url}/config", json=payload)
             if resp.status_code == 200:
                 return resp.json()
     except Exception:
@@ -723,9 +728,10 @@ async def _sync_bridge_config(owner_phone: Optional[str] = None, bot_phone: Opti
 
 async def _fetch_bridge_status() -> Dict[str, Any]:
     """Fetches real-time connection and phone status from the WhatsApp bridge."""
+    bridge_url = _get_bridge_url()
     try:
         async with httpx.AsyncClient(timeout=3.0) as client:
-            resp = await client.get("http://localhost:3001/status")
+            resp = await client.get(f"{bridge_url}/status")
             if resp.status_code == 200:
                 return resp.json()
     except Exception:
@@ -1384,9 +1390,10 @@ async def reset_whatsapp_session():
     Logs out and resets the active WhatsApp Baileys session so a new user can scan a fresh QR
     or enter a new phone number for pairing.
     """
+    bridge_url = _get_bridge_url()
     try:
         async with httpx.AsyncClient(timeout=8.0) as client:
-            resp = await client.post("http://localhost:3001/reset-session")
+            resp = await client.post(f"{bridge_url}/reset-session")
             data = resp.json() if resp.status_code == 200 else {"success": False}
     except Exception as e:
         data = {"success": False, "error": str(e)}
@@ -1398,9 +1405,10 @@ async def request_whatsapp_pairing_code(req: WhatsAppPairRequest):
     """
     Requests an 8-digit WhatsApp companion pairing code for the user's phone number.
     """
+    bridge_url = _get_bridge_url()
     try:
         async with httpx.AsyncClient(timeout=12.0) as client:
-            resp = await client.post("http://localhost:3001/pair", json={"phone": req.phone})
+            resp = await client.post(f"{bridge_url}/pair", json={"phone": req.phone})
             return resp.json()
     except Exception as e:
         return {"success": False, "error": str(e)}
@@ -1510,11 +1518,12 @@ async def verify_end_to_end_system(req: VerifyEndToEndRequest):
     if owner_num:
         ping_note = "Configured for order confirmations, hot lead alerts & human handoffs"
         if req.send_test_ping and unofficial_connected:
+            bridge_url = _get_bridge_url()
             try:
                 async with httpx.AsyncClient(timeout=6.0) as client:
                     clean_digits = "".join(ch for ch in owner_num if ch.isdigit())
                     await client.post(
-                        "http://localhost:3001/send",
+                        f"{bridge_url}/send",
                         json={
                             "to": clean_digits,
                             "text": f"✅ *[System Verification]* Your Owner Escalation Channel (+{clean_digits}) is verified and connected to *{ws_cfg.get('business_name', 'AI Operations')}*!",
