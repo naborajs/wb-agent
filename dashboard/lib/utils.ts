@@ -24,10 +24,18 @@ export function getWebSocketUrl(path: string = "/api/v1/ws"): string {
     return `${base}${cleanPath}`;
   }
 
-  // 3. Browser window context: fallback to backend port 8000 if frontend is running on 3000
+  // 3. Browser window context:
+  // - If running directly on Next.js port 3000 (localhost or VPS IP:3000), route WebSocket to backend port 8000
+  // - If running behind a cloud domain / reverse proxy (port 80/443 or custom proxy port), use the same host
   const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
   const host = window.location.hostname || "localhost";
-  const port = window.location.port === "3000" ? "8000" : (window.location.port ? window.location.port : "8000");
   const cleanPath = path.startsWith("/") ? path : `/${path}`;
-  return `${proto}//${host}:${port}${cleanPath}`;
+
+  if (window.location.port === "3000") {
+    return `${proto}//${host}:8000${cleanPath}`;
+  }
+  if ((host === "localhost" || host === "127.0.0.1") && !window.location.port) {
+    return `${proto}//${host}:8000${cleanPath}`;
+  }
+  return `${proto}//${window.location.host}${cleanPath}`;
 }
