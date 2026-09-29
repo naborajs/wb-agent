@@ -88,23 +88,28 @@ python run.py --no-open
 
 ---
 
-### Step 4: First-Run Onboarding Popup, Any-Phone WhatsApp Pairing & Verification
+### Step 4: First-Run Onboarding, Dual WhatsApp Gateway (Unofficial + Official) & AI Business Architect
 
-When cloned from GitHub, **zero personal phone numbers or sessions are hardcoded**. On your first visit to **`http://localhost:3000`** (or anytime by clicking **`⚙️ Setup, WhatsApp & Features`** in the top bar), the **Workspace Setup & Verification Modal** opens with 3 steps:
+When cloned from GitHub, **zero personal phone numbers or sessions are hardcoded**. On your first visit to **`http://localhost:3000`** (or anytime by clicking **`⚙️ Setup, WhatsApp & Features`** in the top bar or visiting **`/settings`**), you can configure:
 
-| Step | What You Can Configure | Key Capabilities |
+| Step / Capability | What You Can Configure | Key Capabilities |
 | :--- | :--- | :--- |
-| **1. Connect WhatsApp & Owner Number** | **Any Bot Phone + Owner Escalation Phone** | • Scan the live **QR Code** or enter any phone number to get an **8-Digit Pairing Code**.<br>• Click **"Switch / Connect a Different WhatsApp Number"** anytime to reset the session (`POST /api/v1/settings/whatsapp-reset`).<br>• Set your **Owner Escalation WhatsApp Number** where order confirmations, hot lead summaries, and human handoffs are sent. |
-| **2. Business Vertical, Mode & Feature Toggles** | **Any Industry + 13 Feature Toggles** | • **1-Click Industry Presets** (seeds matching catalog items & pricing units): *E-Commerce & D2C Retail*, *B2B Wholesale & Manufacturing*, *SaaS, Cloud & Tech Agency*, *Healthcare & Clinics*, *Real Estate*, *Tea Estates & Agro*, or *Custom Business*.<br>• **Toggle Individual Features ON/OFF**: Enable or disable any of the 13 platform modules live. |
-| **3. End-to-End Health Verification** | **5-Point Live System Check** | • Verifies **FastAPI & SQLite Catalog**, **Friday (Google Gemini)**, **EDITH (NVIDIA NIM)**, **WhatsApp Baileys Bridge (`:3001`)**, and **Owner Escalation Channel** (with optional live WhatsApp test ping). |
+| **1. Dual WhatsApp Gateway (Unofficial + Official)** | **Baileys Bridge (`:3001`) OR Official Meta Cloud API (`v20.0`)** | • **⚡ Unofficial Way (`:3001`)**: Scan the live **QR Code** or enter any phone number to get an **8-Digit Pairing Code**, and click **"Switch / Connect a Different WhatsApp Number"** anytime (`POST /api/v1/settings/whatsapp-reset`).<br>• **🛡️ Official Way (`Meta Graph v20.0`)**: Enter your `WHATSAPP_PHONE_NUMBER_ID`, `WABA_ID`, `WHATSAPP_ACCESS_TOKEN`, and `WHATSAPP_VERIFY_TOKEN` with HMAC-verified webhook `/api/v1/webhooks/whatsapp`.<br>• **Owner Escalation Phone**: Set the Owner WhatsApp number where order confirmations, hot lead summaries, and human handoffs are sent. |
+| **2. ✨ AI Business Architect & Custom Presets** | **Describe Any Business $\rightarrow$ Auto-Fill All 16 Fields + Seed Catalog** | • **✨ Tell AI What Your Business Does (`POST /api/v1/settings/ai-autofill-business`)**: Type a plain-English description of *any* business (e.g., *"We run a solar rooftop & lithium battery company in Pune"* or *"Luxury artisanal bakery & corporate gifting"*) and the AI automatically fills all 16 company, negotiation floor %, escalation threshold, GST %, payment terms, and persona fields **AND seeds 4 tailored products into the SQLite catalog**!<br>• **Built-in & Custom Domain Presets (`POST /api/v1/settings/custom-preset`)**: Switch between 6 built-in industry presets or save your own custom preset.<br>• **13 Modular Feature Toggles**: Turn any capability ON or OFF in real time. |
+| **3. End-to-End Health Verification** | **5-Point Live System Check** | • Verifies **FastAPI & SQLite Catalog**, **Friday (Google Gemini)**, **EDITH (NVIDIA NIM)**, **WhatsApp Gateway (Unofficial or Official)**, and **Owner Escalation Channel** (with optional live WhatsApp test ping). |
 
 ---
 
 ### Step 5: Simplified Mode (`✨ Simplified`) vs. Advanced Mode (`🛠️ Advanced`)
 
-Use the prominent **`✨ Simplified` | `🛠️ Advanced`** toggle button in the top header bar at any time:
-- **✨ Simplified Mode (Everyday Business Experience)**: Clean, distraction-free workspace where business owners simply talk to Friday, check revenue analytics, manage leads & orders, and reply in the live WhatsApp inbox — hiding developer internals.
-- **🛠️ Advanced Mode (Full Developer & Enterprise Suite)**: Unlocks all 15 modules including the Dual-Brain Synaptic Console (`/brain`), AI Negotiation Playground (`/playground`), Knowledge RAG (`/knowledge`), Modular Prompts (`/prompts`), token economics, and raw JSON telemetry.
+Use the prominent **`✨ Simplified` | `🛠️ Advanced`** toggle button in the top header bar at any time (both modes are 100% theme-adaptive across **Dark Mode** and **White Mode**):
+- **✨ Simplified Mode (Focused 4-Pillar Business Workspace)**:
+  1. **Overview KPIs**: Live Customer Chats, Pipeline & Revenue, Active Catalog SKUs, and Hot Leads / Owner Alerts.
+  2. **Add Products, Pricing & Business Info (`POST /api/v1/settings/quick-add-info`)**: Add a new product SKU or business rule in 1 click, or trigger the **AI Business Architect** directly from the Overview.
+  3. **See Messages (Live WhatsApp Inbox)**: View and jump directly into active customer conversations.
+  4. **See Notifications (Agent & Owner Alerts)**: Real-time feed of order confirmations, hot leads, and escalations.
+- **🛠️ Advanced Mode (Official Enterprise Architecture & Telemetry Suite)**:
+  - Features the **5-Node Interactive System Architecture & Connection Blueprint** (visually mapping **WhatsApp Ingress/Egress $\rightarrow$ FastAPI Core & Guardrails $\rightarrow$ FRIDAY Gemini 3.1 Live $\rightarrow$ EDITH NVIDIA NIM $\rightarrow$ SQLite RAG & Owner Escalation**) plus organized tabs for **1. Dual-Brain Bus & Live Workflow**, **2. WhatsApp Gateway (Unofficial & Official)**, **3. Sales Funnel, Radar & Safe AI Simulator**, and **4. Token Economics & 24h Velocity**.
 
 ---
 
