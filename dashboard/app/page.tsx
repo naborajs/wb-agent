@@ -1380,7 +1380,7 @@ export default function DashboardOverview() {
                       <img src={qrDataUrl} alt="WhatsApp QR Code" className="w-48 h-48 object-contain" />
                     ) : (
                       <iframe
-                        src="http://localhost:3001/qr?embed=1"
+                        src="/api/v1/whatsapp/qr-embed"
                         className="w-48 h-48 border-0 rounded-lg"
                         title="WhatsApp Live QR"
                       />
