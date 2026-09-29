@@ -6,6 +6,7 @@ Provides real-time bridge status, QR pairing, live test pings, and inbound simul
 from typing import Any, Dict, Optional
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -51,7 +52,7 @@ async def get_whatsapp_status() -> Dict[str, Any]:
                 data = resp.json()
                 return {
                     "connected": data.get("connected", False),
-                    "bot_phone": data.get("botPhone", "918918753100"),
+                    "bot_phone": data.get("botPhone", ""),
                     "has_qr": data.get("hasQR", False),
                     "pairing_code": data.get("pairingCode"),
                     "provider": settings.WHATSAPP_PROVIDER,
@@ -63,7 +64,7 @@ async def get_whatsapp_status() -> Dict[str, Any]:
 
     return {
         "connected": False,
-        "bot_phone": "918918753100",
+        "bot_phone": "",
         "has_qr": False,
         "pairing_code": None,
         "provider": settings.WHATSAPP_PROVIDER,
@@ -87,6 +88,44 @@ async def get_whatsapp_qr() -> Dict[str, Any]:
         logger.warning(f"Failed to query QR data from bridge: {e}")
 
     return {"connected": False, "qrDataUrl": None, "error": "Bridge offline"}
+
+
+@router.get("/qr-embed", response_class=HTMLResponse)
+async def get_whatsapp_qr_embed() -> HTMLResponse:
+    """
+    Proxies the interactive HTML QR pairing page from the internal WhatsApp bridge.
+    Allows remote and cloud-hosted dashboards to render the QR pairing iframe without exposing port 3001.
+    """
+    bridge_url = getattr(settings, "WHATSAPP_BRIDGE_URL", "http://localhost:3001").rstrip("/")
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            resp = await client.get(f"{bridge_url}/qr?embed=1")
+            if resp.status_code == 200:
+                return HTMLResponse(content=resp.text, status_code=200)
+    except Exception as e:
+        logger.warning(f"Failed to proxy QR embed from bridge at {bridge_url}: {e}")
+
+    fallback_html = """<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="refresh" content="4" />
+  <style>
+    body { margin:0; font-family: system-ui, -apple-system, sans-serif; background:#090d16; color:#e2e8f0; display:flex; align-items:center; justify-content:center; height:100vh; text-align:center; padding:20px; box-sizing:border-box; }
+    .card { border:1px solid rgba(255,255,255,0.1); border-radius:16px; padding:24px; background:rgba(15,23,42,0.8); max-width:300px; }
+    .dot { width:10px; height:10px; border-radius:50%; background:#f59e0b; display:inline-block; margin-right:6px; animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+    p { font-size:12px; color:#94a3b8; line-height:1.5; margin:8px 0 0; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div style="font-size:13px;font-weight:700;"><span class="dot"></span>WhatsApp Bridge Starting...</div>
+    <p>Waiting for the Baileys bridge service to initialize. This frame refreshes automatically every 4 seconds.</p>
+  </div>
+</body>
+</html>"""
+    return HTMLResponse(content=fallback_html, status_code=200)
 
 
 @router.post("/pair")
@@ -114,17 +153,22 @@ async def request_pairing_code(req: RequestPairingCodeRequest) -> Dict[str, Any]
 async def send_whatsapp_ping(req: SendPingRequest) -> Dict[str, Any]:
     """
     Sends an immediate test ping message through WhatsApp to verify live outbound delivery.
-    Defaults to sending to the configured business owner (+91 89006 53250).
+    Defaults to sending to the configured business owner number.
     """
-    target_phone = req.to_phone or settings.OWNER_WHATSAPP_NUMBER or "+918900653250"
+    target_phone = (req.to_phone or settings.OWNER_WHATSAPP_NUMBER or "").strip()
+    if not target_phone:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No recipient phone number provided and OWNER_WHATSAPP_NUMBER is not configured yet.",
+        )
     normalized_target = normalize_phone_number(target_phone)
     ping_text = req.message or (
         "🤖 *WB-Agent (EDITH) Diagnostic Ping*\n\n"
         "✅ WhatsApp integration is connected and healthy!\n"
         f"• Target line: {normalized_target}\n"
-        "• Bot line: +91 89187 53100\n"
-        "• AI Engine: NVIDIA Nemotron\n"
-        "• Status: Ready to assist wholesale buyers."
+        f"• Company: {settings.COMPANY_NAME}\n"
+        f"• AI Engine: {settings.LLM_MODEL}\n"
+        "• Status: Ready to assist customers."
     )
 
     wa = WhatsAppService.get_provider()
