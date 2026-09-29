@@ -21,11 +21,11 @@ status: complete
 
 | Audience / Role | Guide | What You Will Learn |
 | :--- | :--- | :--- |
-| 🧒 **Beginner / Student (ELI15)** | **[[guides/beginner-quick-start\|Beginner & Student Quick-Start Guide]]** | Plain-English explanation of EDITH + FRIDAY, 1-command startup (`python run.py`), and 5 fun things to try in 5 minutes—even with zero API keys. |
-| 💼 **Business Owner / Operator** | **[[guides/business-owner-guide\|Business Owner & Operator Playbook]]** | No-code setup using the **AI Business Auto-Fill Architect**, **Simplified vs. Advanced Mode**, **13 Feature Toggles**, **Official Meta Cloud vs. QR Pairing**, and daily inbox/order operations. |
-| 🏛️ **Senior Software Architect** | **[[guides/senior-developer-architecture\|Senior Developer & Systems Architecture Reference]]** | Deep dive into `InterBrainBus`, 15-step `AgentOrchestrator` mutex, 5-role `AIRouter`, Ephemeral Gemini Live WebSockets, Unified `KnowledgeItem` RAG, and Rust 3D meshes (`rust-models/`). |
-| 🛠️ **Software Contributor** | **[[guides/developer-onboarding\|Developer Onboarding & Local Environment Guide]]** | Repository layout, CLI flags (`--skip-install`, `--no-open`, `--clean`), multi-terminal debugging, cURL simulation, and 4-tier `pytest` execution. |
-| 📱 **WhatsApp Integrator** | **[[guides/whatsapp-bridge-guide\|WhatsApp Connectivity Guide (Baileys vs. Meta Cloud)]]** | Switching between the zero-cost **Unofficial Baileys Bridge (`:3001`)** (QR / 8-Digit Pairing / Session Reset) and **Official Meta Cloud API (`Graph v20.0`)**, plus `@lid` deduplication. |
+| 🧒 **Beginner / Student (ELI15)** | **[Beginner & Student Quick-Start Guide](guides/beginner-quick-start.md)** | Plain-English explanation of EDITH + FRIDAY, 1-command startup (`python run.py`), and 5 fun things to try in 5 minutes—even with zero API keys. |
+| 💼 **Business Owner / Operator** | **[Business Owner & Operator Playbook](guides/business-owner-guide.md)** | No-code setup using the **AI Business Auto-Fill Architect**, **Simplified vs. Advanced Mode**, **13 Feature Toggles**, **Official Meta Cloud vs. QR Pairing**, and daily inbox/order operations. |
+| 🏛️ **Senior Software Architect** | **[Senior Developer & Systems Architecture Reference](guides/senior-developer-architecture.md)** | Deep dive into `InterBrainBus`, 15-step `AgentOrchestrator` mutex, 5-role `AIRouter`, Ephemeral Gemini Live WebSockets, Unified `KnowledgeItem` RAG, and Rust 3D meshes (`rust-models/`). |
+| 🛠️ **Software Contributor** | **[Developer Onboarding & Local Environment Guide](guides/developer-onboarding.md)** | Repository layout, CLI flags (`--skip-install`, `--no-open`, `--clean`), multi-terminal debugging, cURL simulation, and 4-tier `pytest` execution. |
+| 📱 **WhatsApp Integrator** | **[WhatsApp Connectivity Guide (Baileys vs. Meta Cloud)](guides/whatsapp-bridge-guide.md)** | Switching between the zero-cost **Unofficial Baileys Bridge (`:3001`)** (QR / 8-Digit Pairing / Session Reset) and **Official Meta Cloud API (`Graph v20.0`)**, plus `@lid` deduplication. |
 
 ---
 

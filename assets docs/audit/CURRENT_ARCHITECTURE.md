@@ -154,7 +154,7 @@ sequenceDiagram
 ```
 
 ### Key Guardrails in Orchestrator (`backend/app/agent/orchestrator.py`):
-1. **Self-Message Echo Suppression**: Drops any message where `sender_id == settings.WHATSAPP_BOT_NUMBER` (`918918753100`).
+1. **Self-Message Echo Suppression**: Drops any message where `sender_id == settings.WHATSAPP_BOT_NUMBER` (`<BOT_WHATSAPP_NUMBER>`).
 2. **WhatsApp Group Chat Suppression**: Inspects `channel_id.endswith("@g.us")`. If true, automatically sets `mode = "HUMAN"` and suppresses autonomous reply.
 3. **Turn Idempotency Guard**: Checks if an outbound agent reply already exists with timestamp `>= inbound_msg.created_at`.
 4. **Human Takeover Race Condition Guard**: Re-checks `conv.mode` immediately prior to dispatching outbound payload. If operator flipped toggle to `HUMAN`, the LLM reply is discarded.

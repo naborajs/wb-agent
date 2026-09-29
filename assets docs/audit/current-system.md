@@ -20,7 +20,7 @@ The mission is to transform the codebase into **EDITH**: a production-grade, aut
   - `backend/`: FastAPI application, agent orchestrator, sales engine, pricing, follow-ups, memory, database models.
   - `dashboard/`: Next.js 14 App Router dashboard with Tailwind CSS.
   - `whatsapp-bridge/`: Node.js multi-device Baileys HTTP bridge.
-  - `docs/`: Architectural specifications and runbooks.
+  - `assets docs/`: Architectural specifications and runbooks.
   - `tests/`: Unit, evaluation, adversarial, and persona test suites.
 
 ---
@@ -45,7 +45,7 @@ The mission is to transform the codebase into **EDITH**: a production-grade, aut
 3. **Multi-Turn Context Continuity**:
    - Multi-turn conversation turns (`ctx.recent_messages`) injected into prompt context to prevent repetitive greetings and questions.
 4. **Self-Message & Infinite Loop Suppression**:
-   - Outbound and inbound filtering prevents WhatsApp bridge echo loops when messages originate from or target the bot's own number (`918918753100`).
+   - Outbound and inbound filtering prevents WhatsApp bridge echo loops when messages originate from or target the bot's own number (`<BOT_WHATSAPP_NUMBER>`).
 5. **Dark Mode & Responsive Shell**:
    - Modern Tailwind `darkMode: "class"` toggle integrated in `DashboardShell` with `localStorage` persistence.
 

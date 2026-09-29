@@ -1,9 +1,12 @@
 # EDITH_CURRENT_STATE_HANDOFF.md: Complete Current System Architecture, Operational Audit & Technical Handoff Report
 
+> [!NOTE]
+> **v2.4.0 Update (2026-09-29)**: For the latest engineering specification including the AI Business Auto-Fill Architect, 6+ Industry Presets, Simplified/Advanced UI Modes, 26 Friday Voice Tools, and Procedural Rust 3D Meshes, see [Senior Developer Architecture](../guides/senior-developer-architecture.md).
+
 > **Target Audience**: Senior AI Systems Architect, ChatGPT Enterprise Engineering Team, Production Tech Leads  
-> **System Name**: WB-Agent (EDITH & FRIDAY)  
+> **System Name**: WhatsApp AI Agent by NS (EDITH & FRIDAY)  
 > **Repository Root**: `d:/Projects/Python/wb-agent`  
-> **Date of Audit**: 2026-09-21  
+> **Date of Historical Audit**: 2026-09-21  
 > **Fact Classification Standard**:
 > - `[VERIFIED BY CODE]`: Checked line-by-line in repository source files.
 > - `[VERIFIED BY RUNTIME]`: Validated via active process execution, socket connection, or API response.
@@ -460,8 +463,8 @@ Detailed in `docs/audit/NEXT_DISCUSSION.md`:
 | `GEMINI_API_KEY_FALLBACK` | No | `AIzaSy...` [REDACTED] | Gemini failover key |
 | `WHATSAPP_PROVIDER` | Yes | `baileys` / `meta` | Inbound/outbound gateway selector |
 | `WHATSAPP_BRIDGE_URL` | Yes | `http://localhost:3001` | Node.js bridge endpoint |
-| `WHATSAPP_BOT_NUMBER` | Yes | `918918753100` | Bot's own number for loop suppression |
-| `WHATSAPP_OWNER_NUMBER` | Yes | `919876543210` | Business owner phone for alerts |
+| `WHATSAPP_BOT_NUMBER` | Yes | `<BOT_WHATSAPP_NUMBER>` | Bot's own number for loop suppression |
+| `WHATSAPP_OWNER_NUMBER` | Yes | `<OWNER_WHATSAPP_NUMBER>` | Business owner phone for alerts |
 | `JWT_SECRET_KEY` | Yes | `secret...` [REDACTED] | Auth token encryption |
 | `DEFAULT_ORG_ID` | Yes | `org_default` | Default tenant context |
 

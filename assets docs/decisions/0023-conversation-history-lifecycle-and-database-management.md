@@ -8,7 +8,7 @@ Accepted
 
 ## Context
 As real WhatsApp inquiries, test simulations, and multi-turn sales dialogues accumulate in the SQLite / PostgreSQL database, operational challenges arise:
-1. **History Visibility & Retrieval**: Operators need immediate, transparent access to all conversational threads, including personal owner test numbers (e.g., `+918900653250` with extensive multi-turn history) and commercial buyer leads, without threads being inadvertently hidden by default filters.
+1. **History Visibility & Retrieval**: Operators need immediate, transparent access to all conversational threads, including personal owner test numbers (e.g., `<OWNER_WHATSAPP_NUMBER>` with extensive multi-turn history) and commercial buyer leads, without threads being inadvertently hidden by default filters.
 2. **Storage Management & Data Pruning**: Previously, the platform lacked an endpoint or dashboard mechanism to delete conversations or purge simulation test data. Over time, accumulated test runs consume storage and clutter operator views.
 3. **Dual-Brain Agency & Commercial Safety**: AI assistants (FRIDAY and EDITH) must have meta-cognitive ability to inspect database statistics and execute pruning actions on command, while preserving independent commercial judgment. Specifically, if an operator instructs an AI to delete a qualified hot lead with an active negotiation or pending pro-forma invoice, EDITH must have autonomous refusal authority to warn the operator and require manual dashboard confirmation to prevent accidental loss of revenue.
 

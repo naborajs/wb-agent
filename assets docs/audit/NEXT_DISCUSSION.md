@@ -1,7 +1,10 @@
 # NEXT_DISCUSSION.md: Strategic Handoff & Architectural Decision Register
 
+> [!NOTE]
+> **v2.4.0 Update (2026-09-29)**: Many of the single-tenant decoupling and onboarding items below have been implemented via the **Onboarding & Mode Modal (`OnboardingAndModeModal.tsx`)**, **AI Business Auto-Fill Architect**, and **WhatsApp Gateway Switcher** in `/settings`. See [Senior Developer Architecture](../guides/senior-developer-architecture.md) for current implementation details.
+
 > **Standard**: VERIFIED BY CODE | VERIFIED BY RUNTIME | VERIFIED BY DATABASE  
-> **Date of Audit**: 2026-09-21  
+> **Date of Historical Audit**: 2026-09-21  
 > **Repository Root**: `d:/Projects/Python/wb-agent`  
 > **Target Audience**: Senior AI Systems Architect, ChatGPT Enterprise Engineering Team, Lead Backend Engineers
 

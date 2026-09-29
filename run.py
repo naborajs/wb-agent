@@ -152,7 +152,7 @@ def check_environment():
         ROOT_DIR / "backend" / "app" / "assets",
         ROOT_DIR / "dashboard" / "public",
         ROOT_DIR / "storage",
-        ROOT_DIR / "docs" / "assets",
+        ROOT_DIR / "assets docs" / "screenshots",
     ]
     for d in req_dirs:
         d.mkdir(parents=True, exist_ok=True)

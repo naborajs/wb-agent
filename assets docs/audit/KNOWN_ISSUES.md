@@ -1,7 +1,10 @@
 # KNOWN_ISSUES.md: Empirical Bug, Debt & Architectural Risk Register
 
+> [!NOTE]
+> **v2.4.0 Update (2026-09-29)**: The historical issues recorded in this 2026-09-21 audit (including Organization ID alignment, `/followups` API wiring, dynamic WebSocket host resolution, and multi-industry business profile decoupling in `/settings`) have been resolved. All 60 E2E tests (`python run_e2e_tests.py`) pass. This file is preserved as a historical engineering audit log.
+
 > **Verification Standard**: VERIFIED BY CODE | VERIFIED BY RUNTIME | VERIFIED BY DATABASE | VERIFIED BY TEST  
-> **Date of Audit**: 2026-09-21  
+> **Date of Historical Audit**: 2026-09-21  
 > **Repository**: `d:/Projects/Python/wb-agent`
 
 ---
@@ -86,7 +89,7 @@ Every issue is assigned a priority rating:
 - **Location**: `whatsapp-bridge/index.js`.
 - **Finding**:
   - Global variable `let sock = null` and hardcoded `const AUTH_DIR = "./auth_info_baileys"`.
-  - Hardcoded `const BOT_PHONE = "918918753100"`.
+  - Configured `BOT_PHONE` (`<BOT_WHATSAPP_NUMBER>`).
   - Currently can only host one WhatsApp phone connection simultaneously. Multi-tenant SaaS requires a multi-session manager (`/sessions/:orgId/...`).
 
 ---

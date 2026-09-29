@@ -72,7 +72,7 @@ flowchart TD
   - Receives raw WhatsApp socket events (`messages.upsert`).
   - Filters historical messages buffered before bridge boot.
   - Resolves privacy LIDs (`@lid`) to canonical phone numbers.
-  - Suppresses bot self-replies on `918918753100`.
+  - Suppresses bot self-replies on `<BOT_WHATSAPP_NUMBER>`.
   - Forwards payload formatted as standard WhatsApp Cloud JSON to `http://localhost:8000/api/v1/webhooks/whatsapp`.
 - **Outbound Data**:
   - `POST /send`: Dispatches text messages via `sock.sendMessage(jid, { text })`.

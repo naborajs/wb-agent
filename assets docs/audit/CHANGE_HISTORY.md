@@ -21,7 +21,7 @@ This document chronologically tracks the architectural, behavioral, and user-int
 - Designed database-backed durable queue (`jobs` table) with `SKIP LOCKED` atomic worker claims (`Worker` daemon).
 - Added per-conversation turn-level distributed locking (`ConversationLock`) preventing race conditions from rapid successive user messages.
 - Solved WhatsApp Multi-Device LID privacy identifier with bidirectional LID <-> real phone number mapping.
-- Prevented self-reply echo loops on the bot's own linked phone number (`918918753100`).
+- Prevented self-reply echo loops on the bot's own linked phone number (`<BOT_WHATSAPP_NUMBER>`).
 
 ### Phase 3: The 5 Enterprise Upgrades (Commits 351–450)
 - **R1. Pro-Forma Invoice Generator**: ReportLab PDF compiler for branded commercial pro-forma invoices with GSTIN, FSSAI, itemized order tiers, and 7-day rate lock terms. Dispatched directly via WhatsApp.
