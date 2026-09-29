@@ -1,425 +1,380 @@
-# 🚀 WhatsApp AI Agent by NS (EDITH AI Sales Operating System)
+# 🚀 WhatsApp AI Agent by NS (EDITH + FRIDAY Dual-Brain AI Operating System)
 
-> **Enterprise-grade, human-like autonomous conversational AI sales agent engineered for B2B commercial conversion, intelligent consultative discovery, persistent memory, and configurable business rules.**  
-> Built for any legitimate business, product, service, industry, pricing model, and sales process. Includes optional sample datasets (such as North Bengal Tea Co. or general commercial commerce).
+![EDITH & FRIDAY Brand Banner](assets%20docs/assets/EDITH_BRAND_MASTER.png)
 
-[![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-blue.svg)](https://www.python.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.110%2B-009688.svg)](https://fastapi.tiangolo.com/)
+> **An autonomous, industry-agnostic AI Sales & Operations Operating System engineered by Naboraj Sarkar (NS).**  
+> Powered by two collaborative AI brains—**🟢 EDITH** *(Customer-Facing WhatsApp Sales Closer)* and **🟣 FRIDAY** *(Voice & Mission Control Supervisor)*—with zero-hallucination deterministic pricing, 1-click AI business auto-fill, persistent customer memory, and statutory GST PDF invoicing.
+
+[![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115%2B-009688.svg)](https://fastapi.tiangolo.com/)
 [![Next.js 14](https://img.shields.io/badge/Next.js-14-black.svg)](https://nextjs.org/)
-[![NVIDIA NIM](https://img.shields.io/badge/NVIDIA-Nemotron--3--Ultra-76B900.svg)](https://build.nvidia.com/)
-[![WhatsApp](https://img.shields.io/badge/WhatsApp-Baileys%20%2B%20Meta%20Cloud-25D366.svg)](https://github.com/WhiskeySockets/Baileys)
+[![Google Gemini Live](https://img.shields.io/badge/FRIDAY-Gemini%203.1%20Flash%20Live-8E75B2.svg)](https://aistudio.google.com/)
+[![NVIDIA NIM](https://img.shields.io/badge/EDITH-NVIDIA%20NIM%20%2F%20Llama%203.3-76B900.svg)](https://build.nvidia.com/)
+[![WhatsApp](https://img.shields.io/badge/WhatsApp-Baileys%20QR%20%2B%20Official%20Meta%20API-25D366.svg)](assets%20docs/guides/whatsapp-bridge-guide.md)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
 ---
 
-## ⚡ Quick Start Guide (Run in 2 Minutes with 1 Command)
+## 🧭 Choose Your Guide (Built for Every Skill Level)
 
-> **New to the project?** You don't need complex setup, manual database installs, or Docker. A single command (`python run.py`) checks your environment, installs missing packages, seeds the database, and boots the entire platform simultaneously!
+Whether you are a **15-year-old student** running your first AI project, a **business owner** setting up your store without writing code, or a **senior software architect** inspecting concurrency locks and WebSocket protocols, start with the guide tailored for you:
 
-```mermaid
-flowchart LR
-    A[1. Clone Repo] --> B[2. Run python run.py]
-    B --> C[3. Connect WhatsApp or Test Live]
-    C --> D[4. Mission Control Ready!]
-```
-
-### 📋 Prerequisites
-- **Python**: 3.10 or higher (`python --version`)
-- **Node.js**: 18.0 or higher with npm (`node --version`)
-- **Git**: Installed and configured
+| Who Are You? | Best Starting Point | Deep-Dive Sub-Document |
+| :--- | :--- | :--- |
+| 🧒 **Beginner / Student (Age 12–15+)** | [Part 1: What Is This? (Simple Explanation)](#-part-1-what-is-this-project-explain-like-im-15) & [Part 2: 2-Minute Startup](#-part-2-run-everything-in-2-minutes-1-command) | 👉 **[Beginner & Student Quick-Start Guide](assets%20docs/guides/beginner-quick-start.md)** |
+| 💼 **Business Owner / Store Manager** | [Part 3: Set Up Any Business in 10 Seconds](#-part-3-set-up-any-business-in-10-seconds-no-coding-needed) | 👉 **[Business Owner & Operator Playbook](assets%20docs/guides/business-owner-guide.md)** |
+| 💻 **Senior Software Developer / Architect** | [Part 5: System Architecture & Engineering](#-part-5-system-architecture--engineering-for-senior-developers) | 👉 **[Senior Developer & Systems Architecture Reference](assets%20docs/guides/senior-developer-architecture.md)** |
+| 📱 **WhatsApp & DevOps Integrator** | [Dual WhatsApp Gateway Controls](#-dual-whatsapp-gateway-unofficial-qr-bridge-vs-official-meta-cloud-api) | 👉 **[WhatsApp Connectivity Guide](assets%20docs/guides/whatsapp-bridge-guide.md)** & **[Production Runbook](assets%20docs/runbooks/production-deployment.md)** |
+| 🔌 **API & Frontend Engineer** | [Part 6: Master Documentation Hub](#-part-6-complete-documentation-directory--redirection-hub) | 👉 **[Complete REST API & WebSocket Reference (137 Endpoints)](assets%20docs/api-reference.md)** |
 
 ---
 
-### Step 1: Clone & Enter the Repository from GitHub
+## 🌟 Part 1: What Is This Project? (Explain Like I'm 15)
+
+Imagine you run a business—like a **custom sneaker brand**, a **gaming PC shop**, a **bakery**, a **real estate agency**, or a **wholesale tea company**.
+
+Every day, dozens of customers message your WhatsApp asking:
+- *"How much does this cost?"*
+- *"Can I get a 20% discount if I buy 50 units?"*
+- *"Bhai, Kolkata me delivery kab tak milega?"* (in Hindi or Hinglish!)
+- *"Please send me an official PDF invoice so I can pay."*
+
+If you are busy or asleep, you miss sales. And if you connect a regular AI chatbot, it might **make up fake prices** or accidentally promise a **90% discount**!
+
+### 💡 How WhatsApp AI Agent by NS Solves This: Two AI Brains Working Together
+
+Instead of one basic chatbot, this platform gives you **two specialized AI teammates** that talk to each other:
+
+```mermaid
+flowchart LR
+    Customer["📱 Customer on WhatsApp"] <-->|"Chats in English, Hindi, Hinglish"| EDITH["🟢 EDITH\n(The WhatsApp Sales Closer)"]
+    EDITH <-->|"Synaptic Bus\nChecks Rules & Prices"| FRIDAY["🟣 FRIDAY\n(Your Voice & Screen Assistant)"]
+    FRIDAY <-->|"Talk with Your Mic\nor Click in Browser"| You["🧑‍💻 You (The Boss)"]
+    EDITH -->|"Sends Instant Order Alerts"| OwnerPhone["📲 Your Personal WhatsApp"]
+```
+
+1. **🟢 EDITH (The WhatsApp Sales Closer — Powered by NVIDIA NIM)**:
+   - Replies to customers on WhatsApp 24/7 in **English, Hindi, Bengali, and Hinglish**.
+   - Remembers every customer's name, company, city, and past orders so she **never asks the same question twice**.
+   - Uses a **strict calculator** (`PricingService`) for prices, discounts, and GST taxes—she **never guesses or hallucinates numbers**.
+   - Generates **PDF Pro-Forma Invoices** and sends them directly in WhatsApp.
+   - Texts **your personal WhatsApp** the moment a buyer is ready to pay or needs human help!
+2. **🟣 FRIDAY (Your Voice & Dashboard Assistant — Powered by Google Gemini Live)**:
+   - Lives inside your web dashboard (`http://localhost:3000`).
+   - You can **talk to her with your microphone** (just like Iron Man's assistant!).
+   - Tell her *"Scroll down"*, *"Open the Analytics page and switch to dark mode"*, *"Give me today's morning briefing"*, or *"Explain the full website"*, and she controls the screen for you in real time!
+
+> 📖 **Want the full step-by-step beginner walkthrough?** Read the **[Beginner & Student Guide (Explain Like I'm 15)](assets%20docs/guides/beginner-quick-start.md)**.
+
+---
+
+## ⚡ Part 2: Run Everything in 2 Minutes (1 Command)
+
+You don't need Docker, complex database installations, or 4 separate terminal windows. A single command (`python run.py`) checks your computer, installs any missing packages, sets up a local SQLite database (`wb_agent.db`), and launches the entire platform at once!
+
+```mermaid
+flowchart LR
+    A["1. Clone Repo"] --> B["2. Run python run.py"]
+    B --> C["3. Browser Opens :3000"]
+    C --> D["4. Pair WhatsApp or Test in Sandbox!"]
+```
+
+### 📋 Prerequisites
+Make sure these 3 free tools are installed on your computer (Windows, macOS, or Linux):
+- **Python 3.10+** (`python --version`) — [Download Python](https://www.python.org/downloads/)
+- **Node.js 18+** with npm (`node --version`) — [Download Node.js](https://nodejs.org/)
+- **Git** (`git --version`) — [Download Git](https://git-scm.com/)
+
+---
+
+### Step 1: Clone the Repository
 ```bash
 git clone https://github.com/naborajs/wb-agent.git
 cd wb-agent
 ```
 
----
+### Step 2: (Optional) Add Free AI Keys — Or Run Zero-Config!
+> 💡 **Zero-Config Ready:** You can skip this step and run `python run.py` immediately! Without API keys, the platform runs in built-in offline simulation mode with exact catalog math.
 
-### Step 2: Configure Your `.env` (Or Run Zero-Config)
-If you want to use live LLMs (**Google Gemini 3.1 Flash Live** for Friday & **NVIDIA NIM Nemotron-3 Ultra 550B / Llama 3.3 70B** for EDITH), copy the template and add your keys:
+To enable live AI brains (**Google Gemini** for Friday & **NVIDIA NIM** for EDITH), copy `.env.example` to `.env` (or paste your keys later inside the Dashboard under `/integrations`):
 ```bash
 cp .env.example .env
 ```
-Key environment variables in `.env`:
 ```env
-GEMINI_API_KEY=your_google_gemini_api_key
-NVIDIA_API_KEY=nvapi-your_nvidia_nim_api_key
-WHATSAPP_BRIDGE_URL=http://localhost:3001
-NEXT_PUBLIC_API_URL=http://localhost:8000
+GEMINI_API_KEY=your_google_gemini_api_key          # Free at https://aistudio.google.com/
+NVIDIA_API_KEY=nvapi-your_nvidia_nim_api_key       # Free at https://build.nvidia.com/
 ```
-*(💡 **Zero-Config Ready:** Even without a `.env` file, `python run.py` automatically runs with deterministic catalog pricing and built-in fallback intelligence so you can present or test immediately).*
 
----
-
-### Step 3: Run the Master Orchestrator 🚀
-Execute this single command in your terminal:
+### Step 3: Launch with the Master Orchestrator 🚀
 ```bash
 python run.py
 ```
 
-#### What `run.py` does automatically:
-1. **Preflight Diagnostics & Port Cleanup**: Verifies Python and Node.js runtimes and frees ports `3000`, `3001`, and `8000` if any stale process is lingering.
-2. **Auto-Install Missing Dependencies**: Installs Python backend packages (`backend/requirements.txt`), WhatsApp Baileys bridge modules (`whatsapp-bridge`), and Next.js dependencies (`dashboard`).
-3. **Database & Catalog Initialization**: Sets up SQLite (`wb_agent.db`) in WAL mode, seeds verified wholesale catalog products (`Darjeeling First Flush ₹1,850/kg`, `Assam Gold CTC ₹320/kg`, `Siliguri Masala Chai ₹380/kg`), volume discount rules, and deduplicates any multi-device WhatsApp `@lid` threads into canonical phone numbers.
-4. **Boots All 4 Services Simultaneously**:
-   - 💻 **Next.js Operator Dashboard**: `http://localhost:3000` (auto-opens in your browser)
-   - ⚡ **FastAPI Backend & API Docs**: `http://localhost:8000/api/v1/docs`
+#### What `python run.py` does automatically:
+1. **Pre-Flight Check & Port Cleanup**: Verifies Python & Node.js and frees ports `3000`, `3001`, and `8000` if any old process is stuck.
+2. **Auto-Install Dependencies**: Installs Python packages (`backend/requirements.txt`), WhatsApp Bridge packages (`whatsapp-bridge`), and Next.js packages (`dashboard`).
+3. **Zero-Config Database Initialization**: Initializes SQLite in WAL mode (`wb_agent.db`), seeds starter catalog items and volume discount tiers, and deduplicates multi-device WhatsApp `@lid` threads.
+4. **Starts All 4 Services Simultaneously**:
+   - 🖥️ **Next.js 14 Mission Control Dashboard**: `http://localhost:3000` *(auto-opens in your browser)*
+   - ⚡ **FastAPI Backend & Swagger Docs**: `http://localhost:8000/api/v1/docs`
    - 📱 **WhatsApp Baileys Bridge**: `http://localhost:3001`
-   - 🧠 **Dual-Brain Deliberation Bus**: FRIDAY (Gemini 3.1 Flash Live) & EDITH (NVIDIA NIM)
-5. **Unified Multiplexed Logs**: Color-coded logs stream in your terminal. Press `Ctrl+C` anytime for a clean, graceful shutdown.
+   - ⚙️ **Durable Background Worker**: Runs scheduled follow-ups, campaign drips, and background AI audits
+5. **Clean Shutdown**: Press **`Ctrl+C`** once in the terminal anytime to stop all 4 services cleanly.
 
----
-
-### 🌐 Deploying Directly from GitHub (VPS / Cloud / Teacher Presentation)
-To deploy or run the latest version on any new machine or cloud server:
+### 🌐 Running on a Cloud VPS / Linux Server / Presentation Machine
 ```bash
-# 1. Pull latest production commits from GitHub
 git pull origin main
-
-# 2. Launch with automatic dependency & database migration check
-python run.py
-
-# Or on a headless Linux VPS / server (without opening a browser window):
-python run.py --no-open
+python run.py --no-open      # Starts all services without launching a local browser window
 ```
 
 ---
 
-### Step 4: First-Run Onboarding, Dual WhatsApp Gateway (Unofficial + Official) & AI Business Architect
+## 🪄 Part 3: Set Up Any Business in 10 Seconds (No Coding Needed)
 
-When cloned from GitHub, **zero personal phone numbers or sessions are hardcoded**. On your first visit to **`http://localhost:3000`** (or anytime by clicking **`⚙️ Setup, WhatsApp & Features`** in the top bar or visiting **`/settings`**), you can configure:
+When you open **`http://localhost:3000`**, zero personal phone numbers are hardcoded. Click **`⚙️ Setup, WhatsApp & Features`** in the top navigation bar (or visit **`/settings`**) to configure your workspace:
 
-| Step / Capability | What You Can Configure | Key Capabilities |
-| :--- | :--- | :--- |
-| **1. Dual WhatsApp Gateway (Unofficial + Official)** | **Baileys Bridge (`:3001`) OR Official Meta Cloud API (`v20.0`)** | • **⚡ Unofficial Way (`:3001`)**: Scan the live **QR Code** or enter any phone number to get an **8-Digit Pairing Code**, and click **"Switch / Connect a Different WhatsApp Number"** anytime (`POST /api/v1/settings/whatsapp-reset`).<br>• **🛡️ Official Way (`Meta Graph v20.0`)**: Enter your `WHATSAPP_PHONE_NUMBER_ID`, `WABA_ID`, `WHATSAPP_ACCESS_TOKEN`, and `WHATSAPP_VERIFY_TOKEN` with HMAC-verified webhook `/api/v1/webhooks/whatsapp`.<br>• **Owner Escalation Phone**: Set the Owner WhatsApp number where order confirmations, hot lead summaries, and human handoffs are sent. |
-| **2. ✨ AI Business Architect & Custom Presets** | **Describe Any Business $\rightarrow$ Auto-Fill All 16 Fields + Seed Catalog** | • **✨ Tell AI What Your Business Does (`POST /api/v1/settings/ai-autofill-business`)**: Type a plain-English description of *any* business (e.g., *"We run a solar rooftop & lithium battery company in Pune"* or *"Luxury artisanal bakery & corporate gifting"*) and the AI automatically fills all 16 company, negotiation floor %, escalation threshold, GST %, payment terms, and persona fields **AND seeds 4 tailored products into the SQLite catalog**!<br>• **Built-in & Custom Domain Presets (`POST /api/v1/settings/custom-preset`)**: Switch between 6 built-in industry presets or save your own custom preset.<br>• **13 Modular Feature Toggles**: Turn any capability ON or OFF in real time. |
-| **3. End-to-End Health Verification** | **5-Point Live System Check** | • Verifies **FastAPI & SQLite Catalog**, **Friday (Google Gemini)**, **EDITH (NVIDIA NIM)**, **WhatsApp Gateway (Unofficial or Official)**, and **Owner Escalation Channel** (with optional live WhatsApp test ping). |
+### 1. ✨ AI Business Auto-Fill Architect (Describe Any Business in Plain English)
+Don't want to fill out settings manually?
+- In **`/settings`** (or **Step 2** of the Setup Modal), type a 1-sentence description of **any business**:
+  > *"We run a solar rooftop and lithium battery inverter company called SunVolt Energy in Pune"*  
+  > *"Artisanal bakery & corporate gift hamper brand called Maison Crumb"*
+- Click **Auto-Fill Entire Business & Seed Catalog with AI** (`POST /api/v1/settings/ai-autofill-business`).
+- The AI automatically populates all **16 commercial settings** (Brand Name, Industry, Tagline, Agent Role, Brand Tone, Target Audience, Currency, Measurement Unit, Max Discount %, Escalation Qty, GST/Tax %, Payment Terms, Return Policy, Supported Languages) **and seeds 4 tailored products with realistic prices** into your SQLite catalog!
 
----
+### 2. 🏭 1-Click Industry Presets + Custom Preset Creator
+Switch the entire platform between **6 built-in commercial verticals** with one click (`POST /api/v1/settings/industry-preset`), or save your own custom preset (`POST /api/v1/settings/custom-preset`):
+- 🛍️ **E-Commerce & D2C Retail** (*NovaCart D2C Store* — units)
+- 🏭 **B2B Wholesale & Manufacturing** (*Apex Industrial Supply Co.* — units)
+- 💻 **SaaS, Cloud & Tech Agency** (*CloudScale AI Solutions* — seats / packages)
+- 🏥 **Healthcare, Diagnostics & Clinics** (*MedCare Diagnostics & Wellness* — packages / sessions)
+- 🏢 **Real Estate & Property Advisory** (*Skyline Premier Realty* — sq.ft)
+- 🍵 **Tea Estates & Agro Commodities** (*Himalayan Tea & Agro Exports* — kg)
+- ➕ **Save Current as New Preset**: Save any custom business configuration as a permanent 1-click preset card!
 
-### Step 5: Simplified Mode (`✨ Simplified`) vs. Advanced Mode (`🛠️ Advanced`)
+### 3. 📱 Dual WhatsApp Gateway: Unofficial QR Bridge vs. Official Meta Cloud API
+Switch between two WhatsApp connection modes anytime in **`/settings`** or **Step 1 of the Setup Modal**:
+- **📲 Unofficial Web Bridge (`Baileys :3001`)**: Scan the live **QR Code** from WhatsApp (*Linked Devices*) or enter any phone number to get an **8-Digit Pairing Code**. Click **"Switch / Connect a Different WhatsApp Number"** anytime to reset the session (`POST /api/v1/settings/whatsapp-reset`).
+- **✅ Official Meta Cloud API (`Graph v20.0`)**: Enter your **Meta Phone Number ID**, **WABA ID**, **Permanent Access Token**, and **Webhook Verify Token** for enterprise green-tick WABA deployments.
+- **🔔 Owner Escalation Phone**: Enter your personal WhatsApp number so EDITH texts you instant order confirmations, hot-lead summaries, and human handoff alerts.
 
-Use the prominent **`✨ Simplified` | `🛠️ Advanced`** toggle button in the top header bar at any time (both modes are 100% theme-adaptive across **Dark Mode** and **White Mode**):
-- **✨ Simplified Mode (Focused 4-Pillar Business Workspace)**:
-  1. **Overview KPIs**: Live Customer Chats, Pipeline & Revenue, Active Catalog SKUs, and Hot Leads / Owner Alerts.
-  2. **Add Products, Pricing & Business Info (`POST /api/v1/settings/quick-add-info`)**: Add a new product SKU or business rule in 1 click, or trigger the **AI Business Architect** directly from the Overview.
-  3. **See Messages (Live WhatsApp Inbox)**: View and jump directly into active customer conversations.
-  4. **See Notifications (Agent & Owner Alerts)**: Real-time feed of order confirmations, hot leads, and escalations.
-- **🛠️ Advanced Mode (Official Enterprise Architecture & Telemetry Suite)**:
-  - Features the **5-Node Interactive System Architecture & Connection Blueprint** (visually mapping **WhatsApp Ingress/Egress $\rightarrow$ FastAPI Core & Guardrails $\rightarrow$ FRIDAY Gemini 3.1 Live $\rightarrow$ EDITH NVIDIA NIM $\rightarrow$ SQLite RAG & Owner Escalation**) plus organized tabs for **1. Dual-Brain Bus & Live Workflow**, **2. WhatsApp Gateway (Unofficial & Official)**, **3. Sales Funnel, Radar & Safe AI Simulator**, and **4. Token Economics & 24h Velocity**.
+### 4. ✨ Simplified Mode vs. 🛠️ Advanced Mode (+ 13 Feature Toggles)
+Use the **`✨ Simplified` | `🛠️ Advanced`** toggle in the top bar at any time:
+- **✨ Simplified Mode**: Clean, distraction-free workspace for everyday business owners—talk to Friday, check revenue, manage leads & orders, and reply in the WhatsApp inbox.
+- **🛠️ Advanced Mode**: Unlocks all **17 platform routes**, including the **Dual-Brain Synaptic Console (`/brain`)**, **15-Model AI Playground (`/playground`)**, **Unified Knowledge Hub (`/knowledge`)**, and **Modular System Prompts (`/prompts`)**.
+- **13 Granular Feature Toggles**: Turn individual sidebar modules ON or OFF in real time.
 
----
+### 5. 🎙️ Voice & Multi-Task Agency with FRIDAY (`Gemini 3.1 Flash Live`)
+Click the floating **FRIDAY Copilot** at the bottom-right of any page:
+- **Live Talk Timer (`MM:SS`)**: Real-time session duration counter in both expanded and minimized views.
+- **Universal Page & Section Scrolling**: Say *"Scroll down"*, *"Scroll to bottom"*, *"Scroll to top"*, or *"Scroll to the radar chart"*.
+- **Multi-Step Compound Commands**: Say *"Open the analytics page, switch to dark mode, and scroll down"*—Friday executes every step sequentially.
+- **Full Website Walkthrough**: Ask *"Explain the full website"* for a complete spoken tour of the platform.
 
-### Step 6: Voice & Multi-Task Capabilities with FRIDAY (`Gemini 3.1 Flash Live`)
-Click the **Floating Friday Copilot** at the bottom-right corner of any page to talk or type:
-- **Live Talk Timer (`MM:SS`)**: Real-time session duration counter visible in both the expanded copilot card and minimized floating pill.
-- **Full-Page & Section Scrolling**: Say *"Scroll down"*, *"Scroll to bottom"*, *"Scroll to top"*, or *"Scroll to the radar chart"* and Friday smoothly scrolls the active viewport.
-- **Multi-Step Compound Commands**: Give Friday multiple instructions at once (e.g., *"Open the analytics page, switch to dark mode, and scroll down"*) and Friday executes every step sequentially.
-- **Comprehensive Website Walkthrough**: Ask *"Explain the full website"* or *"Explain what this platform is"* for a complete, structured executive tour of all modules and the Dual-Brain architecture.
-- **AI Model Playground (`/playground`)**: Test all 15 Google Gemini & NVIDIA NIM models interactively with custom system personas and live hyperparameter sliders.
-
----
-
-## 📸 Visual Operations Tour & Brand Design
-
-EDITH features a refined **Dual-Theme Design System** crafted for high-efficiency 24/7 wholesale operations:
-- **Royal Pitch Black (Midnight Celestial)**: Deep onyx canvas, subtle cyan/sky-blue glows, frosted glass cards, and emerald accent telemetry.
-- **Estate White (Daylight Operations)**: Crisp pearl-white surfaces, high-contrast typography, refined borders, and sunlight-legible data badges.
-- **Official Brand Assets**: High-resolution transparent EDITH brand emblem (`logo-transparent.png`), light-mode emblem (`logo-light.png`), and compact favicon icon (`logo-icon.png`).
-- **Brand Tagline**: *"More Conversations • Real Opportunities"*.
-- **Mobile First & Responsive**: Seamless experience on iPhones, Android devices, tablets, and 4K ultra-wide monitors.
-
-### 1. Live 3-Panel Inbox & Conversational Sales Console
-The operational command center for real-time buyer conversations, AI consultative reasoning, customer memory, and atomic human takeover:
-- **Left Thread List**: Real-time conversation stream with search, "+ New Chat" phone initiator, lead score indicators (0–100), unread badges, and status pills.
-- **Center Timeline**: Live WhatsApp dialogue showing customer queries, EDITH AI responses, timestamp audit, and single-click **Report / Correct Response** operator feedback.
-- **Right Profile Drawer**: Live customer intelligence (business type, monthly volume, packaging preference, destination city), sales stage progression, and **Take Over / Resume AI** control. On mobile devices, this is accessible via a high-visibility slide-over drawer.
-
-![EDITH Live Inbox Console](docs/screenshots/live_inbox.png)
+> 📖 **Want the complete operator manual?** Read the **[Business Owner & Operator Playbook](assets%20docs/guides/business-owner-guide.md)**.
 
 ---
 
-### 2. Dual-Brain Command Center (Overview & Inter-Brain Agency)
-The mission control centerpiece powered by the **InterBrainMessage Synaptic Protocol** between **FRIDAY** (Google Gemini 3.1 Flash Live) and **EDITH** (NVIDIA NIM). It features 5 real-time autonomous operational mechanics:
+## 📸 Part 4: Visual Operations Tour & Brand Design
 
-#### ⚡ 1. Live "Inter-Brain Activity Ticker" (Real-Time Synaptic Stream)
-- Pinned directly beneath the Hero Bus on the Overview page.
-- Real-time auto-updating terminal ticker showing autonomous decisions as they occur:
-  - 🟢 `[10:42:15 AM] EDITH held 15% margin boundary: Denied 35% discount for lead +91 98001...`
-  - 🟣 `[10:41:02 AM] FRIDAY voice query: Executed DOM inspection on Knowledge Hub (185ms)`
-  - 🟢 `[10:38:20 AM] EDITH outbound: Qualified bulk Darjeeling buyer, quote sent via WhatsApp`
-- Interactive controls: Filter pills (`All Synapses`, `🟢 EDITH Only`, `🟣 FRIDAY Only`), pause on hover, and clickable event telemetry audit modal.
-- Connected via real-time WebSockets with automatic fallback to `/api/v1/brain/dialogues`.
+The interface features a **Dual-Theme Design System**—**Royal Pitch Black** (*Midnight Celestial*) and **Estate White** (*Daylight Operations*)—with official **NS / EDITH** brand emblems (`logo-transparent.png`, `logo-light.png`, `logo-icon.png`) and full mobile responsiveness.
 
-#### 🎙️ 2. "Play Executive Morning Audio Briefing" (Friday Voice Brief)
-- Prominent glowing action button on the Hero Bus with pulsing radar ring + voice trigger (*"give me today's brief"*, *"yesterday's brief"*, *"play briefing"*).
-- Prompts Friday to synthesize an audio executive debrief:
-  > *"Good morning! WhatsApp gateway is connected. You have 7 hot leads in negotiation with ₹4,85,000 in active pipeline. EDITH successfully defended our commercial margin on 2 wholesale requests today. Dual-brain compute cost is running at $0.0076."*
-- Features an active animated speech waveform visualizer syncing with Web Speech API audio, today/yesterday selector, live metrics cards, and a transcript card.
-- Backed by `GET /api/v1/brain/briefing?timeframe=today|yesterday`.
+### 1. Live 3-Panel Inbox & Conversational Sales Console (`/conversations`)
+Real-time buyer conversations, 1-Click AI Draft Reply suggestions (`✨ AI Suggest Reply`), voice note transcription, customer memory profile, and atomic **Take Over / Resume AI** controls:
 
-#### 🧠 3. Smart Bidirectional Connection & Refusal/Fallback (EDITH ↔ Friday)
-- **Bidirectional Refusal Protocol**: EDITH can delegate actions to Friday (`edith_request_friday`). Friday independently evaluates requests and has the authority to **refuse non-emergency audio interruptions** during operator focus:
-  > *"Voice interruption declined: Operator is in dashboard focus mode. Non-critical commercial notifications must not disrupt operator workflow via audio; routing to silent notification channel instead."*
-- **Autonomous Fallback System**: When Friday denies, EDITH does not get stuck. EDITH triggers its fallback plan:
-  > *"EDITH autonomous fallback initiated: Since Friday declined audio interruption, EDITH has dispatched a direct high-priority system alert to the operator's Notification Center."*
-  EDITH creates a direct `AgentNotification` and broadcasts it to the dashboard.
-- **Mutual Background Thinking**: When idle, both brains run background scans (`POST /api/v1/brain/background-think`) auditing catalog margins, anti-spam cooling periods, and bus latency, recording synchronized health dialogues in SQLite tables.
-
-#### 📈 4. 24-Hour Inbound Traffic Velocity & Autonomous Resolution Heatmap
-- Sleek 24-hour hourly activity histogram and sparkline chart:
-  - **Peak Operational Hours**: **10:00 AM** (Morning Surge), **2:00 PM** (Wholesale Restock), **9:00 PM** (Night Shift).
-  - **Autonomous Resolution**: **94.2% AI Conversions** (388 leads closed without human lag) vs **5.8% Human Handoffs** (24 escalations).
-  - **Flatline Latency Curve**: **1.1s** flatline turn latency across all volume spikes.
-  - Tailored design for both Light and Dark themes with interactive hover telemetry drawers.
-  - Friday Voice Copilot awareness (`get_hourly_traffic_velocity`) for instant spoken answers.
-  - Backed by `GET /api/v1/brain/hourly-velocity`.
-
-#### 🎯 5. Executive Quick-Action Dock
-- Compact quick-action tray pinned below the hero for instant 1-click workflows:
-  - ⚡ **Test 25% Discount Policy**: Pre-loads simulator with a 25% discount inquiry and triggers instant execution to watch EDITH hold commercial margin.
-  - 📡 **Send Live WhatsApp Test Ping**: Sends immediate diagnostic ping to WhatsApp gateway.
-  - 📚 **Add Temporary Knowledge Rule**: Emergency policy modal audited by EDITH before RAG ingestion.
-  - 🛑 **Toggle Autonomous Safe Mode / Pause AI**: Instant toggle between active autonomous closing and safe read-only mode (`POST /api/v1/brain/toggle-safe-mode`).
-
-![Wholesale Operations Center](docs/screenshots/overview.png)
+![EDITH Live Inbox Console](assets%20docs/screenshots/live_inbox.png)
 
 ---
 
-### 3. Interactive Volume Discount Curve & Configurable Business Rules
-Zero-hallucination pricing engine. Spreadsheet-style business rules editor that computes volume tiers, customer segment rules, and custom formulas with live rate curve visualization and an interactive quote simulator:
+### 2. Dual-Brain Command Center & Synaptic Bus (`/` & `/brain`)
+Powered by the **InterBrainMessage Synaptic Protocol** between **FRIDAY** (Google Gemini 3.1 Flash Live) and **EDITH** (NVIDIA NIM):
+- **⚡ Live Inter-Brain Activity Ticker**: Real-time stream of margin defenses, DOM actions, and outbound quotes.
+- **🎙️ Executive Morning Audio Briefing**: Spoken executive debrief of pipeline value, hot leads, and compute cost (`GET /api/v1/brain/briefing`).
+- **🧠 Bidirectional Agency, Refusal Rights & Autonomous Fallback**: EDITH and Friday evaluate cross-brain requests independently, refuse policy or focus violations, and trigger autonomous notification fallbacks.
+- **📈 24-Hour Inbound Traffic Velocity Heatmap**: Hourly resolution histogram (`GET /api/v1/brain/hourly-velocity`).
+- **🎯 Executive Quick-Action Dock**: 1-click discount policy test, WhatsApp test ping, temporary RAG rule injection, and Safe Mode kill-switch.
 
-![Deterministic Pricing Rules](docs/screenshots/pricing_rules.png)
-
----
-
-### 4. Model Architecture, Fallback Hierarchy & Live Telemetry
-Configure primary thinking models (**Nemotron-3 Ultra 550B**), chained fallback sequence (**Nano Omni 30B**, **Super 120B**, **Gemma 4 31B**), API keys with automatic local `.env` sync, and benchmark latency telemetry:
-
-![Model Architecture & Integrations](docs/screenshots/integrations.png)
+![Wholesale Operations Center](assets%20docs/screenshots/overview.png)
 
 ---
 
-### 5. Modular System Prompts & Token Budget Donut
-Isolated, version-controlled system instructions across 5 architectural concerns (`core_safety`, `core_identity`, `business_policy`, `sales_style`, `business_profile`) with 1-click historical rollback and live token distribution:
+### 3. Interactive Volume Discount Curve & Deterministic Pricing (`/pricing` & `/knowledge`)
+Zero-hallucination pricing engine computing volume tiers, MOQs, customer segment rules, and statutory 5%/18% GST (`CGST + SGST` vs `IGST`) with an interactive quote simulator:
 
-![Modular System Prompts](docs/screenshots/modular_prompts.png)
-
----
-
-### 6. Wholesale Commercial Orders
-Full lifecycle management of B2B purchase orders generated via AI consultative discovery or operator desk:
-
-![Wholesale Commercial Orders](docs/screenshots/orders.png)
+![Deterministic Pricing Rules](assets%20docs/screenshots/pricing_rules.png)
 
 ---
 
-### 7. Product & Service Catalog & Packaging Tiers
-Commercial product catalog with live stock toggling, packaging variants, and Minimum Order Quantities (MOQs):
+### 4. Model Architecture, 5-Role Router & 15-Model Playground (`/integrations` & `/playground`)
+Assign any of the **15+ Google Gemini & NVIDIA NIM models** (`Nemotron-3 Ultra 550B`, `Super 120B`, `Nano Omni 30B`, `Llama 3.3 70B`, `DeepSeek R1`, `Gemini 2.5 Pro/Flash`) across 5 system roles with dual-key rotation, automatic `.env` persistence, and an interactive **Multi-Model Negotiation Arena (`/playground`)**:
 
-![Product Catalog](docs/screenshots/catalog.png)
-
----
-
-### 8. Lead Ingestion & B2B Proposal Pipeline
-Wholesale lead acquisition engine with E.164 normalization, multipart CSV batch upload, automated lead scoring, and 1-click tailored proposal dispatch:
-
-![Lead Intake & Pipeline](docs/screenshots/leads_pipeline.png)
+![Model Architecture & Integrations](assets%20docs/screenshots/integrations.png)
 
 ---
 
-### 9. Automated B2B Campaign Drip & Anti-Ban Jitter Outreach
-Rate-limited WhatsApp cold campaigns enforcing randomized inter-message jitter (**25.0s – 45.0s**), daily volume ceilings, live outreach funnels, and automated handoff to EDITH upon buyer reply:
+### 5. Modular System Prompts Studio & Git Diff Viewer (`/prompts`)
+Version-controlled system instructions across **7 dynamic prompt sections** (`core_safety`, `core_identity`, `business_policy`, `sales_style`, `business_profile`, `product_steering`, `escalation_rules`) + custom user-created sections, featuring **NemoTron AI prompt optimization**, **server-side git-style line diffs**, version pinning, and 1-click rollback:
 
-![Automated B2B Campaigns](docs/screenshots/campaigns.png)
-
----
-
-### 10. Sales Intelligence & Objection Analytics Dashboard
-Executive analytics suite featuring **Objection Pareto Analysis (80/20 rule)**, regional lead density and revenue tables across Eastern India corridors, pipeline stage forecasting, and **1-click executive CSV export**:
-
-![Sales Intelligence & Analytics](docs/screenshots/analytics.png)
+![Modular System Prompts](assets%20docs/screenshots/modular_prompts.png)
 
 ---
 
-### 11. Knowledge Grounding & Vector RAG Query Tester
-Ground truth knowledge base maintaining estate certifications, transit timelines, and tasting sample policies with live semantic vector search diagnostics:
+### 6. Unified Knowledge Hub, Interactive Spreadsheet Editor & Vector RAG (`/knowledge`)
+Consolidates **Product Catalog**, **Pricing Rules**, **Business Policies**, and **Agent Guidance** with an **Excel-like Interactive Spreadsheet Editor**, **Multi-Format Document Ingestion** (`PDF`, `DOCX`, `XLSX`, `CSV`, `JSON`, `MD`), **Agentic Chat Updater**, and **Semantic Vector RAG Tester**:
 
-![Knowledge Base & Vector RAG](docs/screenshots/knowledge_rag.png)
-
----
-
-### 12. Automated Follow-up Cadence & Stop Conditions
-Context-aware, bounded follow-up sequences (Day 0, Day 1, Day 3) enforcing preflight rules, quiet hours (9 PM – 9 AM IST), and instant auto-cancellation upon buyer reply:
-
-![Follow-up Sequences](docs/screenshots/followups.png)
+| Knowledge Base & Vector RAG | Product & Packaging Catalog |
+| :---: | :---: |
+| ![Knowledge Base & Vector RAG](assets%20docs/screenshots/knowledge_rag.png) | ![Product Catalog](assets%20docs/screenshots/catalog.png) |
 
 ---
 
-### 13. Human Escalations & Handoff Queue
-High-value buyer handoff queue with explainable trigger categories (`HOT_LEAD`, `CUSTOM_PRICING`, `COMPLAINT`, `KNOWLEDGE_GAP`) and instant WhatsApp owner alerts:
+### 7. Commercial Orders, Lead Pipeline & Anti-Ban Campaigns (`/orders`, `/leads`, `/campaigns`)
+Full lifecycle management of B2B purchase orders and GST PDF invoices, E.164 CSV lead ingestion, and **Chat-Driven WhatsApp Campaigns** with randomized **25s–45s anti-ban jitter**:
 
-![Human Handoff Queue](docs/screenshots/handoffs.png)
-
----
-
-### 14. Platform Safety & Global Kill-Switch
-Autonomous control panel featuring the master AI messaging kill-switch, humanized follow-up intervals, quiet hours enforcement, and owner escalation phone (`+91 89006 53250`):
-
-![Platform Settings](docs/screenshots/settings.png)
+| Wholesale Commercial Orders | Lead Intake & Pipeline | Automated B2B Campaigns |
+| :---: | :---: | :---: |
+| ![Commercial Orders](assets%20docs/screenshots/orders.png) | ![Lead Pipeline](assets%20docs/screenshots/leads_pipeline.png) | ![B2B Campaigns](assets%20docs/screenshots/campaigns.png) |
 
 ---
 
-### 15. Mobile Responsive & Dual-Theme Architecture
-EDITH is engineered mobile-first with adaptive touch UI optimized for operators on iOS Safari, Android Chrome, and desktop:
-- **Responsive Navigation Drawer**: One-tap slide-out drawer on phones with quick theme toggle, system status pills, and direct access to all 14 routes.
-- **Dedicated Mobile Chat View**: Full-screen conversation thread view with seamless 1-tap `← Back` navigation between the active customer timeline and inbox list.
-- **Slide-Over Customer Intelligence**: Buyer profile, commercial stage, order intent, and takeover controls accessible via a slide-over modal drawer on mobile viewports.
-- **Horizontal Scrolling Tables**: Orders, leads, campaigns, schedules, and analytics tables wrapped with `overflow-x-auto` containers and strict `min-w` to prevent column squishing on narrow screens.
-- **Touch Targets**: All interactive buttons, action pills, and inputs adhere to mobile touch guidelines (>=44px height).
-- **Dual Theme Switcher**: 1-tap toggling between **Estate White** and **Royal Pitch Black** with persistent `localStorage` theme state and zero FOUC (flash of unstyled content).
+### 8. Sales Intelligence, Follow-Up Cadence, Handoffs & Settings (`/analytics`, `/followups`, `/handoffs`, `/settings`)
+Pareto 80/20 objection analytics with 1-click CSV export, context-aware Day 0/1/3 follow-ups with preflight auto-cancellation on reply, human escalation queue, and the AI Business Architect settings console:
+
+| Sales Intelligence & Analytics | Follow-Up Sequences |
+| :---: | :---: |
+| ![Sales Intelligence & Analytics](assets%20docs/screenshots/analytics.png) | ![Follow-up Sequences](assets%20docs/screenshots/followups.png) |
+| **Human Escalations & Handoff Queue** | **AI Business Architect & Platform Settings** |
+| ![Human Handoff Queue](assets%20docs/screenshots/handoffs.png) | ![Platform Settings](assets%20docs/screenshots/settings.png) |
+
+---
+
+### 9. Mobile-First Responsive & Dual-Theme Architecture
+Adaptive touch UI optimized for iOS Safari, Android Chrome, tablets, and 4K desktop monitors with 1-tap slide-over drawers and instant **Estate White** / **Royal Pitch Black** theme switching:
 
 | Mobile Operations Center | Mobile Live Chat Stream |
 | :---: | :---: |
-| ![Mobile Overview](docs/screenshots/mobile_overview.png) | ![Mobile Inbox](docs/screenshots/mobile_inbox.png) |
+| ![Mobile Overview](assets%20docs/screenshots/mobile_overview.png) | ![Mobile Inbox](assets%20docs/screenshots/mobile_inbox.png) |
 
 ---
 
-## 🛠️ Developer Controls & Advanced Startup
+## 🏛️ Part 5: System Architecture & Engineering (For Senior Developers)
 
-### CLI Flags & Performance Options
-The master orchestrator (`run.py`) supports convenient runtime flags:
+> 📖 **Looking for the full architectural specification?** Read the **[Senior Software Engineer & Systems Architect Reference](assets%20docs/guides/senior-developer-architecture.md)** and **[System Architecture Deep Dive](assets%20docs/architecture.md)**.
+
+### Architectural Highlights
+| Subsystem | Engineering Implementation | Key Files |
+| :--- | :--- | :--- |
+| **15-Step Turn Orchestrator** | Conversation-scoped mutex (`conversation_locks`), passive fact extraction, 16-stage SPIN state machine, deterministic pricing injection, and atomic pre-send human takeover verification (`ADR-0008`). | `backend/app/agent/orchestrator.py`, `backend/app/conversations/locking.py` |
+| **Dual-Brain Synaptic Bus** | Asynchronous `InterBrainBus` with bidirectional task delegation, independent margin/focus refusal rights (`ADR-0015`), and autonomous fallback to `AgentNotification`. | `backend/app/brain/inter_brain_bus.py`, `backend/app/api/routes/brain.py` |
+| **5-Role Dynamic AI Router** | Routes across 18 Google Gemini & NVIDIA NIM models with dual-key rotation, sliding-window circuit breaker, and zero-config offline simulation fallback (`ADR-0026`). | `backend/app/ai/router.py`, `backend/app/ai/circuit_breaker.py` |
+| **Ephemeral Voice Pipeline** | Server-side single-use token minting (`BidiGenerateContentConstrained`), 16kHz/24kHz PCM Web Audio streaming, DOM screen snapshots (`captureScreenSnapshot`), and 26 voice tools. | `dashboard/components/VoiceAgent.tsx`, `backend/app/api/routes/voice.py` |
+| **Canonical `@lid` Deduplication** | Resolves WhatsApp multi-device Linked IDs (`@lid`) to canonical E.164 phone numbers and auto-consolidates duplicate conversation threads. | `whatsapp-bridge/index.js`, `backend/app/utils/phone.py` |
+| **Rust 3D Mesh Generator** | Zero-dependency procedural Rust crate compiling Wavefront `.obj` meshes (`friday_orb.obj` & `edith_core.obj`) rendered via Three.js WebGL cores. | `rust-models/src/`, `dashboard/components/3d/` |
+| **Resilient Storage & Queue** | Zero-config SQLite WAL (`wb_agent.db`) default + auto-upgrading PostgreSQL 16 `pgvector` support, backed by a transactional `FOR UPDATE SKIP LOCKED` job worker. | `backend/app/database/session.py`, `backend/app/jobs/worker.py` |
+
+### Developer CLI Flags & Testing Suite
 ```bash
-python run.py                # Standard zero-config startup with auto-install
-python run.py --skip-install # Instant warm reboot (skips dependency checking)
-python run.py --no-open      # Starts all services without auto-launching browser
-python run.py --clean        # Cleans caches, resets locks, and performs a fresh boot
+# Master Orchestrator Flags
+python run.py                # Full preflight check, auto-install, DB seed, and 4-service launch
+python run.py --skip-install # Instant warm reboot (skips pip/npm dependency checks)
+python run.py --no-open      # Headless server launch without opening browser windows
+python run.py --clean        # Frees ports 3000/3001/8000, cleans caches, and restarts fresh
+
+# 4-Tier Automated Verification Suite
+$env:PYTHONPATH="backend"; python -m pytest backend/tests/unit -v        # 43 Unit Test Modules
+python run_e2e_tests.py                                                  # 60 End-to-End Contract Tests
+$env:PYTHONPATH="backend"; python -m pytest backend/tests/evaluation -v  # Adversarial & Persona Tests
+python scripts/smoke_test.py                                             # Live API Smoke Test
 ```
 
-### ❓ Developer Troubleshooting & FAQ
-
+### ❓ Quick Troubleshooting & FAQ
 | Common Issue | Cause | Solution |
 | :--- | :--- | :--- |
-| **Port in Use (8000, 3000, 3001)** | A previous process was not killed cleanly | `run.py` automatically detects and clears port locks on startup. You can also run `python run.py --clean` or close stale terminal windows. |
-| **PowerShell Execution Policy** | Windows blocks running npm / activate scripts | Run: `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass` in PowerShell, or switch to Command Prompt (`cmd`). |
-| **How do I test without a phone?** | You want to verify AI negotiation without WhatsApp | Open `http://localhost:3000` and use the **Instant AI Simulator** widget on the Overview page, or run `python backend/scripts/verify_edith_chat_brain.py`. |
-| **How do I stop all services?** | Multi-process cleanup | Press **`Ctrl+C`** once in the terminal running `run.py`. The orchestrator will gracefully terminate FastAPI, Node.js, and background workers without orphan tasks. |
-| **Can I run without API keys?** | Testing offline | Yes! Without `.env`, EDITH and Friday operate in built-in offline simulation mode with grounded deterministic pricing and simulated turns. |
+| **Port 3000 / 3001 / 8000 in use** | A previous process was left running | `python run.py` automatically clears stale port locks on startup, or run `python run.py --clean`. |
+| **PowerShell script policy error** | Windows blocks running `npm` in PowerShell | Run `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass` in PowerShell, or use `cmd`. |
+| **How to test without WhatsApp?** | Testing offline or before scanning QR | Use the **Live Inbound Simulation** card on `http://localhost:3000` or the `/conversations` Sandbox tab. |
+| **How to switch WhatsApp phones?** | Linking a different phone number | Open `⚙️ Setup, WhatsApp & Features` -> Step 1 -> click **"Switch / Connect a Different WhatsApp Number"**. |
 
 ---
 
+## 📚 Part 6: Complete Documentation Directory & Redirection Hub
+
+All documentation is organized inside **[`assets docs/`](assets%20docs/)** and hyperlinked below:
+
+### 🧭 Role-Based Guides (`assets docs/guides/`)
+- 🧒 **[Beginner & Student Quick-Start Guide (Explain Like I'm 15)](assets%20docs/guides/beginner-quick-start.md)**
+- 💼 **[Business Owner & Operator Playbook (No-Code Setup & Daily Operations)](assets%20docs/guides/business-owner-guide.md)**
+- 🏛️ **[Senior Software Engineer & Systems Architect Reference](assets%20docs/guides/senior-developer-architecture.md)**
+- 🛠️ **[Developer Onboarding & Local Environment Guide](assets%20docs/guides/developer-onboarding.md)**
+- 📱 **[WhatsApp Connectivity Guide (Unofficial Baileys QR vs. Official Meta Cloud API)](assets%20docs/guides/whatsapp-bridge-guide.md)**
+
+### 🏛️ Core Architecture & Reference (`assets docs/`)
+- 🗺️ **[Master Knowledge Base Index (Obsidian MOC)](assets%20docs/index.md)**
+- 📐 **[System Architecture Deep Dive](assets%20docs/architecture.md)**
+- 🔌 **[Complete REST API & WebSocket Reference (All 137 Endpoints)](assets%20docs/api-reference.md)**
+- 🖥️ **[Dashboard Visual Operations Tour (All 17 Routes)](assets%20docs/visual-tour.md)**
+- 🎙️ **[Voice Agent Architecture & Security Specification](VOICE-AGENT.md)**
+- 🔄 **[16-Stage Conversational Sales State Machine](assets%20docs/architecture/conversational-state-machine.md)**
+- 🧮 **[Deterministic Pricing & GST Engine](assets%20docs/architecture/deterministic-pricing-engine.md)**
+- 🧠 **[Multi-Tier Memory & Customer Profiling System](assets%20docs/architecture/multi-tier-memory-system.md)**
+- ⚙️ **[Durable Job Queue & Worker Architecture](assets%20docs/architecture/durable-queue-and-worker.md)**
+- 🤝 **[Consultative SPIN Sales Framework](assets%20docs/sales/consultative-framework.md)**
+- 🛡️ **[Security & Threat Model](assets%20docs/security/threat-model.md)**
+- 📋 **[Platform Changelog (`v2.4.0`)](assets%20docs/CHANGELOG.md)**
+
+### 🚀 Setup, Operations & Troubleshooting Runbooks
+- **[01. Prerequisites & System Requirements](assets%20docs/setup/01-prerequisites-and-system-requirements.md)**
+- **[02. Database Setup (Zero-Config SQLite WAL & PostgreSQL pgvector)](assets%20docs/setup/02-database-and-pgvector-setup.md)**
+- **[03. FastAPI Backend Setup](assets%20docs/setup/03-backend-setup.md)**
+- **[04. Next.js 14 Dashboard Setup](assets%20docs/setup/04-dashboard-frontend-setup.md)**
+- **[05. WhatsApp Integration Guide](assets%20docs/setup/05-whatsapp-integration-guide.md)**
+- **[06. NVIDIA NIM & Gemini LLM Setup](assets%20docs/setup/06-nvidia-nemotron-and-llm-setup.md)**
+- **[07. Owner Escalation Channel Setup](assets%20docs/setup/07-owner-escalation-channel.md)**
+- **[08. End-to-End Verification Runbook](assets%20docs/setup/08-end-to-end-verification.md)**
+- **[09. Production Deployment Checklist](assets%20docs/setup/09-production-deployment-checklist.md)**
+- **[Operations Runbook & Emergency Kill-Switch](assets%20docs/operations-runbook.md)**
+- **[Production Deployment Runbook](assets%20docs/runbooks/production-deployment.md)**
+- **[Incident Response Playbook](assets%20docs/runbooks/incident-response.md)**
+- **[Troubleshooting & Error Solutions Catalog](assets%20docs/troubleshooting/error-catalog-and-solutions.md)**
+- **[E2E Test Infrastructure (`TEST_INFRA.md`)](TEST_INFRA.md)** & **[E2E Verification Report (`TEST_READY.md`)](TEST_READY.md)**
+
 <details>
-<summary>🛠️ Advanced / Developer: Manual Multi-Terminal Startup</summary>
+<summary>📜 <b>View All 26 Architecture Decision Records (ADR-0001 to ADR-0026)</b></summary>
 
-If you prefer to run each service in a separate terminal window:
+1. [ADR-0001: Primary Storage & Vector Architecture](assets%20docs/decisions/0001-postgresql-primary-storage.md)
+2. [ADR-0002: Modular Monolith Architecture](assets%20docs/decisions/0002-modular-monolith-architecture.md)
+3. [ADR-0003: Database-Backed Durable Job Queue](assets%20docs/decisions/0003-database-backed-queue.md)
+4. [ADR-0004: Conversation-Level Single-Turn Mutex](assets%20docs/decisions/0004-conversation-concurrency.md)
+5. [ADR-0005: Multi-Provider LLM & Channel Abstraction](assets%20docs/decisions/0005-provider-abstraction.md)
+6. [ADR-0006: Multi-Tier Memory & Fact Provenance](assets%20docs/decisions/0006-memory-architecture.md)
+7. [ADR-0007: Knowledge Grounding & Authority Hierarchy](assets%20docs/decisions/0007-knowledge-rag-authority.md)
+8. [ADR-0008: Atomic Pre-Send Human Takeover Protection](assets%20docs/decisions/0008-human-takeover-race-prevention.md)
+9. [ADR-0009: Context-Aware Follow-Up Cancellation](assets%20docs/decisions/0009-followup-engine-cancellation.md)
+10. [ADR-0010: Local-First Modular Monolith Deployment](assets%20docs/decisions/0010-local-first-architecture.md)
+11. [ADR-0011: Dual WhatsApp Provider Architecture (Baileys + Meta Cloud)](assets%20docs/decisions/0011-whatsapp-adapter-architecture.md)
+12. [ADR-0012: In-Chat Operator Correction Learning](assets%20docs/decisions/0012-operator-correction-learning.md)
+13. [ADR-0013: Modular Prompt Versioning & Rollback](assets%20docs/decisions/0013-modular-prompt-versioning.md)
+14. [ADR-0014: Auditable Commercial Quotes & Expiry](assets%20docs/decisions/0014-auditable-commercial-quotes.md)
+15. [ADR-0015: Dual-Brain Bidirectional Agency, Refusal Rights & Autonomous Fallback](assets%20docs/decisions/0015-dual-brain-bidirectional-agency-and-refusal.md)
+16. [ADR-0016: Campaign Orchestration, Rate-Limiting Jitter & Anti-Ban Guards](assets%20docs/decisions/0016-campaign-orchestration-and-anti-ban-guards.md)
+17. [ADR-0017: Resilient SQLite WAL & Automated Schema Migrations](assets%20docs/decisions/0017-resilient-sqlite-and-schema-migrations.md)
+18. [ADR-0018: WhatsApp Sliding-Window Rate Limiting & Ban Prevention](assets%20docs/decisions/0018-whatsapp-rate-limiting-and-ban-prevention.md)
+19. [ADR-0019: Automated Vector PDF Invoicing, GST Compliance & Quote Lifecycle](assets%20docs/decisions/0019-invoicing-gst-and-quote-lifecycle.md)
+20. [ADR-0020: Next.js 14 Frontend Architecture & Synaptic Observability](assets%20docs/decisions/0020-frontend-architecture-and-observability.md)
+21. [ADR-0021: Multi-Currency Pricing & Internationalization](assets%20docs/decisions/0021-multi-currency-pricing-and-internationalization.md)
+22. [ADR-0022: Simulation Sandbox Isolation & Outbox Guardrails](assets%20docs/decisions/0022-simulation-sandbox-isolation-and-live-whatsapp-guardrails.md)
+23. [ADR-0023: Conversation History Lifecycle & Database VACUUM Maintenance](assets%20docs/decisions/0023-conversation-history-lifecycle-and-database-management.md)
+24. [ADR-0024: WhatsApp Group Message AI Suppression & Operator Alerts](assets%20docs/decisions/0024-whatsapp-group-message-suppression-and-operator-notification.md)
+25. [ADR-0025: One-Click AI Reply Suggestions & Omnipotent Friday Agency](assets%20docs/decisions/0025-one-click-ai-suggestion-and-omnipotent-friday-agency.md)
+26. [ADR-0026: Dynamic 5-Role Model Assignment & Zero-Cost NVIDIA NIM Playground](assets%20docs/decisions/0026-dynamic-model-assignment-and-zero-cost-nvidia-playground.md)
 
-1. **WhatsApp Bridge (Terminal 1)**:
-   ```bash
-   cd whatsapp-bridge && npm install && node index.js
-   ```
-2. **FastAPI Backend (Terminal 2)**:
-   ```bash
-   pip install -r backend/requirements.txt
-   python scripts/seed_demo.py
-   python -m uvicorn app.main:app --app-dir backend --host 0.0.0.0 --port 8000
-   ```
-3. **Durable Worker (Terminal 3)**:
-   ```bash
-   $env:PYTHONPATH="backend"; python -m app.jobs.worker
-   ```
-4. **Next.js Dashboard (Terminal 4)**:
-   ```bash
-   cd dashboard && npm install && npm run dev
-   ```
 </details>
 
 ---
 
-## 🧪 Chat with EDITH (Testing & Verification)
+## 🔐 Platform Identity & Configuration
 
-### Option A: Send a WhatsApp Message
-Send a message from any phone to your linked bot number (`+91 89187 53100`):
-> *"Bhai mujhe cafe ke liye commercial supplies chahiye, around 100 units monthly Siliguri me"*
-
-Watch EDITH:
-1. **Passively extract** business type (`Cafe`), monthly quantity (`100 units`), and destination (`Siliguri`).
-2. **Never repeat questions** you already answered.
-3. Recommend verified commercial product tiers with exact wholesale pricing and volume discounts.
-4. Seamlessly switch between **English**, **Hindi**, and **Hinglish** based on customer dialect.
-5. Stop selling immediately when you say *"I want to order, please send invoice"*, and alert the owner!
-
-### Option B: Run Automated Multi-Turn Sales Simulation
-```bash
-$env:PYTHONPATH="backend"; python scripts/test_edith_multiturn.py
-```
-Run regression tests:
-```bash
-$env:PYTHONPATH="backend"; python -m pytest backend/tests/unit -v
-```
-
----
-
-## 🌟 What Makes EDITH Different?
-
-| Feature | Generic Chatbots | EDITH Sales Operating System |
-| :--- | :--- | :--- |
-| **Sales Methodology** | Scripted Q&A / FAQ | Consultative SPIN-style discovery; discovers before recommending |
-| **Pricing Integrity** | Prone to hallucinations | **Deterministic**: 100% calculated from verified rules and MOQs |
-| **Unknown Handling** | Guesses or makes up facts | **Zero Hallucination**: Escalates to owner (`+91 89006 53250`) via WhatsApp alert |
-| **Memory** | Resets every session | **Persistent Multi-Tier**: Profile, requirements, past objections across dialogues |
-| **Operator Safety** | Race condition if human types | **Atomic Pre-Send Check**: Aborts AI send if operator took over |
-| **Follow-Ups** | Uncontrolled spam loops | **Bounded Analysis**: Contextual Day 1 / Day 3 sequences with auto-stop |
-| **Dialect Engine** | Rigid English only | **Multi-Dialect Code-Switching**: English, Hindi, and conversational Hinglish |
-
----
-
-## 📂 Detailed Documentation Directory (assets docs)
-
-All comprehensive architectural design records, operational runbooks, API schemas, and setup guides are organized inside the **[`assets docs/`](assets%20docs/)** folder:
-
-### 🏛️ Architecture & Decisions
-- **[Master Knowledge Base Index](assets%20docs/index.md)**: Master Obsidian Map of Content (MOC) with interconnected graph navigation.
-- **[System Architecture Deep Dive](assets%20docs/architecture.md)**: High-level data flows, worker loops, and component diagrams.
-- **[Dashboard Visual Operations Tour](assets%20docs/visual-tour.md)**: Complete high-resolution visual documentation of all 17 operational pages.
-- **[Architecture Decision Records (ADRs 0001–0026)](assets%20docs/decisions/)**:
-  - [ADR-0001: PostgreSQL & pgvector as Primary Storage](assets%20docs/decisions/0001-postgresql-primary-storage.md)
-  - [ADR-0002: Modular Monolith Architecture](assets%20docs/decisions/0002-modular-monolith-architecture.md)
-  - [ADR-0003: Database-Backed Durable Job Queue](assets%20docs/decisions/0003-database-backed-queue.md)
-  - [ADR-0004: Conversation-Level Distributed Locking](assets%20docs/decisions/0004-conversation-concurrency.md)
-  - [ADR-0005: Multi-Provider LLM Abstraction](assets%20docs/decisions/0005-provider-abstraction.md)
-  - [ADR-0006: Multi-Tier Memory & Fact Provenance](assets%20docs/decisions/0006-memory-architecture.md)
-  - [ADR-0007: Knowledge Grounding & Authority Hierarchy](assets%20docs/decisions/0007-knowledge-rag-authority.md)
-  - [ADR-0008: Atomic Pre-Send Human Takeover Protection](assets%20docs/decisions/0008-human-takeover-race-prevention.md)
-  - [ADR-0009: Context-Aware Follow-Up Cancellation](assets%20docs/decisions/0009-followup-engine-cancellation.md)
-  - [ADR-0010: Local-First Modular Monolith Deployment](assets%20docs/decisions/0010-local-first-architecture.md)
-  - [ADR-0011: Dual WhatsApp Provider Architecture (Baileys + Meta Cloud)](assets%20docs/decisions/0011-whatsapp-adapter-architecture.md)
-  - [ADR-0012: Operator Correction Learning](assets%20docs/decisions/0012-operator-correction-learning.md)
-  - [ADR-0013: Modular Prompt Versioning & Rollback](assets%20docs/decisions/0013-modular-prompt-versioning.md)
-  - [ADR-0014: Auditable Commercial Quotes](assets%20docs/decisions/0014-auditable-commercial-quotes.md)
-  - [ADR-0015: Dual-Brain Bidirectional Agency, Refusal Rights & Autonomous Fallback](assets%20docs/decisions/0015-dual-brain-bidirectional-agency-and-refusal.md)
-  - [ADR-0016: Campaign Orchestration, Rate-Limiting Jitter & Anti-Ban Cold Outreach Guards](assets%20docs/decisions/0016-campaign-orchestration-and-anti-ban-guards.md)
-  - [ADR-0026: Dynamic Model Assignment & Zero-Cost NVIDIA NIM Playground](assets%20docs/decisions/0026-dynamic-model-assignment-and-zero-cost-nvidia-playground.md)
-
-### 🛠️ Setup & Operations Runbooks
-- **[Prerequisites & System Requirements](assets%20docs/setup/01-prerequisites-and-system-requirements.md)**
-- **[Database & pgvector Setup](assets%20docs/setup/02-database-and-pgvector-setup.md)**
-- **[Backend Fast Start Runbook](assets%20docs/setup/03-backend-setup.md)**
-- **[Dashboard Frontend Setup & Visual Tour](assets%20docs/setup/04-dashboard-frontend-setup.md)**
-- **[WhatsApp Integration Guide](assets%20docs/setup/05-whatsapp-integration-guide.md)**
-- **[NVIDIA Nemotron & LLM Configuration](assets%20docs/setup/06-nvidia-nemotron-and-llm-setup.md)**
-- **[Owner Escalation Setup](assets%20docs/setup/07-owner-escalation-channel.md)**
-- **[End-to-End Verification Runbook](assets%20docs/setup/08-end-to-end-verification.md)**
-- **[API Reference Documentation](assets%20docs/api-reference.md)**
-- **[Troubleshooting & Error Solutions Catalog](assets%20docs/troubleshooting/error-catalog-and-solutions.md)**
-
----
-
-## 🔐 Contact Numbers & Configuration
-
-- **Bot WhatsApp Number:** Configured through linked device bridge (`+91 89187 53100`).
-- **Owner Escalation WhatsApp:** Configured via `OWNER_WHATSAPP_NUMBER` (`+91 89006 53250`).
-- **Platform Identity:** WhatsApp AI Agent by NS (Industry-Agnostic Operating System).
-- **Optional Demo Dataset:** North Bengal Tea Co. (Siliguri, West Bengal, India).
+- **Platform Identity**: **WhatsApp AI Agent by NS** (*EDITH + FRIDAY Autonomous Sales & Operations OS*)
+- **Creator & Lead Architect**: **Naboraj Sarkar (NS)**
+- **Bot WhatsApp Channel**: Dynamically linked via QR Code / 8-Digit Pairing Code (`:3001`) or Official Meta Cloud API (`v20.0`)
+- **Owner Escalation Channel**: Configurable in Dashboard Setup Modal (`/settings`) or via `OWNER_WHATSAPP_NUMBER` in `.env`
+- **License**: [Apache License 2.0](LICENSE)
