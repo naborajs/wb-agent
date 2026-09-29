@@ -1,15 +1,15 @@
 ---
-title: 02. PostgreSQL 16 & pgvector Setup Guide
-tags: [setup, database, postgresql, pgvector, migrations, obsidian]
-updated: 2026-09-02
-aliases: [Database Setup, PostgreSQL Setup, pgvector Setup]
+title: "02. Database Setup Guide (Zero-Config SQLite WAL & PostgreSQL 16 pgvector)"
+tags: [setup, database, sqlite, postgresql, pgvector, migrations, obsidian, ns]
+updated: 2026-09-29
+aliases: [Database Setup, SQLite Setup, PostgreSQL Setup, pgvector Setup]
 status: complete
 ---
 
-# 🗄️ 02. PostgreSQL 16 & pgvector Setup Guide
+# 🗄️ 02. Database Setup Guide (Zero-Config SQLite WAL & PostgreSQL 16)
 
 > [!NOTE]
-> WB-Agent relies on PostgreSQL 16 as its single source of truth for all transactional CRM tables, conversation threads, long-term customer memories, and high-dimensional semantic vectors via `pgvector`.
+> **WhatsApp AI Agent by NS** features a dialect-agnostic persistence layer (`UniversalJSON` and `VectorType`) supporting **35 relational and vector domain models**. By default, it runs with **Zero-Config SQLite WAL (`wb_agent.db`)** out of the box, and seamlessly scales to **PostgreSQL 16 + `pgvector`** for cloud production.
 >
 > ⬅️ Previous Step: [[01-prerequisites-and-system-requirements|01. Prerequisites & System Requirements]]  
 > ➡️ Next Step: [[03-backend-setup|03. FastAPI Backend Setup]]
@@ -20,23 +20,47 @@ status: complete
 
 ```mermaid
 flowchart TD
-    Choice{"Select Setup Mode"} -->|Recommended / Local Dev| Docker["Option A: Docker Compose (Automated)"]
-    Choice -->|Production / Bare Metal| Native["Option B: Native PostgreSQL 16"]
-    Choice -->|Zero-Dependency / Offline| SQLite["Option C: SQLite Fallback Mode"]
+    Choice{"Select Storage Mode"} -->|Default / Zero-Config| SQLite["Option A: SQLite WAL Mode\n(wb_agent.db via python run.py)"]
+    Choice -->|Docker Container| Docker["Option B: Docker Compose\n(pgvector/pgvector:pg16)"]
+    Choice -->|Cloud / Bare Metal| Native["Option C: Managed PostgreSQL 16\n(Supabase / Neon / RDS / Ubuntu)"]
 
+    SQLite --> AutoMig["Auto Schema Init & Upgrade\n(upgrade_sqlite_schema.py)"]
     Docker --> Ext["Enable pgvector Extension"]
     Native --> Ext
-    SQLite --> Mock["UniversalJSON & Mock Vectors"]
 
-    Ext --> Migrate["Run Schema Init & Seeding: scripts/seed_demo.py"]
-    Mock --> Migrate
+    AutoMig --> Seed["Seed Starter Catalog & Presets\n(scripts/seed_demo.py or AI Auto-Fill)"]
+    Ext --> Seed
 
-    Migrate --> Ready["30 Relational Tables Ready in Database"]
+    Seed --> Ready["35 Domain Tables Ready for Operations"]
 ```
 
 ---
 
-## 🐳 Option A: Docker Compose (Recommended for Local Dev)
+## ⚡ Option A: Zero-Config SQLite WAL Mode (Default — Recommended for Quick Start)
+
+Out of the box, `.env.example` and `backend/app/config.py` default to local SQLite in Write-Ahead Logging (`WAL`) mode:
+
+```ini
+DATABASE_URL=sqlite+aiosqlite:///./wb_agent.db
+DATABASE_URL_SYNC=sqlite:///./wb_agent.db
+```
+
+When you run `python run.py`, the orchestrator automatically:
+1. Creates `wb_agent.db` with `PRAGMA journal_mode=WAL` and `PRAGMA synchronous=NORMAL`.
+2. Runs idempotent schema migrations (`backend/scripts/upgrade_sqlite_schema.py`).
+3. Seeds starter products, volume discount tiers, and 7 modular prompt sections (`scripts/seed_demo.py`).
+
+### Useful SQLite Maintenance Utilities:
+```bash
+python backend/scripts/upgrade_sqlite_schema.py   # Upgrade tables & columns safely
+python scripts/verify_db_integrity.py             # Run PRAGMA integrity_check
+python scripts/backup_db.py                       # Lock-free C-API online backup to backups/
+python scripts/optimize_db.py                     # VACUUM & index optimization
+```
+
+---
+
+## 🐳 Option B: Docker Compose PostgreSQL 16 + `pgvector`
 
 The repository provides a pre-configured `docker-compose.yml` equipped with PostgreSQL 16 and the official `pgvector/pgvector:pg16` image.
 
@@ -45,110 +69,44 @@ The repository provides a pre-configured `docker-compose.yml` equipped with Post
 docker compose up -d postgres
 ```
 
-### 2. Verify Container Health
+### 2. Verify Container Health & `vector` Extension
 ```bash
 docker compose ps
-# Ensure the status displays: Up (healthy)
-```
-
-### 3. Connect via psql in Docker
-```bash
 docker compose exec postgres psql -U postgres -d wb_agent -c "\dx"
-# Output will confirm the 'vector' extension is installed:
-#   Name   | Version | Schema | Description
-#  --------+---------+--------+---------------------------------------------------
-#   vector | 0.7.0   | public | vector data type and ivfflat and hnsw access methods
 ```
 
 ---
 
-## 💻 Option B: Native PostgreSQL Installation
+## 💻 Option C: Native or Cloud PostgreSQL 16 (Supabase / Neon / Railway / Ubuntu)
 
-If you prefer installing PostgreSQL natively on Ubuntu, Debian, macOS, or Windows:
+If you are connecting to a managed cloud PostgreSQL database (such as **Supabase**, **Neon**, **Render**, or **Railway**) or native Ubuntu PostgreSQL 16:
 
-### 1. Ubuntu / Debian
-```bash
-# Add official PostgreSQL APT repository
-sudo apt install -y postgresql-common
-sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh
-sudo apt update
-sudo apt install -y postgresql-16 postgresql-16-pgvector
-
-# Start service
-sudo systemctl enable --now postgresql
-```
-
-### 2. macOS (Homebrew)
-```bash
-brew install postgresql@16
-brew install pgvector
-brew services start postgresql@16
-```
-
-### 3. Create Database & Enable Extension
-Open the PostgreSQL interactive shell:
-```bash
-sudo -u postgres psql
-```
-Execute SQL configuration:
+### 1. Enable Extensions in SQL
 ```sql
-CREATE DATABASE wb_agent;
-CREATE USER postgres WITH ENCRYPTED PASSWORD 'postgres';
-GRANT ALL PRIVILEGES ON DATABASE wb_agent TO postgres;
-
-\c wb_agent;
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS vector;
-
--- Verify pgvector
-SELECT * FROM pg_extension WHERE extname = 'vector';
 ```
 
----
-
-## 📴 Option C: SQLite Fallback (Zero-Dependency Offline Mode)
-
-If you are running in a lightweight container or offline Windows environment without Docker or PostgreSQL installed, WB-Agent has built-in support for dialect-agnostic SQLite:
-
-- Column types use `UniversalJSON` (resolves to `JSONB` on PostgreSQL, standard `JSON` on SQLite).
-- Vector types use `VectorType` (resolves to `Vector(1536)` on PostgreSQL, serialized `JSON` array on SQLite).
-- Set in `.env`:
-  ```bash
-  DATABASE_URL=sqlite+aiosqlite:///./wb_agent.db
-  DATABASE_URL_SYNC=sqlite:///./wb_agent.db
-  ```
-
----
-
-## 🔑 Database Connection String Format
-
-Configure in your `.env` file:
-
+### 2. Configure `.env` Connection Strings
 ```ini
-# Asynchronous URL used by FastAPI, SQLAlchemy AsyncSession, and Asyncpg
+# Note: Even if you paste a standard postgres:// or postgresql:// URL,
+# backend/app/config.py automatically upgrades it to postgresql+asyncpg://!
 DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/wb_agent
-
-# Synchronous URL used for migrations or administrative CLI tools
 DATABASE_URL_SYNC=postgresql://postgres:postgres@localhost:5432/wb_agent
 
-# Connection Pool Limits (ADR-001)
 DB_POOL_SIZE=10
 DB_MAX_OVERFLOW=20
 DB_POOL_TIMEOUT=30
 ```
 
-> [!WARNING]
-> Always prefix asynchronous connection strings with `postgresql+asyncpg://`. Using `postgresql://` directly in async mode will trigger a `NoSuchModuleError: Can't load plugin: sqlalchemy.dialects:postgresql.asyncpg`.
-
 ---
 
-## 🌱 Initializing Schema & Seeding Demo Data
+## 🌱 Initializing Schema & Seeding Business Data
 
-Once the database is running and reachable, populate the initial catalog, pricing tiers, knowledge documents, and default organization using the automated seed script:
+To manually initialize the schema and seed starter catalog data:
 
 ```bash
-# Set Python path to backend directory
-# On PowerShell:
+# On Windows PowerShell:
 $env:PYTHONPATH="backend"
 python scripts/seed_demo.py
 
@@ -156,24 +114,20 @@ python scripts/seed_demo.py
 PYTHONPATH="backend" python scripts/seed_demo.py
 ```
 
-Expected output:
-```text
-2026-09-02 23:27:44 [ INFO  ] wb_agent: Initializing database schema...
-2026-09-02 23:27:44 [ INFO  ] wb_agent: Database engine initialized for URL dialect: postgresql
-2026-09-02 23:27:44 [ INFO  ] wb_agent: Database seeding successfully completed for North Bengal Tea Co.!
-```
+> [!TIP]
+> **Switching Industries Anytime**: Once the server is running, open `http://localhost:3000/settings` (or the top-bar **`⚙️ Setup, WhatsApp & Features`** modal) to switch between **6 built-in Industry Presets** or use the **✨ AI Business Auto-Fill Architect** to generate a custom product catalog for any business in 10 seconds!
 
 ---
 
 ## 🚨 Troubleshooting Common Database Errors
 
 If you encounter connection refusals or missing extensions, consult:
-- [[error-catalog-and-solutions#1-database-connection-refused|Error: Database Connection Refused]]
-- [[error-catalog-and-solutions#2-type-vector-does-not-exist|Error: Type "vector" does not exist]]
-- [[error-catalog-and-solutions#3-asyncpg-pool-timeout|Error: Asyncpg Connection Pool Timeout]]
+- [[../troubleshooting/error-catalog-and-solutions#1-database-connection-refused|Error: Database Connection Refused]]
+- [[../troubleshooting/error-catalog-and-solutions#2-type-vector-does-not-exist|Error: Type "vector" does not exist]]
+- [[../troubleshooting/error-catalog-and-solutions#3-asyncpg-pool-timeout|Error: Asyncpg Connection Pool Timeout]]
 
 ---
 
 ## 🔀 Next Step
-Once the database is seeded and verified:
+Once the database is ready:
 👉 Proceed to **[[03-backend-setup|03. FastAPI Backend Setup]]** to run the backend API service.

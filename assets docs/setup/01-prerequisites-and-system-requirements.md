@@ -1,7 +1,7 @@
 ---
-title: 01. Prerequisites & System Requirements
-tags: [setup, prerequisites, environment, installation, obsidian]
-updated: 2026-09-02
+title: "01. Prerequisites & System Requirements"
+tags: [setup, prerequisites, environment, installation, obsidian, ns]
+updated: 2026-09-29
 aliases: [Prerequisites, System Requirements]
 status: complete
 ---
@@ -9,22 +9,23 @@ status: complete
 # 🚀 01. Prerequisites & System Requirements
 
 > [!NOTE]
-> This document details the minimum and recommended system requirements, tooling dependencies, port reservations, and environmental configurations needed before running **WB-Agent**.
+> **WhatsApp AI Agent by NS (EDITH + FRIDAY)** · *Engineered by Naboraj Sarkar (NS)*  
+> This document details the minimum and recommended system requirements, software dependencies, and port reservations needed before running the platform.
 >
-> ⬅️ Back to: [[index|Knowledge Base Index]]  
-> ➡️ Next Step: [[02-database-and-pgvector-setup|02. PostgreSQL 16 & pgvector Setup]]
+> ⬅️ Back to: [[../index|Master Knowledge Base Index]]  
+> ➡️ Next Step: [[02-database-and-pgvector-setup|02. Database Setup (Zero-Config SQLite WAL & PostgreSQL pgvector)]]
 
 ---
 
 ## 🖥️ System Requirements
 
-| Specification | Minimum Requirement | Recommended Production |
+| Specification | Minimum Requirement (Local / SMB) | Recommended Production (Enterprise) |
 | :--- | :--- | :--- |
-| **Operating System** | Windows 10/11, Ubuntu 22.04 LTS, Debian 12, or macOS 13+ | Ubuntu 22.04 LTS (x86_64) |
+| **Operating System** | Windows 10/11, Ubuntu 22.04 LTS, Debian 12, or macOS 13+ | Ubuntu 22.04+ LTS (x86_64 / ARM64) |
 | **CPU** | 2 vCPUs / Cores | 4+ vCPUs |
-| **RAM** | 4 GB | 8 GB+ (for PostgreSQL vector indexing) |
+| **RAM** | 4 GB | 8 GB+ |
 | **Disk Space** | 2 GB free storage | 20 GB+ NVMe SSD |
-| **Network** | Outbound HTTPS (for WhatsApp & LLM APIs) | Static public IP or Domain with SSL |
+| **Network** | Outbound HTTPS (for WhatsApp & LLM APIs) | Static public IP or Domain with HTTPS/TLS |
 
 ---
 
@@ -32,28 +33,28 @@ status: complete
 
 ```mermaid
 flowchart LR
-    Host["Host Machine"] --> Py["Python 3.11+"]
+    Host["Host Machine"] --> Py["Python 3.10+"]
     Host --> Node["Node.js 18+ & npm"]
-    Host --> DB["PostgreSQL 16 + pgvector"]
+    Host --> DB["SQLite WAL (Built-in Default)\nOR PostgreSQL 16 + pgvector"]
     Host --> Git["Git Version Control"]
 
-    Py --> Backend["FastAPI Backend (Port 8000)"]
-    Node --> Frontend["Next.js Control Center (Port 3000)"]
-    DB --> Storage["Transactional Database (Port 5432)"]
+    Py --> Backend["FastAPI Backend (:8000) & Worker"]
+    Node --> Frontend["Next.js 14 Dashboard (:3000)\n& Baileys Bridge (:3001)"]
+    DB --> Storage["35 Relational & Vector Tables"]
 ```
 
-### 1. Python 3.11+
-The backend is built with modern Python 3.11+ async features.
+### 1. Python 3.10+ (3.11+ Recommended)
+The backend and master orchestrator (`run.py`) use modern Python async features.
 Verify your installation:
 ```bash
 python --version
-# Output: Python 3.11.x, 3.12.x, 3.13.x, or 3.14.x
+# Output: Python 3.10.x, 3.11.x, 3.12.x, or 3.13.x+
 ```
 > [!TIP]
-> On Windows, ensure you check the checkbox **"Add python.exe to PATH"** during Python setup.
+> On Windows, ensure you check **"Add python.exe to PATH"** during Python installation.
 
 ### 2. Node.js 18+ and npm 9+
-The operator dashboard is powered by Next.js 14 and React 18.
+Powers both the Next.js 14 Mission Control Dashboard (`:3000`) and the self-hosted WhatsApp Baileys Bridge (`:3001`).
 Verify your installation:
 ```bash
 node --version
@@ -63,33 +64,34 @@ npm --version
 # Output: 9.x.x or 10.x.x+
 ```
 
-### 3. PostgreSQL 16 with pgvector Extension
-- **Production / Staging**: PostgreSQL 16 with the official `pgvector` extension installed for cosine semantic vector storage.
-- **Local Development / Offline Testing**: If PostgreSQL is not installed locally, the backend automatically uses an offline dialect-agnostic SQLite fallback (`sqlite+aiosqlite:///./wb_agent.db`) and in-memory test databases with universal JSON and mock vector decorators.
+### 3. Database Engine (Zero-Config SQLite Built-In!)
+- **Default Zero-Config Mode (`SQLite WAL`)**: You do **not** need to install any external database server! Python's built-in SQLite engine (`sqlite+aiosqlite:///./wb_agent.db`) initializes automatically in Write-Ahead Logging (`WAL`) mode when you run `python run.py`.
+- **Optional Enterprise Mode (`PostgreSQL 16 + pgvector`)**: For high-concurrency multi-worker cloud deployments (Supabase, Neon, RDS, Railway, or Docker), set `DATABASE_URL=postgresql+asyncpg://...` in `.env` (auto-upgraded if you pass `postgres://` or `postgresql://`).
 
 ### 4. Git Version Control
-Required for cloning, tracking changes, and syncing upstream:
+Required for cloning and pulling updates:
 ```bash
 git --version
 ```
 
 ---
 
-## 🔌 Port Reservations & Conflicts
+## 🔌 Port Reservations & Automatic Cleanup
 
-Ensure the following default ports are available on your machine:
+Ensure the following default ports are available on your machine (`python run.py` automatically detects and frees stale locks on ports `3000`, `3001`, and `8000` at startup):
 
 | Port | Service | Configuration Variable | Used By |
 | :--- | :--- | :--- | :--- |
-| **8000** | FastAPI REST & WebSockets | `API_URL=http://localhost:8000` | Backend runtime & Webhooks |
-| **3000** | Next.js Dashboard | `DASHBOARD_URL=http://localhost:3000` | Operator UI |
-| **5432** | PostgreSQL Database | `DATABASE_URL=postgresql+asyncpg://...` | Relational & vector storage |
+| **3000** | Next.js 14 Mission Control UI | `DASHBOARD_URL=http://localhost:3000` | Operator Browser & Friday Voice Copilot |
+| **3001** | WhatsApp Baileys Web Bridge | `WHATSAPP_BRIDGE_URL=http://localhost:3001` | QR Scan, 8-Digit Pairing & Multi-Device Socket |
+| **8000** | FastAPI REST & WebSocket Core | `API_URL=http://localhost:8000` | 138 API Endpoints, Webhooks & Realtime Bus |
+| **5432** | PostgreSQL *(Optional)* | `DATABASE_URL=postgresql+asyncpg://...` | Only used if running external PostgreSQL |
 
 > [!WARNING]
-> If port `8000` or `3000` is occupied by another process, see the troubleshooting steps in [[error-catalog-and-solutions#port-conflicts|Error Catalog: Port Conflicts]].
+> If port `8000`, `3001`, or `3000` is occupied by another process, run `python run.py --clean` or see the troubleshooting steps in [[../troubleshooting/error-catalog-and-solutions#port-conflicts|Error Catalog: Port Conflicts]].
 
 ---
 
 ## 🔀 Next Step
 Once all prerequisites are installed and verified:
-👉 Proceed to **[[02-database-and-pgvector-setup|02. PostgreSQL 16 & pgvector Setup]]** to initialize your database storage.
+👉 Run `python run.py` for instant 1-command startup, or proceed to **[[02-database-and-pgvector-setup|02. Database Setup (SQLite WAL & PostgreSQL pgvector)]]**.

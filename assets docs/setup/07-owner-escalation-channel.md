@@ -1,7 +1,7 @@
 ---
-title: 07. Owner WhatsApp Escalation Channel Setup
-tags: [setup, notifications, owner, escalation, handoff, whatsapp, alerts, obsidian]
-updated: 2026-09-02
+title: "07. Owner WhatsApp Escalation Channel Setup"
+tags: [setup, notifications, owner, escalation, handoff, whatsapp, alerts, obsidian, ns]
+updated: 2026-09-29
 aliases: [Owner Escalation, Hot Lead Alerts, Handoff Setup]
 status: complete
 ---
@@ -9,28 +9,30 @@ status: complete
 # 🚨 07. Owner WhatsApp Escalation Channel Setup
 
 > [!NOTE]
-> WB-Agent does not isolate human leadership from high-stakes commercial opportunities. The moment a prospect shows high purchase intent, asks for custom contract pricing, or requests human intervention, the system instantly compiles a high-density executive briefing and dispatches it directly to the business owner via WhatsApp.
+> **WhatsApp AI Agent by NS** keeps business owners in full command of high-value deals. Whenever a buyer agrees to purchase, requests a discount above your autonomous ceiling (`max_discount_pct`), orders above your escalation quantity (`escalation_qty`), or asks for a human, **EDITH** instantly dispatches a structured executive summary to your personal WhatsApp number.
 >
-> ⬅️ Previous Step: [[06-nvidia-nemotron-and-llm-setup|06. NVIDIA Nemotron & LLM Router]]  
+> ⬅️ Previous Step: [[06-nvidia-nemotron-and-llm-setup|06. NVIDIA NIM & Google Gemini LLM Setup]]  
 > ➡️ Next Step: [[08-end-to-end-verification|08. End-to-End Simulation & Verification]]
 
 ---
 
-## 👤 Escalation Target Profile
+## 👤 Configuring Your Owner Escalation Number
 
-| Role | Details |
-| :--- | :--- |
-| **Recipient Name** | Rajiv Sen (Managing Director & Commercial Head) |
-| **Company** | North Bengal Tea Co. |
-| **Normalized E.164 Phone** | `+918900653250` |
-| **Channel** | WhatsApp Cloud API v20.0 |
-| **Configuration Key** | `OWNER_WHATSAPP_NUMBER=+918900653250` |
+Zero personal phone numbers are hardcoded in the repository. You can set your **Owner Escalation WhatsApp Number** in two ways:
+
+1. **Via the Dashboard UI (Recommended)**:
+   - Click **`⚙️ Setup, WhatsApp & Features`** in the top bar (or open **`/settings`**).
+   - Enter your personal WhatsApp number in E.164 format (e.g., `+919876543210`) under **Owner Escalation WhatsApp Number** and click **Save**.
+   - Click **"Verify System & Send WhatsApp Test Ping"** in **Step 3** of the Setup Modal to receive an instant verification message on your phone!
+2. **Via `.env`**:
+   ```ini
+   OWNER_WHATSAPP_NUMBER=+919876543210
+   OWNER_NOTIFICATION_ENABLED=true
+   ```
 
 ---
 
 ## ⚡ Escalation Triggers & Classification
-
-The agent evaluates incoming messages and lead scoring shifts in real time to trigger notifications under the following conditions:
 
 ```mermaid
 flowchart TD
@@ -38,71 +40,50 @@ flowchart TD
     
     Check -->|Score >= 80| Hot["🔥 HOT_LEAD Alert"]
     Check -->|Says 'place order' / 'send invoice'| Buy["💰 PURCHASE_INTENT Alert"]
-    Check -->|Order > 500kg or Discount > 5%| Price["🏷️ CUSTOM_PRICING_REQUEST Alert"]
+    Check -->|Qty > escalation_qty OR Discount > max_discount_pct| Price["🏷️ CUSTOM_PRICING_REQUEST Alert"]
     Check -->|Explicitly asks for human| Human["👤 HUMAN_HELP_REQUIRED Alert"]
-    Check -->|Unhappy / Service issue| Comp["⚠️ COMPLAINT Alert"]
+    Check -->|High frustration / Complaint| Comp["⚠️ COMPLAINT Alert"]
 
-    Hot --> Format["NotificationService Formats Rich Executive Summary"]
-    Buy --> Format
-    Price --> Format
-    Human --> Format
-    Comp --> Format
-
-    Format --> Send["Dispatch Outbound WhatsApp Packet to +91 89006 53250"]
-    Send --> Takeover["Owner Takes Over via Live Dashboard or WhatsApp Reply"]
+    Hot & Buy & Price & Human & Comp --> Format["NotificationService Formats Rich Executive Summary"]
+    Format --> Send["Dispatch Outbound WhatsApp Alert to OWNER_WHATSAPP_NUMBER"]
+    Send --> Takeover["Owner Takes Over via Live Dashboard (/conversations)"]
 ```
 
 ---
 
-## 📱 Executive Briefing Format
-
-When an alert is emitted, the owner receives a structured, actionable notification on WhatsApp:
+## 📱 Executive Briefing Format Sent to Your Phone
 
 ```text
-🔥 HOT LEAD ALERT
+🔥 HOT LEAD / PURCHASE INTENT ALERT
 
 Name: Rahul Sharma
-Phone: +918900653250
-Location: Siliguri, West Bengal
-Business: Heritage Cafe & Bakery
-Interested in: Assam Kadak CTC (100kg) & Darjeeling First Flush
-Requirement: 100 kg / month
-Budget: ₹35,000 / month
+Phone: +919876543210
+Location: Mumbai, Maharashtra
+Business: Apex Retail & Cafe
+Requirement: 100 units / month
 Lead score: 92/100
 Stage: PURCHASE_INTENT
 
-Customer said: "We have finalized our menu and want to place the first commercial order today."
+Customer said: "We have finalized our requirement and want to place the first commercial order today."
 
-AI summary: Customer verified restaurant owner. Sample kit received last week with positive review. Ready to confirm GST billing and transit terms.
+AI summary: Qualified B2B buyer. Pricing verified within autonomous tier rules. Ready for GST pro-forma invoice and payment confirmation.
 
-Recommended action: Open Live Inbox at http://localhost:3000/conversations to confirm payment terms and dispatch invoice.
+Recommended action: Open Live Inbox at http://localhost:3000/conversations to review or take over.
 ```
 
 ---
 
-## 🛡️ Atomic Takeover Protection (ADR-008)
+## 🛡️ Atomic Takeover Protection (`ADR-0008`)
 
-To eliminate collision where the AI agent and the human owner respond simultaneously:
-
-1. When Rajiv clicks **Take Over** in the dashboard or an escalation occurs, `Conversation.mode` transitions to `HUMAN`.
-2. The orchestrator checks this status right before transmitting an outbound message:
-```python
-# Atomic Pre-Send State Check (ADR-008)
-refreshed_conv = await self.session.get(Conversation, conversation_id)
-if refreshed_conv.mode in ("HUMAN", "PAUSED"):
-    logger.info(f"Outbound AI reply suppressed: conversation is in mode '{refreshed_conv.mode}'")
-    return AgentTurnResponse(reply_text="[Suppressed - Operator Takeover]", is_suppressed=True)
-```
-3. Outbound AI messages are automatically suppressed, ensuring the human operator has 100% control over the conversation.
+To prevent the AI agent and human owner from talking over each other:
+1. When you click **Take Over** in `/conversations` (or when a mandatory escalation switches `Conversation.mode` to `HUMAN`), the database record is updated immediately.
+2. Right before sending any AI reply, `AgentOrchestrator` re-queries `Conversation.mode`. If it is `HUMAN` or `PAUSED`, the outbound AI reply is suppressed atomically.
 
 ---
 
 ## 🧪 Testing Owner Alerts Locally
 
-Run the unit test verifying owner notification dispatch and formatting:
-
 ```bash
-# On PowerShell:
 $env:PYTHONPATH="backend"
 python -m pytest backend/tests/unit/test_followups_and_handoffs.py -k test_handoff_and_owner_notifications -v
 ```
@@ -110,5 +91,5 @@ python -m pytest backend/tests/unit/test_followups_and_handoffs.py -k test_hando
 ---
 
 ## 🔀 Next Step
-With all systems and notification channels configured:
-👉 Proceed to **[[08-end-to-end-verification|08. End-to-End Simulation & Verification]]** to run the complete platform verification.
+With your owner escalation channel configured:
+👉 Proceed to **[[08-end-to-end-verification|08. End-to-End Simulation & Verification]]** to run the full 5-point platform verification.

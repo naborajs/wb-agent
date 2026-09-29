@@ -1,114 +1,93 @@
 ---
-title: 06. NVIDIA Nemotron & LLM Router Setup
-tags: [setup, llm, nvidia, nemotron, embeddings, fallback, ai, obsidian]
-updated: 2026-09-02
-aliases: [NVIDIA Setup, Nemotron Setup, LLM Router]
+title: "06. NVIDIA NIM & Google Gemini Dual-Brain LLM Router Setup"
+tags: [setup, llm, nvidia, nemotron, gemini, router, fallback, ai, obsidian, ns]
+updated: 2026-09-29
+aliases: [NVIDIA Setup, Nemotron Setup, Gemini Setup, LLM Router]
 status: complete
 ---
 
-# 🧠 06. NVIDIA Nemotron & LLM Router Setup
+# 🧠 06. NVIDIA NIM & Google Gemini Dual-Brain LLM Router Setup
 
 > [!NOTE]
-> WB-Agent uses **NVIDIA Nemotron-4 340B Instruct** as its primary reasoning model for intent classification, objection reframing, and professional tea consulting, paired with a resilient **Fallback LLM Router** that guarantees 100% uptime.
+> **WhatsApp AI Agent by NS** uses a **5-Role Dynamic AI Router** (`ADR-0026`) that pairs **Google Gemini (`2.5 Flash` & `3.1 Flash Live`)** for **🟣 FRIDAY** (Voice & Web Copilot) with **NVIDIA NIM (`Llama 3.3 70B`, `Nemotron-3 Ultra 550B`, `Super 120B`, `Nano Omni 30B`)** for **🟢 EDITH** (Autonomous Commercial Sales Closer), backed by dual-key rotation, circuit breaking, and an offline deterministic simulator.
 >
-> ⬅️ Previous Step: [[05-whatsapp-integration-guide|05. WhatsApp Simulator & Meta Cloud API]]  
-> ➡️ Next Step: [[07-owner-escalation-channel|07. Owner Escalation Setup (+91 89006 53250)]]
+> ⬅️ Previous Step: [[05-whatsapp-integration-guide|05. WhatsApp Integration Guide]]  
+> ➡️ Next Step: [[07-owner-escalation-channel|07. Owner Escalation Channel Setup]]
 
 ---
 
-## 🏛️ LLM Router & Failover Flowchart
+## 🏛️ 5-Role Dynamic AI Router & Failover Flowchart
 
 ```mermaid
 flowchart TD
-    Prompt["Agent Orchestrator Assembly: System Prompt + Context + Inbound Message"] --> Router["LLMRouter.generate()"]
+    Prompt["System Role Request:\n• friday_web_model (Gemini 2.5 Flash)\n• edith_sales_model (Llama 3.3 70B)\n• friday_voice_model (Gemini 3.1 Flash Live)\n• edith_policy_model (Nemotron-3 Ultra 550B)\n• system_watchdog_model (GPT-OSS 20B)"] --> Router["AIRouter.generate()"]
     
-    Router --> Primary{"Primary Provider (NvidiaProvider)"}
+    Router --> Primary{"Primary API Key\n(NVIDIA_API_KEY / GEMINI_API_KEY)"}
     
-    Primary -->|200 OK Response| Valid["ResponseValidator (Grounding & Injection Check)"]
+    Primary -->|200 OK| Valid["ResponseValidator & PricingValidator\n(Zero-Hallucination & Injection Guard)"]
     
-    Primary -->|404 / 410 / Timeout / 5xx| Failover["Log Warning & Trigger Fallback"]
-    Failover --> Fallback["Fallback Provider (SimulatorProvider)"]
-    Fallback --> Valid
+    Primary -->|429 / 503 / Timeout|BackupKey{"Fallback API Key\n(NVIDIA_FALLBACK_API_KEY)"}
+    BackupKey -->|200 OK| Valid
+    BackupKey -->|Error| Chain["Chained Fallback Models\n(Nano Omni 30B -> Super 120B -> Gemma 4 31B)"]
+    Chain -->|All Offline| Sim["Deterministic Offline Simulator\n(100% Uptime Guarantee)"]
+    Chain -->|200 OK| Valid
+    Sim --> Valid
 
-    Valid --> Output["Structured Reply & Sales Decision"]
+    Valid --> Output["Grounded Reply & Sales Decision"]
 ```
 
 ---
 
-## 🔑 1. Obtaining an NVIDIA API Key
+## 🔑 1. Obtaining Free Developer API Keys
 
-1. Navigate to **[NVIDIA NIM Catalog](https://build.nvidia.com/)**.
-2. Sign in with your NVIDIA Developer account.
-3. Select **nemotron-4-340b-instruct** under Foundation Models.
-4. Click **Get API Key** and generate a new key (starts with `nvapi-...`).
-5. Copy the generated key.
+### A. Google Gemini API Key (For 🟣 FRIDAY Voice & Web Copilot)
+1. Visit **[Google AI Studio](https://aistudio.google.com/)**.
+2. Click **Get API Key** → **Create API Key**.
+3. Copy your key (`AIza...`).
+
+### B. NVIDIA NIM API Key (For 🟢 EDITH Commercial Brain & 15-Model Playground)
+1. Visit **[NVIDIA NIM Catalog](https://build.nvidia.com/)**.
+2. Sign in and click **Get API Key** on any model card (e.g., `meta/llama-3.3-70b-instruct` or `nvidia/nemotron-3-super-120b-a12b`).
+3. Copy your key (`nvapi-...`).
 
 ---
 
-## ⚙️ 2. Environment Configuration (`.env`)
+## ⚙️ 2. Configuring Keys in `.env` or Directly in the Dashboard (`/integrations`)
 
-Configure the following parameters in your `.env`:
+You can configure your keys in `.env` **or** paste them live inside the browser at **`http://localhost:3000/integrations`** (which automatically syncs them into your local `.env` file!):
 
 ```ini
-# Primary Sales Agent Provider: NVIDIA Nemotron
-NVIDIA_API_KEY=nvapi-your-actual-nvidia-api-key
-NVIDIA_BASE_URL=https://integrate.api.nvidia.com/v1
-NVIDIA_MODEL=nvidia/nemotron-4-340b-instruct
+# Google Gemini (FRIDAY Live Voice & Web Copilot)
+GEMINI_API_KEY=your_google_gemini_api_key
+GEMINI_MODEL=gemini-3.1-flash-live-preview
 
-# Vector Embeddings Model
+# NVIDIA NIM (EDITH Sales Closer, Policy Auditor & Watchdog)
+NVIDIA_API_KEY=nvapi-your-primary-nvidia-api-key
+NVIDIA_NIM_API_KEY_PRIMARY=nvapi-your-primary-nvidia-api-key
+NVIDIA_NIM_API_KEY_FALLBACK=nvapi-your-optional-backup-nvidia-key
+NVIDIA_BASE_URL=https://integrate.api.nvidia.com/v1
+NVIDIA_MODEL=nvidia/nemotron-3-super-120b-a12b
+NVIDIA_FALLBACK_MODELS=nvidia/nemotron-3.5-lightning-30b-a3b,openai/gpt-oss-20b
 NVIDIA_EMBEDDING_MODEL=nvidia/nv-embedqa-e5-v5
 
-# Provider Modes: 'nvidia' or 'simulator'
+# Provider Modes & Hyperparameters
 LLM_PROVIDER=nvidia
 LLM_FALLBACK_PROVIDER=simulator
-
-# Model Hyperparameters
 LLM_TEMPERATURE=0.2
 LLM_MAX_TOKENS=1024
 LLM_REQUEST_TIMEOUT=30
 ```
 
-> [!TIP]
-> Setting `LLM_TEMPERATURE=0.2` ensures stable, factual, deterministic phrasing without hallucinating discounts or tea origins.
-
 ---
 
-## 🔄 3. Resilience: The Hybrid Failover Router (ADR-002)
+## 🧪 3. Testing Models in the 15-Model AI Playground (`/playground`)
 
-In `backend/app/agent/providers/router.py`:
-```python
-class LLMRouter:
-    async def generate(self, messages: List[LLMMessage]) -> LLMResponse:
-        try:
-            return await self.primary_provider.generate(messages)
-        except Exception as e:
-            logger.warning(f"Primary LLM provider failed ({e}). Routing to fallback provider.")
-            return await self.fallback_provider.generate(messages)
-```
-
-If the remote NVIDIA endpoint experiences downtime, network timeouts, or quota exhaustion, **WB-Agent does not crash**. It automatically logs a diagnostic warning and fulfills the conversational turn via the deterministic `SimulatorProvider`.
-
----
-
-## 🛡️ 4. Grounding & Anti-Hallucination Guardrails
-
-The LLM is explicitly barred from making unverified claims or committing company funds through two distinct layers:
-
-1. **System Prompt Guardrails**:
-   - The LLM is instructed: *"Never invent discounts, wholesale rates, or free shipping. Always rely strictly on retrieved product records and pricing calculations."*
-2. **Defensive ResponseValidator**:
-   - Analyzes generated output for unauthorized financial guarantees (e.g. "payment verified", "50% off applied", "free delivery guaranteed").
-   - If a violation occurs, the validator flags the turn, adjusts the response, and alerts the operator.
-
----
-
-## 🚨 Diagnostics & Common Issues
-
-- **404 Not Found on `/chat/completions`**: Ensure `NVIDIA_BASE_URL=https://integrate.api.nvidia.com/v1` (without trailing slash).
-- **410 Gone on `/embeddings`**: NVIDIA regularly updates endpoint paths for preview embedding models. The system automatically falls back to `LocalMockEmbeddingProvider` for zero interruption.
+1. Open **`http://localhost:3000/playground`** (in `🛠️ Advanced` mode).
+2. Choose from **15+ Google Gemini & NVIDIA NIM models** (`Nemotron-3 Ultra 550B`, `Super 120B`, `Nano Omni 30B`, `Nemotron-4 340B`, `DeepSeek R1`, `Llama 3.3 70B`, `Qwen 2.5 72B`, `Mistral Large`, `Gemma 4 31B`, `Gemini 2.5 Pro/Flash`).
+3. Select a persona (`EDITH Commercial Closer`, `Friday Web Copilot`, `Policy Auditor`, or `Technical Architect`) and test real-time latency and token economics!
 
 ---
 
 ## 🔀 Next Step
-With the AI reasoning engine configured:
-👉 Proceed to **[[07-owner-escalation-channel|07. Owner Escalation Setup (+91 89006 53250)]]** to verify owner WhatsApp alerts.
+With the Dual-Brain AI router configured:
+👉 Proceed to **[[07-owner-escalation-channel|07. Owner Escalation Channel Setup]]** to configure owner WhatsApp notifications.

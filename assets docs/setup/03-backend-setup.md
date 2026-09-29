@@ -1,7 +1,7 @@
 ---
-title: 03. FastAPI Backend Setup & Execution Guide
-tags: [setup, backend, python, fastapi, uvicorn, worker, obsidian]
-updated: 2026-09-02
+title: "03. FastAPI Backend Setup & Execution Guide"
+tags: [setup, backend, python, fastapi, uvicorn, worker, obsidian, ns]
+updated: 2026-09-29
 aliases: [Backend Setup, FastAPI Setup, Worker Setup]
 status: complete
 ---
@@ -9,9 +9,11 @@ status: complete
 # ⚙️ 03. FastAPI Backend Setup & Execution Guide
 
 > [!NOTE]
-> This guide covers setting up the Python environment, configuring environment variables, running the FastAPI REST & WebSocket server, launching the background job worker, and verifying the automated test suite.
+> **WhatsApp AI Agent by NS** · *Engineered by Naboraj Sarkar (NS)*  
+> This guide covers setting up the Python environment, configuring `.env`, running the FastAPI REST & WebSocket server (`:8000`), launching the durable background worker, and executing the 4-tier test suite.
+> *(Tip: Running `python run.py` from the repository root performs all of these steps automatically in one command!)*
 >
-> ⬅️ Previous Step: [[02-database-and-pgvector-setup|02. PostgreSQL 16 & pgvector Setup]]  
+> ⬅️ Previous Step: [[02-database-and-pgvector-setup|02. Database Setup (SQLite WAL & PostgreSQL pgvector)]]  
 > ➡️ Next Step: [[04-dashboard-frontend-setup|04. Next.js 14 Dashboard Setup]]
 
 ---
@@ -20,50 +22,35 @@ status: complete
 
 ```mermaid
 flowchart TD
-    Env["1. Create & Activate Virtualenv (.venv)"] --> Deps["2. Install Dependencies (pip install -e backend/)"]
-    Deps --> Config["3. Configure .env with Secrets & Database URL"]
-    Config --> Check["4. Verify DB Connectivity (scripts/seed_demo.py)"]
+    Env["1. Install Dependencies\n(pip install -r backend/requirements.txt)"] --> Config["2. Configure .env\n(Zero-Config SQLite Default)"]
+    Config --> Migrate["3. Verify Schema & Seed\n(upgrade_sqlite_schema.py & seed_demo.py)"]
     
-    Check --> API["5. Start API Server (Port 8000)"]
-    Check --> Worker["6. Start Background Worker Daemon"]
-    Check --> Tests["7. Execute Pytest Test Suite (57 Tests)"]
+    Migrate --> API["4. Start FastAPI Server (:8000)\n27 Routers / 138 Endpoints"]
+    Migrate --> Worker["5. Start Durable Job Worker\n(app.jobs.worker)"]
+    Migrate --> Tests["6. Run 4-Tier Pytest Suite\n(Unit + 60 E2E + Evaluation)"]
 
     API --> Endpoints["/api/v1/health | /api/v1/docs | /api/v1/ws"]
-    Worker --> Queue["Polls jobs table via SKIP LOCKED"]
+    Worker --> Queue["Polls jobs & followup_jobs tables"]
 ```
 
 ---
 
-## 📦 1. Create Virtual Environment & Install Dependencies
+## 📦 1. Install Python Dependencies
 
 ### Windows (PowerShell)
 ```powershell
-# Create virtual environment
 python -m venv .venv
-
-# Activate virtual environment
-.venv\Scripts\Activate.ps1
-
-# Upgrade pip
+.\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
-
-# Install backend dependencies in editable development mode
-pip install -e backend/
+pip install -r backend/requirements.txt
 ```
 
 ### Linux / macOS (Bash / Zsh)
 ```bash
-# Create virtual environment
 python3 -m venv .venv
-
-# Activate virtual environment
 source .venv/bin/activate
-
-# Upgrade pip
 pip install --upgrade pip
-
-# Install backend dependencies in editable development mode
-pip install -e backend/
+pip install -r backend/requirements.txt
 ```
 
 ---
@@ -75,82 +62,67 @@ Copy the template:
 cp .env.example .env
 ```
 
-Ensure the key parameters match your local or production environment:
+Key parameters in `.env`:
 
 ```ini
 # Core Configuration
 APP_ENV=development
-SECRET_KEY=generate-a-secure-random-token-here
+SECRET_KEY=change-this-to-a-super-secret-hex-token-in-production
 API_V1_STR=/api/v1
 PROJECT_NAME="WB-Agent Platform"
 
-# Primary Database Connection
-DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/wb_agent
-DATABASE_URL_SYNC=postgresql://postgres:postgres@localhost:5432/wb_agent
+# Primary Database (Zero-Config SQLite WAL default; or postgresql+asyncpg://...)
+DATABASE_URL=sqlite+aiosqlite:///./wb_agent.db
+DATABASE_URL_SYNC=sqlite:///./wb_agent.db
 
-# Business Owner Escalation Target (E.164 without spaces)
-OWNER_WHATSAPP_NUMBER=+918900653250
-DEFAULT_ORG_ID=org_default_tea
+# Business Owner Escalation Target (Configure in /settings UI or set E.164 phone here)
+OWNER_WHATSAPP_NUMBER=
+DEFAULT_ORG_ID=org_default
 
-# WhatsApp Provider Configuration
-# Set to 'simulator' for local testing; 'meta_cloud' for live WhatsApp
-WHATSAPP_PROVIDER=simulator
+# WhatsApp Gateway Provider: 'bridge' (Baileys :3001), 'meta_cloud' (Official v20.0), or 'simulator'
+WHATSAPP_PROVIDER=bridge
+WHATSAPP_BRIDGE_URL=http://localhost:3001
 WHATSAPP_VERIFY_TOKEN=wb_agent_verify_token
-WHATSAPP_PHONE_NUMBER_ID=mock_phone_number_id
-WHATSAPP_ACCESS_TOKEN=mock_access_token
 
-# LLM Routing Configuration
-LLM_PROVIDER=simulator
+# AI Providers (Google Gemini for FRIDAY + NVIDIA NIM for EDITH)
+GEMINI_API_KEY=your_gemini_api_key
+NVIDIA_API_KEY=nvapi-your_nvidia_nim_api_key
+LLM_PROVIDER=nvidia
 LLM_FALLBACK_PROVIDER=simulator
 
-# Worker & Polling Controls
+# Worker & Concurrency Controls
 WORKER_COUNT=2
 JOB_POLL_INTERVAL_SECONDS=1.0
 MESSAGE_DEBOUNCE_WINDOW_SECONDS=2.5
-
-# CORS Settings (Allow Next.js Dashboard)
-CORS_ORIGINS=["http://localhost:3000","http://localhost:8000"]
 ```
 
 ---
 
 ## 🚀 3. Starting the FastAPI Application Server
 
-Run Uvicorn with auto-reloading:
-
 ```bash
-# Set PYTHONPATH so app package resolves cleanly
-# On PowerShell:
+# On Windows PowerShell:
 $env:PYTHONPATH="backend"
-uvicorn app.main:app --app-dir backend --host 0.0.0.0 --port 8000 --reload
+python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
 # On Linux / macOS:
-PYTHONPATH="backend" uvicorn app.main:app --app-dir backend --host 0.0.0.0 --port 8000 --reload
+PYTHONPATH="backend" python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-### Verifying Service Liveness & Docs
-- Open **Health Check**: `http://localhost:8000/api/v1/health`
-- Open **Interactive OpenAPI Swagger Docs**: `http://localhost:8000/api/v1/docs`
-- Open **Readiness Probe**: `http://localhost:8000/api/v1/readiness`
-
-Expected health response:
-```json
-{
-  "status": "ok",
-  "service": "wb-agent",
-  "version": "0.1.0"
-}
-```
+### Verifying Service Liveness & OpenAPI Docs
+- **Root Info**: `http://localhost:8000/`
+- **Health Check**: `http://localhost:8000/api/v1/health`
+- **Interactive Swagger UI (138 Endpoints)**: `http://localhost:8000/api/v1/docs`
+- **Readiness Probe**: `http://localhost:8000/api/v1/readiness`
 
 ---
 
 ## ⚡ 4. Starting the Background Job Worker Daemon
 
-The background worker daemon polls the database for scheduled follow-ups, debounced incoming WhatsApp messages, and external notifications using PostgreSQL `SKIP LOCKED`:
+The durable worker polls `jobs` and `followup_jobs` for scheduled follow-up sequences, anti-ban campaign drips, and background AI deliberation:
 
-In a separate terminal window:
 ```bash
-# On PowerShell:
+# On Windows PowerShell:
 $env:PYTHONPATH="backend"
 python -m app.jobs.worker
 
@@ -158,41 +130,31 @@ python -m app.jobs.worker
 PYTHONPATH="backend" python -m app.jobs.worker
 ```
 
-Expected worker log:
-```text
-2026-09-02 23:28:00 [ INFO  ] wb_agent: Background job worker daemon started (polling interval: 1.0s).
-```
-
 ---
 
-## 🧪 5. Executing the Test Suite
-
-Run all unit, integration, and persona evaluation tests using pytest:
+## 🧪 5. Executing the Automated Test Suite
 
 ```bash
-# On PowerShell:
-$env:PYTHONPATH="backend"
-python -m pytest backend/tests/ -v
+# 1. Run all 43 Unit Test modules
+$env:PYTHONPATH="backend"; python -m pytest backend/tests/unit -v
 
-# On Linux / macOS:
-PYTHONPATH="backend" pytest backend/tests/ -v
-```
+# 2. Run the 60-Test 4-Tier End-to-End (E2E) Suite
+python run_e2e_tests.py
 
-Expected result:
-```text
-============================= 57 passed in 5.49s ==============================
+# 3. Run Adversarial & Multi-Turn Persona Evaluations
+$env:PYTHONPATH="backend"; python -m pytest backend/tests/evaluation -v
 ```
 
 ---
 
 ## 🚨 Troubleshooting Common Backend Issues
 
-- Port 8000 is occupied: see [[error-catalog-and-solutions#port-conflicts|Error Catalog: Port Conflicts]].
-- ModuleNotFoundError for `app`: Ensure `$env:PYTHONPATH="backend"` or `PYTHONPATH="backend"` is exported.
-- Database Connection Refused: Verify PostgreSQL status in [[02-database-and-pgvector-setup|PostgreSQL Setup]].
+- **Port 8000 is occupied**: Run `python run.py --clean` or see [[../troubleshooting/error-catalog-and-solutions#port-conflicts|Error Catalog: Port Conflicts]].
+- **`ModuleNotFoundError: No module named 'app'`**: Ensure `$env:PYTHONPATH="backend"` (PowerShell) or `PYTHONPATH="backend"` (Bash) is set.
+- **Database issues**: See [[02-database-and-pgvector-setup|02. Database Setup Guide]].
 
 ---
 
 ## 🔀 Next Step
-With the backend server and workers operating smoothly:
-👉 Proceed to **[[04-dashboard-frontend-setup|04. Next.js 14 Dashboard Setup]]** to launch the operator UI.
+With the backend server and worker operating smoothly:
+👉 Proceed to **[[04-dashboard-frontend-setup|04. Next.js 14 Dashboard Setup]]** to launch the Mission Control UI.

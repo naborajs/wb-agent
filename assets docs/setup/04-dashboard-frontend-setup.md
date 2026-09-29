@@ -1,7 +1,7 @@
 ---
-title: 04. Next.js 14 Dashboard Frontend Setup
-tags: [setup, frontend, nextjs, react, typescript, dashboard, tailwind, obsidian]
-updated: 2026-09-02
+title: "04. Next.js 14 Dashboard Frontend Setup"
+tags: [setup, frontend, nextjs, react, typescript, dashboard, tailwind, threejs, obsidian, ns]
+updated: 2026-09-29
 aliases: [Frontend Setup, Dashboard Setup, Next.js Setup]
 status: complete
 ---
@@ -9,10 +9,11 @@ status: complete
 # 🖥️ 04. Next.js 14 Dashboard Frontend Setup
 
 > [!NOTE]
-> The **Operator Control Center** is an enterprise Next.js 14 application built with React 18, TypeScript, and Tailwind CSS. It connects to the FastAPI backend via reverse proxy rewrites and real-time WebSockets.
+> **WhatsApp AI Agent by NS** · *Engineered by Naboraj Sarkar (NS)*  
+> The **Mission Control Dashboard** is a Next.js 14 (App Router) application built with React 18, TypeScript, Tailwind CSS, Recharts, and Three.js WebGL 3D cores. It connects to the FastAPI backend via reverse proxy rewrites and real-time WebSockets, and streams live 16kHz/24kHz voice audio with **FRIDAY (`Gemini 3.1 Flash Live`)**.
 >
 > ⬅️ Previous Step: [[03-backend-setup|03. FastAPI Backend Setup]]  
-> ➡️ Next Step: [[05-whatsapp-integration-guide|05. WhatsApp Simulator & Meta Cloud API]]
+> ➡️ Next Step: [[05-whatsapp-integration-guide|05. WhatsApp Integration Guide]]
 
 ---
 
@@ -20,204 +21,82 @@ status: complete
 
 ```mermaid
 flowchart LR
-    Browser["Operator Web Browser (Port 3000)"] --> Next["Next.js 14 Server"]
-    Next --> Rewrite["next.config.js Rewrites: /api/v1/*"]
-    Rewrite --> API["FastAPI Backend (Port 8000)"]
+    Browser["Operator Web Browser (:3000)\n✨ Simplified & 🛠️ Advanced Modes"] --> Next["Next.js 14 App Router\n(17 Operational Routes)"]
+    Next --> Rewrite["next.config.js Rewrites\n/api/v1/* -> :8000"]
+    Rewrite --> API["FastAPI Backend (:8000)"]
     Browser -->|WebSocket WS /api/v1/ws| API
+    Browser -->|Ephemeral Token Audio WS| Gemini["Google Gemini 3.1 Flash Live"]
 ```
 
 ---
 
 ## 📦 1. Installing Frontend Dependencies
 
-From the repository root, change into the `dashboard` directory:
+From the repository root, change into the `dashboard` directory (or let `python run.py` handle this automatically):
 
 ```bash
 cd dashboard
-
-# Install packages with npm
 npm install
 ```
 
-Installed packages include:
-- `next`: ^14.1.4
-- `react`: ^18.2.0
-- `lucide-react`: High-density icon library
-- `tailwindcss`: Utility-first CSS framework
-- `typescript`: Type safety and validation
+Key frontend packages:
+- `next`: `^14.2.x` (App Router)
+- `react` & `react-dom`: `^18.2.0`
+- `three`: Interactive 3D WebGL rendering for `NativeFridayOrb3D` (`friday_orb.obj`) & `NativeEdithCore3D` (`edith_core.obj`)
+- `recharts`: Capability radar charts, Pareto curves, and token budget donuts
+- `lucide-react`: High-density operational iconography
+- `tailwindcss`: Dual-theme styling (**Royal Pitch Black** & **Estate White**)
 
 ---
 
-## ⚙️ 2. API Proxy Configuration (`next.config.js`)
-
-To prevent CORS issues in development, `dashboard/next.config.js` transparently proxies all requests matching `/api/v1/:path*` directly to the backend:
-
-```javascript
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-  reactStrictMode: true,
-  output: "standalone",
-  async rewrites() {
-    return [
-      {
-        source: "/api/v1/:path*",
-        destination: `${process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000"}/api/v1/:path*`,
-      },
-    ];
-  },
-};
-
-module.exports = nextConfig;
-```
-
----
-
-## 🚀 3. Starting Development Server
-
-Launch the development server with Hot Module Replacement (HMR):
+## 🚀 2. Starting the Development Server
 
 ```bash
+cd dashboard
 npm run dev
 ```
 
 Open your browser to:
 👉 **`http://localhost:3000`**
 
----
-
-## 🏗️ 4. Verifying Production Build
-
-Verify that all TypeScript types, React components, and static routes compile cleanly:
-
+### Verifying Production Build
 ```bash
+cd dashboard
 npm run build
-```
-
-Expected build output:
-```text
-  ▲ Next.js 14.2.35
-
-   Creating an optimized production build ...
- ✓ Compiled successfully
-   Linting and checking validity of types ...
-   Collecting page data ...
- ✓ Generating static pages (19/19)
-   Finalizing page optimization ...
-
-Route (app)                              Size     First Load JS
-┌ ○ /                                    4.39 kB        91.7 kB
-├ ○ /_not-found                          873 B          88.1 kB
-├ ○ /analytics                           3.84 kB        91.1 kB
-├ ○ /campaigns                           4.03 kB        91.3 kB
-├ ○ /conversations                       13.1 kB         100 kB
-├ ○ /followups                           1.76 kB          89 kB
-├ ○ /handoffs                            2.31 kB        89.6 kB
-├ ○ /integrations                        7.54 kB        94.8 kB
-├ ○ /knowledge                           2.66 kB        89.9 kB
-├ ○ /leads                               3.39 kB        90.7 kB
-├ ○ /orders                              5.44 kB        92.7 kB
-├ ○ /pricing                             5.45 kB        92.7 kB
-├ ○ /products                            5.18 kB        92.4 kB
-├ ○ /prompts                             11.1 kB        98.4 kB
-└ ○ /settings                            7.07 kB        94.3 kB
-+ First Load JS shared by all            87.3 kB
-```
-
-To run the optimized production server:
-```bash
 npm run start
 ```
 
 ---
 
-## 🧭 5. Dashboard Pages Tour & Visual Reference
+## 🧭 3. All 17 Dashboard Routes & Workspace Modes
 
 > [!TIP]
-> For the complete visual tour with high-resolution screenshots of all 12 operational views and mobile responsive designs, visit **[docs/visual-tour.md](../visual-tour.md)**.
+> For the complete photographic walkthrough of all 17 operational views, visit **[[../visual-tour|Dashboard Visual Operations Tour]]**.
 
-### 💬 Live 3-Panel Inbox & Sales Console (`/conversations`)
-The central workspace for real-time buyer conversations, consultative reasoning, and atomic takeover:
+### Workspace Modes & Global Modals (`DashboardShell.tsx` & `OnboardingAndModeModal.tsx`)
+- **`✨ Simplified` vs. `🛠️ Advanced` Mode Toggle**: Located in the top navigation bar. Simplified mode keeps the interface clean for everyday store owners, while Advanced mode unlocks all 17 engineering and AI studio routes.
+- **`⚙️ Setup, WhatsApp & Features` Modal**: 3-step popup to configure **Unofficial Baileys QR/8-Digit Pairing vs. Official Meta Cloud API**, run the **AI Business Auto-Fill Architect**, toggle **13 platform modules ON/OFF**, and execute the **5-Point End-to-End Health Verification**.
 
-![Live Inbox Console](../screenshots/live_inbox.png)
-
-- **Left Panel**: Scrollable conversation list with search, filter tabs (`All`, `🔥 Hot`, `Takeover`), lead score badges (0–100), and unread indicators.
-- **Center Panel**: Real-time WhatsApp timeline displaying customer, AI consultant, and human operator messages with delivery checkmarks and single-click **Report / Correct Response** feedback.
-- **Right Panel**: Real-time customer profile, long-term memory facts with verification badges (`CUSTOMER_SAID`, `SYSTEM_VERIFIED`), rolling AI summary, and atomic takeover buttons (`Take Over` / `Resume AI`).
-
----
-
-### 📊 Wholesale Operations Center (`/`)
-Executive command center with live sales telemetry:
-
-![Wholesale Operations Center](../screenshots/overview.png)
-
-- KPI Summary: Total Leads, Active Conversations, 🔥 Hot Leads, Pending Handoffs, Won Deals, and Net Pipeline (INR).
-- Live 16-stage sales funnel distribution chart.
-- System health and queue depth monitor.
-
----
-
-### 🏷️ Deterministic Pricing & Volume Curve (`/pricing`)
-Zero-hallucination wholesale calculation engine:
-
-![Deterministic Pricing Rules](../screenshots/pricing_rules.png)
-
-- Live table of deterministic volume discount tiers (50kg, 100kg, 500kg).
-- Interactive SVG volume discount curve and margin threshold visualizer.
-- Interactive quote and margin calculator testing discount limits and human escalation flags.
-
----
-
-### ⚙️ Model Architecture & Fallback Hierarchy (`/integrations`)
-Model management console with local `.env` synchronization:
-
-![Model Architecture](../screenshots/integrations.png)
-
-- Multi-tier model selector: Primary thinking model (Nemotron-3 Ultra 550B) and fallback sequence.
-- Local `.env` persistence for API keys and hyperparameters.
-- Live benchmark response speed curves and fallback reliability telemetry.
-
----
-
-### 📝 Modular System Prompts & Token Budget (`/prompts`)
-Version-controlled instruction management:
-
-![Modular Prompts](../screenshots/modular_prompts.png)
-
-- 5 isolated prompt modules (`core_safety`, `core_identity`, `business_policy`, `sales_style`, `business_profile`).
-- Live Prompt Token Budget donut chart.
-- 1-click historical rollback and audit log tracking.
-
----
-
-### 👥 Leads Directory & Proposal Pipeline (`/leads`)
-- Searchable directory of wholesale buyers with E.164 phone normalization.
-- Multipart CSV batch import button with row-level error reporting and deduplication.
-
-### 📦 Wholesale Commercial Orders (`/orders`)
-- Order lifecycle tracking, status filters, and pro-forma invoice generator.
-
-### ☕ Tea Catalog (`/products`)
-- Wholesale catalog of North Bengal Tea Co.: Darjeeling First Flush, Assam Kadak CTC, and Dooars Hotel Blend with packaging weights (5kg to 50kg) and Minimum Order Quantities (MOQs).
-
-### 📚 Knowledge Base & Vector RAG (`/knowledge`)
-- List of active ingested markdown policy documents, certifications, and tasting sample guides.
-- Semantic vector search query tester.
-
-### 📅 Follow-up Sequences (`/followups`)
-- Monitor active Day 0, Day 1, Day 3 follow-up sequence jobs and verified cancellation audit reasons (`customer_replied`, `customer_opted_out`).
-
-### 🚨 Human Handoff Queue (`/handoffs`)
-- Queue of high-value buyer escalations requiring manual commercial approval.
-- One-click `Resolve & Resume AI` actions.
-
-### ⚙️ Platform Settings & Kill-Switch (`/settings`)
-- Global autonomous kill-switch: instantly suspends outbound messaging.
-- Dry-run and Sandbox mode toggles.
-- Primary business owner escalation phone setting (`+918900653250`).
+### Complete Route Directory:
+1. **`/` (`Overview Command Center`)**: 3D WebGL Dual-Brain stage, Live Synaptic Activity Ticker, Executive Morning Audio Briefing, 24h Traffic Velocity Heatmap, and Live Inbound WhatsApp Simulator.
+2. **`/conversations` (`Live 3-Panel Inbox`)**: Canonical `@lid`-deduplicated thread list, live chat timeline with `✨ AI Suggest Reply`, voice note transcription, and atomic **Take Over / Resume AI** drawer.
+3. **`/brain` (`Dual-Brain Synaptic Console`)**: Live Friday ↔ EDITH deliberation console, 6-dimension capability radar chart, token economics, synaptic ledger, and AI codebase self-inspection suite.
+4. **`/playground` (`15-Model AI Negotiation Arena`)**: Interactive testing arena for 15+ Google Gemini & NVIDIA NIM models with 4 persona presets, 6 B2B test prompts, and 1-click AI prompt upgrading.
+5. **`/knowledge` (`Unified Knowledge Hub & Spreadsheet Editor`)**: Consolidates Product Catalog, Pricing Rules, Policies, and Guides with an **Excel-like Interactive Spreadsheet Editor**, Document Viewer, Agentic Chat Updater, and Vector RAG tester.
+6. **`/prompts` (`Modular System Prompts Studio`)**: Manages **7 dynamic system prompt sections** (`core_safety`, `core_identity`, `business_policy`, `sales_style`, `business_profile`, `product_steering`, `escalation_rules`) + custom sections with NemoTron AI optimization, server-side git diff viewer, version pinning, and rollback.
+7. **`/settings` (`AI Business Architect & Gateway Settings`)**: **AI Business Auto-Fill Architect** (plain English -> 16 business fields + 4 seeded products), **6 Industry Presets + Custom Preset Creator**, **Official Meta Cloud API vs. Unofficial Baileys Bridge controls**, owner escalation phone, and Global Kill-Switch.
+8. **`/integrations` (`5-Role Dynamic Model Router`)**: Assign models to `friday_web_model`, `edith_sales_model`, `friday_voice_model`, `edith_policy_model`, and `system_watchdog_model` with live latency benchmarks.
+9. **`/leads` (`Lead Intake & Proposal Pipeline`)**: E.164 CSV bulk import, 0–100 lead scoring, and 1-click custom WhatsApp proposal dispatch.
+10. **`/campaigns` (`Anti-Ban Campaign Drip Engine`)**: Chat-driven campaign drafting with Friday & EDITH guardrail validation and randomized **25s–45s anti-ban jitter**.
+11. **`/orders` (`Commercial Orders & GST Invoices`)**: Order lifecycle management, automatic owner WhatsApp alerts, and ReportLab GST Pro-Forma PDF invoices.
+12. **`/analytics` (`Sales Intelligence & Objection Analytics`)**: Pareto 80/20 objection chart, regional revenue table, stage-weighted forecast, and 1-click CSV export.
+13. **`/followups` (`Follow-Up Sequence Engine`)**: Scheduled Touch 1 / Touch 2 / Touch 3 nudges with quiet hours and preflight reply auto-cancellation.
+14. **`/handoffs` (`Human Escalation Queue`)**: High-value buyer escalations (`HOT_LEAD`, `CUSTOM_PRICING`, `COMPLAINT`, `KNOWLEDGE_GAP`) with 1-click resolution.
+15. **`/notifications` (`Autonomous Agent Notifications Center`)**: Real-time alert feed from EDITH and Friday.
+16. **`/pricing` & `/products`**: Dedicated views and unified redirects to the `/knowledge` catalog & pricing spreadsheet hub.
 
 ---
 
 ## 🔀 Next Step
 Now that both the backend and frontend are operational:
-👉 Proceed to **[[05-whatsapp-integration-guide|05. WhatsApp Simulator & Meta Cloud API]]** to configure WhatsApp messaging channels.
+👉 Proceed to **[[05-whatsapp-integration-guide|05. WhatsApp Integration Guide]]** to connect your WhatsApp channel.
