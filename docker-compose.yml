@@ -1,23 +1,19 @@
-version: '3.8'
-
 services:
-  postgres:
-    image: pgvector/pgvector:pg16
-    container_name: wb_agent_postgres
+  whatsapp-bridge:
+    image: node:20-alpine
+    container_name: wb_agent_whatsapp_bridge
+    working_dir: /app
     restart: unless-stopped
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgrespassword
-      POSTGRES_DB: wb_agent
+      BRIDGE_PORT: "3001"
+      API_URL: http://backend:8000
+      WA_AUTH_DIR: /app/auth_info_baileys
     ports:
-      - "5432:5432"
+      - "3001:3001"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d wb_agent"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+      - ./whatsapp-bridge:/app
+      - wa_auth_data:/app/auth_info_baileys
+    command: sh -c "npm install --no-audit --no-fund && node index.js"
 
   backend:
     build:
@@ -25,14 +21,16 @@ services:
       dockerfile: docker/backend.Dockerfile
     container_name: wb_agent_backend
     restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
-    env_file:
-      - .env
     environment:
-      DATABASE_URL: postgresql+asyncpg://postgres:postgrespassword@postgres:5432/wb_agent
-      DATABASE_URL_SYNC: postgresql://postgres:postgrespassword@postgres:5432/wb_agent
+      APP_ENV: ${APP_ENV:-production}
+      DATABASE_URL: ${DATABASE_URL:-sqlite+aiosqlite:///./storage/wb_agent.db}
+      DATABASE_URL_SYNC: ${DATABASE_URL_SYNC:-sqlite:///./storage/wb_agent.db}
+      WHATSAPP_PROVIDER: ${WHATSAPP_PROVIDER:-bridge}
+      WHATSAPP_BRIDGE_URL: http://whatsapp-bridge:3001
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      NVIDIA_API_KEY: ${NVIDIA_API_KEY:-}
+      OWNER_WHATSAPP_NUMBER: ${OWNER_WHATSAPP_NUMBER:-}
+      CORS_ORIGINS: '["*"]'
     ports:
       - "8000:8000"
     volumes:
@@ -43,26 +41,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-
-  worker:
-    build:
-      context: .
-      dockerfile: docker/backend.Dockerfile
-    container_name: wb_agent_worker
-    restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
-    env_file:
-      - .env
-    environment:
-      DATABASE_URL: postgresql+asyncpg://postgres:postgrespassword@postgres:5432/wb_agent
-      DATABASE_URL_SYNC: postgresql://postgres:postgrespassword@postgres:5432/wb_agent
-    volumes:
-      - ./backend:/app/backend
-      - ./storage:/app/storage
-    command: python -m app.jobs.worker
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
 
   dashboard:
     build:
@@ -74,14 +53,38 @@ services:
       backend:
         condition: service_healthy
     ports:
-      - "3000:3000"
+      - "${PORT:-3000}:3000"
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:8000
+      PORT: "3000"
+      HOSTNAME: "0.0.0.0"
+      INTERNAL_API_URL: http://backend:8000
+      NEXT_PUBLIC_GEMINI_API_KEY: ${GEMINI_API_KEY:-}
     volumes:
       - ./dashboard:/app
       - /app/node_modules
       - /app/.next
 
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: wb_agent_postgres
+    profiles: ["postgres"]
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgrespassword}
+      POSTGRES_DB: ${POSTGRES_DB:-wb_agent}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d wb_agent"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
 volumes:
+  wa_auth_data:
+    driver: local
   postgres_data:
     driver: local
