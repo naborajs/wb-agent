@@ -7,6 +7,7 @@
 ===============================================================================
 Usage:
     python run.py             # Full check, auto-install missing packages, and launch all services
+    python run.py --prod      # Production build & server mode (for Linux VPS, Docker, Render, Railway)
     python run.py --no-open   # Launch without automatically opening browser
     python run.py --clean     # Clean dependencies cache and restart
 ===============================================================================
@@ -17,6 +18,7 @@ import os
 import time
 import signal
 import shutil
+import shlex
 import socket
 import urllib.request
 import urllib.error
@@ -249,6 +251,8 @@ def install_dependencies():
     else:
         log_success("All core Python packages verified")
 
+    is_win = os.name == "nt"
+
     # B. WhatsApp Bridge Dependencies
     log_step("2B", "Checking WhatsApp Bridge Node Modules...")
     wa_dir = ROOT_DIR / "whatsapp-bridge"
@@ -257,7 +261,7 @@ def install_dependencies():
     if not wa_modules.exists() or not wa_critical.exists():
         log_warn("whatsapp-bridge/node_modules missing. Running npm install automatically...")
         try:
-            subprocess.run(["npm", "install"], cwd=str(wa_dir), shell=True, check=True)
+            subprocess.run(["npm", "install"], cwd=str(wa_dir), shell=is_win, check=True)
             log_success("WhatsApp Bridge dependencies installed")
         except subprocess.CalledProcessError as e:
             log_warn(f"WhatsApp Bridge npm install failed: {e}. (Will continue; can retry later)")
@@ -274,7 +278,7 @@ def install_dependencies():
     if not dash_modules.exists() or not dash_next.exists() or not dash_lucide.exists():
         log_warn("dashboard/node_modules missing or incomplete. Running npm install automatically...")
         try:
-            subprocess.run(["npm", "install"], cwd=str(dash_dir), shell=True, check=True)
+            subprocess.run(["npm", "install"], cwd=str(dash_dir), shell=is_win, check=True)
             log_success("Dashboard dependencies installed successfully")
         except subprocess.CalledProcessError as e:
             log_error(f"Failed to install Dashboard dependencies: {e}")
@@ -396,17 +400,29 @@ def check_configuration_and_keys():
 
 
 # =============================================================================
-# 4. Port Conflict Detection & Cleanup
+# 4. Port Conflict Detection & Cleanup (Windows + Linux/macOS)
 # =============================================================================
 def find_listening_pid(port):
     try:
-        out = subprocess.check_output(f'netstat -ano | findstr :{port}', shell=True, text=True, stderr=subprocess.DEVNULL)
-        for line in out.strip().splitlines():
-            parts = line.split()
-            if len(parts) >= 5 and parts[3] == "LISTENING":
-                local_addr = parts[1]
-                if local_addr.endswith(f":{port}"):
-                    return int(parts[4])
+        if os.name == "nt":
+            out = subprocess.check_output(f'netstat -ano | findstr :{port}', shell=True, text=True, stderr=subprocess.DEVNULL)
+            for line in out.strip().splitlines():
+                parts = line.split()
+                if len(parts) >= 5 and parts[3] == "LISTENING":
+                    local_addr = parts[1]
+                    if local_addr.endswith(f":{port}"):
+                        return int(parts[4])
+        else:
+            if shutil.which("lsof"):
+                out = subprocess.check_output(["lsof", "-ti", f"tcp:{port}"], text=True, stderr=subprocess.DEVNULL)
+                for line in out.strip().splitlines():
+                    if line.strip().isdigit():
+                        return int(line.strip())
+            elif shutil.which("fuser"):
+                out = subprocess.check_output(["fuser", f"{port}/tcp"], text=True, stderr=subprocess.DEVNULL)
+                for part in out.strip().split():
+                    if part.strip().isdigit():
+                        return int(part.strip())
     except Exception:
         pass
     return None
@@ -414,13 +430,17 @@ def find_listening_pid(port):
 def kill_pid(pid):
     if pid and pid > 0 and pid != os.getpid():
         try:
-            subprocess.run(f"taskkill /F /T /PID {pid}", shell=True, capture_output=True, text=True)
+            if os.name == "nt":
+                subprocess.run(f"taskkill /F /T /PID {pid}", shell=True, capture_output=True, text=True)
+            else:
+                os.kill(pid, signal.SIGTERM)
         except Exception:
             pass
 
-def clean_stale_ports():
+def clean_stale_ports(ports=None):
     log_header("STEP 4: PORT AVAILABILITY & STALE PROCESS CLEANUP")
-    ports = [3000, 3001, 8000]
+    if ports is None:
+        ports = [3000, 3001, 8000]
     for p in ports:
         pid = find_listening_pid(p)
         if pid:
@@ -468,13 +488,14 @@ def stream_process_output(pipe, prefix, color):
 
 
 # =============================================================================
-# 6. Service Orchestration
+# 6. Service Orchestration (Cross-Platform Windows + Linux/macOS/Docker)
 # =============================================================================
 def start_service(cmd, cwd, prefix, color, env_extra=None):
     env = os.environ.copy()
     if env_extra:
         env.update(env_extra)
 
+    is_win = os.name == "nt"
     popen_kwargs = {
         "cwd": str(cwd),
         "env": env,
@@ -482,12 +503,16 @@ def start_service(cmd, cwd, prefix, color, env_extra=None):
         "stderr": subprocess.STDOUT,
         "text": True,
         "bufsize": 1,
-        "shell": True if os.name == "nt" else False,
+        "shell": is_win,
     }
-    if os.name == "nt":
+    if is_win:
         popen_kwargs["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
+        exec_cmd = cmd
+    else:
+        popen_kwargs["start_new_session"] = True
+        exec_cmd = shlex.split(cmd) if isinstance(cmd, str) else cmd
 
-    proc = subprocess.Popen(cmd, **popen_kwargs)
+    proc = subprocess.Popen(exec_cmd, **popen_kwargs)
     PROCESSES.append((prefix, proc))
 
     t = threading.Thread(target=stream_process_output, args=(proc.stdout, prefix, color), daemon=True)
@@ -526,8 +551,11 @@ def shutdown_handler(signum=None, frame=None):
             if os.name == "nt":
                 subprocess.run(f"taskkill /F /T /PID {proc.pid}", shell=True, capture_output=True)
             else:
-                proc.terminate()
-                proc.wait(timeout=2)
+                try:
+                    os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+                except Exception:
+                    proc.terminate()
+                proc.wait(timeout=3)
         except Exception:
             pass
 
@@ -547,6 +575,17 @@ def shutdown_handler(signum=None, frame=None):
 def main():
     signal.signal(signal.SIGINT, shutdown_handler)
     signal.signal(signal.SIGTERM, shutdown_handler)
+
+    is_prod = (
+        "--prod" in sys.argv
+        or os.environ.get("APP_ENV", "").lower() == "production"
+        or bool(os.environ.get("RENDER") or os.environ.get("RAILWAY_ENVIRONMENT") or os.environ.get("FLY_APP_NAME"))
+    )
+    dash_port = int(os.environ.get("PORT", "3000"))
+    backend_port = int(os.environ.get("BACKEND_PORT", "8000"))
+    if dash_port == backend_port:
+        backend_port = 8001
+    bridge_port = int(os.environ.get("BRIDGE_PORT", "3001"))
 
     print(f"""{C.BOLD}{C.CYAN}
   +-------------------------------------------------------------------------------+
@@ -570,37 +609,72 @@ def main():
     check_configuration_and_keys()
 
     # 4. Port Cleanup
-    clean_stale_ports()
+    clean_stale_ports([dash_port, bridge_port, backend_port])
 
     # 5. Service Launch
-    log_header("STEP 5: LAUNCHING DUAL-BRAIN PLATFORM SERVICES")
+    mode_label = "PRODUCTION SERVER MODE" if is_prod else "DEVELOPMENT MODE"
+    log_header(f"STEP 5: LAUNCHING DUAL-BRAIN PLATFORM SERVICES ({mode_label})")
+
+    # If production mode, ensure Next.js production build exists
+    dash_dir = ROOT_DIR / "dashboard"
+    if is_prod and not (dash_dir / ".next" / "BUILD_ID").exists():
+        log_step("5-BUILD", "Building Next.js Dashboard for Production...")
+        subprocess.run(
+            ["npm", "run", "build"],
+            cwd=str(dash_dir),
+            shell=(os.name == "nt"),
+            check=True,
+            env={**os.environ, "INTERNAL_API_URL": f"http://127.0.0.1:{backend_port}"},
+        )
+        log_success("Next.js Production build completed")
 
     # Service 1: WhatsApp Bridge (Port 3001)
-    log_step("5A", "Starting WhatsApp Bridge (Port 3001)...")
+    log_step("5A", f"Starting WhatsApp Bridge (Port {bridge_port})...")
     start_service(
         cmd="node index.js",
         cwd=ROOT_DIR / "whatsapp-bridge",
         prefix="WHATSAPP-BRIDGE",
         color=C.MAGENTA,
+        env_extra={
+            "BRIDGE_PORT": str(bridge_port),
+            "API_URL": f"http://127.0.0.1:{backend_port}",
+        },
     )
 
     # Service 2: FastAPI Backend (Port 8000)
-    log_step("5B", "Starting FastAPI Backend (Port 8000)...")
+    log_step("5B", f"Starting FastAPI Backend (Port {backend_port})...")
+    uvicorn_cmd = (
+        f'"{sys.executable}" -m uvicorn app.main:app --app-dir backend --host 0.0.0.0 --port {backend_port}'
+        if is_prod
+        else f'"{sys.executable}" -m uvicorn app.main:app --app-dir backend --host 0.0.0.0 --port {backend_port} --reload'
+    )
     start_service(
-        cmd=f'"{sys.executable}" -m uvicorn app.main:app --app-dir backend --host 0.0.0.0 --port 8000 --reload',
+        cmd=uvicorn_cmd,
         cwd=ROOT_DIR,
         prefix="FASTAPI-BACKEND",
         color=C.CYAN,
-        env_extra={"PYTHONPATH": "backend"},
+        env_extra={
+            "PYTHONPATH": "backend",
+            "WHATSAPP_BRIDGE_URL": f"http://127.0.0.1:{bridge_port}",
+        },
     )
 
-    # Service 3: Next.js Dashboard UI (Port 3000)
-    log_step("5C", "Starting Next.js Operator Dashboard (Port 3000)...")
+    # Service 3: Next.js Dashboard UI (Port 3000 or $PORT)
+    log_step("5C", f"Starting Next.js Operator Dashboard (Port {dash_port})...")
+    dash_cmd = (
+        f"npm run start -- -H 0.0.0.0 -p {dash_port}"
+        if is_prod
+        else f"npm run dev -- -H 0.0.0.0 -p {dash_port}"
+    )
     start_service(
-        cmd="npm run dev",
-        cwd=ROOT_DIR / "dashboard",
+        cmd=dash_cmd,
+        cwd=dash_dir,
         prefix="DASHBOARD-UI   ",
         color=C.BLUE,
+        env_extra={
+            "PORT": str(dash_port),
+            "INTERNAL_API_URL": f"http://127.0.0.1:{backend_port}",
+        },
     )
 
     # 6. Service Health Verification & Diagnostics
@@ -608,16 +682,16 @@ def main():
     print(f"  {C.DIM}Verifying API endpoints and service readiness...{C.RESET}")
 
     # FastAPI Backend
-    backend_ok = poll_health("http://localhost:8000/api/v1/health", timeout=25, service_name="FastAPI Backend")
+    backend_ok = poll_health(f"http://127.0.0.1:{backend_port}/api/v1/health", timeout=30, service_name="FastAPI Backend")
     if backend_ok:
-        log_success("FastAPI Backend is ONLINE & HEALTHY (http://localhost:8000)")
+        log_success(f"FastAPI Backend is ONLINE & HEALTHY (http://localhost:{backend_port})")
     else:
         log_error("FastAPI Backend health check timed out!")
         log_box(
             "TROUBLESHOOTING: BACKEND SERVICE",
             [
-                "The FastAPI backend did not respond at http://localhost:8000/api/v1/health.",
-                "1. Check if another process is using port 8000.",
+                f"The FastAPI backend did not respond at http://localhost:{backend_port}/api/v1/health.",
+                f"1. Check if another process is using port {backend_port}.",
                 "2. Check the [FASTAPI-BACKEND] logs printed above for any Python traceback.",
                 "3. Try running manually to inspect errors: python -m uvicorn app.main:app --app-dir backend",
             ],
@@ -625,30 +699,30 @@ def main():
         )
 
     # Dual-Brain Bus Endpoint
-    brain_ok = poll_health("http://localhost:8000/api/v1/brain/status", timeout=10, service_name="Dual-Brain Bus")
+    brain_ok = poll_health(f"http://127.0.0.1:{backend_port}/api/v1/brain/status", timeout=10, service_name="Dual-Brain Bus")
     if brain_ok:
         log_success("Dual-Brain Architecture Bus is ACTIVE & SYNCED (Friday & EDITH)")
     else:
         log_warn("Dual-Brain Bus is initializing...")
 
     # Notifications Center Endpoint
-    notif_ok = poll_health("http://localhost:8000/api/v1/notifications", timeout=10, service_name="Notifications Center")
+    notif_ok = poll_health(f"http://127.0.0.1:{backend_port}/api/v1/notifications", timeout=10, service_name="Notifications Center")
     if notif_ok:
         log_success("Autonomous Agent Notification Center is ACTIVE (WebSocket ready)")
     else:
         log_warn("Notification Center is initializing...")
 
     # Next.js Dashboard
-    dash_ok = poll_health("http://localhost:3000", timeout=35, service_name="Next.js Dashboard")
+    dash_ok = poll_health(f"http://127.0.0.1:{dash_port}", timeout=40, service_name="Next.js Dashboard")
     if dash_ok:
-        log_success("Next.js Operator Dashboard is ONLINE & READY (http://localhost:3000)")
+        log_success(f"Next.js Operator Dashboard is ONLINE & READY (http://localhost:{dash_port})")
     else:
         log_warn("Next.js Dashboard is still compiling initial pages (will be ready shortly)...")
 
     # WhatsApp Bridge
-    wa_ok = poll_health("http://localhost:3001/health", timeout=15, service_name="WhatsApp Bridge")
+    wa_ok = poll_health(f"http://127.0.0.1:{bridge_port}/health", timeout=15, service_name="WhatsApp Bridge")
     if wa_ok:
-        log_success("WhatsApp Bridge is ONLINE & READY for QR Pairing (http://localhost:3001)")
+        log_success(f"WhatsApp Bridge is ONLINE & READY for QR Pairing (http://localhost:{bridge_port})")
     else:
         log_info("WhatsApp Bridge is starting up in background (QR authentication mode)")
 
@@ -658,32 +732,31 @@ def main():
     print(f"{C.BOLD}{C.GREEN}{'='*80}{C.RESET}")
     print(f"""
   {C.BOLD}Platform Service Endpoints:{C.RESET}
-    {C.BLUE}• Operator Dashboard:{C.RESET}        http://localhost:3000
-    {C.CYAN}• Dual-Brain Console:{C.RESET}        http://localhost:3000/brain
-    {C.CYAN}• Knowledge & Policies:{C.RESET}      http://localhost:3000/knowledge
-    {C.CYAN}• Notification Center:{C.RESET}       http://localhost:3000/notifications
-    {C.WHITE}• Backend API & Docs:{C.RESET}        http://localhost:8000/api/v1/docs
-    {C.MAGENTA}• WhatsApp Bridge:{C.RESET}           http://localhost:3001
+    {C.BLUE}• Operator Dashboard:{C.RESET}        http://localhost:{dash_port}
+    {C.CYAN}• Dual-Brain Console:{C.RESET}        http://localhost:{dash_port}/brain
+    {C.CYAN}• Knowledge & Policies:{C.RESET}      http://localhost:{dash_port}/knowledge
+    {C.CYAN}• Notification Center:{C.RESET}       http://localhost:{dash_port}/notifications
+    {C.WHITE}• Backend API & Docs:{C.RESET}        http://localhost:{backend_port}/api/v1/docs
+    {C.MAGENTA}• WhatsApp Bridge:{C.RESET}           http://localhost:{bridge_port}
 
   {C.BOLD}{C.YELLOW}┌─────────────────────────────────────────────────────────────────────────────┐{C.RESET}
   {C.BOLD}{C.YELLOW}│            WHATSAPP AGENT CONNECTION GUIDE — 3 SIMPLE WAYS TO CONNECT       │{C.RESET}
   {C.BOLD}{C.YELLOW}└─────────────────────────────────────────────────────────────────────────────┘{C.RESET}
   
   {C.BOLD}{C.CYAN}1. METHOD 1: SCAN QR CODE (Instant Multi-Device Pairing){C.RESET}
-     • Scan the terminal ASCII QR code that appears in the logs below, OR
-     • Open {C.UNDERLINE}http://localhost:3001/qr{C.RESET} in your browser, OR
-     • Open Dashboard {C.UNDERLINE}http://localhost:3000/conversations{C.RESET} and click {C.BOLD}"Connect WhatsApp"{C.RESET}.
+     • Open the Dashboard at {C.UNDERLINE}http://localhost:{dash_port}{C.RESET} -> Setup & Mode Modal (works on any remote server!), OR
+     • Scan the terminal ASCII QR code that appears in the logs below.
      • On phone: WhatsApp > Settings (or 3 dots) > Linked Devices > Link a Device.
 
   {C.BOLD}{C.CYAN}2. METHOD 2: 8-DIGIT PAIRING CODE (No Camera / Remote Server){C.RESET}
-     • Open {C.UNDERLINE}http://localhost:3001/code{C.RESET} in your browser and enter your phone number.
+     • Open the Dashboard Setup Modal -> Enter your phone number -> Click {C.BOLD}"Get 8-Digit Code"{C.RESET}.
      • On phone: WhatsApp > Linked Devices > Link a Device > {C.BOLD}"Link with phone number instead"{C.RESET}.
      • Enter the 8-character pairing code displayed on screen.
 
   {C.BOLD}{C.CYAN}3. METHOD 3: OFFICIAL META CLOUD API (Production Enterprise){C.RESET}
-     • Configure credentials in your {C.BOLD}.env{C.RESET} file:
+     • Switch to {C.BOLD}"Official (Meta API)"{C.RESET} in the Dashboard Setup Modal or Settings, OR set in {C.BOLD}.env{C.RESET}:
        {C.DIM}WHATSAPP_PROVIDER=meta_cloud{C.RESET}
-       {C.DIM}WHATSAPP_TOKEN=<your_access_token>{C.RESET}
+       {C.DIM}WHATSAPP_ACCESS_TOKEN=<your_access_token>{C.RESET}
        {C.DIM}WHATSAPP_PHONE_NUMBER_ID=<your_phone_id>{C.RESET}
        {C.DIM}WHATSAPP_VERIFY_TOKEN=<your_webhook_verify_token>{C.RESET}
 
@@ -691,10 +764,11 @@ def main():
   {C.DIM}Streaming real-time multiplexed logs below:{C.RESET}
     """)
 
-    # Auto-open browser if not disabled
-    if "--no-open" not in sys.argv:
+    # Auto-open browser only on desktop interactive environments
+    headless_linux = (os.name != "nt" and sys.platform != "darwin" and not os.environ.get("DISPLAY"))
+    if "--no-open" not in sys.argv and not is_prod and not headless_linux:
         try:
-            webbrowser.open("http://localhost:3000")
+            webbrowser.open(f"http://localhost:{dash_port}")
         except Exception:
             pass
 
