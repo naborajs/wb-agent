@@ -15,9 +15,9 @@ import {
   Send,
   LogOut,
   Layers,
-  Wrench,
   Check,
   ExternalLink,
+  Wand2,
 } from "lucide-react";
 
 export interface WorkspaceConfigState {
@@ -31,7 +31,14 @@ export interface WorkspaceConfigState {
   catalog_unit: string;
   currency_symbol: string;
   owner_whatsapp_number: string;
+  whatsapp_connection_mode?: "unofficial" | "official";
+  meta_phone_number_id?: string;
+  meta_waba_id?: string;
+  meta_access_token?: string;
+  meta_verify_token?: string;
   whatsapp_connected: boolean;
+  unofficial_bridge_connected?: boolean;
+  official_meta_configured?: boolean;
   bot_whatsapp_number: string;
   bridge_owner_phone?: string;
   qr_available: boolean;
@@ -46,6 +53,7 @@ export interface WorkspaceConfigState {
     business_tagline: string;
     catalog_unit: string;
     currency_symbol: string;
+    is_custom?: boolean;
   }>;
 }
 
@@ -158,6 +166,12 @@ export default function OnboardingAndModeModal({
   initialTab = "whatsapp_owner",
 }: OnboardingAndModeModalProps) {
   const [activeTab, setActiveTab] = useState<"whatsapp_owner" | "industry_features" | "verification">(initialTab);
+  const [waMode, setWaMode] = useState<"unofficial" | "official">(config.whatsapp_connection_mode || "unofficial");
+  const [metaPhoneId, setMetaPhoneId] = useState(config.meta_phone_number_id || "");
+  const [metaWabaId, setMetaWabaId] = useState(config.meta_waba_id || "");
+  const [metaAccessToken, setMetaAccessToken] = useState(config.meta_access_token || "");
+  const [metaVerifyToken, setMetaVerifyToken] = useState(config.meta_verify_token || "wb_agent_verify_token");
+
   const [ownerPhoneInput, setOwnerPhoneInput] = useState(config.owner_whatsapp_number || "");
   const [pairPhoneInput, setPairPhoneInput] = useState("");
   const [pairingCodeResult, setPairingCodeResult] = useState<string | null>(config.pairing_code || null);
@@ -165,6 +179,11 @@ export default function OnboardingAndModeModal({
   const [businessIndustryInput, setBusinessIndustryInput] = useState(config.business_industry || "");
   const [businessTaglineInput, setBusinessTaglineInput] = useState(config.business_tagline || "");
   const [catalogUnitInput, setCatalogUnitInput] = useState(config.catalog_unit || "unit");
+
+  // AI Auto-fill inside modal
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [isAiFilling, setIsAiFilling] = useState(false);
+
   const [saving, setSaving] = useState(false);
   const [resettingWa, setResettingWa] = useState(false);
   const [requestingPair, setRequestingPair] = useState(false);
@@ -175,7 +194,6 @@ export default function OnboardingAndModeModal({
   // Verification state
   const [verifying, setVerifying] = useState(false);
   const [checks, setChecks] = useState<VerificationCheck[]>([]);
-  const [allPassed, setAllPassed] = useState(false);
 
   useEffect(() => {
     setOwnerPhoneInput(config.owner_whatsapp_number || "");
@@ -183,6 +201,11 @@ export default function OnboardingAndModeModal({
     setBusinessIndustryInput(config.business_industry || "");
     setBusinessTaglineInput(config.business_tagline || "");
     setCatalogUnitInput(config.catalog_unit || "unit");
+    if (config.whatsapp_connection_mode) setWaMode(config.whatsapp_connection_mode);
+    if (config.meta_phone_number_id !== undefined) setMetaPhoneId(config.meta_phone_number_id || "");
+    if (config.meta_waba_id !== undefined) setMetaWabaId(config.meta_waba_id || "");
+    if (config.meta_access_token !== undefined) setMetaAccessToken(config.meta_access_token || "");
+    if (config.meta_verify_token !== undefined) setMetaVerifyToken(config.meta_verify_token || "wb_agent_verify_token");
     if (config.pairing_code) {
       setPairingCodeResult(config.pairing_code);
     }
@@ -192,6 +215,11 @@ export default function OnboardingAndModeModal({
     config.business_industry,
     config.business_tagline,
     config.catalog_unit,
+    config.whatsapp_connection_mode,
+    config.meta_phone_number_id,
+    config.meta_waba_id,
+    config.meta_access_token,
+    config.meta_verify_token,
     config.pairing_code,
   ]);
 
@@ -223,10 +251,40 @@ export default function OnboardingAndModeModal({
         }
         if (toastMsg) showToast(toastMsg);
       }
-    } catch (e) {
+    } catch {
       showToast("Failed to save workspace configuration.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleAiAutoFill = async () => {
+    if (!aiPrompt.trim()) return;
+    setIsAiFilling(true);
+    try {
+      const res = await fetch("/api/v1/settings/ai-autofill-business", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: aiPrompt.trim(),
+          seed_catalog: true,
+          save_as_preset: true,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.config) {
+          onConfigUpdated(data.config);
+        }
+        showToast(
+          `✨ AI configured "${data.synthesized?.business_name}" & seeded ${data.seeded_products || 4} catalog products!`
+        );
+        setAiPrompt("");
+      }
+    } catch {
+      showToast("Could not run AI auto-fill.");
+    } finally {
+      setIsAiFilling(false);
     }
   };
 
@@ -242,7 +300,7 @@ export default function OnboardingAndModeModal({
           saveWorkspacePatch({});
         }, 2200);
       }
-    } catch (e) {
+    } catch {
       showToast("Could not reach WhatsApp bridge on port 3001.");
     } finally {
       setResettingWa(false);
@@ -269,7 +327,7 @@ export default function OnboardingAndModeModal({
       } else {
         showToast(data.error || "Could not generate pairing code. Try Reset Session first.");
       }
-    } catch (e) {
+    } catch {
       showToast("Error requesting pairing code from bridge.");
     } finally {
       setRequestingPair(false);
@@ -291,7 +349,7 @@ export default function OnboardingAndModeModal({
           showToast(`Switched to ${data.config.business_industry} (${data.seeded_products || 4} catalog items ready)!`);
         }
       }
-    } catch (e) {
+    } catch {
       showToast("Failed to apply industry preset.");
     } finally {
       setApplyingPreset(null);
@@ -321,12 +379,11 @@ export default function OnboardingAndModeModal({
       if (resp.ok) {
         const data = await resp.json();
         setChecks(data.checks || []);
-        setAllPassed(Boolean(data.all_passed));
         if (sendPing) {
           showToast("Verification complete & live test ping dispatched to Owner WhatsApp!");
         }
       }
-    } catch (e) {
+    } catch {
       showToast("Verification check failed to reach backend.");
     } finally {
       setVerifying(false);
@@ -337,6 +394,11 @@ export default function OnboardingAndModeModal({
     await saveWorkspacePatch(
       {
         onboarding_completed: true,
+        whatsapp_connection_mode: waMode,
+        meta_phone_number_id: metaPhoneId.trim(),
+        meta_waba_id: metaWabaId.trim(),
+        meta_access_token: metaAccessToken.trim(),
+        meta_verify_token: metaVerifyToken.trim(),
         owner_whatsapp_number: ownerPhoneInput.trim(),
         business_name: businessNameInput.trim() || config.business_name,
         business_industry: businessIndustryInput.trim() || config.business_industry,
@@ -347,140 +409,86 @@ export default function OnboardingAndModeModal({
     );
     try {
       localStorage.setItem("wb_onboarding_completed", "true");
-    } catch (e) {}
+    } catch {}
     onClose();
   };
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 99999,
-        background: "rgba(6, 9, 15, 0.82)",
-        backdropFilter: "blur(12px)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "20px",
-      }}
-    >
+    <div className="fixed inset-0 z-[99999] bg-black/75 backdrop-blur-md flex items-center justify-center p-3 sm:p-5">
       <div
-        style={{
-          width: "100%",
-          maxWidth: "980px",
-          maxHeight: "90vh",
-          background: "var(--bg-secondary, #0f1522)",
-          border: "1px solid var(--border-color, rgba(255,255,255,0.12))",
-          borderRadius: "20px",
-          boxShadow: "0 28px 90px rgba(0, 0, 0, 0.65)",
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-          color: "var(--text-primary, #f8fafc)",
-        }}
+        className="w-full max-w-[1000px] max-h-[92vh] rounded-2xl border border-[var(--ed-border)] shadow-2xl flex flex-col overflow-hidden text-[var(--ed-text-primary)]"
+        style={{ background: "var(--ed-surface)" }}
       >
         {/* Top Header */}
         <div
+          className="px-5 py-4 border-b border-[var(--ed-border)] flex items-center justify-between gap-4"
           style={{
-            padding: "20px 26px",
-            borderBottom: "1px solid var(--border-color, rgba(255,255,255,0.08))",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            background: "linear-gradient(90deg, rgba(16,185,129,0.12), rgba(59,130,246,0.08), transparent)",
+            background: "linear-gradient(90deg, color-mix(in srgb, var(--ed-accent) 12%, var(--ed-surface)), var(--ed-surface))",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-            <div
-              style={{
-                width: "44px",
-                height: "44px",
-                borderRadius: "12px",
-                background: "linear-gradient(135deg, #10b981, #2563eb)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#fff",
-                boxShadow: "0 8px 20px rgba(16,185,129,0.3)",
-              }}
-            >
-              <ShieldCheck size={24} />
+          <div className="flex items-center gap-3.5">
+            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-500 to-blue-600 flex items-center justify-center text-white shadow-md shrink-0">
+              <ShieldCheck className="w-6 h-6" />
             </div>
             <div>
-              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                <h2 style={{ margin: 0, fontSize: "19px", fontWeight: 800 }}>
-                  Workspace Setup, WhatsApp Connection & Feature Control
+              <div className="flex flex-wrap items-center gap-2.5">
+                <h2 className="text-base sm:text-lg font-extrabold tracking-tight text-[var(--ed-text-primary)]">
+                  Workspace Setup, WhatsApp Gateway & Feature Control
                 </h2>
                 <span
-                  style={{
-                    fontSize: "11px",
-                    fontWeight: 700,
-                    padding: "3px 10px",
-                    borderRadius: "999px",
-                    background: config.ui_mode === "simplified" ? "rgba(16,185,129,0.18)" : "rgba(59,130,246,0.18)",
-                    color: config.ui_mode === "simplified" ? "#10b981" : "#60a5fa",
-                    border: "1px solid currentColor",
-                  }}
+                  className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${
+                    config.ui_mode === "simplified"
+                      ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/40"
+                      : "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/40"
+                  }`}
                 >
                   {config.ui_mode === "simplified" ? "✨ SIMPLIFIED MODE" : "🛠️ ADVANCED MODE"}
                 </span>
               </div>
-              <p style={{ margin: "4px 0 0", fontSize: "12.5px", color: "var(--text-secondary, #94a3b8)" }}>
-                Connect any WhatsApp number, set your Owner escalation number, choose any business industry, toggle features, and verify end-to-end readiness.
+              <p className="text-xs text-[var(--ed-text-muted)] mt-0.5">
+                Connect via Unofficial QR/Pairing or Official Meta Cloud API, auto-configure any business with AI, and verify end-to-end readiness.
               </p>
             </div>
           </div>
 
           <button
             onClick={onClose}
-            style={{
-              background: "rgba(255,255,255,0.06)",
-              border: "1px solid rgba(255,255,255,0.1)",
-              color: "var(--text-secondary, #94a3b8)",
-              width: "36px",
-              height: "36px",
-              borderRadius: "10px",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
+            className="w-9 h-9 rounded-xl border border-[var(--ed-border)] flex items-center justify-center text-[var(--ed-text-muted)] hover:text-[var(--ed-text-primary)] transition-colors"
+            style={{ background: "var(--ed-bg)" }}
             title="Close modal"
           >
-            <X size={18} />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Navigation Step Tabs */}
         <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(3, 1fr)",
-            borderBottom: "1px solid var(--border-color, rgba(255,255,255,0.08))",
-            background: "rgba(0,0,0,0.18)",
-          }}
+          className="grid grid-cols-1 sm:grid-cols-3 border-b border-[var(--ed-border)]"
+          style={{ background: "var(--ed-bg)" }}
         >
           {[
             {
               id: "whatsapp_owner",
-              label: "1. Connect WhatsApp & Owner Number",
-              sub: config.whatsapp_connected
-                ? `Connected (+${config.bot_whatsapp_number || "Linked"})`
-                : "Scan QR or 8-Digit Pairing Code",
-              icon: <Smartphone size={16} />,
+              label: "1. WhatsApp Gateway & Owner Phone",
+              sub:
+                waMode === "official"
+                  ? "Official Meta Cloud API v20.0"
+                  : config.whatsapp_connected
+                  ? `Connected (+${config.bot_whatsapp_number || "Linked"})`
+                  : "Unofficial QR or 8-Digit Pairing",
+              icon: <Smartphone className="w-4 h-4" />,
             },
             {
               id: "industry_features",
-              label: "2. Business Vertical, Mode & Features",
+              label: "2. AI Business Architect & Features",
               sub: `${config.business_industry || "Any Industry"} • ${config.ui_mode === "simplified" ? "Simplified" : "Advanced"}`,
-              icon: <Sliders size={16} />,
+              icon: <Sliders className="w-4 h-4" />,
             },
             {
               id: "verification",
               label: "3. End-to-End Health Verification",
               sub: "Check DB, Friday, EDITH & WhatsApp",
-              icon: <CheckCircle2 size={16} />,
+              icon: <CheckCircle2 className="w-4 h-4" />,
             },
           ].map((tab) => {
             const active = activeTab === tab.id;
@@ -488,30 +496,16 @@ export default function OnboardingAndModeModal({
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
-                style={{
-                  padding: "14px 18px",
-                  background: active ? "rgba(16,185,129,0.1)" : "transparent",
-                  border: "none",
-                  borderBottom: active ? "3px solid #10b981" : "3px solid transparent",
-                  color: active ? "var(--text-primary, #fff)" : "var(--text-secondary, #94a3b8)",
-                  cursor: "pointer",
-                  textAlign: "left",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "10px",
-                  transition: "all 0.15s ease",
-                }}
+                className={`px-4 py-3 text-left flex items-center gap-3 border-b-2 transition-all ${
+                  active
+                    ? "border-emerald-500 bg-emerald-500/10 text-[var(--ed-text-primary)]"
+                    : "border-transparent text-[var(--ed-text-muted)] hover:text-[var(--ed-text-primary)]"
+                }`}
               >
-                <div
-                  style={{
-                    color: active ? "#10b981" : "var(--text-secondary, #94a3b8)",
-                  }}
-                >
-                  {tab.icon}
-                </div>
-                <div>
-                  <div style={{ fontSize: "13px", fontWeight: 700 }}>{tab.label}</div>
-                  <div style={{ fontSize: "11px", opacity: 0.75, marginTop: "2px" }}>{tab.sub}</div>
+                <div className={active ? "text-emerald-500" : "text-[var(--ed-text-muted)]"}>{tab.icon}</div>
+                <div className="min-w-0">
+                  <div className="text-xs font-bold truncate">{tab.label}</div>
+                  <div className="text-[11px] opacity-75 truncate">{tab.sub}</div>
                 </div>
               </button>
             );
@@ -520,305 +514,277 @@ export default function OnboardingAndModeModal({
 
         {/* Toast Banner */}
         {statusToast && (
-          <div
-            style={{
-              background: "rgba(16,185,129,0.16)",
-              borderBottom: "1px solid rgba(16,185,129,0.35)",
-              color: "#34d399",
-              padding: "9px 24px",
-              fontSize: "12.5px",
-              fontWeight: 600,
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-            }}
-          >
-            <CheckCircle2 size={15} />
-            {statusToast}
+          <div className="bg-emerald-500/15 border-b border-emerald-500/35 text-emerald-600 dark:text-emerald-300 px-6 py-2.5 text-xs font-bold flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 shrink-0" />
+            <span>{statusToast}</span>
           </div>
         )}
 
         {/* Body Content */}
-        <div style={{ padding: "24px 26px", overflowY: "auto", flex: 1 }}>
+        <div className="p-5 sm:p-6 overflow-y-auto flex-1 space-y-5">
           {/* TAB 1: WHATSAPP & OWNER NUMBER */}
           {activeTab === "whatsapp_owner" && (
-            <div style={{ display: "grid", gridTemplateColumns: "1.15fr 0.85fr", gap: "22px" }}>
-              {/* Left Column: Bot WhatsApp Connection */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+              {/* Left Column (7 cols): Unofficial vs Official WhatsApp Gateway */}
               <div
-                style={{
-                  padding: "20px",
-                  borderRadius: "16px",
-                  background: "rgba(255,255,255,0.03)",
-                  border: "1px solid var(--border-color, rgba(255,255,255,0.09))",
-                }}
+                className="lg:col-span-7 p-5 rounded-2xl border border-[var(--ed-border)] space-y-4"
+                style={{ background: "var(--ed-bg)" }}
               >
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                    <QrCode size={18} color="#10b981" />
-                    <h3 style={{ margin: 0, fontSize: "15px", fontWeight: 700 }}>
-                      Step 1A: Connect Your WhatsApp Bot Number
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <QrCode className="w-4 h-4 text-emerald-500" />
+                    <h3 className="text-sm font-bold text-[var(--ed-text-primary)]">
+                      Step 1A: Connect Your WhatsApp Gateway
                     </h3>
                   </div>
-                  <span
-                    style={{
-                      fontSize: "11px",
-                      fontWeight: 700,
-                      padding: "3px 9px",
-                      borderRadius: "999px",
-                      background: config.whatsapp_connected ? "rgba(16,185,129,0.18)" : "rgba(245,158,11,0.18)",
-                      color: config.whatsapp_connected ? "#10b981" : "#fbbf24",
-                    }}
-                  >
-                    {config.whatsapp_connected ? "ONLINE & LINKED" : "PAIRING REQUIRED"}
-                  </span>
-                </div>
 
-                <p style={{ fontSize: "12.5px", color: "var(--text-secondary, #94a3b8)", marginTop: 0, lineHeight: 1.5 }}>
-                  No personal WhatsApp number is hardcoded. Anyone cloning from GitHub can scan the QR code or enter their own phone number below to link their WhatsApp account.
-                </p>
-
-                {config.whatsapp_connected ? (
+                  {/* Mode Switcher: Unofficial vs Official */}
                   <div
-                    style={{
-                      padding: "16px",
-                      borderRadius: "12px",
-                      background: "rgba(16,185,129,0.08)",
-                      border: "1px solid rgba(16,185,129,0.28)",
-                      marginBottom: "16px",
-                    }}
+                    className="inline-flex rounded-xl p-1 border border-[var(--ed-border)]"
+                    style={{ background: "var(--ed-surface)" }}
                   >
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" }}>
-                      <CheckCircle2 size={20} color="#10b981" />
-                      <div>
-                        <div style={{ fontSize: "13.5px", fontWeight: 700 }}>
-                          Active WhatsApp Bot Connected
-                        </div>
-                        <div style={{ fontSize: "12px", color: "#34d399", fontFamily: "monospace" }}>
-                          {config.bot_whatsapp_number
-                            ? `Linked Number: +${config.bot_whatsapp_number}`
-                            : "Linked via Baileys Multi-Device Session"}
-                        </div>
-                      </div>
-                    </div>
-                    <p style={{ fontSize: "12px", color: "var(--text-secondary, #94a3b8)", margin: "8px 0 12px" }}>
-                      Testing on a new machine or want to connect a different WhatsApp number? Click below to log out the current session and generate a fresh QR code.
-                    </p>
                     <button
-                      onClick={handleResetWhatsAppSession}
-                      disabled={resettingWa}
-                      style={{
-                        padding: "9px 14px",
-                        borderRadius: "10px",
-                        background: "rgba(239,68,68,0.15)",
-                        border: "1px solid rgba(239,68,68,0.4)",
-                        color: "#f87171",
-                        fontSize: "12.5px",
-                        fontWeight: 700,
-                        cursor: "pointer",
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "8px",
+                      type="button"
+                      onClick={() => {
+                        setWaMode("unofficial");
+                        saveWorkspacePatch(
+                          { whatsapp_connection_mode: "unofficial" },
+                          "Switched to Unofficial Baileys Bridge Mode (QR / 8-Digit Code)"
+                        );
                       }}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
+                        waMode === "unofficial"
+                          ? "bg-emerald-600 text-white"
+                          : "text-[var(--ed-text-muted)] hover:text-[var(--ed-text-primary)]"
+                      }`}
                     >
-                      <LogOut size={14} />
-                      {resettingWa ? "Resetting Session..." : "Switch / Connect a Different WhatsApp Number"}
+                      ⚡ Unofficial (QR / Code)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setWaMode("official");
+                        saveWorkspacePatch(
+                          { whatsapp_connection_mode: "official" },
+                          "Switched to Official Meta WhatsApp Cloud API Mode"
+                        );
+                      }}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
+                        waMode === "official"
+                          ? "bg-[var(--ed-accent)] text-white"
+                          : "text-[var(--ed-text-muted)] hover:text-[var(--ed-text-primary)]"
+                      }`}
+                    >
+                      🛡️ Official (Meta API)
                     </button>
                   </div>
-                ) : (
-                  <div>
-                    {/* QR Code Frame */}
-                    <div
-                      style={{
-                        background: "#ffffff",
-                        borderRadius: "14px",
-                        padding: "10px",
-                        height: "250px",
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        marginBottom: "14px",
-                        position: "relative",
-                        overflow: "hidden",
-                      }}
-                    >
-                      <iframe
-                        key={qrRefreshKey}
-                        src={`http://localhost:3001/qr?embed=1&t=${qrRefreshKey}`}
-                        style={{
-                          width: "100%",
-                          height: "100%",
-                          border: "none",
-                          borderRadius: "10px",
-                        }}
-                        title="WhatsApp QR Scanner"
-                      />
-                    </div>
+                </div>
 
-                    <div style={{ display: "flex", gap: "10px", marginBottom: "16px" }}>
-                      <button
-                        onClick={() => {
-                          setQrRefreshKey(Date.now());
-                          saveWorkspacePatch({});
-                        }}
-                        style={{
-                          flex: 1,
-                          padding: "9px 12px",
-                          borderRadius: "10px",
-                          background: "rgba(255,255,255,0.07)",
-                          border: "1px solid rgba(255,255,255,0.14)",
-                          color: "var(--text-primary, #fff)",
-                          fontSize: "12px",
-                          fontWeight: 600,
-                          cursor: "pointer",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          gap: "6px",
-                        }}
-                      >
-                        <RefreshCw size={14} /> Refresh QR Status
-                      </button>
-                      <a
-                        href="http://localhost:3001/qr"
-                        target="_blank"
-                        rel="noreferrer"
-                        style={{
-                          padding: "9px 14px",
-                          borderRadius: "10px",
-                          background: "rgba(59,130,246,0.15)",
-                          border: "1px solid rgba(59,130,246,0.35)",
-                          color: "#60a5fa",
-                          fontSize: "12px",
-                          fontWeight: 600,
-                          textDecoration: "none",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "6px",
-                        }}
-                      >
-                        Open Full QR Page <ExternalLink size={13} />
-                      </a>
+                {waMode === "unofficial" ? (
+                  <>
+                    <p className="text-xs text-[var(--ed-text-muted)] leading-relaxed">
+                      <strong>Unofficial Multi-Device Bridge (:3001):</strong> Link any WhatsApp number immediately by scanning the QR code or entering an 8-digit pairing code on your phone.
+                    </p>
+
+                    {config.unofficial_bridge_connected || config.whatsapp_connected ? (
+                      <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 space-y-3">
+                        <div className="flex items-center gap-2.5">
+                          <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
+                          <div>
+                            <div className="text-xs font-bold text-[var(--ed-text-primary)]">
+                              Active WhatsApp Bot Connected
+                            </div>
+                            <div className="text-xs font-mono text-emerald-600 dark:text-emerald-400">
+                              {config.bot_whatsapp_number
+                                ? `Linked Number: +${config.bot_whatsapp_number}`
+                                : "Linked via Baileys Multi-Device Session"}
+                            </div>
+                          </div>
+                        </div>
+                        <button
+                          onClick={handleResetWhatsAppSession}
+                          disabled={resettingWa}
+                          className="px-3.5 py-2 rounded-xl bg-rose-500/15 border border-rose-500/40 text-rose-600 dark:text-rose-400 text-xs font-bold inline-flex items-center gap-2"
+                        >
+                          <LogOut className="w-3.5 h-3.5" />
+                          {resettingWa ? "Resetting Session..." : "Switch / Connect a Different WhatsApp Number"}
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        <div className="bg-white rounded-xl p-2.5 h-[235px] flex flex-col items-center justify-center overflow-hidden border border-[var(--ed-border)]">
+                          <iframe
+                            key={qrRefreshKey}
+                            src={`http://localhost:3001/qr?embed=1&t=${qrRefreshKey}`}
+                            className="w-full h-full border-0 rounded-lg"
+                            title="WhatsApp QR Scanner"
+                          />
+                        </div>
+
+                        <div className="flex gap-2.5">
+                          <button
+                            onClick={() => {
+                              setQrRefreshKey(Date.now());
+                              saveWorkspacePatch({});
+                            }}
+                            className="flex-1 py-2 px-3 rounded-xl border border-[var(--ed-border)] text-xs font-bold text-[var(--ed-text-primary)] flex items-center justify-center gap-1.5"
+                            style={{ background: "var(--ed-surface)" }}
+                          >
+                            <RefreshCw className="w-3.5 h-3.5" /> Refresh QR
+                          </button>
+                          <a
+                            href="http://localhost:3001/qr"
+                            target="_blank"
+                            rel="noreferrer"
+                            className="py-2 px-3.5 rounded-xl bg-blue-500/15 border border-blue-500/35 text-blue-600 dark:text-blue-400 text-xs font-bold flex items-center gap-1.5"
+                          >
+                            Full QR Page <ExternalLink className="w-3.5 h-3.5" />
+                          </a>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 8-Digit Pairing Code */}
+                    <div className="pt-3 border-t border-[var(--ed-border)] space-y-2">
+                      <div className="text-xs font-bold text-[var(--ed-text-primary)]">
+                        Or Link via 8-Digit Phone Pairing Code:
+                      </div>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={pairPhoneInput}
+                          onChange={(e) => setPairPhoneInput(e.target.value)}
+                          placeholder="Bot WhatsApp Phone (e.g. 919876543210)"
+                          className="flex-1 px-3 py-2 rounded-xl border border-[var(--ed-border)] text-xs text-[var(--ed-text-primary)]"
+                          style={{ background: "var(--ed-surface)" }}
+                        />
+                        <button
+                          onClick={handleRequestPairingCode}
+                          disabled={requestingPair}
+                          className="px-3.5 py-2 rounded-xl bg-blue-600 text-white text-xs font-bold shrink-0"
+                        >
+                          {requestingPair ? "Generating..." : "Get 8-Digit Code"}
+                        </button>
+                      </div>
+                      {pairingCodeResult && (
+                        <div className="p-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/40 flex items-center justify-between">
+                          <span className="text-xs text-[var(--ed-text-primary)]">
+                            Enter in WhatsApp → Linked Devices:
+                          </span>
+                          <span className="text-base font-black tracking-widest text-emerald-600 dark:text-emerald-400 font-mono">
+                            {pairingCodeResult}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <div className="space-y-3 text-xs">
+                    <p className="text-[var(--ed-text-muted)] leading-relaxed">
+                      <strong>Official Meta WhatsApp Business Cloud API (Graph v20.0):</strong> Connect your verified Meta WABA credentials. Webhook URL: <code className="text-[var(--ed-accent)] font-mono">/api/v1/webhooks/whatsapp</code>
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      <div>
+                        <label className="block text-[11px] font-bold text-[var(--ed-text-muted)] mb-1">
+                          PHONE NUMBER ID
+                        </label>
+                        <input
+                          type="text"
+                          value={metaPhoneId}
+                          onChange={(e) => setMetaPhoneId(e.target.value)}
+                          placeholder="e.g. 104928194829104"
+                          className="w-full p-2.5 rounded-xl border border-[var(--ed-border)] font-mono text-[var(--ed-text-primary)]"
+                          style={{ background: "var(--ed-surface)" }}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-[var(--ed-text-muted)] mb-1">
+                          WABA ACCOUNT ID
+                        </label>
+                        <input
+                          type="text"
+                          value={metaWabaId}
+                          onChange={(e) => setMetaWabaId(e.target.value)}
+                          placeholder="e.g. 109482918491029"
+                          className="w-full p-2.5 rounded-xl border border-[var(--ed-border)] font-mono text-[var(--ed-text-primary)]"
+                          style={{ background: "var(--ed-surface)" }}
+                        />
+                      </div>
+                      <div className="sm:col-span-2">
+                        <label className="block text-[11px] font-bold text-[var(--ed-text-muted)] mb-1">
+                          PERMANENT META ACCESS TOKEN (EAA...)
+                        </label>
+                        <input
+                          type="password"
+                          value={metaAccessToken}
+                          onChange={(e) => setMetaAccessToken(e.target.value)}
+                          placeholder="EAAGm0PX4ZCpsBA..."
+                          className="w-full p-2.5 rounded-xl border border-[var(--ed-border)] font-mono text-[var(--ed-text-primary)]"
+                          style={{ background: "var(--ed-surface)" }}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-[var(--ed-text-muted)] mb-1">
+                          WEBHOOK VERIFY TOKEN
+                        </label>
+                        <input
+                          type="text"
+                          value={metaVerifyToken}
+                          onChange={(e) => setMetaVerifyToken(e.target.value)}
+                          className="w-full p-2.5 rounded-xl border border-[var(--ed-border)] font-mono text-[var(--ed-text-primary)]"
+                          style={{ background: "var(--ed-surface)" }}
+                        />
+                      </div>
+                      <div className="flex items-end">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            saveWorkspacePatch(
+                              {
+                                whatsapp_connection_mode: "official",
+                                meta_phone_number_id: metaPhoneId.trim(),
+                                meta_waba_id: metaWabaId.trim(),
+                                meta_access_token: metaAccessToken.trim(),
+                                meta_verify_token: metaVerifyToken.trim(),
+                              },
+                              "Official Meta Cloud API credentials saved!"
+                            )
+                          }
+                          className="w-full py-2.5 px-4 rounded-xl bg-[var(--ed-accent)] text-white font-bold text-xs"
+                        >
+                          Save Official API
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}
-
-                {/* 8-Digit Pairing Code Alternative */}
-                <div
-                  style={{
-                    paddingTop: "14px",
-                    borderTop: "1px solid rgba(255,255,255,0.08)",
-                  }}
-                >
-                  <div style={{ fontSize: "12.5px", fontWeight: 700, marginBottom: "6px" }}>
-                    Or Link via 8-Digit Phone Pairing Code (No QR Camera Needed):
-                  </div>
-                  <div style={{ display: "flex", gap: "8px" }}>
-                    <input
-                      type="text"
-                      value={pairPhoneInput}
-                      onChange={(e) => setPairPhoneInput(e.target.value)}
-                      placeholder="Bot WhatsApp Phone (e.g. 919876543210)"
-                      style={{
-                        flex: 1,
-                        padding: "9px 12px",
-                        borderRadius: "10px",
-                        background: "rgba(0,0,0,0.3)",
-                        border: "1px solid rgba(255,255,255,0.14)",
-                        color: "var(--text-primary, #fff)",
-                        fontSize: "12.5px",
-                      }}
-                    />
-                    <button
-                      onClick={handleRequestPairingCode}
-                      disabled={requestingPair}
-                      style={{
-                        padding: "9px 14px",
-                        borderRadius: "10px",
-                        background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
-                        border: "none",
-                        color: "#fff",
-                        fontSize: "12px",
-                        fontWeight: 700,
-                        cursor: "pointer",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {requestingPair ? "Generating..." : "Get 8-Digit Code"}
-                    </button>
-                  </div>
-                  {pairingCodeResult && (
-                    <div
-                      style={{
-                        marginTop: "10px",
-                        padding: "10px 14px",
-                        borderRadius: "10px",
-                        background: "rgba(16,185,129,0.14)",
-                        border: "1px solid rgba(16,185,129,0.4)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                      }}
-                    >
-                      <span style={{ fontSize: "12px", color: "#a7f3d0" }}>
-                        Enter this code in WhatsApp → Linked Devices → Link with phone number:
-                      </span>
-                      <span
-                        style={{
-                          fontSize: "18px",
-                          fontWeight: 900,
-                          letterSpacing: "3px",
-                          color: "#10b981",
-                          fontFamily: "monospace",
-                        }}
-                      >
-                        {pairingCodeResult}
-                      </span>
-                    </div>
-                  )}
-                </div>
               </div>
 
-              {/* Right Column: Owner Escalation Number & Quick Mode Switch */}
-              <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
+              {/* Right Column (5 cols): Owner Escalation Number & UI Mode Switch */}
+              <div className="lg:col-span-5 flex flex-col gap-4">
                 <div
-                  style={{
-                    padding: "20px",
-                    borderRadius: "16px",
-                    background: "rgba(255,255,255,0.03)",
-                    border: "1px solid var(--border-color, rgba(255,255,255,0.09))",
-                  }}
+                  className="p-5 rounded-2xl border border-[var(--ed-border)] space-y-3"
+                  style={{ background: "var(--ed-bg)" }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "10px" }}>
-                    <Smartphone size={18} color="#3b82f6" />
-                    <h3 style={{ margin: 0, fontSize: "15px", fontWeight: 700 }}>
-                      Step 1B: Owner Escalation WhatsApp Number
+                  <div className="flex items-center gap-2">
+                    <Smartphone className="w-4 h-4 text-blue-500" />
+                    <h3 className="text-sm font-bold text-[var(--ed-text-primary)]">
+                      Step 1B: Owner Escalation WhatsApp
                     </h3>
                   </div>
-                  <p style={{ fontSize: "12.5px", color: "var(--text-secondary, #94a3b8)", marginTop: 0, lineHeight: 1.5 }}>
-                    Enter the business owner&apos;s WhatsApp number where EDITH &amp; Friday should send{" "}
-                    <strong>Instant Order Confirmations, Hot Lead Summaries, and Human Handoff Alerts</strong>.
+                  <p className="text-xs text-[var(--ed-text-muted)] leading-relaxed">
+                    Enter the business owner&apos;s WhatsApp number where EDITH &amp; Friday send{" "}
+                    <strong>Order Confirmations, Hot Lead Summaries &amp; Human Handoff Alerts</strong>.
                   </p>
 
-                  <label style={{ display: "block", fontSize: "11.5px", fontWeight: 700, marginBottom: "6px", color: "#94a3b8" }}>
-                    OWNER WHATSAPP NUMBER (WITH COUNTRY CODE)
-                  </label>
-                  <div style={{ display: "flex", gap: "8px", marginBottom: "12px" }}>
+                  <div className="flex gap-2">
                     <input
                       type="text"
                       value={ownerPhoneInput}
                       onChange={(e) => setOwnerPhoneInput(e.target.value)}
                       placeholder="e.g. +919876543210"
-                      style={{
-                        flex: 1,
-                        padding: "10px 14px",
-                        borderRadius: "10px",
-                        background: "rgba(0,0,0,0.3)",
-                        border: "1px solid rgba(255,255,255,0.16)",
-                        color: "var(--text-primary, #fff)",
-                        fontSize: "13.5px",
-                        fontFamily: "monospace",
-                      }}
+                      className="flex-1 px-3 py-2.5 rounded-xl border border-[var(--ed-border)] text-xs font-mono font-bold text-[var(--ed-text-primary)]"
+                      style={{ background: "var(--ed-surface)" }}
                     />
                     <button
                       onClick={() =>
@@ -828,77 +794,41 @@ export default function OnboardingAndModeModal({
                         )
                       }
                       disabled={saving}
-                      style={{
-                        padding: "10px 16px",
-                        borderRadius: "10px",
-                        background: "linear-gradient(135deg, #10b981, #059669)",
-                        border: "none",
-                        color: "#fff",
-                        fontSize: "12.5px",
-                        fontWeight: 700,
-                        cursor: "pointer",
-                      }}
+                      className="px-4 py-2.5 rounded-xl bg-emerald-600 text-white text-xs font-bold shrink-0"
                     >
-                      {saving ? "Saving..." : "Save Number"}
+                      {saving ? "Saving..." : "Save"}
                     </button>
-                  </div>
-
-                  <div
-                    style={{
-                      padding: "10px 12px",
-                      borderRadius: "10px",
-                      background: "rgba(59,130,246,0.08)",
-                      border: "1px solid rgba(59,130,246,0.22)",
-                      fontSize: "11.5px",
-                      color: "var(--text-secondary, #94a3b8)",
-                      lineHeight: 1.45,
-                    }}
-                  >
-                    💡 <strong>Zero Hardcoded Lock-In:</strong> Whenever a customer closes a deal on WhatsApp or asks for a manager, EDITH automatically routes the summary to this exact number.
                   </div>
                 </div>
 
-                {/* Main Workspace Experience Mode Selector */}
+                {/* Experience Mode Selector */}
                 <div
-                  style={{
-                    padding: "20px",
-                    borderRadius: "16px",
-                    background: "rgba(255,255,255,0.03)",
-                    border: "1px solid var(--border-color, rgba(255,255,255,0.09))",
-                  }}
+                  className="p-5 rounded-2xl border border-[var(--ed-border)] space-y-3"
+                  style={{ background: "var(--ed-bg)" }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "10px" }}>
-                    <Sparkles size={18} color="#a855f7" />
-                    <h3 style={{ margin: 0, fontSize: "15px", fontWeight: 700 }}>
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-purple-500" />
+                    <h3 className="text-sm font-bold text-[var(--ed-text-primary)]">
                       Experience Mode: Simplified vs. Advanced
                     </h3>
                   </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                  <div className="grid grid-cols-2 gap-2.5">
                     <button
                       onClick={() =>
                         saveWorkspacePatch({ ui_mode: "simplified" }, "Switched to Simplified Business Mode!")
                       }
-                      style={{
-                        padding: "12px",
-                        borderRadius: "12px",
-                        textAlign: "left",
-                        cursor: "pointer",
-                        background:
-                          config.ui_mode === "simplified"
-                            ? "linear-gradient(135deg, rgba(16,185,129,0.22), rgba(16,185,129,0.08))"
-                            : "rgba(0,0,0,0.25)",
-                        border:
-                          config.ui_mode === "simplified"
-                            ? "2px solid #10b981"
-                            : "1px solid rgba(255,255,255,0.1)",
-                        color: "var(--text-primary, #fff)",
-                      }}
+                      className={`p-3 rounded-xl text-left border transition-all ${
+                        config.ui_mode === "simplified"
+                          ? "border-emerald-500 bg-emerald-500/10"
+                          : "border-[var(--ed-border)]"
+                      }`}
+                      style={{ background: config.ui_mode === "simplified" ? undefined : "var(--ed-surface)" }}
                     >
-                      <div style={{ fontSize: "13px", fontWeight: 800, color: "#10b981", marginBottom: "4px" }}>
+                      <div className="text-xs font-extrabold text-emerald-600 dark:text-emerald-400 mb-1">
                         ✨ Simplified Mode
                       </div>
-                      <div style={{ fontSize: "11.5px", color: "var(--text-secondary, #94a3b8)", lineHeight: 1.4 }}>
-                        Clean business view: Talk to Friday, check Analytics, view Orders, and reply in the Live Inbox.
+                      <div className="text-[11px] text-[var(--ed-text-muted)] leading-snug">
+                        Direct view: Overview, Add Info/Products, Live Messages &amp; Notifications.
                       </div>
                     </button>
 
@@ -906,27 +836,18 @@ export default function OnboardingAndModeModal({
                       onClick={() =>
                         saveWorkspacePatch({ ui_mode: "advanced" }, "Switched to Advanced Developer Mode!")
                       }
-                      style={{
-                        padding: "12px",
-                        borderRadius: "12px",
-                        textAlign: "left",
-                        cursor: "pointer",
-                        background:
-                          config.ui_mode === "advanced"
-                            ? "linear-gradient(135deg, rgba(59,130,246,0.22), rgba(59,130,246,0.08))"
-                            : "rgba(0,0,0,0.25)",
-                        border:
-                          config.ui_mode === "advanced"
-                            ? "2px solid #3b82f6"
-                            : "1px solid rgba(255,255,255,0.1)",
-                        color: "var(--text-primary, #fff)",
-                      }}
+                      className={`p-3 rounded-xl text-left border transition-all ${
+                        config.ui_mode === "advanced"
+                          ? "border-blue-500 bg-blue-500/10"
+                          : "border-[var(--ed-border)]"
+                      }`}
+                      style={{ background: config.ui_mode === "advanced" ? undefined : "var(--ed-surface)" }}
                     >
-                      <div style={{ fontSize: "13px", fontWeight: 800, color: "#60a5fa", marginBottom: "4px" }}>
+                      <div className="text-xs font-extrabold text-blue-600 dark:text-blue-400 mb-1">
                         🛠️ Advanced Mode
                       </div>
-                      <div style={{ fontSize: "11.5px", color: "var(--text-secondary, #94a3b8)", lineHeight: 1.4 }}>
-                        Full developer &amp; AI suite: Dual-Brain Console, AI Playground, RAG Knowledge, Prompts &amp; Telemetry.
+                      <div className="text-[11px] text-[var(--ed-text-muted)] leading-snug">
+                        Full Architecture Showcase, Dual-Brain Bus, Simulator &amp; Telemetry.
                       </div>
                     </button>
                   </div>
@@ -935,38 +856,62 @@ export default function OnboardingAndModeModal({
             </div>
           )}
 
-          {/* TAB 2: BUSINESS VERTICAL & FEATURE TOGGLES */}
+          {/* TAB 2: AI BUSINESS ARCHITECT, VERTICAL PRESETS & FEATURE TOGGLES */}
           {activeTab === "industry_features" && (
-            <div style={{ display: "flex", flexDirection: "column", gap: "22px" }}>
-              {/* Industry Vertical Presets */}
+            <div className="space-y-5">
+              {/* ✨ AI Business Architect Box inside Modal */}
               <div
+                className="p-4 rounded-2xl border border-[var(--ed-accent)]/40 space-y-3"
                 style={{
-                  padding: "18px 20px",
-                  borderRadius: "16px",
-                  background: "rgba(255,255,255,0.03)",
-                  border: "1px solid var(--border-color, rgba(255,255,255,0.09))",
+                  background: "color-mix(in srgb, var(--ed-accent) 8%, var(--ed-bg))",
                 }}
               >
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                    <Building2 size={18} color="#10b981" />
-                    <h3 style={{ margin: 0, fontSize: "15px", fontWeight: 700 }}>
-                      Multi-Industry Business Presets (Works for Any Business)
+                <div className="flex items-center gap-2 text-xs font-bold text-[var(--ed-text-primary)]">
+                  <Wand2 className="w-4 h-4 text-[var(--ed-accent)]" />
+                  <span>✨ Tell AI What Your Business Does — Auto-Fill All Settings &amp; Catalog Products</span>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-2.5">
+                  <input
+                    type="text"
+                    value={aiPrompt}
+                    onChange={(e) => setAiPrompt(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleAiAutoFill();
+                    }}
+                    placeholder='e.g. "We sell solar inverters & lithium batteries in Pune" or "Artisanal bakery & corporate gifting"'
+                    className="flex-1 px-3.5 py-2.5 rounded-xl border border-[var(--ed-border)] text-xs text-[var(--ed-text-primary)]"
+                    style={{ background: "var(--ed-surface)" }}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAiAutoFill}
+                    disabled={isAiFilling || !aiPrompt.trim()}
+                    className="px-4 py-2.5 rounded-xl bg-[var(--ed-accent)] text-white text-xs font-bold flex items-center justify-center gap-1.5 shrink-0 disabled:opacity-50"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    {isAiFilling ? "Configuring..." : "Auto-Fill with AI"}
+                  </button>
+                </div>
+              </div>
+
+              {/* Industry Vertical Presets */}
+              <div
+                className="p-4 sm:p-5 rounded-2xl border border-[var(--ed-border)] space-y-3"
+                style={{ background: "var(--ed-bg)" }}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Building2 className="w-4 h-4 text-emerald-500" />
+                    <h3 className="text-sm font-bold text-[var(--ed-text-primary)]">
+                      Or Pick a Multi-Industry Preset
                     </h3>
                   </div>
-                  <span style={{ fontSize: "11.5px", color: "var(--text-secondary, #94a3b8)" }}>
-                    1-Click switches catalog units, terminology &amp; sample products
+                  <span className="text-[11px] text-[var(--ed-text-muted)]">
+                    Seeds 4 matching products into SQLite
                   </span>
                 </div>
 
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fill, minmax(275px, 1fr))",
-                    gap: "10px",
-                    marginBottom: "16px",
-                  }}
-                >
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
                   {(config.industry_presets || []).map((preset) => {
                     const isSelected =
                       config.industry_preset_id === preset.id ||
@@ -976,230 +921,77 @@ export default function OnboardingAndModeModal({
                         key={preset.id}
                         onClick={() => handleApplyPreset(preset.id)}
                         disabled={applyingPreset === preset.id}
-                        style={{
-                          padding: "12px 14px",
-                          borderRadius: "12px",
-                          textAlign: "left",
-                          cursor: "pointer",
-                          background: isSelected
-                            ? "linear-gradient(135deg, rgba(16,185,129,0.2), rgba(59,130,246,0.1))"
-                            : "rgba(0,0,0,0.25)",
-                          border: isSelected
-                            ? "2px solid #10b981"
-                            : "1px solid rgba(255,255,255,0.09)",
-                          color: "var(--text-primary, #fff)",
-                          display: "flex",
-                          alignItems: "flex-start",
-                          gap: "10px",
-                        }}
+                        className={`p-3 rounded-xl text-left border flex items-start gap-2.5 transition-all ${
+                          isSelected
+                            ? "border-emerald-500 bg-emerald-500/10"
+                            : "border-[var(--ed-border)] hover:border-emerald-500/40"
+                        }`}
+                        style={{ background: isSelected ? undefined : "var(--ed-surface)" }}
                       >
-                        <span style={{ fontSize: "22px" }}>{preset.icon}</span>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontSize: "13px", fontWeight: 700, display: "flex", justifyContent: "space-between" }}>
-                            <span>{preset.name}</span>
-                            {isSelected && <Check size={14} color="#10b981" />}
+                        <span className="text-xl">{preset.icon}</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-xs font-bold text-[var(--ed-text-primary)] flex items-center justify-between gap-1">
+                            <span className="truncate">{preset.name}</span>
+                            {isSelected && <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" />}
                           </div>
-                          <div style={{ fontSize: "11px", color: "var(--text-secondary, #94a3b8)", marginTop: "2px" }}>
-                            {preset.business_name} • Unit: <code>/{preset.catalog_unit}</code>
+                          <div className="text-[11px] text-[var(--ed-text-muted)] truncate mt-0.5">
+                            {preset.business_name} • /{preset.catalog_unit}
                           </div>
                         </div>
                       </button>
                     );
                   })}
                 </div>
-
-                {/* Custom Business Identity Inputs */}
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "1.2fr 1.2fr 0.7fr auto",
-                    gap: "10px",
-                    alignItems: "end",
-                    paddingTop: "12px",
-                    borderTop: "1px solid rgba(255,255,255,0.08)",
-                  }}
-                >
-                  <div>
-                    <label style={{ display: "block", fontSize: "11px", fontWeight: 700, color: "#94a3b8", marginBottom: "4px" }}>
-                      CUSTOM BUSINESS NAME
-                    </label>
-                    <input
-                      type="text"
-                      value={businessNameInput}
-                      onChange={(e) => setBusinessNameInput(e.target.value)}
-                      placeholder="Your Company Name"
-                      style={{
-                        width: "100%",
-                        padding: "8px 11px",
-                        borderRadius: "8px",
-                        background: "rgba(0,0,0,0.3)",
-                        border: "1px solid rgba(255,255,255,0.14)",
-                        color: "var(--text-primary, #fff)",
-                        fontSize: "12.5px",
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: "block", fontSize: "11px", fontWeight: 700, color: "#94a3b8", marginBottom: "4px" }}>
-                      INDUSTRY / VERTICAL
-                    </label>
-                    <input
-                      type="text"
-                      value={businessIndustryInput}
-                      onChange={(e) => setBusinessIndustryInput(e.target.value)}
-                      placeholder="e.g. Electronics, Logistics, Hospitality"
-                      style={{
-                        width: "100%",
-                        padding: "8px 11px",
-                        borderRadius: "8px",
-                        background: "rgba(0,0,0,0.3)",
-                        border: "1px solid rgba(255,255,255,0.14)",
-                        color: "var(--text-primary, #fff)",
-                        fontSize: "12.5px",
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: "block", fontSize: "11px", fontWeight: 700, color: "#94a3b8", marginBottom: "4px" }}>
-                      PRICING UNIT
-                    </label>
-                    <input
-                      type="text"
-                      value={catalogUnitInput}
-                      onChange={(e) => setCatalogUnitInput(e.target.value)}
-                      placeholder="unit / kg / seat"
-                      style={{
-                        width: "100%",
-                        padding: "8px 11px",
-                        borderRadius: "8px",
-                        background: "rgba(0,0,0,0.3)",
-                        border: "1px solid rgba(255,255,255,0.14)",
-                        color: "var(--text-primary, #fff)",
-                        fontSize: "12.5px",
-                      }}
-                    />
-                  </div>
-                  <button
-                    onClick={() =>
-                      saveWorkspacePatch(
-                        {
-                          business_name: businessNameInput.trim(),
-                          business_industry: businessIndustryInput.trim(),
-                          catalog_unit: catalogUnitInput.trim(),
-                        },
-                        "Custom business profile updated!"
-                      )
-                    }
-                    style={{
-                      padding: "9px 15px",
-                      borderRadius: "8px",
-                      background: "#10b981",
-                      border: "none",
-                      color: "#fff",
-                      fontSize: "12px",
-                      fontWeight: 700,
-                      cursor: "pointer",
-                    }}
-                  >
-                    Save Profile
-                  </button>
-                </div>
               </div>
 
               {/* Granular Feature Toggles */}
               <div
-                style={{
-                  padding: "18px 20px",
-                  borderRadius: "16px",
-                  background: "rgba(255,255,255,0.03)",
-                  border: "1px solid var(--border-color, rgba(255,255,255,0.09))",
-                }}
+                className="p-4 sm:p-5 rounded-2xl border border-[var(--ed-border)] space-y-3"
+                style={{ background: "var(--ed-bg)" }}
               >
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                    <Layers size={18} color="#60a5fa" />
-                    <h3 style={{ margin: 0, fontSize: "15px", fontWeight: 700 }}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Layers className="w-4 h-4 text-blue-500" />
+                    <h3 className="text-sm font-bold text-[var(--ed-text-primary)]">
                       Modular Feature Toggles (Turn Any Capability ON or OFF)
                     </h3>
                   </div>
-                  <div style={{ display: "flex", gap: "8px" }}>
-                    <button
-                      onClick={() => {
-                        const allOn: Record<string, boolean> = {};
-                        FEATURE_METADATA.forEach((f) => (allOn[f.key] = true));
-                        saveWorkspacePatch({ feature_toggles: allOn }, "All platform features enabled!");
-                      }}
-                      style={{
-                        padding: "5px 10px",
-                        borderRadius: "8px",
-                        background: "rgba(16,185,129,0.15)",
-                        border: "1px solid rgba(16,185,129,0.35)",
-                        color: "#34d399",
-                        fontSize: "11px",
-                        fontWeight: 700,
-                        cursor: "pointer",
-                      }}
-                    >
-                      Enable All
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => {
+                      const allOn: Record<string, boolean> = {};
+                      FEATURE_METADATA.forEach((f) => (allOn[f.key] = true));
+                      saveWorkspacePatch({ feature_toggles: allOn }, "All platform features enabled!");
+                    }}
+                    className="px-2.5 py-1 rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-[11px] font-bold"
+                  >
+                    Enable All
+                  </button>
                 </div>
 
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-                    gap: "10px",
-                  }}
-                >
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
                   {FEATURE_METADATA.map((feat) => {
                     const enabled = config.feature_toggles?.[feat.key] !== false;
                     return (
                       <div
                         key={feat.key}
                         onClick={() => handleToggleFeature(feat.key)}
-                        style={{
-                          padding: "11px 14px",
-                          borderRadius: "12px",
-                          background: enabled ? "rgba(16,185,129,0.07)" : "rgba(0,0,0,0.25)",
-                          border: enabled
-                            ? "1px solid rgba(16,185,129,0.3)"
-                            : "1px solid rgba(255,255,255,0.07)",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          gap: "12px",
-                          cursor: "pointer",
-                        }}
+                        className={`p-3 rounded-xl border flex items-center justify-between gap-3 cursor-pointer transition-all ${
+                          enabled ? "border-emerald-500/35 bg-emerald-500/5" : "border-[var(--ed-border)] opacity-75"
+                        }`}
+                        style={{ background: enabled ? undefined : "var(--ed-surface)" }}
                       >
-                        <div>
-                          <div style={{ fontSize: "12.5px", fontWeight: 700 }}>{feat.label}</div>
-                          <div style={{ fontSize: "11px", color: "var(--text-secondary, #94a3b8)", marginTop: "2px" }}>
+                        <div className="min-w-0">
+                          <div className="text-xs font-bold text-[var(--ed-text-primary)] truncate">{feat.label}</div>
+                          <div className="text-[10px] text-[var(--ed-text-muted)] line-clamp-1 mt-0.5">
                             {feat.description}
                           </div>
                         </div>
                         <div
-                          style={{
-                            width: "42px",
-                            height: "24px",
-                            borderRadius: "999px",
-                            background: enabled ? "#10b981" : "rgba(255,255,255,0.18)",
-                            padding: "3px",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: enabled ? "flex-end" : "flex-start",
-                            flexShrink: 0,
-                            transition: "all 0.15s ease",
-                          }}
+                          className={`w-10 h-5 rounded-full p-0.5 flex items-center shrink-0 transition-all ${
+                            enabled ? "bg-emerald-500 justify-end" : "bg-slate-400/40 justify-start"
+                          }`}
                         >
-                          <div
-                            style={{
-                              width: "18px",
-                              height: "18px",
-                              borderRadius: "50%",
-                              background: "#fff",
-                            }}
-                          />
+                          <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
                         </div>
                       </div>
                     );
@@ -1211,122 +1003,78 @@ export default function OnboardingAndModeModal({
 
           {/* TAB 3: END-TO-END VERIFICATION */}
           {activeTab === "verification" && (
-            <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
-              <div
-                style={{
-                  padding: "18px 20px",
-                  borderRadius: "16px",
-                  background: "rgba(255,255,255,0.03)",
-                  border: "1px solid var(--border-color, rgba(255,255,255,0.09))",
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px" }}>
-                  <div>
-                    <h3 style={{ margin: 0, fontSize: "15.5px", fontWeight: 800 }}>
-                      End-to-End Platform Verification Checklist
-                    </h3>
-                    <p style={{ margin: "4px 0 0", fontSize: "12px", color: "var(--text-secondary, #94a3b8)" }}>
-                      Verify that FastAPI, SQLite Catalog, Friday (Gemini), EDITH (NVIDIA NIM), WhatsApp Bridge, and Owner Escalation are working properly.
-                    </p>
-                  </div>
-                  <div style={{ display: "flex", gap: "10px" }}>
-                    <button
-                      onClick={() => runVerification(false)}
-                      disabled={verifying}
-                      style={{
-                        padding: "9px 14px",
-                        borderRadius: "10px",
-                        background: "rgba(255,255,255,0.08)",
-                        border: "1px solid rgba(255,255,255,0.15)",
-                        color: "var(--text-primary, #fff)",
-                        fontSize: "12px",
-                        fontWeight: 700,
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
-                      }}
-                    >
-                      <RefreshCw size={14} /> {verifying ? "Checking..." : "Re-Run Health Check"}
-                    </button>
-                    <button
-                      onClick={() => runVerification(true)}
-                      disabled={verifying}
-                      style={{
-                        padding: "9px 15px",
-                        borderRadius: "10px",
-                        background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
-                        border: "none",
-                        color: "#fff",
-                        fontSize: "12px",
-                        fontWeight: 700,
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
-                      }}
-                    >
-                      <Send size={14} /> Verify &amp; Send Test Ping to Owner WhatsApp
-                    </button>
-                  </div>
+            <div
+              className="p-5 rounded-2xl border border-[var(--ed-border)] space-y-4"
+              style={{ background: "var(--ed-bg)" }}
+            >
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-sm font-bold text-[var(--ed-text-primary)]">
+                    End-to-End Platform Verification Checklist
+                  </h3>
+                  <p className="text-xs text-[var(--ed-text-muted)]">
+                    Verifies FastAPI, SQLite Catalog, Friday (Gemini), EDITH (NVIDIA NIM), WhatsApp Gateway, and Owner Escalation.
+                  </p>
                 </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => runVerification(false)}
+                    disabled={verifying}
+                    className="px-3.5 py-2 rounded-xl border border-[var(--ed-border)] text-xs font-bold text-[var(--ed-text-primary)] flex items-center gap-1.5"
+                    style={{ background: "var(--ed-surface)" }}
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" /> {verifying ? "Checking..." : "Re-Run Check"}
+                  </button>
+                  <button
+                    onClick={() => runVerification(true)}
+                    disabled={verifying}
+                    className="px-3.5 py-2 rounded-xl bg-blue-600 text-white text-xs font-bold flex items-center gap-1.5"
+                  >
+                    <Send className="w-3.5 h-3.5" /> Verify &amp; Ping Owner WhatsApp
+                  </button>
+                </div>
+              </div>
 
-                <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                  {checks.map((c) => {
-                    const isPassed = c.status === "passed";
-                    const isAction = c.status === "action_required";
-                    return (
-                      <div
-                        key={c.id}
-                        style={{
-                          padding: "13px 16px",
-                          borderRadius: "12px",
-                          background: isPassed
-                            ? "rgba(16,185,129,0.08)"
-                            : isAction
-                            ? "rgba(245,158,11,0.09)"
-                            : "rgba(239,68,68,0.09)",
-                          border: isPassed
-                            ? "1px solid rgba(16,185,129,0.28)"
-                            : isAction
-                            ? "1px solid rgba(245,158,11,0.3)"
-                            : "1px solid rgba(239,68,68,0.3)",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          gap: "14px",
-                        }}
-                      >
-                        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                          {isPassed ? (
-                            <CheckCircle2 size={20} color="#10b981" />
-                          ) : (
-                            <AlertTriangle size={20} color={isAction ? "#fbbf24" : "#f87171"} />
-                          )}
-                          <div>
-                            <div style={{ fontSize: "13.5px", fontWeight: 700 }}>{c.title}</div>
-                            <div style={{ fontSize: "12px", color: "var(--text-secondary, #94a3b8)", marginTop: "2px" }}>
-                              {c.detail}
-                            </div>
-                          </div>
+              <div className="space-y-2.5">
+                {checks.map((c) => {
+                  const isPassed = c.status === "passed";
+                  const isAction = c.status === "action_required";
+                  return (
+                    <div
+                      key={c.id}
+                      className={`p-3.5 rounded-xl border flex items-center justify-between gap-3 ${
+                        isPassed
+                          ? "border-emerald-500/30 bg-emerald-500/10"
+                          : isAction
+                          ? "border-amber-500/30 bg-amber-500/10"
+                          : "border-rose-500/30 bg-rose-500/10"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        {isPassed ? (
+                          <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
+                        ) : (
+                          <AlertTriangle
+                            className={`w-5 h-5 shrink-0 ${isAction ? "text-amber-500" : "text-rose-500"}`}
+                          />
+                        )}
+                        <div>
+                          <div className="text-xs font-bold text-[var(--ed-text-primary)]">{c.title}</div>
+                          <div className="text-[11px] text-[var(--ed-text-muted)] mt-0.5">{c.detail}</div>
                         </div>
-                        <span
-                          style={{
-                            fontSize: "11px",
-                            fontWeight: 800,
-                            padding: "4px 10px",
-                            borderRadius: "999px",
-                            background: isPassed ? "rgba(16,185,129,0.2)" : "rgba(245,158,11,0.2)",
-                            color: isPassed ? "#34d399" : "#fbbf24",
-                            textTransform: "uppercase",
-                          }}
-                        >
-                          {c.status.replace("_", " ")}
-                        </span>
                       </div>
-                    );
-                  })}
-                </div>
+                      <span
+                        className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full uppercase ${
+                          isPassed
+                            ? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-300"
+                            : "bg-amber-500/20 text-amber-600 dark:text-amber-300"
+                        }`}
+                      >
+                        {c.status.replace("_", " ")}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -1334,53 +1082,30 @@ export default function OnboardingAndModeModal({
 
         {/* Footer Actions */}
         <div
-          style={{
-            padding: "16px 26px",
-            borderTop: "1px solid var(--border-color, rgba(255,255,255,0.08))",
-            background: "rgba(0,0,0,0.24)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
+          className="px-5 py-3.5 border-t border-[var(--ed-border)] flex flex-wrap items-center justify-between gap-3"
+          style={{ background: "var(--ed-bg)" }}
         >
-          <div style={{ fontSize: "12px", color: "var(--text-secondary, #94a3b8)" }}>
-            Active Business: <strong>{config.business_name}</strong> ({config.business_industry}) • Owner Escalation:{" "}
-            <strong>{ownerPhoneInput || "Not set yet"}</strong>
+          <div className="text-xs text-[var(--ed-text-muted)]">
+            Active Business: <strong className="text-[var(--ed-text-primary)]">{config.business_name}</strong> (
+            {config.business_industry}) • Gateway:{" "}
+            <strong className="text-[var(--ed-text-primary)] uppercase">{waMode}</strong>
           </div>
 
-          <div style={{ display: "flex", gap: "10px" }}>
+          <div className="flex gap-2.5">
             {activeTab !== "verification" && (
               <button
                 onClick={() =>
                   setActiveTab(activeTab === "whatsapp_owner" ? "industry_features" : "verification")
                 }
-                style={{
-                  padding: "10px 16px",
-                  borderRadius: "10px",
-                  background: "rgba(255,255,255,0.08)",
-                  border: "1px solid rgba(255,255,255,0.14)",
-                  color: "var(--text-primary, #fff)",
-                  fontSize: "12.5px",
-                  fontWeight: 700,
-                  cursor: "pointer",
-                }}
+                className="px-4 py-2 rounded-xl border border-[var(--ed-border)] text-xs font-bold text-[var(--ed-text-primary)]"
+                style={{ background: "var(--ed-surface)" }}
               >
                 Next Step →
               </button>
             )}
             <button
               onClick={handleCompleteOnboarding}
-              style={{
-                padding: "10px 20px",
-                borderRadius: "10px",
-                background: "linear-gradient(135deg, #10b981, #059669)",
-                border: "none",
-                color: "#fff",
-                fontSize: "13px",
-                fontWeight: 800,
-                cursor: "pointer",
-                boxShadow: "0 6px 20px rgba(16,185,129,0.35)",
-              }}
+              className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold shadow-md"
             >
               ✅ Save &amp; Launch Workspace
             </button>
