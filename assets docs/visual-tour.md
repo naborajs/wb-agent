@@ -1,269 +1,171 @@
 ---
-title: EDITH Dashboard Visual Operations Tour & UI Reference
-tags: [dashboard, visual-tour, screenshots, ui, ux, operations, b2b-sales]
-updated: 2026-09-04
+title: "Dashboard Visual Operations Tour & 17-Route UI Reference"
+tags: [dashboard, visual-tour, screenshots, ui, ux, operations, simplified-mode, advanced-mode, ns]
+updated: 2026-09-29
 aliases: [Visual Tour, Dashboard Screenshots, UI Guide]
 status: complete
 ---
 
-# 🖥️ EDITH Operations Dashboard — Visual Reference & UI Tour
+# 🖥️ Operations Dashboard — Visual Reference & 17-Route UI Tour
 
-> **Reference Tenant:** North Bengal Tea Co. (Wholesale Tea Producer, Siliguri, West Bengal)  
-> **Visual System:** Dual-Theme Architecture — **Royal Pitch Black** (`#030712` / `#0b0f19`) and **Estate White** (`#ffffff` / `#f8fafc`) with vibrant sky-blue/cyan and emerald accents (`#0284c7`, `#10b981`), frosted-glass surfaces (`.ed-glass`), and transparent brand emblem assets. Tagline: *"More Conversations • Real Opportunities"*.
+> **Platform:** WhatsApp AI Agent by NS (EDITH + FRIDAY Autonomous Sales & Operations OS)  
+> **Lead Architect:** Naboraj Sarkar (NS)  
+> **Visual System:** Dual-Theme Architecture — **Royal Pitch Black** (`#030712` / `#0b0f19`) and **Estate White** (`#ffffff` / `#f8fafc`) with sky-blue/cyan and emerald accents (`#0284c7`, `#10b981`), frosted-glass surfaces (`.ed-glass`), and procedural 3D WebGL brain cores (`friday_orb.obj` & `edith_core.obj`).
 
 ---
 
-## 1. Executive Operations Architecture
+## 1. Executive Operations Architecture & Workspace Modes
 
-The EDITH Operations Dashboard gives human sales operators, commercial managers, and business owners real-time visibility into autonomous B2B wholesale conversations, deterministic pricing calculations, lead qualification scores, and system health.
+The Next.js 14 Mission Control Dashboard (`http://localhost:3000`) adapts dynamically to the user's technical comfort level via the top-bar **`✨ Simplified` | `🛠️ Advanced`** mode toggle and the **`⚙️ Setup, WhatsApp & Features`** modal (`OnboardingAndModeModal.tsx`):
 
 ```mermaid
 flowchart TD
-    subgraph Buyers["WhatsApp Wholesale Buyers"]
-        Buyer1["Café Chain Buyer\n(50kg Siliguri)"]
-        Buyer2["Hotel Distributor\n(500kg Kolkata)"]
+    subgraph Buyers["WhatsApp Customers (Any Industry)"]
+        Buyer1["Retail / D2C Buyer\n(E.164 or @lid Multi-Device)"]
+        Buyer2["B2B Wholesale Buyer\n(Bulk Volume & GST Invoice)"]
     end
 
-    subgraph Bridge["WhatsApp Baileys Bridge (Port 3001)"]
-        QR["QR Pairing Channel\n(+91 89187 53100)"]
+    subgraph Gateway["Dual WhatsApp Gateway"]
+        Unofficial["Unofficial Baileys Bridge (:3001)\n(QR Scan & 8-Digit Pairing)"]
+        Official["Official Meta Cloud API (v20.0)\n(Phone ID, WABA & Access Token)"]
     end
 
-    subgraph Core["EDITH Sales OS Backend (Port 8000)"]
-        Orch["Agent Orchestrator"]
-        Router["LLM Router\n(Nemotron 550B / Fallbacks)"]
-        Price["Deterministic Pricing Engine"]
-        Memory["Multi-Tier Memory & Profiler"]
+    subgraph Core["FastAPI Dual-Brain Backend (:8000)"]
+        Orch["15-Step AgentOrchestrator"]
+        Router["5-Role AI Router\n(18 Gemini & NVIDIA NIM Models)"]
+        Price["Deterministic Pricing & GST Engine"]
+        BizArch["AI Business Auto-Fill Architect"]
     end
 
-    subgraph Console["Operations Dashboard (Port 3000)"]
-        Inbox["Live 3-Panel Inbox\n(/conversations)"]
-        Overview["Wholesale Operations\n(/)"]
-        Pricing["Volume Discount Rules\n(/pricing)"]
-        Prompts["Modular Prompts\n(/prompts)"]
-        Models["Model Hierarchy\n(/integrations)"]
+    subgraph Console["Next.js 14 Mission Control (:3000 — 17 Routes)"]
+        Overview["Overview Command Center (/)"]
+        Inbox["Live 3-Panel Inbox (/conversations)"]
+        Brain["Dual-Brain Synaptic Console (/brain)"]
+        Playground["15-Model AI Playground (/playground)"]
+        Knowledge["Unified Knowledge & Spreadsheet Hub (/knowledge)"]
+        Prompts["7-Section Modular Prompts (/prompts)"]
+        Settings["Business Architect & Gateway Settings (/settings)"]
     end
 
-    Buyers <--> Bridge <--> Core <--> Console
+    Buyers <--> Unofficial & Official <--> Core <--> Console
 ```
+
+### First-Run Setup, WhatsApp & Features Modal (`OnboardingAndModeModal.tsx`)
+Accessible anytime via **`⚙️ Setup, WhatsApp & Features`** in the top header bar:
+1. **Tab 1 — WhatsApp Gateway & Owner Phone**: Switch between **Unofficial Web Bridge** (QR Code / 8-Digit Pairing Code / 1-click Session Reset) and **Official Meta Cloud API** (`Phone Number ID`, `WABA ID`, `Access Token`, `Verify Token`), and set your **Owner Escalation WhatsApp Number**.
+2. **Tab 2 — AI Business Architect & Features**: Choose **`✨ Simplified`** or **`🛠️ Advanced`** mode, apply any of the **6 built-in Industry Presets** (or custom presets), run the **AI Business Auto-Fill Architect**, Quick-Add a Product/Rule, and toggle any of the **13 platform modules ON/OFF**.
+3. **Tab 3 — End-to-End Health Verification**: Run a live 5-point diagnostic check across FastAPI/SQLite Catalog, Friday Gemini Live, EDITH NVIDIA NIM, WhatsApp Gateway, and Owner Escalation Channel.
 
 ---
 
 ## 2. Live 3-Panel Inbox & Conversational Sales Console (`/conversations`)
 
-The **Live Inbox** is the primary day-to-day workspace for sales operators:
+The primary workspace for real-time customer conversations, AI supervision, and human takeover:
 
 ![Live 3-Panel Inbox](screenshots/live_inbox.png)
 
-### Key Architectural Capabilities:
-1. **Left Panel — Real-Time Conversations Stream**:
-   - Filter tabs: `All`, `🔥 Hot Leads` (Score ≥ 80 or purchase intent), and `Takeover` (Operator controlled).
-   - Search bar: Filter active dialogues by phone number, customer name, or business company.
-   - Restrained active thread highlight with 2.5px crimson left border (`.ed-nav-active`).
-   - Phone initiator modal (`+` button): Launch outbound WhatsApp conversation directly to any E.164 phone.
-
-2. **Center Panel — Live WhatsApp Message Timeline**:
-   - Visual distinction between Customer messages (neutral dark bubble), EDITH AI Consultative responses (subtle border with model badge), and human operator messages.
-   - Immediate feedback loop: Single-click **"Report / Correct"** button on AI message bubbles creates a `KnowledgeCandidate` to continuously improve sales accuracy.
-   - Chat Mode selector: Seamlessly toggle between **Operator Reply** (direct manual messaging) and **Simulate Customer** (instant test harness).
-   - Dynamic auto-scroll lock to maintain viewport position during active buyer typing.
-
-3. **Right Panel — Customer Intelligence & Takeover Drawer**:
-   - Structured profile: Company name, business type (Café, Hotel, Distributor), delivery destination city, and preferred language (English / Hindi / Hinglish).
-   - Live Sales Intelligence: 0–100 explainable lead score badge, current sales stage (`DISCOVERY`, `QUALIFIED`, `RECOMMENDATION`, `PURCHASE_INTENT`), and control mode.
-   - Rolling Memory Summary: Bounded extraction of active requirements, order sizes, and packaging preferences.
-   - **Take Over / Resume AI Action**: Instant atomic takeover protected by database-level race protection. If human clicks Take Over while AI is generating, the AI send is aborted immediately.
+### Key Capabilities:
+1. **Left Panel — Canonical Conversation Stream**:
+   - Channel & status tabs (`All`, `WhatsApp`, `Sandbox`, `🔥 Hot Leads`, `Takeover`), real-time search, **Purge Simulations** button, and `+` Outbound Chat Initiator.
+   - Automatic multi-device `@lid` to E.164 phone deduplication.
+2. **Center Panel — Live Message Timeline & AI Draft Composer**:
+   - Customer bubbles, EDITH AI responses with model badges, voice note upload & transcription, and **1-Click `✨ AI Suggest Reply`** grounded in live catalog prices.
+   - Single-click **"Report / Correct"** button on AI messages to create a `KnowledgeCandidate`.
+3. **Right Panel — Customer Intelligence & Atomic Takeover Drawer**:
+   - Extracted buyer profile (company, business type, monthly volume, city, dialect), 0–100 lead score, 16-stage sales progression, and atomic **Take Over / Resume AI** button (`ADR-0008`).
 
 ---
 
-## 3. Wholesale Operations Center (`/`)
+## 3. Dual-Brain Command Center (`/`) & Synaptic Console (`/brain`)
 
-The high-level executive control center:
+The mission control centerpiece powered by the `InterBrainBus` protocol between **FRIDAY** and **EDITH**:
 
 ![Wholesale Operations Center](screenshots/overview.png)
 
-### Key Sections:
-- **Hero KPI Metrics**: Frosted-glass stat cards (`.ed-glass`) displaying Hot Leads count, Pending Human Handoffs, Won Deals conversion rate, and Net Pipeline Value.
-- **Sales Stage Distribution Funnel**: Visual bar breakdown of leads moving through the 16-stage consultative sales pipeline (`NEW` → `DISCOVERY` → `QUALIFIED` → `RECOMMENDATION` → `PURCHASE_INTENT` → `WON`).
-- **Safety & Authority Bounds Card**: Active autonomous guardrails (e.g., 5.0% max autonomous discount, mandatory human escalation for wholesale orders >500kg, prompt injection sanitization).
-- **Primary Action**: Crimson gradient `.ed-btn-primary` button linking directly to Live Inbox.
+### Key Sections on `/` and `/brain`:
+- **3D WebGL Hologram Stage (`CinematicHeroDeck.tsx`)**: Renders procedural Rust-generated 3D meshes (`friday_orb.obj` and `edith_core.obj`) with a 4-stage synaptic packet highway.
+- **Live Inter-Brain Activity Ticker (`SynapticActivityTicker.tsx`)**: Real-time WebSocket stream of margin defenses, DOM actions, and cross-brain delegations.
+- **Executive Morning Audio Briefing (`ExecutiveBriefingModal.tsx`)**: Spoken audio debrief of pipeline revenue, hot leads, and compute cost (`GET /api/v1/brain/briefing`).
+- **24-Hour Inbound Traffic Velocity Heatmap (`HourlyVelocityHeatmap.tsx`)**: Hourly resolution histogram and 1.1s flatline turn latency curve.
+- **Dual-Brain Synaptic Console (`/brain`)**: Interactive Friday ↔ EDITH deliberation console, 6-dimension capability radar chart, token economics telemetry, chronological synaptic ledger, and **AI Codebase Self-Inspection & Diagnostics Suite** (`/brain/code/read`, `search`, `tree`, `diagnose`).
 
 ---
 
-## 4. Deterministic Pricing & Volume Curve (`/pricing`)
+## 4. Unified Knowledge Hub, Spreadsheet Editor & Pricing Curve (`/knowledge`, `/pricing`, `/products`)
 
-Guarantees 100% pricing accuracy with zero LLM hallucination:
+Consolidates **Product Catalog**, **Deterministic Volume Discount Rules**, **Business Policies**, and **Sales Guides** into one unified hub with zero LLM pricing hallucination:
 
-![Deterministic Pricing Rules](screenshots/pricing_rules.png)
+| Unified Knowledge & Vector RAG (`/knowledge`) | Deterministic Pricing Curve (`/pricing`) | Product & Packaging Catalog (`/products`) |
+| :---: | :---: | :---: |
+| ![Knowledge Base & Vector RAG](screenshots/knowledge_rag.png) | ![Deterministic Pricing Rules](screenshots/pricing_rules.png) | ![Product Catalog](screenshots/catalog.png) |
 
-### Key Sections:
-- **Interactive Volume Discount Curve**: SVG step-curve chart visually demonstrating wholesale savings across order quantities (50kg → 5%, 100kg → 10%, 500kg → 15%) alongside autonomous margin limits.
-- **Active Volume Tiers Table**: Live database records of active tiers, discount percentages, autonomous negotiation authority, and approval requirements.
-- **Deterministic Quote Simulator**: Real-time calculator allowing operators to test any order quantity (kg) and discount request against active business policies before communicating with buyers.
+### Key Capabilities:
+- **Interactive Multi-Mode Asset Editor (`/knowledge`)**:
+  - **Spreadsheet Mode**: Excel-like grid editor for live price, MOQ, stock, and volume discount editing.
+  - **Document Mode**: Formatted multi-page policy viewer with inline editing and print/PDF export.
+  - **Agentic Chat Updater**: Update catalog items or policies using plain-English commands (`POST /api/v1/knowledge/update-request`).
+- **Interactive Volume Discount Curve & Quote Simulator**: Visual SVG step-curve and deterministic quote calculator with statutory GST breakdown.
 
 ---
 
-## 5. Model Architecture & Fallback Hierarchy (`/integrations`)
+## 5. Model Architecture (`/integrations`) & 15-Model AI Playground (`/playground`)
 
-Manages multi-tier model intelligence with local `.env` synchronization:
+Manages the **5-Role Dynamic AI Router** (`friday_web_model`, `edith_sales_model`, `friday_voice_model`, `edith_policy_model`, `system_watchdog_model`) and provides an interactive **Multi-Model Negotiation Arena**:
 
 ![Model Architecture & System Integrations](screenshots/integrations.png)
 
-### Key Sections:
-- **System Architecture Health Grid**: Live status tiles for WhatsApp Baileys Bridge (Port 3001), Flagship Thinking Model, PostgreSQL Session Pool, and Durable Job Worker.
-- **Primary Thinking Model Selector**: Configure the lead consultative model (**NVIDIA Nemotron-3 Ultra 550B**, **Nemotron-3 Nano Omni 30B**, **Nemotron-3 Super 120B**, or **Google Gemma 4 31B**).
-- **Fallback Sequence Manager**: Drag/move priority ordering of chained fallback models when rate limits (429) or server overloads (503) occur.
-- **Local `.env` Sync**: Update primary and fallback NVIDIA API keys directly from the browser; changes persist locally to `.env` immediately.
-- **Inference Latency Benchmark Chart**: Visual bar chart comparing empirical response speeds (797ms to 28s).
-- **Live Model Ping Console**: Test connectivity, latency, and sample output for any model identifier in real time.
+### Key Capabilities:
+- **5-Role Dynamic Assignment (`/integrations`)**: Map any of the 18 supported Google Gemini & NVIDIA NIM models to specific platform brains with automatic `.env` persistence and chained fallback ordering.
+- **15-Model AI Negotiation Playground (`/playground`)**: Test `Nemotron-3 Ultra 550B`, `Super 120B`, `Nano Omni 30B`, `Nemotron-4 340B`, `DeepSeek R1 671B`, `Llama 3.3 70B`, `Qwen 2.5 72B`, `Mistral Large`, `Gemma 4 31B`, and `Gemini 2.5 Pro/Flash` with 4 persona presets, 6 B2B test prompts, and a **1-Click AI Prompt Upgrader**.
 
 ---
 
-## 6. Modular System Prompts & Token Budget (`/prompts`)
+## 6. Modular System Prompts Studio (`/prompts`)
 
-Eliminates monolithic prompt rot by dividing instructions into 5 isolated sections:
+Eliminates monolithic prompt rot by dividing instructions into **7 dynamic system sections** (`core_safety`, `core_identity`, `business_policy`, `sales_style`, `business_profile`, `product_steering`, `escalation_rules`) plus custom user-created sections:
 
 ![Modular System Prompts](screenshots/modular_prompts.png)
 
-### Architectural Breakdown:
-1. `core_safety`: Anti-hallucination guardrails, discount caps, prompt injection defense.
-2. `core_identity`: Persona, tone, consultative warmth, non-aggressive communication.
-3. `business_policy`: Authority limits, minimum order quantities (MOQs), delivery zones.
-4. `sales_style`: SPIN discovery methodology, single-question discipline, objection handling.
-5. `business_profile`: Estate catalog, CTC and orthodox grades, heritage background.
-
 ### Key Tools:
-- **Token Budget Donut Chart**: Live SVG visualization showing token weight distribution across all 5 sections.
-- **Version History & Rollback**: Complete audit log of prompt modifications with 1-click instant rollback.
+- **Token Budget Donut Chart**: Live SVG visualization of token distribution across all active sections.
+- **NemoTron AI Prompt Optimizer & New-Section Drafter**: 1-click prompt engineering synthesis (`POST /api/v1/prompts/{id}/ai-optimize` & `/ai-draft-section`).
+- **Server-Side Git Diff Viewer, Version Pinning & Rollback**: Line-by-line diff comparison between any two versions, version pinning, history pruning, and atomic rollback.
 
 ---
 
-## 7. Wholesale Commercial Orders (`/orders`)
+## 7. Commercial Orders (`/orders`), Lead Pipeline (`/leads`) & Anti-Ban Campaigns (`/campaigns`)
 
-Order lifecycle tracking for confirmed B2B purchases:
+| Wholesale Commercial Orders (`/orders`) | Lead Intake & Pipeline (`/leads`) | Automated B2B Campaigns (`/campaigns`) |
+| :---: | :---: | :---: |
+| ![Commercial Orders](screenshots/orders.png) | ![Lead Pipeline](screenshots/leads_pipeline.png) | ![B2B Campaigns](screenshots/campaigns.png) |
 
-![Wholesale Commercial Orders](screenshots/orders.png)
-
-### Features:
-- Filter orders by status: `Draft`, `Confirmed`, `Processing`, `Dispatched`, `Delivered`.
-- Currency and weight typography formatted using tabular figures (`font-data`).
-- Modal for manual commercial order creation and pro-forma invoice issuance.
-
----
-
-## 8. Estate Tea Catalog & Packaging (`/products`)
-
-Product inventory and packaging variants:
-
-![Wholesale Tea Catalog](screenshots/catalog.png)
-
-### Features:
-- Estate tea listings: Darjeeling Spring First Flush, Assam Kadak CTC Granules, Dooars Terai Hotel Master Blend.
-- Packaging specifications: 5kg Barrier Foil, 10kg Poly Sack, 20kg Food-grade Jute Bag, 50kg Master Chest.
-- 1-click in-stock / out-of-stock toggling and Minimum Order Quantity (MOQ) enforcement.
+- **Commercial Orders & GST PDF Invoices (`/orders`)**: Full order lifecycle (`Pending` → `Confirmed` → `Dispatched` → `Delivered`), automatic owner WhatsApp alerts, and ReportLab vector PDF Pro-Forma Invoice generation.
+- **Lead Intake & Proposal Pipeline (`/leads`)**: E.164 CSV batch import, 0–100 lead qualification scoring, and 1-click custom WhatsApp proposal dispatch.
+- **Chat-Driven Campaigns & Anti-Ban Jitter (`/campaigns`)**: Describe a campaign in plain English to Friday (`POST /api/v1/brain/campaign-draft`), validate against EDITH's anti-ban guardrails, and dispatch with randomized **25.0s–45.0s** inter-message jitter.
 
 ---
 
-## 9. Lead Intake & Ingestion Pipeline (`/leads`)
+## 8. Sales Intelligence (`/analytics`), Follow-Ups (`/followups`), Handoffs (`/handoffs`) & Settings (`/settings`)
 
-Bulk wholesale lead onboarding and custom proposal engine:
+| Sales Intelligence (`/analytics`) | Follow-Up Sequences (`/followups`) |
+| :---: | :---: |
+| ![Sales Intelligence & Analytics](screenshots/analytics.png) | ![Follow-up Sequences](screenshots/followups.png) |
+| **Human Handoff Queue (`/handoffs`)** | **AI Business Architect & Settings (`/settings`)** |
+| ![Human Handoff Queue](screenshots/handoffs.png) | ![Platform Settings](screenshots/settings.png) |
 
-![Lead Intake & Pipeline](screenshots/leads_pipeline.png)
-
-### Features:
-- Multipart CSV bulk import with automatic column mapping, duplicate detection, and E.164 phone normalization.
-- Lead scoring badges (0–100) reflecting buyer readiness and commercial value.
-- 1-click "Send Custom Proposal" action dispatching personalized consultative intros.
-
----
-
-## 10. Automated B2B Campaign Drip & Anti-Ban Outreach (`/campaigns`)
-
-Proactive cold-outreach sequencer with strict WhatsApp platform policy safeguards:
-
-![Automated B2B Campaigns](screenshots/campaigns.png)
-
-### Key Capabilities:
-- **Anti-Ban Jitter Scheduler**: Automatically enforces randomized inter-message delays between **25.0s and 45.0s** to prevent algorithmic spam bans.
-- **Daily Volume Ceilings**: Enforces per-sender sending limits (e.g. 50–100 messages/day) with live dispatch counters.
-- **Outreach Lifecycle Management**: Control status with `Start Drip`, `Pause Drip`, and `Resume` triggers.
-- **Consultative Auto-Handoff**: When a prospect replies, the campaign sequence terminates immediately, and the buyer is seamlessly handed over to EDITH's conversational discovery engine.
+- **Sales Analytics (`/analytics`)**: Objection Pareto 80/20 distribution, regional revenue breakdown, weighted stage forecast, and 1-click CSV export.
+- **Follow-Up Sequences (`/followups`)**: Bounded Touch 1 / Touch 2 / Touch 3 nudges with quiet hours (`9 PM – 9 AM`) and instant auto-cancellation upon buyer reply.
+- **Human Handoffs (`/handoffs`) & Notifications (`/notifications`)**: Escalation triage queue and real-time autonomous agent notifications center.
+- **AI Business Architect & Gateway Settings (`/settings`)**: **AI Business Auto-Fill Architect** (plain English -> 16 business fields + 4 seeded products), **6 Built-in Industry Presets + Custom Preset Creator**, **Official Meta Cloud API vs. Unofficial Baileys Bridge switcher**, and the **Global Autonomous Kill-Switch**.
 
 ---
 
-## 11. Sales Intelligence & Objection Analytics (`/analytics`)
+## 9. Mobile Responsive & Dual-Theme Architecture
 
-Deep commercial analytics and conversion diagnostics:
-
-![Sales Intelligence & Analytics](screenshots/analytics.png)
-
-### Key Capabilities:
-- **Objection Pareto Distribution**: Identifies primary conversion bottlenecks using the 80/20 rule (`price_too_high`, `needs_quality_proof`, `minimum_order_quantity_too_high`, `logistics_delivery_timeline`).
-- **Regional Lead Density Table**: Tracks leads, closed won deals, win rates, and total revenue across Siliguri, Kolkata, Darjeeling, Jalpaiguri, and Delhi NCR corridors.
-- **Pipeline Stage Probability Forecasting**: Real-time revenue projection weighted by consultative sales stage (`QUALIFIED` 20%, `RECOMMENDATION` 40%, `PURCHASE_INTENT` 70%, `WON` 100%).
-- **1-Click Executive CSV Export**: Direct download button streaming complete CRM activity and deal summaries (`edith_sales_intelligence_export.csv`).
-
----
-
-## 12. Knowledge Base & Vector RAG (`/knowledge`)
-
-Ground-truth grounding documentation:
-
-![Knowledge Base & Vector RAG](screenshots/knowledge_rag.png)
-
-### Features:
-- Ingested policy documents, certifications (FSSAI, Organic, Rainforest Alliance), and tasting sample guidelines.
-- Live semantic vector search query tester verifying similarity distance and chunk retrieval before live dialogue.
-
----
-
-## 13. Automated Follow-up Sequences (`/followups`)
-
-Bounded, polite follow-up execution:
-
-![Follow-up Sequences](screenshots/followups.png)
-
-### Features:
-- Scheduled Day 0, Day 1, and Day 3 follow-up sequence monitor.
-- Verified preflight checks enforcing quiet hours (9 PM to 9 AM IST).
-- Instant automatic sequence cancellation upon customer reply or explicit opt-out.
-
----
-
-## 14. Human Escalations & Handoff Queue (`/handoffs`)
-
-Escalation queue for deals requiring executive intervention:
-
-![Human Handoff Queue](screenshots/handoffs.png)
-
-### Features:
-- Explainable escalation reasons: `PURCHASE_INTENT`, `CUSTOM_CONTRACT`, `COMPLAINT`, `KNOWLEDGE_GAP`.
-- WhatsApp alert dispatch to owner (`+91 89006 53250`).
-- 1-click resolution and AI resume controls.
-
----
-
-## 15. Platform Safety & Platform Settings (`/settings`)
-
-Global system configuration and kill-switch:
-
-![Platform Settings](screenshots/settings.png)
-
-### Features:
-- **Global Autonomous Kill-Switch**: Instantly suspends all outbound AI messaging across all channels.
-- Configurable quiet hours and follow-up touch intervals.
-- Owner escalation phone number configuration (`OWNER_WHATSAPP_NUMBER`).
-
----
-
-## 16. Mobile Responsive & Dual-Theme Architecture
-
-EDITH is engineered mobile-first with adaptive touch UI optimized for operators on iOS Safari, Android Chrome, and desktop:
-- **Responsive Navigation Drawer**: One-tap slide-out drawer on phones with quick theme toggle, system status pills, and direct access to all 14 routes.
-- **Dedicated Mobile Chat View**: Full-screen conversation thread view with seamless 1-tap `← Back` navigation between the active customer timeline and inbox list.
-- **Slide-Over Customer Intelligence**: Buyer profile, commercial stage, order intent, and takeover controls accessible via a slide-over modal drawer on mobile viewports.
-- **Horizontal Scrolling Tables**: Orders, leads, campaigns, schedules, and analytics tables wrapped with `overflow-x-auto` containers and strict `min-w` to prevent column squishing on narrow screens.
-- **Touch Targets**: All interactive buttons, action pills, and inputs adhere to mobile touch guidelines (>=44px height).
-- **Dual Theme Switcher**: 1-tap toggling between **Estate White** and **Royal Pitch Black** with persistent `localStorage` theme state and zero FOUC (flash of unstyled content).
+Engineered mobile-first for iOS Safari, Android Chrome, tablets, and desktop:
+- **Slide-Out Navigation Drawer**: Access all routes, theme switcher, and live WebSocket status with >=44px touch targets.
+- **Focused Mobile Chat & Profile Drawer**: Full-screen thread timeline with `← Back` navigation and slide-over customer intelligence.
+- **Dual Theme Switcher**: 1-tap toggle between **Estate White** and **Royal Pitch Black**.
 
 | Mobile Operations Center | Mobile Live Chat Stream |
 | :---: | :---: |
@@ -271,4 +173,4 @@ EDITH is engineered mobile-first with adaptive touch UI optimized for operators 
 
 ---
 
-*All screenshots captured natively from active local instance at 1600×1050 (desktop) and 390×844 (mobile).*
+*All screenshots captured natively at 1600×1050 (desktop) and 390×844 (mobile) · **WhatsApp AI Agent by NS***

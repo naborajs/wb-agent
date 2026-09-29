@@ -1,97 +1,100 @@
 ---
-title: WB-Agent System Architecture Deep Dive
-tags: [architecture, edith, friday, dual-brain, state-machine, rag, pricing, database, obsidian]
-updated: 2026-09-24
+title: "WhatsApp AI Agent by NS — System Architecture Deep Dive"
+tags: [architecture, edith, friday, dual-brain, state-machine, rag, pricing, database, rust, obsidian, ns]
+updated: 2026-09-29
 aliases: [System Architecture, Architecture Blueprint, Dual Brain]
 status: complete
 ---
 
-# 🏛️ WB-Agent Enterprise System Architecture Deep Dive
+# 🏛️ WhatsApp AI Agent by NS — Enterprise System Architecture Deep Dive
 
 > [!NOTE]
-> This document details the end-to-end technical architecture of **WB-Agent (EDITH & FRIDAY)**, the autonomous B2B sales and operations operating system powering commercial wholesale conversations, deterministic pricing, and multi-channel orchestration.
+> **Architected & Engineered by Naboraj Sarkar (NS)**  
+> This document details the end-to-end technical architecture of **WhatsApp AI Agent by NS (EDITH & FRIDAY)**, the industry-agnostic autonomous AI sales and operations operating system powering WhatsApp negotiations, deterministic pricing, live voice DOM control, and multi-channel orchestration.
+> - Looking for a beginner overview? Read **[[guides/beginner-quick-start|Beginner Quick-Start (ELI15)]]**.
+> - Looking for code-level engineering specs? Read **[[guides/senior-developer-architecture|Senior Developer & Systems Architect Reference]]**.
 
 ---
 
 ## 1. Dual-Brain Cognitive System Topology
 
-WB-Agent implements a decoupled dual-brain architecture that separates real-time customer negotiations from internal operational intelligence and diagnostic agency:
+The platform implements a decoupled **Dual-Brain Cognitive Architecture** (`ADR-0015`) that separates real-time customer negotiations (**🟢 EDITH**) from internal operational intelligence and voice/UI agency (**🟣 FRIDAY**):
 
 ```mermaid
 flowchart TB
     subgraph Channels["External Channels"]
-        WA["WhatsApp Customer\n(+91 89187 53100)"]
-        Owner["Owner WhatsApp\n(+91 89006 53250)"]
-        UI["Mission Control Dashboard\n(Next.js 14 :3000)"]
+        WA["Customer WhatsApp\n(Any E.164 / @lid Device)"]
+        Owner["Owner Escalation WhatsApp\n(Configured via /settings)"]
+        UI["Mission Control Dashboard\n(Next.js 14 :3000 | Simplified & Advanced Modes)"]
     end
 
-    subgraph Adapters["Channel Adapters & Webhooks"]
-        Baileys["Baileys WebSocket Bridge (:3001)"]
-        Meta["Meta Cloud API (Graph v20.0)"]
-        WS_Server["FastAPI Realtime Sockets (:8000/api/v1/ws)"]
+    subgraph Adapters["Channel Gateways & Real-Time Sockets"]
+        Baileys["Unofficial Baileys Web Bridge (:3001)\n(QR Scan, 8-Digit Pairing & Session Reset)"]
+        Meta["Official Meta Cloud API (Graph v20.0)\n(HMAC-SHA256 Verified Webhooks)"]
+        WS_Server["FastAPI Realtime WebSockets (:8000/api/v1/ws)"]
+        GeminiLive["Google Gemini 3.1 Flash Live\n(Ephemeral Token 16kHz/24kHz PCM Audio)"]
     end
 
-    subgraph EDITH_Brain["EDITH: Autonomous B2B Sales Consultant"]
+    subgraph EDITH_Brain["🟢 EDITH: Autonomous Commercial Sales Closer"]
         direction TB
-        TurnEngine["15-Step Turn Cycle Engine"]
-        SPIN["SPIN Selling & Objection Handler"]
-        PriceCalc["Deterministic Pricing & Margin Safety"]
-        PromptAssembler["7-Section Dynamic Prompt Assembler"]
-        EDITH_Model["meta/llama-3.3-70b-instruct\n(NVIDIA NIM Primary + Fallback Key)"]
+        TurnEngine["15-Step Turn Cycle & Mutex Engine"]
+        SPIN["16-Stage SPIN Selling & Objection Handler"]
+        PriceCalc["Deterministic Pricing, MOQ & GST Engine"]
+        PromptAssembler["7+N Section Dynamic Prompt Assembler"]
+        EDITH_Model["5-Role AI Router (NVIDIA NIM)\nLlama 3.3 70B / Nemotron-3 Ultra 550B"]
     end
 
-    subgraph FRIDAY_Brain["FRIDAY: Mission Control & Agency Supervisor"]
+    subgraph FRIDAY_Brain["🟣 FRIDAY: Mission Control & Voice Supervisor"]
         direction TB
-        AgenticBus["Inter-Brain Synaptic Bus"]
-        ActionReg["Friday Operational Action Registry"]
-        LiveAudio["Gemini 3.1 Flash Live Audio (WebSocket)"]
-        RAGChat["Gemini 2.5 Flash REST RAG / Chat"]
-        Watchdog["Autonomous Diagnostic Watchdog"]
+        AgenticBus["Inter-Brain Synaptic Bus (InterBrainMessage)"]
+        ActionReg["Friday Action Registry (27 Backend + 26 DOM Tools)"]
+        BizArchitect["AI Business Auto-Fill Architect & Preset Engine"]
+        CodeDiag["Self-Inspection & Code Diagnostics Engine"]
+        Watchdog["Autonomous Diagnostic Watchdog (GPT-OSS 20B)"]
     end
 
-    subgraph Storage["Persistence & Memory Tier"]
-        DB["SQLite / PostgreSQL with pgvector\n(Single Tenant: org_default)"]
-        Memory["Customer Facts, Rolling Summary & Mutex"]
-        Vector["Knowledge Documents & Item Vectors"]
+    subgraph Storage["Persistence & Procedural 3D Tier"]
+        DB["Zero-Config SQLite WAL (wb_agent.db)\nOR PostgreSQL 16 + pgvector"]
+        Memory["Multi-Tier Customer Facts & Rolling Summary"]
+        Vector["Unified KnowledgeItem & Vector RAG Chunks"]
         Queue["Durable Jobs Queue (SKIP LOCKED)"]
+        Rust3D["Rust Procedural 3D Meshes (rust-models/)\nfriday_orb.obj & edith_core.obj"]
     end
 
-    WA --> Baileys & Meta
-    Baileys & Meta --> TurnEngine
-    TurnEngine --> EDITH_Model
-    EDITH_Model --> PriceCalc
-    PriceCalc --> DB
-
+    WA <--> Baileys & Meta
+    Baileys & Meta <--> TurnEngine
+    TurnEngine <--> EDITH_Model & PriceCalc & PromptAssembler
+    PriceCalc <--> DB
     TurnEngine <--> AgenticBus <--> ActionReg
     ActionReg --> WS_Server --> UI
-    UI <--> LiveAudio & RAGChat
-    Watchdog --> DB
-    Watchdog --> WS_Server
-    TurnEngine --> Memory & Vector & Queue
+    UI <--> GeminiLive
+    BizArchitect & Watchdog <--> DB
+    TurnEngine <--> Memory & Vector & Queue
     Owner <--> Baileys & Meta
+    Rust3D --> UI
 ```
 
 ---
 
-## 2. 15-Step Conversational Turn Decision Cycle
+## 2. 15-Step Conversational Turn Decision Cycle (`AgentOrchestrator`)
 
-Every inbound WhatsApp turn processed by `AgentOrchestrator` executes through a strictly sequenced 15-step cycle:
+Every inbound WhatsApp turn processed by `AgentOrchestrator` (`backend/app/agent/orchestrator.py`) executes through a strictly sequenced 15-step cycle:
 
-1. **Webhook Ingestion**: Fast edge reception, HMAC-SHA256 signature verification, and deduplication via `provider_message_id`.
-2. **Turn-Level Mutex**: Acquires atomic lock on `Conversation.id` (`conversation_locks`) to eliminate race conditions from rapid successive user messages.
-3. **Context Assembly**: Loads rolling recent turns, conversation summary, long-term customer memory, and preferred language without token bloat.
-4. **Language & Intent Recognition**: Classifies language (English, Hindi, Bengali, Hinglish) and intent (`opt_out`, `human_request`, `purchase_intent`, `objection`, `price_inquiry`, `sample_request`, `product_inquiry`).
-5. **Opt-Out Compliance**: If opt-out is detected, updates `Customer.opt_in_status = False`, records timestamp, transitions stage to `OPTED_OUT`, and dispatches immediate acknowledgment.
-6. **Explicit Human Request**: If human requested, marks conversation mode `HUMAN`, records `Handoff`, and dispatches owner alert.
-7. **Purchase Intent Detection**: If ready to purchase, transitions stage to `PURCHASE_INTENT`, raises lead score, creates handoff, and dispatches hot buyer alert to `+91 89006 53250`.
-8. **Knowledge RAG Retrieval**: If information required, executes cosine similarity search over `knowledge_items` and `knowledge_chunks` with source attribution.
-9. **Deterministic Pricing Calculation**: If pricing or quote requested, queries `PricingService` to calculate volume tier discounts and enforce the 5% autonomous discount ceiling.
-10. **LLM Generation**: Synthesizes response via `AIRouter` using configured `EDITH_SALES_MODEL` (`meta/llama-3.3-70b-instruct`) with dual-key rotation.
-11. **Defensive Validation**: Runs `ResponseValidator` to enforce factual grounding, block unverified financial commitments, and sanitize against prompt injection.
-12. **Atomic Pre-Send State Check (ADR-008)**: Re-queries `Conversation.mode`. If human operator engaged while LLM was generating, outbound AI message is suppressed.
-13. **Outbound Dispatch**: Sends message via active `WhatsAppProvider` (Baileys or Meta Cloud API).
-14. **Customer Memory & Summary Update**: Extracts new verified facts and updates semantic summary asynchronously.
-15. **Audit Logging & Lock Release**: Commits `AgentRun` and `ToolCall` records, releases mutex, and broadcasts real-time updates via WebSockets.
+1. **Webhook Ingestion & Canonical `@lid` Resolution**: Verifies HMAC-SHA256 signatures, deduplicates `provider_message_id`, and resolves multi-device Linked IDs (`@lid`) into canonical E.164 phone numbers (`app/utils/phone.py`).
+2. **Group Chat Suppression (`ADR-0024`)**: If the message originates from a WhatsApp group (`@g.us`), forces `Conversation.mode = "HUMAN"`, suppresses AI auto-reply, and alerts the operator.
+3. **Turn-Level Mutex (`ADR-0004`)**: Acquires an atomic lock on `Conversation.id` (`conversation_locks`) to eliminate race conditions from rapid multi-message bursts.
+4. **Multi-Tier Context Assembly (`ADR-0006`)**: Loads rolling recent turns, compressed `ConversationSummary`, long-term `CustomerMemory` facts, and active workspace business rules (`.workspace_config.json`).
+5. **Language, Dialect & Intent Classification**: Classifies dialect (English, Hindi, Bengali, Hinglish) and intent (`opt_out`, `human_request`, `purchase_intent`, `objection`, `price_inquiry`, `sample_request`, `product_inquiry`).
+6. **Opt-Out Compliance**: If `STOP` / `UNSUBSCRIBE` is detected, sets `Customer.opt_in_status = False`, cancels all pending `FollowupJob` records, transitions stage to `OPTED_OUT`, and sends acknowledgment.
+7. **Sentiment Distress & Explicit Human Request**: Runs `analyze_sentiment`. If high distress or human request is detected, switches conversation mode to `HUMAN`, creates a `Handoff`, and dispatches an owner WhatsApp alert.
+8. **Purchase Intent & Escalation Check**: If buyer agrees to order or requests quantity above `escalation_qty`, transitions stage to `PURCHASE_INTENT`, raises lead score, creates a handoff, and alerts the configured `OWNER_WHATSAPP_NUMBER`.
+9. **Unified Knowledge RAG Retrieval (`ADR-0007`)**: Executes hybrid vector + keyword retrieval over active `KnowledgeItem` and `KnowledgeChunk` records.
+10. **Deterministic Pricing Calculation (`ADR-0014`)**: Queries `PricingService` to compute base prices, volume tier discounts, MOQ checks, and autonomous discount ceilings (`max_discount_pct`).
+11. **7+N Dynamic Prompt Assembly (`ADR-0013`)**: Assembles active versions of all enabled prompt sections (`core_safety`, `core_identity`, `business_policy`, `sales_style`, `business_profile`, `product_steering`, `escalation_rules`, plus custom sections).
+12. **Multi-Provider LLM Synthesis**: Generates response via `AIRouter` using the configured `edith_sales_model` with dual-key rotation and chained fallback models.
+13. **Defensive Pricing & Safety Validation**: Runs `ResponseValidator` and `pricing_validator` to block hallucinated prices or prompt injection attempts.
+14. **Atomic Pre-Send State Check (`ADR-0008`)**: Re-queries `Conversation.mode` immediately before dispatch. If a human operator clicked **Take Over** while the LLM was generating, the AI message is aborted.
+15. **Outbound Dispatch, Memory Extraction & Broadcast**: Sends message via active `WhatsAppProvider` (`baileys_bridge` or `meta_cloud`), extracts new customer facts asynchronously, releases the mutex, and broadcasts WebSocket events.
 
 ---
 
@@ -102,70 +105,71 @@ stateDiagram-v2
     [*] --> NEW: Inbound Lead
     NEW --> DISCOVERY: Welcome & Needs Inquiry
     DISCOVERY --> QUALIFIED: MOQ & Commercial Spec Met
-    DISCOVERY --> NURTURING: Low Volume or Price Hesitation
-    QUALIFIED --> RECOMMENDATION: Catalog Matching & Sample Offer
+    DISCOVERY --> NURTURING: Low Volume or Initial Exploration
+    QUALIFIED --> RECOMMENDATION: Catalog Matching & Tier Offer
     RECOMMENDATION --> OBJECTION_HANDLING: Price / Quality / Competitor Challenge
     OBJECTION_HANDLING --> RECOMMENDATION: Objection Resolved
     RECOMMENDATION --> PURCHASE_INTENT: Buyer Agrees to Order
-    PURCHASE_INTENT --> PROFORMA_ISSUED: PDF Invoice Generated
-    PROFORMA_ISSUED --> PAYMENT_PENDING: Bank Details & Rate-Lock Shared
+    PURCHASE_INTENT --> PROFORMA_ISSUED: GST PDF Invoice Generated
+    PROFORMA_ISSUED --> PAYMENT_PENDING: Payment Terms & Rate-Lock Shared
     PAYMENT_PENDING --> WON: Payment Confirmed / Order Booked
-    PAYMENT_PENDING --> FOLLOWUP_SCHEDULED: 24h/72h Cadence Nudge
+    PAYMENT_PENDING --> FOLLOWUP_SCHEDULED: Touch 1 / 2 / 3 Cadence Nudge
     FOLLOWUP_SCHEDULED --> PAYMENT_PENDING: Follow-up Sent
-    ANY_STAGE --> HUMAN_HANDOFF: Distress / Large Bulk (>500kg) / Owner Takeover
+    ANY_STAGE --> HUMAN_HANDOFF: Distress / Custom Contract / Owner Takeover
     ANY_STAGE --> OPTED_OUT: "STOP" / "UNSUBSCRIBE"
 ```
 
 ---
 
-## 4. Deterministic Pricing & Margin Safety (ADR-007, ADR-0014)
+## 4. Deterministic Pricing, Multi-Industry Units & Statutory GST (`ADR-0014`, `ADR-0019`, `ADR-0021`)
 
 > [!CAUTION]
-> The AI Language Model is **NEVER** allowed to do mathematical pricing calculations or invent volume discounts. All pricing is computed deterministically from `pricing_rules` rows in the database.
+> The AI Language Model is **NEVER** allowed to invent product prices or calculate invoice totals. All math is computed deterministically by `PricingService` and `InvoiceGenerator` in Python.
 
 ```mermaid
 flowchart LR
-    Inbound["Customer Request:\n'Price for 100kg CTC'"] --> Engine["Deterministic Pricing Engine"]
-    Engine --> CheckMOQ{"Quantity >= MOQ?\n(Assam CTC: 20kg)"}
-    CheckMOQ -- No --> RejectMOQ["Inform MOQ Threshold & Sample Kit"]
-    CheckMOQ -- Yes --> TierCheck{"Match Volume Tier\n(100kg = 10% Off)"}
-    TierCheck --> BasePrice["Base: ₹340.00/kg\nSubtotal: ₹34,000"]
-    BasePrice --> Discount["Discount: -₹3,400 (10%)\nTotal: ₹30,600"]
-    Discount --> TaxCalc["Statutory GST (5%)\nCGST: 2.5% | SGST: 2.5%"]
-    TaxCalc --> Proforma["Audit Quote / PDF Pro-Forma"]
+    Inbound["Customer Request:\n'Price for 100 units'"] --> Engine["Deterministic Pricing Engine"]
+    Engine --> CheckMOQ{"Quantity >= MOQ?"}
+    CheckMOQ -- No --> RejectMOQ["Inform MOQ Threshold & Starter Pack"]
+    CheckMOQ -- Yes --> TierCheck{"Match Volume Tier\n& Max Discount Guardrail"}
+    TierCheck --> BasePrice["Compute Base Subtotal\n(In Active Currency ₹ / $ / € / £)"]
+    BasePrice --> Discount["Apply Verified Tier Discount"]
+    Discount --> TaxCalc["Statutory GST Breakdown\n(CGST + SGST vs IGST)"]
+    TaxCalc --> Proforma["Auditable Quote & ReportLab PDF Invoice"]
 ```
 
-- **Autonomous Discount Authority**: Up to **5.0%** autonomously. Any higher discount requires explicit human approval.
-- **Statutory Taxes**: 5% GST breakdown computed dynamically based on interstate (`IGST`) vs intrastate (`CGST` + `SGST`) delivery destination.
-- **Rate-Lock Guarantee**: Pro-forma invoices lock price for **7 days** with automatic expiry tracking.
+- **Multi-Industry Units & Currencies**: Supports any measurement unit (`unit`, `kg`, `seat`, `package`, `sq.ft`, `lot`, `system`) and 6 international currencies (`INR ₹`, `USD $`, `EUR €`, `GBP £`, `AED د.إ`, `SGD S$`).
+- **Autonomous Discount Authority**: Configurable in `/settings` (`max_discount_pct`, default `5%–12%`). Any discount request above this ceiling triggers a human handoff.
+- **Statutory Tax & Rate-Lock**: Computes intrastate (`CGST + SGST`) vs. interstate (`IGST`) tax breakdowns and locks pro-forma invoice rates for **7 days**.
 
 ---
 
-## 5. Database Domain Model (35 Core Entities)
+## 5. Database Domain Model (35 Core Entities + `.workspace_config.json`)
 
-The database schema is partitioned across 7 logical domains:
+The persistence layer runs out-of-the-box on **SQLite 3 in WAL mode (`wb_agent.db`)** and scales seamlessly to **PostgreSQL 16 with `pgvector`** across 7 logical domains:
 
-1. **Tenancy & Access**: `Organization`, `User`, `ApiKey` (Normalized to `org_default`).
+1. **Tenancy & Access**: `Organization`, `User`, `ApiKey` (Normalized to `org_default` / `default`).
 2. **CRM & Lead Lifecycle**: `Lead`, `Customer`, `Deal`, `LeadEvent`.
 3. **Conversations & Memory**: `Conversation`, `Message`, `MessageStatus`, `ConversationSummary`, `CustomerMemory`.
 4. **Catalog, Pricing & Orders**: `Product`, `ProductVariant`, `PricingRule`, `ProductCustomField`, `PricingRuleVersion`, `Inventory`, `Order`, `OrderItem`, `Quote`, `QuoteItem`.
-5. **Knowledge & RAG**: `KnowledgeDocument`, `KnowledgeChunk`, `KnowledgeItem`, `KnowledgeCategory`, `HumanKnowledgeRequest`, `KnowledgeCandidate`, `CustomerProfileVersion`.
+5. **Unified Knowledge & RAG**: `KnowledgeItem` (unified catalog, pricing, policy & guide store with `spreadsheet_data`), `KnowledgeDocument`, `KnowledgeChunk`, `KnowledgeCategory`, `HumanKnowledgeRequest`, `KnowledgeCandidate`, `CustomerProfileVersion`.
 6. **Campaigns & Outreach**: `Campaign`, `CampaignLead`, `FollowupJob`, `Job`.
 7. **Governance, Auditing & Inter-Brain**: `AgentRun`, `AgentEvent`, `ToolCall`, `SalesEvent`, `Handoff`, `Notification`, `AgentNotification`, `InterBrainMessage`, `WatchdogAlert`, `AuditLog`, `VoiceAuditLog`, `SalesLearning`, `PromptSection`, `PromptVersion`.
 
 ---
 
-## 6. Real-Time Telemetry & Failover Matrix
+## 6. 5-Role Dynamic AI Router & Failover Matrix (`ADR-0026`)
 
-| Service | Primary Provider | Fallback Provider | Fallback Trigger |
-| :--- | :--- | :--- | :--- |
-| **Sales Brain (EDITH)** | NVIDIA NIM `meta/llama-3.3-70b-instruct` | NVIDIA NIM Fallback Key (`NVIDIA_API_KEY_FALLBACK`) | 429, 500, 503, Network Timeout (25s) |
-| **Agency / Supervisor (FRIDAY)** | Google Gemini `gemini-2.5-flash` | Gemini Fallback Key (`GEMINI_API_KEY_FALLBACK`) | Rate limit (429), Model quota, Timeout (30s) |
-| **Live Voice Streaming** | Google Gemini Live `gemini-3.1-flash-live-preview` | Local TTS / REST Audio Synthesis | WebSocket disconnect, quota exhaustion |
-| **Diagnostic Watchdog** | `openai/gpt-oss-20b` (NVIDIA NIM) | `nvidia/nemotron-3.5-lightning-30b-a3b` | 429, 500, circuit breaker trip |
-| **WhatsApp Channel** | Self-Hosted Baileys Bridge (:3001) | Meta Cloud API (Graph v20.0) | Bridge disconnect, heartbeat failure |
-| **Database** | PostgreSQL 16 with pgvector | Local SQLite with aiosqlite | Postgres connection refused, network partition |
+| System Role / Service | Primary Provider & Default Model | Fallback Chain & Trigger |
+| :--- | :--- | :--- |
+| **Sales Brain (`edith_sales_model`)** | NVIDIA NIM `meta/llama-3.3-70b-instruct` | Rotates to `NVIDIA_FALLBACK_API_KEY` → `nemotron-3-nano-omni-30b` → `nemotron-3-super-120b` → `gemma-4-31b-it` → Offline Simulator |
+| **Policy & Prompt Architect (`edith_policy_model`)** | NVIDIA NIM `nvidia/nemotron-3-ultra-550b-instruct` | Cascades to `nemotron-3-super-120b` → `deepseek-ai/deepseek-r1` |
+| **Web & RAG Copilot (`friday_web_model`)** | Google Gemini `gemini-2.5-flash` | Rotates to `GEMINI_API_KEY_FALLBACK` → NVIDIA NIM fallback chain |
+| **Live Voice Streaming (`friday_voice_model`)** | Google Gemini Live `gemini-3.1-flash-live-preview` | Ephemeral WebSocket resumption + Web Speech API synthesis fallback |
+| **Diagnostic Watchdog (`system_watchdog_model`)** | NVIDIA NIM `openai/gpt-oss-20b` | `nvidia/nemotron-3-nano-omni-30b` + deterministic rule engine |
+| **WhatsApp Gateway** | Unofficial Baileys Bridge (`:3001`) OR Official Meta Cloud API (`v20.0`) | Runtime switchable in `/settings` (`whatsapp_connection_mode`); sandbox simulator fallback |
+| **Database Engine** | Zero-Config SQLite WAL (`wb_agent.db`) | Auto-upgrades `postgres://` URLs to `postgresql+asyncpg://` for cloud PostgreSQL 16 + `pgvector` |
 
 ---
 
-*WB-Agent Enterprise System Architecture · Designed for 99.9% Uptime and Zero Hallucination B2B Operations*
+*WhatsApp AI Agent by NS · Architected & Engineered by **Naboraj Sarkar (NS)** · Enterprise v2.4.0*
