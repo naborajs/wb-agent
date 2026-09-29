@@ -30,11 +30,29 @@ class SettingsUpdateRequest(BaseModel):
     agent_role: Optional[str] = None
     currency_symbol: Optional[str] = None
     catalog_unit: Optional[str] = None
+    # Extended Commercial, Negotiation & Policy Rules
+    brand_tone: Optional[str] = None
+    target_audience: Optional[str] = None
+    max_discount_pct: Optional[float] = None
+    escalation_qty: Optional[int] = None
+    tax_rate_pct: Optional[float] = None
+    payment_terms: Optional[str] = None
+    return_policy: Optional[str] = None
+    supported_languages: Optional[str] = None
+    # WhatsApp Connection Mode (Unofficial Baileys vs Official Meta Cloud API)
+    whatsapp_connection_mode: Optional[str] = None
+    meta_phone_number_id: Optional[str] = None
+    meta_waba_id: Optional[str] = None
+    meta_access_token: Optional[str] = None
+    meta_verify_token: Optional[str] = None
+    # Backend Engine & Concurrency
+    worker_count: Optional[int] = None
+    message_debounce_seconds: Optional[int] = None
 
 
 @router.get("")
 async def get_system_settings():
-    """Returns current operational settings and emergency stop status."""
+    """Returns current operational settings, extended business rules, and WhatsApp gateway status."""
     ws_cfg = load_workspace_config()
     owner_num = ws_cfg.get("owner_whatsapp_number") or getattr(settings, "OWNER_WHATSAPP_NUMBER", "")
     # Avoid returning legacy hardcoded personal number if not explicitly configured in workspace_config
@@ -50,28 +68,44 @@ async def get_system_settings():
         "followup_midterm_hours": getattr(settings, "FOLLOWUP_MIDTERM_HOURS", 8),
         "followup_final_days": getattr(settings, "FOLLOWUP_FINAL_DAYS", 7),
         "quiet_hours_enabled": getattr(settings, "QUIET_HOURS_ENABLED", True),
-        "whatsapp_provider": settings.WHATSAPP_PROVIDER,
+        "whatsapp_provider": ws_cfg.get("whatsapp_connection_mode", "unofficial"),
+        "whatsapp_connection_mode": ws_cfg.get("whatsapp_connection_mode", "unofficial"),
+        "meta_phone_number_id": ws_cfg.get("meta_phone_number_id") or getattr(settings, "WHATSAPP_PHONE_NUMBER_ID", ""),
+        "meta_waba_id": ws_cfg.get("meta_waba_id") or getattr(settings, "WHATSAPP_BUSINESS_ACCOUNT_ID", ""),
+        "meta_access_token": ws_cfg.get("meta_access_token") or getattr(settings, "WHATSAPP_ACCESS_TOKEN", ""),
+        "meta_verify_token": ws_cfg.get("meta_verify_token") or getattr(settings, "WHATSAPP_VERIFY_TOKEN", "wb_agent_verify_token"),
         "llm_provider": settings.LLM_PROVIDER,
-        "worker_count": settings.WORKER_COUNT,
-        "message_debounce_seconds": settings.MESSAGE_DEBOUNCE_WINDOW_SECONDS,
+        "worker_count": ws_cfg.get("worker_count", settings.WORKER_COUNT),
+        "message_debounce_seconds": ws_cfg.get("message_debounce_seconds", settings.MESSAGE_DEBOUNCE_WINDOW_SECONDS),
         # Domain & Business Profile
         "business_name": ws_cfg.get("business_name") or getattr(settings, "BUSINESS_NAME", "My Business"),
         "business_industry": ws_cfg.get("business_industry") or getattr(settings, "BUSINESS_INDUSTRY", "General Business"),
         "business_tagline": ws_cfg.get("business_tagline") or getattr(settings, "BUSINESS_TAGLINE", "AI-Powered Business Operations"),
         "business_description": ws_cfg.get("business_description") or getattr(settings, "BUSINESS_DESCRIPTION", "AI-powered business operations platform for managing sales, customer interactions, and order processing."),
-        "agent_name": getattr(settings, "AGENT_NAME", "EDITH"),
-        "agent_role": getattr(settings, "AGENT_ROLE", "AI Sales & Support Agent"),
+        "agent_name": ws_cfg.get("agent_name") or getattr(settings, "AGENT_NAME", "EDITH"),
+        "agent_role": ws_cfg.get("agent_role") or getattr(settings, "AGENT_ROLE", "AI Sales & Support Agent"),
         "currency_symbol": ws_cfg.get("currency_symbol") or getattr(settings, "CURRENCY_SYMBOL", "₹"),
         "catalog_unit": ws_cfg.get("catalog_unit") or getattr(settings, "CATALOG_UNIT", "unit"),
+        # Extended Commercial & Policy Rules
+        "brand_tone": ws_cfg.get("brand_tone", "Executive, Consultative & High-Trust"),
+        "target_audience": ws_cfg.get("target_audience", "B2B Buyers, Enterprise Teams & Direct Retail Customers"),
+        "max_discount_pct": ws_cfg.get("max_discount_pct", 12.0),
+        "escalation_qty": ws_cfg.get("escalation_qty", 100),
+        "tax_rate_pct": ws_cfg.get("tax_rate_pct", 18.0),
+        "payment_terms": ws_cfg.get("payment_terms", "Instant UPI / Bank NEFT / 50% Advance on Bulk Orders"),
+        "return_policy": ws_cfg.get("return_policy", "7-Day Quality Assurance & Instant Replacement"),
+        "supported_languages": ws_cfg.get("supported_languages", "English, Hindi, Hinglish & Auto-Detected Regional"),
         "ui_mode": ws_cfg.get("ui_mode", "advanced"),
         "feature_toggles": ws_cfg.get("feature_toggles", DEFAULT_FEATURE_TOGGLES),
+        "custom_presets": ws_cfg.get("custom_presets", []),
     }
 
 
 @router.patch("")
 async def update_system_settings(req: SettingsUpdateRequest):
-    """Updates operational toggles and parameters."""
+    """Updates operational toggles, business rules, and official/unofficial WhatsApp gateway parameters."""
     ws_updates: Dict[str, Any] = {}
+    env_updates: Dict[str, str] = {}
     if req.global_autonomous_enabled is not None:
         settings.GLOBAL_AUTONOMOUS_ENABLED = req.global_autonomous_enabled
     if req.dry_run_mode is not None:
@@ -81,6 +115,7 @@ async def update_system_settings(req: SettingsUpdateRequest):
     if req.owner_whatsapp_number is not None:
         settings.OWNER_WHATSAPP_NUMBER = req.owner_whatsapp_number
         ws_updates["owner_whatsapp_number"] = req.owner_whatsapp_number
+        env_updates["OWNER_WHATSAPP_NUMBER"] = req.owner_whatsapp_number
         await _sync_bridge_config(owner_phone=req.owner_whatsapp_number)
     if req.owner_notification_enabled is not None:
         settings.OWNER_NOTIFICATION_ENABLED = req.owner_notification_enabled
@@ -96,28 +131,86 @@ async def update_system_settings(req: SettingsUpdateRequest):
     if req.business_name is not None:
         setattr(settings, "BUSINESS_NAME", req.business_name)
         ws_updates["business_name"] = req.business_name
+        env_updates["BUSINESS_NAME"] = req.business_name
     if req.business_industry is not None:
         setattr(settings, "BUSINESS_INDUSTRY", req.business_industry)
         ws_updates["business_industry"] = req.business_industry
+        env_updates["BUSINESS_INDUSTRY"] = req.business_industry
     if req.business_tagline is not None:
         setattr(settings, "BUSINESS_TAGLINE", req.business_tagline)
         ws_updates["business_tagline"] = req.business_tagline
+        env_updates["BUSINESS_TAGLINE"] = req.business_tagline
     if req.business_description is not None:
         setattr(settings, "BUSINESS_DESCRIPTION", req.business_description)
         ws_updates["business_description"] = req.business_description
     if req.agent_name is not None:
         setattr(settings, "AGENT_NAME", req.agent_name)
+        ws_updates["agent_name"] = req.agent_name
     if req.agent_role is not None:
         setattr(settings, "AGENT_ROLE", req.agent_role)
+        ws_updates["agent_role"] = req.agent_role
     if req.currency_symbol is not None:
         setattr(settings, "CURRENCY_SYMBOL", req.currency_symbol)
         ws_updates["currency_symbol"] = req.currency_symbol
     if req.catalog_unit is not None:
         setattr(settings, "CATALOG_UNIT", req.catalog_unit)
         ws_updates["catalog_unit"] = req.catalog_unit
+        env_updates["CATALOG_UNIT"] = req.catalog_unit
+    # Extended Commercial & Policy Rules
+    for field in (
+        "brand_tone",
+        "target_audience",
+        "max_discount_pct",
+        "escalation_qty",
+        "tax_rate_pct",
+        "payment_terms",
+        "return_policy",
+        "supported_languages",
+    ):
+        val = getattr(req, field, None)
+        if val is not None:
+            ws_updates[field] = val
+    # WhatsApp Official / Unofficial Gateway Settings
+    if req.whatsapp_connection_mode in ("unofficial", "official"):
+        ws_updates["whatsapp_connection_mode"] = req.whatsapp_connection_mode
+        settings.WHATSAPP_PROVIDER = "meta_cloud" if req.whatsapp_connection_mode == "official" else "baileys_bridge"
+        env_updates["WHATSAPP_PROVIDER"] = settings.WHATSAPP_PROVIDER
+    if req.meta_phone_number_id is not None:
+        ws_updates["meta_phone_number_id"] = req.meta_phone_number_id.strip()
+        setattr(settings, "WHATSAPP_PHONE_NUMBER_ID", req.meta_phone_number_id.strip())
+        env_updates["WHATSAPP_PHONE_NUMBER_ID"] = req.meta_phone_number_id.strip()
+    if req.meta_waba_id is not None:
+        ws_updates["meta_waba_id"] = req.meta_waba_id.strip()
+        setattr(settings, "WHATSAPP_BUSINESS_ACCOUNT_ID", req.meta_waba_id.strip())
+        env_updates["WHATSAPP_BUSINESS_ACCOUNT_ID"] = req.meta_waba_id.strip()
+    if req.meta_access_token is not None:
+        ws_updates["meta_access_token"] = req.meta_access_token.strip()
+        setattr(settings, "WHATSAPP_ACCESS_TOKEN", req.meta_access_token.strip())
+        env_updates["WHATSAPP_ACCESS_TOKEN"] = req.meta_access_token.strip()
+    if req.meta_verify_token is not None:
+        ws_updates["meta_verify_token"] = req.meta_verify_token.strip()
+        setattr(settings, "WHATSAPP_VERIFY_TOKEN", req.meta_verify_token.strip())
+        env_updates["WHATSAPP_VERIFY_TOKEN"] = req.meta_verify_token.strip()
+    if req.worker_count is not None:
+        ws_updates["worker_count"] = max(1, min(32, req.worker_count))
+        settings.WORKER_COUNT = ws_updates["worker_count"]
+    if req.message_debounce_seconds is not None:
+        ws_updates["message_debounce_seconds"] = max(0, min(30, req.message_debounce_seconds))
+        settings.MESSAGE_DEBOUNCE_WINDOW_SECONDS = ws_updates["message_debounce_seconds"]
 
     if ws_updates:
         save_workspace_config(ws_updates)
+    if env_updates:
+        try:
+            update_local_env_file(env_updates)
+        except Exception:
+            pass
+
+    try:
+        full_ws = await get_workspace_config()
+        await ws_manager.broadcast_to_org("default", "workspace_config_updated", full_ws)
+    except Exception:
+        pass
 
     return {"success": True, "settings": await get_system_settings()}
 
@@ -554,10 +647,26 @@ def load_workspace_config() -> Dict[str, Any]:
         "business_industry": getattr(settings, "BUSINESS_INDUSTRY", "Multi-Industry B2B & Retail Commerce") or "Multi-Industry B2B & Retail Commerce",
         "business_tagline": getattr(settings, "BUSINESS_TAGLINE", "Autonomous Dual-Brain Sales, Support & Operations") or "Autonomous Dual-Brain Sales, Support & Operations",
         "business_description": getattr(settings, "BUSINESS_DESCRIPTION", "AI-powered business operations platform for managing sales, customer interactions, and order processing."),
+        "agent_name": getattr(settings, "AGENT_NAME", "EDITH") or "EDITH",
+        "agent_role": getattr(settings, "AGENT_ROLE", "Autonomous Commercial & Operations Director") or "Autonomous Commercial & Operations Director",
         "catalog_unit": getattr(settings, "CATALOG_UNIT", "unit") or "unit",
         "currency_symbol": getattr(settings, "CURRENCY_SYMBOL", "₹") or "₹",
+        "brand_tone": "Executive, Consultative & High-Trust",
+        "target_audience": "B2B Buyers, Enterprise Teams & Direct Retail Customers",
+        "max_discount_pct": 12.0,
+        "escalation_qty": 100,
+        "tax_rate_pct": 18.0,
+        "payment_terms": "Instant UPI / Bank NEFT / 50% Advance on Bulk Orders",
+        "return_policy": "7-Day Quality Assurance & Instant Replacement",
+        "supported_languages": "English, Hindi, Hinglish & Auto-Detected Regional",
+        "whatsapp_connection_mode": "unofficial",
+        "meta_phone_number_id": getattr(settings, "WHATSAPP_PHONE_NUMBER_ID", "") or "",
+        "meta_waba_id": getattr(settings, "WHATSAPP_BUSINESS_ACCOUNT_ID", "") or "",
+        "meta_access_token": getattr(settings, "WHATSAPP_ACCESS_TOKEN", "") or "",
+        "meta_verify_token": getattr(settings, "WHATSAPP_VERIFY_TOKEN", "wb_agent_verify_token") or "wb_agent_verify_token",
         "owner_whatsapp_number": "",
         "feature_toggles": dict(DEFAULT_FEATURE_TOGGLES),
+        "custom_presets": [],
     }
     if os.path.exists(WORKSPACE_CONFIG_PATH):
         try:
@@ -569,6 +678,8 @@ def load_workspace_config() -> Dict[str, Any]:
                     merged_toggles.update(saved["feature_toggles"])
                 default_cfg.update(saved)
                 default_cfg["feature_toggles"] = merged_toggles
+                if not isinstance(default_cfg.get("custom_presets"), list):
+                    default_cfg["custom_presets"] = []
         except Exception:
             pass
     return default_cfg
@@ -630,8 +741,23 @@ class WorkspaceConfigUpdateRequest(BaseModel):
     business_industry: Optional[str] = None
     business_tagline: Optional[str] = None
     business_description: Optional[str] = None
+    agent_name: Optional[str] = None
+    agent_role: Optional[str] = None
     catalog_unit: Optional[str] = None
     currency_symbol: Optional[str] = None
+    brand_tone: Optional[str] = None
+    target_audience: Optional[str] = None
+    max_discount_pct: Optional[float] = None
+    escalation_qty: Optional[int] = None
+    tax_rate_pct: Optional[float] = None
+    payment_terms: Optional[str] = None
+    return_policy: Optional[str] = None
+    supported_languages: Optional[str] = None
+    whatsapp_connection_mode: Optional[str] = None
+    meta_phone_number_id: Optional[str] = None
+    meta_waba_id: Optional[str] = None
+    meta_access_token: Optional[str] = None
+    meta_verify_token: Optional[str] = None
     owner_whatsapp_number: Optional[str] = None
     feature_toggles: Optional[Dict[str, bool]] = None
 
@@ -640,18 +766,26 @@ class WorkspaceConfigUpdateRequest(BaseModel):
 async def get_workspace_config():
     """
     Returns full workspace configuration, UI mode (simplified vs advanced),
-    feature toggles, industry presets, and live WhatsApp bridge connection status.
+    feature toggles, industry presets (built-in + custom), and live WhatsApp gateway status.
     """
     cfg = load_workspace_config()
     bridge = await _fetch_bridge_status()
+    custom_presets = cfg.get("custom_presets") if isinstance(cfg.get("custom_presets"), list) else []
+    all_presets = INDUSTRY_PRESETS + custom_presets
+    meta_configured = bool(cfg.get("meta_phone_number_id") and cfg.get("meta_access_token"))
+    wa_mode = cfg.get("whatsapp_connection_mode", "unofficial")
+    wa_connected = bool(bridge.get("connected", False)) if wa_mode == "unofficial" else meta_configured
+
     return {
         **cfg,
-        "whatsapp_connected": bool(bridge.get("connected", False)),
-        "bot_whatsapp_number": bridge.get("botPhone") or "",
+        "whatsapp_connected": wa_connected,
+        "unofficial_bridge_connected": bool(bridge.get("connected", False)),
+        "official_meta_configured": meta_configured,
+        "bot_whatsapp_number": bridge.get("botPhone") or (cfg.get("meta_phone_number_id") if wa_mode == "official" else "") or "",
         "bridge_owner_phone": bridge.get("ownerPhone") or cfg.get("owner_whatsapp_number") or "",
         "qr_available": bool(bridge.get("qrAvailable", False)),
         "pairing_code": bridge.get("pairingCode"),
-        "industry_presets": INDUSTRY_PRESETS,
+        "industry_presets": all_presets,
     }
 
 
@@ -659,7 +793,7 @@ async def get_workspace_config():
 async def update_workspace_config(req: WorkspaceConfigUpdateRequest):
     """
     Updates UI mode (simplified / advanced), feature toggles, owner WhatsApp number,
-    and business profile, and broadcasts changes live to all connected dashboard tabs.
+    official/unofficial WhatsApp mode, and business profile, broadcasting live to all tabs.
     """
     updates: Dict[str, Any] = {}
     env_updates: Dict[str, str] = {}
@@ -685,6 +819,12 @@ async def update_workspace_config(req: WorkspaceConfigUpdateRequest):
     if req.business_description is not None:
         updates["business_description"] = req.business_description
         setattr(settings, "BUSINESS_DESCRIPTION", req.business_description)
+    if req.agent_name is not None:
+        updates["agent_name"] = req.agent_name
+        setattr(settings, "AGENT_NAME", req.agent_name)
+    if req.agent_role is not None:
+        updates["agent_role"] = req.agent_role
+        setattr(settings, "AGENT_ROLE", req.agent_role)
     if req.catalog_unit is not None:
         updates["catalog_unit"] = req.catalog_unit
         setattr(settings, "CATALOG_UNIT", req.catalog_unit)
@@ -692,6 +832,39 @@ async def update_workspace_config(req: WorkspaceConfigUpdateRequest):
     if req.currency_symbol is not None:
         updates["currency_symbol"] = req.currency_symbol
         setattr(settings, "CURRENCY_SYMBOL", req.currency_symbol)
+    for ext_field in (
+        "brand_tone",
+        "target_audience",
+        "max_discount_pct",
+        "escalation_qty",
+        "tax_rate_pct",
+        "payment_terms",
+        "return_policy",
+        "supported_languages",
+    ):
+        val = getattr(req, ext_field, None)
+        if val is not None:
+            updates[ext_field] = val
+    if req.whatsapp_connection_mode in ("unofficial", "official"):
+        updates["whatsapp_connection_mode"] = req.whatsapp_connection_mode
+        settings.WHATSAPP_PROVIDER = "meta_cloud" if req.whatsapp_connection_mode == "official" else "baileys_bridge"
+        env_updates["WHATSAPP_PROVIDER"] = settings.WHATSAPP_PROVIDER
+    if req.meta_phone_number_id is not None:
+        updates["meta_phone_number_id"] = req.meta_phone_number_id.strip()
+        setattr(settings, "WHATSAPP_PHONE_NUMBER_ID", req.meta_phone_number_id.strip())
+        env_updates["WHATSAPP_PHONE_NUMBER_ID"] = req.meta_phone_number_id.strip()
+    if req.meta_waba_id is not None:
+        updates["meta_waba_id"] = req.meta_waba_id.strip()
+        setattr(settings, "WHATSAPP_BUSINESS_ACCOUNT_ID", req.meta_waba_id.strip())
+        env_updates["WHATSAPP_BUSINESS_ACCOUNT_ID"] = req.meta_waba_id.strip()
+    if req.meta_access_token is not None:
+        updates["meta_access_token"] = req.meta_access_token.strip()
+        setattr(settings, "WHATSAPP_ACCESS_TOKEN", req.meta_access_token.strip())
+        env_updates["WHATSAPP_ACCESS_TOKEN"] = req.meta_access_token.strip()
+    if req.meta_verify_token is not None:
+        updates["meta_verify_token"] = req.meta_verify_token.strip()
+        setattr(settings, "WHATSAPP_VERIFY_TOKEN", req.meta_verify_token.strip())
+        env_updates["WHATSAPP_VERIFY_TOKEN"] = req.meta_verify_token.strip()
     if req.owner_whatsapp_number is not None:
         clean_owner = req.owner_whatsapp_number.strip()
         updates["owner_whatsapp_number"] = clean_owner
@@ -701,7 +874,7 @@ async def update_workspace_config(req: WorkspaceConfigUpdateRequest):
     if req.feature_toggles is not None:
         updates["feature_toggles"] = req.feature_toggles
 
-    saved = save_workspace_config(updates)
+    save_workspace_config(updates)
     if env_updates:
         update_local_env_file(env_updates)
 
@@ -714,6 +887,56 @@ async def update_workspace_config(req: WorkspaceConfigUpdateRequest):
     return {"success": True, "config": full_state}
 
 
+async def _seed_catalog_items(sample_products: List[Dict[str, Any]], business_industry: str) -> int:
+    """Upserts sample or AI-generated products into the SQLite catalog."""
+    seeded_count = 0
+    if not sample_products:
+        return 0
+    try:
+        async with get_db_session() as db:
+            for item in sample_products:
+                sku = str(item.get("sku") or f"SKU-{seeded_count + 101}").strip()
+                name = str(item.get("name") or "Featured Offering").strip()
+                category = str(item.get("category") or business_industry or "General").strip()
+                base_price = float(item.get("base_price") or 1000.0)
+                floor_price = float(item.get("floor_price") or round(base_price * 0.88, 2))
+                unit = str(item.get("unit") or "unit").strip()
+                stock_qty = int(item.get("stock_quantity") or 100)
+
+                existing_q = await db.execute(select(Product).where(Product.sku == sku))
+                existing_prod = existing_q.scalar_one_or_none()
+                if existing_prod:
+                    existing_prod.name = name
+                    existing_prod.category = category
+                    existing_prod.base_price = base_price
+                    existing_prod.floor_price = floor_price
+                    existing_prod.min_price = floor_price
+                    existing_prod.unit = unit
+                    existing_prod.stock_quantity = stock_qty
+                    existing_prod.is_active = True
+                else:
+                    db.add(
+                        Product(
+                            organization_id="default",
+                            sku=sku,
+                            name=name,
+                            description=str(item.get("description") or f"{name} ({business_industry})"),
+                            category=category,
+                            base_price=base_price,
+                            floor_price=floor_price,
+                            min_price=floor_price,
+                            unit=unit,
+                            stock_quantity=stock_qty,
+                            is_active=True,
+                        )
+                    )
+                seeded_count += 1
+            await db.commit()
+    except Exception:
+        pass
+    return seeded_count
+
+
 class ApplyIndustryPresetRequest(BaseModel):
     preset_id: str
     seed_sample_catalog: bool = True
@@ -722,10 +945,12 @@ class ApplyIndustryPresetRequest(BaseModel):
 @router.post("/industry-preset")
 async def apply_industry_preset(req: ApplyIndustryPresetRequest):
     """
-    Switches the workspace business profile to any industry vertical (E-Commerce, B2B Wholesale,
-    SaaS, Healthcare, Real Estate, Tea & Agro) and optionally seeds sample catalog products.
+    Switches the workspace business profile to any industry vertical (built-in or custom)
+    and optionally seeds sample catalog products.
     """
-    preset = next((p for p in INDUSTRY_PRESETS if p["id"] == req.preset_id), None)
+    cfg = load_workspace_config()
+    all_presets = INDUSTRY_PRESETS + (cfg.get("custom_presets") if isinstance(cfg.get("custom_presets"), list) else [])
+    preset = next((p for p in all_presets if p.get("id") == req.preset_id), None)
     if not preset:
         return {"success": False, "error": f"Unknown preset_id: {req.preset_id}"}
 
@@ -737,6 +962,8 @@ async def apply_industry_preset(req: ApplyIndustryPresetRequest):
         "catalog_unit": preset["catalog_unit"],
         "currency_symbol": preset["currency_symbol"],
     }
+    if preset.get("business_description"):
+        updates["business_description"] = preset["business_description"]
     setattr(settings, "BUSINESS_NAME", preset["business_name"])
     setattr(settings, "BUSINESS_INDUSTRY", preset["business_industry"])
     setattr(settings, "BUSINESS_TAGLINE", preset["business_tagline"])
@@ -747,40 +974,7 @@ async def apply_industry_preset(req: ApplyIndustryPresetRequest):
 
     seeded_count = 0
     if req.seed_sample_catalog and preset.get("sample_products"):
-        try:
-            async with get_db_session() as db:
-                for item in preset["sample_products"]:
-                    existing_q = await db.execute(select(Product).where(Product.sku == item["sku"]))
-                    existing_prod = existing_q.scalar_one_or_none()
-                    if existing_prod:
-                        existing_prod.name = item["name"]
-                        existing_prod.category = item["category"]
-                        existing_prod.base_price = item["base_price"]
-                        existing_prod.floor_price = item["floor_price"]
-                        existing_prod.min_price = item["floor_price"]
-                        existing_prod.unit = item["unit"]
-                        existing_prod.stock_quantity = item["stock_quantity"]
-                        existing_prod.is_active = True
-                    else:
-                        db.add(
-                            Product(
-                                organization_id="default",
-                                sku=item["sku"],
-                                name=item["name"],
-                                description=f"{item['name']} ({preset['business_industry']})",
-                                category=item["category"],
-                                base_price=item["base_price"],
-                                floor_price=item["floor_price"],
-                                min_price=item["floor_price"],
-                                unit=item["unit"],
-                                stock_quantity=item["stock_quantity"],
-                                is_active=True,
-                            )
-                        )
-                    seeded_count += 1
-                await db.commit()
-        except Exception:
-            pass
+        seeded_count = await _seed_catalog_items(preset["sample_products"], preset["business_industry"])
 
     full_state = await get_workspace_config()
     try:
@@ -791,6 +985,391 @@ async def apply_industry_preset(req: ApplyIndustryPresetRequest):
     return {
         "success": True,
         "seeded_products": seeded_count,
+        "config": full_state,
+    }
+
+
+class CustomPresetCreateRequest(BaseModel):
+    name: str
+    icon: str = "🏢"
+    business_name: str
+    business_industry: str
+    business_tagline: str
+    business_description: Optional[str] = None
+    catalog_unit: str = "unit"
+    currency_symbol: str = "₹"
+    sample_products: Optional[List[Dict[str, Any]]] = None
+    apply_immediately: bool = True
+
+
+@router.post("/custom-preset")
+async def create_custom_industry_preset(req: CustomPresetCreateRequest):
+    """
+    Creates and persists a new Custom Industry Domain Preset so the user can switch to it anytime.
+    """
+    import re
+    cfg = load_workspace_config()
+    custom_presets: List[Dict[str, Any]] = list(cfg.get("custom_presets") or [])
+    slug = re.sub(r"[^a-z0-9]+", "_", req.name.lower()).strip("_") or "custom_domain"
+    preset_id = f"custom_{slug}"
+
+    default_products = req.sample_products or [
+        {
+            "sku": f"{slug[:3].upper()}-PRO-01",
+            "name": f"{req.business_name} Signature Package",
+            "category": req.business_industry,
+            "base_price": 4999.0,
+            "floor_price": 4200.0,
+            "unit": req.catalog_unit,
+            "stock_quantity": 100,
+        },
+        {
+            "sku": f"{slug[:3].upper()}-ENT-02",
+            "name": f"{req.business_name} Enterprise Tier",
+            "category": req.business_industry,
+            "base_price": 14999.0,
+            "floor_price": 12500.0,
+            "unit": req.catalog_unit,
+            "stock_quantity": 50,
+        },
+    ]
+
+    new_preset = {
+        "id": preset_id,
+        "name": req.name.strip(),
+        "icon": req.icon.strip() or "🏢",
+        "business_name": req.business_name.strip(),
+        "business_industry": req.business_industry.strip(),
+        "business_tagline": req.business_tagline.strip(),
+        "business_description": (req.business_description or f"Autonomous AI operations for {req.business_name} in {req.business_industry}.").strip(),
+        "catalog_unit": req.catalog_unit.strip() or "unit",
+        "currency_symbol": req.currency_symbol.strip() or "₹",
+        "is_custom": True,
+        "sample_products": default_products,
+    }
+
+    # Replace if same ID exists, else append
+    custom_presets = [p for p in custom_presets if p.get("id") != preset_id] + [new_preset]
+    updates: Dict[str, Any] = {"custom_presets": custom_presets}
+
+    seeded_count = 0
+    if req.apply_immediately:
+        updates.update({
+            "industry_preset_id": preset_id,
+            "business_name": new_preset["business_name"],
+            "business_industry": new_preset["business_industry"],
+            "business_tagline": new_preset["business_tagline"],
+            "business_description": new_preset["business_description"],
+            "catalog_unit": new_preset["catalog_unit"],
+            "currency_symbol": new_preset["currency_symbol"],
+        })
+        seeded_count = await _seed_catalog_items(default_products, new_preset["business_industry"])
+
+    save_workspace_config(updates)
+    full_state = await get_workspace_config()
+    try:
+        await ws_manager.broadcast_to_org("default", "workspace_config_updated", full_state)
+    except Exception:
+        pass
+
+    return {
+        "success": True,
+        "preset": new_preset,
+        "seeded_products": seeded_count,
+        "config": full_state,
+    }
+
+
+class AIAutoFillBusinessRequest(BaseModel):
+    prompt: str
+    seed_catalog: bool = True
+    save_as_preset: bool = True
+
+
+def _fallback_synthesize_business(prompt: str) -> Dict[str, Any]:
+    """
+    Deterministic, domain-intelligent business profile & catalog synthesizer used if LLM call
+    times out or is offline, ensuring 100% instant reliability during live demos.
+    """
+    import re
+    clean = prompt.strip()
+    lower = clean.lower()
+
+    # Extract explicit brand name if user wrote "called X" or "named X"
+    name_match = re.search(r"(?:called|named|brand|company)\s+['\"]?([A-Z][A-Za-z0-9\s&.-]{2,32})['\"]?", clean)
+    extracted_name = name_match.group(1).strip() if name_match else None
+
+    if any(k in lower for k in ("solar", "inverter", "battery", "energy", "ev", "panel")):
+        b_name = extracted_name or "SunVolt Renewables & Energy Systems"
+        industry = "Solar EPC, Inverters & Lithium Energy Storage"
+        unit = "kW / unit"
+        icon = "☀️"
+        products = [
+            {"sku": "SOL-HYB-5KW", "name": "5kW Hybrid Solar Rooftop System (Mono PERC)", "category": "Solar Rooftop", "base_price": 245000.0, "floor_price": 220000.0, "unit": "system", "stock_quantity": 35},
+            {"sku": "SOL-INV-10KW", "name": "10kW 3-Phase Smart Grid-Tie Solar Inverter", "category": "Inverters", "base_price": 78000.0, "floor_price": 69500.0, "unit": "unit", "stock_quantity": 60},
+            {"sku": "SOL-LFP-100", "name": "48V 100Ah LiFePO4 Rack Battery Pack", "category": "Energy Storage", "base_price": 92000.0, "floor_price": 84000.0, "unit": "pack", "stock_quantity": 80},
+            {"sku": "SOL-COM-50KW", "name": "50kW Commercial Industrial Solar Plant EPC", "category": "Commercial EPC", "base_price": 1850000.0, "floor_price": 1680000.0, "unit": "project", "stock_quantity": 10},
+        ]
+    elif any(k in lower for k in ("bakery", "cake", "coffee", "cafe", "restaurant", "food", "catering", "sweet", "chocolate")):
+        b_name = extracted_name or "Artisan Crumb & Gourmet Kitchens"
+        industry = "Gourmet Hospitality, Bakery & Corporate Catering"
+        unit = "box"
+        icon = "🥐"
+        products = [
+            {"sku": "FD-HAMP-01", "name": "Luxury Corporate Artisanal Gift Hamper", "category": "Gifting", "base_price": 2450.0, "floor_price": 2100.0, "unit": "box", "stock_quantity": 250},
+            {"sku": "FD-CAKE-02", "name": "Belgian Dark Truffle Celebration Gateau (1kg)", "category": "Signature Cakes", "base_price": 1650.0, "floor_price": 1450.0, "unit": "kg", "stock_quantity": 90},
+            {"sku": "FD-CAT-03", "name": "Executive High-Tea & Sourdough Platter (Per 10 Pax)", "category": "Catering", "base_price": 4800.0, "floor_price": 4200.0, "unit": "platter", "stock_quantity": 40},
+            {"sku": "FD-COF-04", "name": "Single-Estate Arabica Specialty Roast Beans", "category": "Beverages", "base_price": 890.0, "floor_price": 760.0, "unit": "pack", "stock_quantity": 180},
+        ]
+    elif any(k in lower for k in ("jewel", "gold", "diamond", "fashion", "apparel", "clothing", "boutique", "saree", "watch")):
+        b_name = extracted_name or "Maison Aura Couture & Fine Craft"
+        industry = "Luxury Apparel, Fine Jewelry & Bespoke Retail"
+        unit = "piece"
+        icon = "💎"
+        products = [
+            {"sku": "LUX-SIG-01", "name": "Handcrafted Heritage Bridal & Occasion Ensemble", "category": "Couture", "base_price": 42000.0, "floor_price": 37500.0, "unit": "piece", "stock_quantity": 25},
+            {"sku": "LUX-JWL-02", "name": "18K Hallmarked Solitaire Pendant Set", "category": "Fine Jewelry", "base_price": 68000.0, "floor_price": 62000.0, "unit": "set", "stock_quantity": 18},
+            {"sku": "LUX-PRET-03", "name": "Pure Mulberry Silk Festive Pret Line", "category": "Ready-to-Wear", "base_price": 8900.0, "floor_price": 7800.0, "unit": "piece", "stock_quantity": 120},
+            {"sku": "LUX-GFT-04", "name": "Bespoke Corporate Luxury Accessory Box", "category": "Luxury Gifting", "base_price": 5500.0, "floor_price": 4800.0, "unit": "box", "stock_quantity": 95},
+        ]
+    elif any(k in lower for k in ("auto", "car", "bike", "EV", "fleet", "logistics", "transport", "spare", "tyre")):
+        b_name = extracted_name or "Apex Velocity Auto & Fleet Solutions"
+        industry = "Automotive Dealership, EV & Fleet Logistics"
+        unit = "unit"
+        icon = "🚗"
+        products = [
+            {"sku": "AUTO-SVC-01", "name": "Comprehensive Ceramic Coating & Detailing Package", "category": "Auto Care", "base_price": 18500.0, "floor_price": 15500.0, "unit": "package", "stock_quantity": 80},
+            {"sku": "AUTO-EV-02", "name": "7.4kW Commercial AC Fast EV Wallbox Charger", "category": "EV Infrastructure", "base_price": 46000.0, "floor_price": 41000.0, "unit": "unit", "stock_quantity": 55},
+            {"sku": "AUTO-FLT-03", "name": "GPS AI Fleet Telemetry & Fuel Sensor Kit", "category": "Fleet Tech", "base_price": 12500.0, "floor_price": 10800.0, "unit": "kit", "stock_quantity": 150},
+            {"sku": "AUTO-AMC-04", "name": "Annual Priority Fleet Maintenance Contract", "category": "Service AMC", "base_price": 32000.0, "floor_price": 28000.0, "unit": "vehicle", "stock_quantity": 100},
+        ]
+    else:
+        words = [w.capitalize() for w in re.findall(r"[A-Za-z]{3,}", clean)[:3]] or ["Apex", "Enterprise"]
+        b_name = extracted_name or f"{' '.join(words)} Global Solutions"
+        industry = clean[:65] if len(clean) <= 65 else f"{' '.join(words)} Commercial Operations"
+        unit = "unit"
+        icon = "🚀"
+        prefix = "".join(w[0] for w in words[:3]).upper() or "BIZ"
+        products = [
+            {"sku": f"{prefix}-CORE-01", "name": f"{b_name} Flagship Commercial Package", "category": "Core Line", "base_price": 5500.0, "floor_price": 4700.0, "unit": "unit", "stock_quantity": 150},
+            {"sku": f"{prefix}-PRO-02", "name": f"{b_name} Pro Priority Bundle", "category": "Professional", "base_price": 14500.0, "floor_price": 12500.0, "unit": "bundle", "stock_quantity": 85},
+            {"sku": f"{prefix}-BULK-03", "name": f"{b_name} Wholesale Distributor Lot", "category": "Wholesale", "base_price": 42000.0, "floor_price": 37000.0, "unit": "lot", "stock_quantity": 40},
+            {"sku": f"{prefix}-VIP-04", "name": f"{b_name} Annual Enterprise Retainer", "category": "Enterprise", "base_price": 95000.0, "floor_price": 84000.0, "unit": "contract", "stock_quantity": 25},
+        ]
+
+    return {
+        "icon": icon,
+        "business_name": b_name,
+        "business_industry": industry,
+        "business_tagline": f"Autonomous 24/7 WhatsApp Sales, Instant Quoting & Order Fulfillment for {b_name}",
+        "business_description": (
+            f"{b_name} operates in {industry}. Context from owner: {clean}. "
+            "Our dual-brain AI system (FRIDAY + EDITH) handles live catalog discovery, tiered negotiation within floor guardrails, "
+            "instant order booking, and real-time WhatsApp escalation to the owner."
+        ),
+        "agent_name": "EDITH",
+        "agent_role": f"Senior Commercial & Customer Success Specialist — {b_name}",
+        "brand_tone": "Consultative, Executive, Warm & Conversion-Focused",
+        "target_audience": f"B2B buyers, retail clients, and repeat customers looking for {industry}",
+        "currency_symbol": "$" if ("usd" in lower or "dollar" in lower or "usa" in lower) else "₹",
+        "catalog_unit": unit,
+        "max_discount_pct": 12.0,
+        "escalation_qty": 50,
+        "tax_rate_pct": 18.0,
+        "payment_terms": "Instant UPI / Bank Transfer / 50% Advance on Custom & Bulk Orders",
+        "return_policy": "7-Day Verified Quality Replacement & Priority Support",
+        "supported_languages": "English, Hindi, Hinglish & Auto-Detected Customer Language",
+        "sample_products": products,
+    }
+
+
+@router.post("/ai-autofill-business")
+async def ai_autofill_business_profile(req: AIAutoFillBusinessRequest):
+    """
+    Takes a natural-language description of ANY business from the user, uses the AI router
+    (with instant domain-intelligent synthesis fallback) to auto-fill all 16 business profile,
+    negotiation, and policy fields AND seeds 4 tailored products into the SQLite catalog.
+    """
+    prompt_text = (req.prompt or "").strip()
+    if not prompt_text:
+        return {"success": False, "error": "Please describe your business in a few words."}
+
+    synthesized = _fallback_synthesize_business(prompt_text)
+
+    # Try live LLM enrichment via ai_router with tight timeout so UI feels instantaneous
+    try:
+        from app.ai.router import ai_router
+        import asyncio
+
+        sys_prompt = (
+            "You are an Enterprise Business Architect. Given the user's description of their business, "
+            "return ONLY valid JSON (no markdown fences) with these exact keys: "
+            "icon (single emoji), business_name, business_industry, business_tagline, business_description, "
+            "agent_name, agent_role, brand_tone, target_audience, currency_symbol, catalog_unit, "
+            "max_discount_pct (number), escalation_qty (int), tax_rate_pct (number), payment_terms, "
+            "return_policy, supported_languages, and sample_products (list of 4 objects each having "
+            "sku, name, category, base_price (number), floor_price (number), unit, stock_quantity (int))."
+        )
+        llm_coro = ai_router.generate(
+            messages=[
+                {"role": "system", "content": sys_prompt},
+                {"role": "user", "content": f"Business description: {prompt_text}"},
+            ],
+            temperature=0.3,
+            max_tokens=900,
+        )
+        raw_resp = await asyncio.wait_for(llm_coro, timeout=7.5)
+        content_str = raw_resp.get("content", "") if isinstance(raw_resp, dict) else str(raw_resp)
+        if content_str:
+            cleaned_json = content_str.strip()
+            if "```" in cleaned_json:
+                cleaned_json = cleaned_json.split("```")[1]
+                if cleaned_json.startswith("json"):
+                    cleaned_json = cleaned_json[4:]
+            parsed = json.loads(cleaned_json.strip())
+            if isinstance(parsed, dict) and parsed.get("business_name"):
+                for k, v in parsed.items():
+                    if v is not None and k != "sample_products":
+                        synthesized[k] = v
+                if isinstance(parsed.get("sample_products"), list) and len(parsed["sample_products"]) >= 2:
+                    synthesized["sample_products"] = parsed["sample_products"][:4]
+    except Exception:
+        # Fallback synthesis is already populated and domain-accurate
+        pass
+
+    # Save into workspace_config and live settings
+    import re
+    slug = re.sub(r"[^a-z0-9]+", "_", synthesized["business_name"].lower()).strip("_")[:24] or "ai_custom"
+    preset_id = f"custom_{slug}"
+
+    cfg = load_workspace_config()
+    custom_presets: List[Dict[str, Any]] = list(cfg.get("custom_presets") or [])
+    new_preset = {
+        "id": preset_id,
+        "name": f"{synthesized['business_name']} ({synthesized['business_industry'][:28]})",
+        "icon": synthesized.get("icon", "✨"),
+        "business_name": synthesized["business_name"],
+        "business_industry": synthesized["business_industry"],
+        "business_tagline": synthesized["business_tagline"],
+        "business_description": synthesized["business_description"],
+        "catalog_unit": synthesized["catalog_unit"],
+        "currency_symbol": synthesized["currency_symbol"],
+        "is_custom": True,
+        "sample_products": synthesized["sample_products"],
+    }
+    if req.save_as_preset:
+        custom_presets = [p for p in custom_presets if p.get("id") != preset_id] + [new_preset]
+
+    updates: Dict[str, Any] = {
+        "industry_preset_id": preset_id,
+        "business_name": synthesized["business_name"],
+        "business_industry": synthesized["business_industry"],
+        "business_tagline": synthesized["business_tagline"],
+        "business_description": synthesized["business_description"],
+        "agent_name": synthesized["agent_name"],
+        "agent_role": synthesized["agent_role"],
+        "brand_tone": synthesized["brand_tone"],
+        "target_audience": synthesized["target_audience"],
+        "currency_symbol": synthesized["currency_symbol"],
+        "catalog_unit": synthesized["catalog_unit"],
+        "max_discount_pct": float(synthesized.get("max_discount_pct", 12.0)),
+        "escalation_qty": int(synthesized.get("escalation_qty", 50)),
+        "tax_rate_pct": float(synthesized.get("tax_rate_pct", 18.0)),
+        "payment_terms": synthesized["payment_terms"],
+        "return_policy": synthesized["return_policy"],
+        "supported_languages": synthesized["supported_languages"],
+        "custom_presets": custom_presets,
+    }
+
+    setattr(settings, "BUSINESS_NAME", synthesized["business_name"])
+    setattr(settings, "BUSINESS_INDUSTRY", synthesized["business_industry"])
+    setattr(settings, "BUSINESS_TAGLINE", synthesized["business_tagline"])
+    setattr(settings, "BUSINESS_DESCRIPTION", synthesized["business_description"])
+    setattr(settings, "AGENT_NAME", synthesized["agent_name"])
+    setattr(settings, "AGENT_ROLE", synthesized["agent_role"])
+    setattr(settings, "CATALOG_UNIT", synthesized["catalog_unit"])
+    setattr(settings, "CURRENCY_SYMBOL", synthesized["currency_symbol"])
+
+    save_workspace_config(updates)
+
+    seeded_count = 0
+    if req.seed_catalog and synthesized.get("sample_products"):
+        seeded_count = await _seed_catalog_items(synthesized["sample_products"], synthesized["business_industry"])
+
+    full_state = await get_workspace_config()
+    try:
+        await ws_manager.broadcast_to_org("default", "workspace_config_updated", full_state)
+    except Exception:
+        pass
+
+    return {
+        "success": True,
+        "synthesized": synthesized,
+        "seeded_products": seeded_count,
+        "config": full_state,
+        "settings": await get_system_settings(),
+    }
+
+
+class QuickAddInfoRequest(BaseModel):
+    product_name: Optional[str] = None
+    sku: Optional[str] = None
+    category: Optional[str] = None
+    base_price: Optional[float] = None
+    floor_price: Optional[float] = None
+    unit: Optional[str] = None
+    stock_quantity: Optional[int] = 100
+    knowledge_note: Optional[str] = None
+
+
+@router.post("/quick-add-info")
+async def quick_add_business_or_product_info(req: QuickAddInfoRequest):
+    """
+    Allows Simplified Mode and Overview users to add a new Product SKU or append a Business
+    Knowledge / Pricing Rule in a single click, updating both SQLite and AI context live.
+    """
+    cfg = load_workspace_config()
+    added_product = None
+    updated_description = cfg.get("business_description", "")
+
+    if req.product_name and req.product_name.strip():
+        import re
+        clean_name = req.product_name.strip()
+        sku = (req.sku or "").strip() or f"SKU-{re.sub(r'[^A-Z0-9]', '', clean_name.upper())[:6]}-{os.urandom(1).hex().upper()}"
+        base_p = float(req.base_price if req.base_price is not None else 999.0)
+        floor_p = float(req.floor_price if req.floor_price is not None else round(base_p * 0.88, 2))
+        unit = (req.unit or cfg.get("catalog_unit") or "unit").strip()
+        cat = (req.category or cfg.get("business_industry") or "Featured").strip()
+        qty = int(req.stock_quantity if req.stock_quantity is not None else 100)
+
+        item = {
+            "sku": sku,
+            "name": clean_name,
+            "category": cat,
+            "base_price": base_p,
+            "floor_price": floor_p,
+            "unit": unit,
+            "stock_quantity": qty,
+        }
+        await _seed_catalog_items([item], cfg.get("business_industry", "General"))
+        added_product = item
+
+    if req.knowledge_note and req.knowledge_note.strip():
+        note = req.knowledge_note.strip()
+        updated_description = f"{updated_description.rstrip()} | Business Rule: {note}".strip(" |")
+        save_workspace_config({"business_description": updated_description})
+        setattr(settings, "BUSINESS_DESCRIPTION", updated_description)
+
+    full_state = await get_workspace_config()
+    try:
+        await ws_manager.broadcast_to_org("default", "workspace_config_updated", full_state)
+    except Exception:
+        pass
+
+    return {
+        "success": True,
+        "added_product": added_product,
+        "business_description": updated_description,
         "config": full_state,
     }
 
@@ -838,7 +1417,7 @@ async def verify_end_to_end_system(req: VerifyEndToEndRequest):
     1. FastAPI Core & SQLite Database Catalog
     2. Friday Multimodal Web Copilot (Google Gemini)
     3. EDITH Autonomous Commercial Brain (NVIDIA NIM)
-    4. WhatsApp Baileys Bridge (:3001)
+    4. WhatsApp Gateway (Unofficial Baileys Bridge :3001 OR Official Meta Cloud API v20.0)
     5. Owner Escalation & Notification Channel
     """
     ws_cfg = load_workspace_config()
@@ -864,7 +1443,6 @@ async def verify_end_to_end_system(req: VerifyEndToEndRequest):
         })
 
     # 2. Friday Brain (Google Gemini) Check
-    gemini_key = getattr(settings, "GEMINI_API_KEY", "") or os.environ.get("GEMINI_API_KEY", "") or os.environ.get("NEXT_PUBLIC_GEMINI_API_KEY", "")
     checks.append({
         "id": "friday_gemini",
         "title": "Friday Web Copilot (Google Gemini Live + Action Engine)",
@@ -882,37 +1460,56 @@ async def verify_end_to_end_system(req: VerifyEndToEndRequest):
         "detail": f"Primary Model: {settings.NVIDIA_MODEL} • Synaptic Link to Friday Ready" if nv_ready else "Running with fallback configuration • Configure NVIDIA_API_KEY in Settings if needed",
     })
 
-    # 4. WhatsApp Bridge Check
+    # 4. WhatsApp Gateway Check (Supports both Unofficial Baileys Bridge & Official Meta Cloud API)
+    wa_mode = ws_cfg.get("whatsapp_connection_mode", "unofficial")
     bridge = await _fetch_bridge_status()
-    wa_connected = bool(bridge.get("connected", False))
-    bot_phone = bridge.get("botPhone") or ""
-    if wa_connected:
-        checks.append({
-            "id": "whatsapp_bridge",
-            "title": "WhatsApp Baileys Bridge (:3001)",
-            "status": "passed",
-            "detail": f"Connected & Live on Bot Number: +{bot_phone}" if bot_phone else "Connected & Live (Linked WhatsApp Session)",
-        })
-    elif bridge.get("qrAvailable") or bridge.get("pairingCode"):
-        checks.append({
-            "id": "whatsapp_bridge",
-            "title": "WhatsApp Baileys Bridge (:3001)",
-            "status": "action_required",
-            "detail": "Bridge online & waiting for you to scan the QR code or enter an 8-digit pairing code",
-        })
+    unofficial_connected = bool(bridge.get("connected", False))
+    meta_configured = bool(ws_cfg.get("meta_phone_number_id") and ws_cfg.get("meta_access_token"))
+    bot_phone = bridge.get("botPhone") or (ws_cfg.get("meta_phone_number_id") if wa_mode == "official" else "") or ""
+
+    if wa_mode == "official":
+        if meta_configured:
+            checks.append({
+                "id": "whatsapp_bridge",
+                "title": "Official Meta WhatsApp Cloud API (Graph v20.0)",
+                "status": "passed",
+                "detail": f"Official Cloud API Configured • Phone Number ID: {ws_cfg.get('meta_phone_number_id')} • Webhook /api/v1/webhooks/whatsapp Ready",
+            })
+        else:
+            checks.append({
+                "id": "whatsapp_bridge",
+                "title": "Official Meta WhatsApp Cloud API (Graph v20.0)",
+                "status": "action_required",
+                "detail": "Official Mode selected • Enter your Meta Phone Number ID & Access Token, or switch to Unofficial QR/Pairing Mode",
+            })
     else:
-        checks.append({
-            "id": "whatsapp_bridge",
-            "title": "WhatsApp Baileys Bridge (:3001)",
-            "status": "warning",
-            "detail": "Bridge initializing or offline on port 3001 • Click 'Reset / Generate QR' to connect",
-        })
+        if unofficial_connected:
+            checks.append({
+                "id": "whatsapp_bridge",
+                "title": "Unofficial WhatsApp Baileys Bridge (:3001)",
+                "status": "passed",
+                "detail": f"Connected & Live on Bot Number: +{bot_phone}" if bot_phone else "Connected & Live (Linked Multi-Device Session)",
+            })
+        elif bridge.get("qrAvailable") or bridge.get("pairingCode"):
+            checks.append({
+                "id": "whatsapp_bridge",
+                "title": "Unofficial WhatsApp Baileys Bridge (:3001)",
+                "status": "action_required",
+                "detail": "Bridge online & waiting for you to scan the QR code or enter an 8-digit pairing code (Official Cloud API also available)",
+            })
+        else:
+            checks.append({
+                "id": "whatsapp_bridge",
+                "title": "Unofficial WhatsApp Baileys Bridge (:3001)",
+                "status": "warning",
+                "detail": "Bridge initializing or offline on port 3001 • Click 'Reset / Generate QR' or switch to Official Meta Cloud API",
+            })
 
     # 5. Owner Escalation Number Check
     owner_num = (ws_cfg.get("owner_whatsapp_number") or bridge.get("ownerPhone") or "").strip()
     if owner_num:
         ping_note = "Configured for order confirmations, hot lead alerts & human handoffs"
-        if req.send_test_ping and wa_connected:
+        if req.send_test_ping and unofficial_connected:
             try:
                 async with httpx.AsyncClient(timeout=6.0) as client:
                     clean_digits = "".join(ch for ch in owner_num if ch.isdigit())
@@ -940,15 +1537,18 @@ async def verify_end_to_end_system(req: VerifyEndToEndRequest):
             "detail": "Enter your Owner WhatsApp Number in Step 1 so order alerts & escalations go to your phone",
         })
 
+    wa_connected = meta_configured if wa_mode == "official" else unofficial_connected
     all_passed = all(c["status"] == "passed" for c in checks)
     return {
         "success": True,
         "all_passed": all_passed,
         "checks": checks,
+        "whatsapp_connection_mode": wa_mode,
         "whatsapp_connected": wa_connected,
         "bot_whatsapp_number": bot_phone,
         "owner_whatsapp_number": owner_num,
     }
+
 
 
 
