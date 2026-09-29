@@ -274,8 +274,8 @@ Adaptive touch UI optimized for iOS Safari, Android Chrome, tablets, and 4K desk
 ### Developer CLI Flags & Testing Suite
 ```bash
 # Master Orchestrator Flags
-python run.py                # Full preflight check, auto-install, DB seed, and 4-service launch
-python run.py --skip-install # Instant warm reboot (skips pip/npm dependency checks)
+python run.py                # Full preflight check, auto-install, DB seed, and 3-service launch
+python run.py --prod         # Production build & server mode (Linux VPS, Docker, Render, Railway)
 python run.py --no-open      # Headless server launch without opening browser windows
 python run.py --clean        # Frees ports 3000/3001/8000, cleans caches, and restarts fresh
 
@@ -286,21 +286,34 @@ $env:PYTHONPATH="backend"; python -m pytest backend/tests/evaluation -v  # Adver
 python scripts/smoke_test.py                                             # Live API Smoke Test
 ```
 
+### 🌐 Auto-Hosting & Multi-Environment Cloud Deployment
+
+WB-Agent is engineered to run out-of-the-box on **any server or cloud provider** without `localhost` hardcoding or manual database setup:
+- **Zero-Config SQLite $\rightarrow$ Cloud Postgres Auto-Upgrade**: Defaults to `sqlite+aiosqlite:///./wb_agent.db` out of the box, and automatically upgrades `postgres://` / `postgresql://` URLs from Supabase, Neon, Render, or Railway to `postgresql+asyncpg://`.
+- **Proxied Remote QR & Pairing (`/api/v1/whatsapp/qr-embed`)**: Scan the WhatsApp QR code or generate an 8-digit pairing code directly inside the hosted Dashboard without exposing port `3001`.
+- **3 Ways to Host in 1 Command**:
+  1. **Linux VPS / Ubuntu / AWS / DigitalOcean**: `python3 run.py --prod --no-open`
+  2. **Docker Compose (Multi-Container)**: `docker compose up -d --build`
+  3. **Render / Railway / Fly.io / Coolify (Unified `Dockerfile`)**: Deploy root [`Dockerfile`](Dockerfile) (`CMD ["python", "run.py", "--prod", "--no-open"]`)
+
+> 📖 **Full Hosting Runbook**: Read **[`docs/HOSTING_AND_DEPLOYMENT.md`](docs/HOSTING_AND_DEPLOYMENT.md)** for step-by-step instructions covering Linux `systemd`, Caddy/Nginx HTTPS + WebSocket reverse proxies, Docker Compose, Render/Railway PaaS, and Vercel + Cloud Backend split hosting.
+
 ### ❓ Quick Troubleshooting & FAQ
 | Common Issue | Cause | Solution |
 | :--- | :--- | :--- |
-| **Port 3000 / 3001 / 8000 in use** | A previous process was left running | `python run.py` automatically clears stale port locks on startup, or run `python run.py --clean`. |
+| **Port 3000 / 3001 / 8000 in use** | A previous process was left running | `python run.py` automatically clears stale port locks on startup (Windows & Linux), or run `python run.py --clean`. |
 | **PowerShell script policy error** | Windows blocks running `npm` in PowerShell | Run `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass` in PowerShell, or use `cmd`. |
 | **How to test without WhatsApp?** | Testing offline or before scanning QR | Use the **Live Inbound Simulation** card on `http://localhost:3000` or the `/conversations` Sandbox tab. |
-| **How to switch WhatsApp phones?** | Linking a different phone number | Open `⚙️ Setup, WhatsApp & Features` -> Step 1 -> click **"Switch / Connect a Different WhatsApp Number"**. |
+| **How to switch WhatsApp phones?** | Linking a different phone number | Open `⚙️ Setup & Mode` -> Step 1 -> click **"Switch / Connect a Different WhatsApp Number"**. |
 
 ---
 
 ## 📚 Part 6: Complete Documentation Directory & Redirection Hub
 
-All documentation is organized inside **[`assets docs/`](assets%20docs/)** and hyperlinked below:
+All documentation is organized inside **[`docs/`](docs/)** and **[`assets docs/`](assets%20docs/)** and hyperlinked below:
 
-### 🧭 Role-Based Guides (`assets docs/guides/`)
+### 🧭 Role-Based & Hosting Guides
+- 🌐 **[Multi-Environment Hosting & Cloud Deployment Guide (VPS, Docker, Render, Railway, Vercel)](docs/HOSTING_AND_DEPLOYMENT.md)**
 - 🧒 **[Beginner & Student Quick-Start Guide (Explain Like I'm 15)](assets%20docs/guides/beginner-quick-start.md)**
 - 💼 **[Business Owner & Operator Playbook (No-Code Setup & Daily Operations)](assets%20docs/guides/business-owner-guide.md)**
 - 🏛️ **[Senior Software Engineer & Systems Architect Reference](assets%20docs/guides/senior-developer-architecture.md)**
