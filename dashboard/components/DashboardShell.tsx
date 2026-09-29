@@ -194,10 +194,20 @@ export default function DashboardShell({ children }: { children: React.ReactNode
 
     const handleOpenModalEvent = (e: any) => {
       if (e?.detail?.tab) setSetupModalTab(e.detail.tab);
+      else if (e?.detail?.step === 1) setSetupModalTab("whatsapp_owner");
       setSetupModalOpen(true);
     };
+    const handleExternalWsCfg = (e: any) => {
+      if (e?.detail) applyWorkspaceConfigState(e.detail);
+    };
     window.addEventListener("open_setup_modal", handleOpenModalEvent);
-    return () => window.removeEventListener("open_setup_modal", handleOpenModalEvent);
+    window.addEventListener("wb-open-onboarding-modal", handleOpenModalEvent);
+    window.addEventListener("wb-workspace-config-updated", handleExternalWsCfg);
+    return () => {
+      window.removeEventListener("open_setup_modal", handleOpenModalEvent);
+      window.removeEventListener("wb-open-onboarding-modal", handleOpenModalEvent);
+      window.removeEventListener("wb-workspace-config-updated", handleExternalWsCfg);
+    };
   }, []);
 
   useEffect(() => {
