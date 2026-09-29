@@ -296,7 +296,7 @@ WB-Agent is engineered to run out-of-the-box on **any server or cloud provider**
   2. **Docker Compose (Multi-Container)**: `docker compose up -d --build`
   3. **Render / Railway / Fly.io / Coolify (Unified `Dockerfile`)**: Deploy root [`Dockerfile`](Dockerfile) (`CMD ["python", "run.py", "--prod", "--no-open"]`)
 
-> 📖 **Full Hosting Runbook**: Read **[`assets docs/runbooks/production-deployment.md`](assets%20docs/runbooks/production-deployment.md)** for step-by-step instructions covering Linux `systemd`, Caddy/Nginx HTTPS + WebSocket reverse proxies, Docker Compose, Render/Railway PaaS, and Vercel + Cloud Backend split hosting.
+> 📖 **Full Hosting Runbook**: Read **[`docs/HOSTING_AND_DEPLOYMENT.md`](docs/HOSTING_AND_DEPLOYMENT.md)** and **[`assets docs/runbooks/production-deployment.md`](assets%20docs/runbooks/production-deployment.md)** for step-by-step instructions covering Linux `systemd`, Caddy/Nginx HTTPS + WebSocket reverse proxies, Docker Compose, Render/Railway PaaS, and Vercel + Cloud Backend split hosting.
 
 ### ❓ Quick Troubleshooting & FAQ
 | Common Issue | Cause | Solution |
@@ -310,10 +310,10 @@ WB-Agent is engineered to run out-of-the-box on **any server or cloud provider**
 
 ## 📚 Part 6: Complete Documentation Directory & Redirection Hub
 
-All documentation is organized inside **[`assets docs/`](assets%20docs/)** and hyperlinked below:
+All documentation is organized inside **[`assets docs/`](assets%20docs/)** and **[`docs/`](docs/)** and hyperlinked below:
 
 ### 🧭 Role-Based & Hosting Guides
-- 🌐 **[Multi-Environment Hosting & Cloud Deployment Guide (VPS, Docker, Render, Railway, Vercel)](assets%20docs/runbooks/production-deployment.md)**
+- 🌐 **[Multi-Environment Hosting & Cloud Deployment Guide (VPS, Docker, Render, Railway, Vercel)](docs/HOSTING_AND_DEPLOYMENT.md)**
 - 🧒 **[Beginner & Student Quick-Start Guide (Explain Like I'm 15)](assets%20docs/guides/beginner-quick-start.md)**
 - 💼 **[Business Owner & Operator Playbook (No-Code Setup & Daily Operations)](assets%20docs/guides/business-owner-guide.md)**
 - 🏛️ **[Senior Software Engineer & Systems Architect Reference](assets%20docs/guides/senior-developer-architecture.md)**

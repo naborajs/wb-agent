@@ -1,12 +1,14 @@
-# 🌐 WB-Agent Hosting & Multi-Environment Deployment Guide
+# 🌐 WhatsApp AI Agent by NS — Hosting & Multi-Environment Deployment Guide
 
-This guide explains how to host **WB-Agent (FRIDAY + EDITH Dual-Brain Operating System)** across **any hosting environment**—from a single Linux VPS or Docker server to cloud PaaS platforms (Render, Railway, Fly.io, Coolify) or a split Vercel + Cloud Backend setup.
+> ⬅️ Back to: [Root README](../README.md) | [Knowledge Base Index](../assets%20docs/index.md) | [Production Runbook](../assets%20docs/runbooks/production-deployment.md)
+
+This guide explains how to host **WhatsApp AI Agent by NS (FRIDAY + EDITH Dual-Brain Operating System)** across **any hosting environment**—from a single Linux VPS or Docker server to cloud PaaS platforms (Render, Railway, Fly.io, Coolify) or a split Vercel + Cloud Backend setup.
 
 ---
 
-## ✨ Why WB-Agent Hosts Cleanly Out-of-the-Box
+## ✨ Why WhatsApp AI Agent by NS Hosts Cleanly Out-of-the-Box
 
-WB-Agent is engineered with **Auto-Hosting Resilience** so you can deploy it on any fresh server without manual code changes:
+**WhatsApp AI Agent by NS** is engineered by **Naboraj Sarkar (NS)** with **Auto-Hosting Resilience** so you can deploy it on any fresh server without manual code changes:
 
 1. **Zero-Config Database (`SQLite` $\rightarrow$ `PostgreSQL` Auto-Upgrade)**:
    - Defaults to a local async SQLite database (`sqlite+aiosqlite:///./wb_agent.db`) so it boots immediately without requiring an external PostgreSQL server.
@@ -220,3 +222,9 @@ Once your server is live, open `https://<your-domain>` in your browser and click
 | **QR Code iframe blank on remote VPS** | Previously pointed to `localhost:3001` | Fixed! The dashboard now uses `/api/v1/whatsapp/qr-embed`, which proxies the bridge HTML through FastAPI & Next.js. |
 | **WebSocket fails on HTTPS domain** | Reverse proxy not forwarding `Upgrade: websocket` header, or port `8000` blocked | Use the Caddy/Nginx snippet above, or set `NEXT_PUBLIC_WS_URL=wss://your-backend-domain`. |
 | **WhatsApp disconnects after container redeploy** | Ephemeral container filesystem wiped `auth_info_baileys` | Mount a persistent Docker volume to `/app/whatsapp-bridge/auth_info_baileys`, or use **Official Meta Cloud API** mode. |
+
+---
+
+<div align="center">
+  <sub><b>WhatsApp AI Agent by NS</b> — Engineered by <b>Naboraj Sarkar (NS)</b></sub>
+</div>
