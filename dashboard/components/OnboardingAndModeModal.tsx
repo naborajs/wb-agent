@@ -615,7 +615,7 @@ export default function OnboardingAndModeModal({
                         <div className="bg-white rounded-xl p-2.5 h-[235px] flex flex-col items-center justify-center overflow-hidden border border-[var(--ed-border)]">
                           <iframe
                             key={qrRefreshKey}
-                            src={`http://localhost:3001/qr?embed=1&t=${qrRefreshKey}`}
+                            src={`/api/v1/whatsapp/qr-embed?t=${qrRefreshKey}`}
                             className="w-full h-full border-0 rounded-lg"
                             title="WhatsApp QR Scanner"
                           />
@@ -633,7 +633,7 @@ export default function OnboardingAndModeModal({
                             <RefreshCw className="w-3.5 h-3.5" /> Refresh QR
                           </button>
                           <a
-                            href="http://localhost:3001/qr"
+                            href="/api/v1/whatsapp/qr-embed"
                             target="_blank"
                             rel="noreferrer"
                             className="py-2 px-3.5 rounded-xl bg-blue-500/15 border border-blue-500/35 text-blue-600 dark:text-blue-400 text-xs font-bold flex items-center gap-1.5"
