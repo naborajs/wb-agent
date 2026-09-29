@@ -1,7 +1,7 @@
 ---
 title: 🚨 Comprehensive Error Catalog & Solutions
 tags: [troubleshooting, errors, diagnostics, fixes, solutions, obsidian]
-updated: 2026-09-02
+updated: 2026-09-29
 aliases: [Error Catalog, Troubleshooting Guide, Common Issues]
 status: complete
 ---
@@ -9,9 +9,9 @@ status: complete
 # 🚨 Comprehensive Error Catalog & Solutions
 
 > [!NOTE]
-> This encyclopedia documents known errors, warning messages, stack traces, underlying root causes, and verified step-by-step solutions encountered during development, installation, and production deployment of **WB-Agent**.
+> This encyclopedia documents known errors, warning messages, stack traces, underlying root causes, and verified step-by-step solutions encountered during development, installation, and production deployment of **WhatsApp AI Agent by NS**.
 >
-> ⬅️ Back to: [[index|Knowledge Base Index]]
+> ⬅️ Back to: [[../index|Knowledge Base Index]] | **Beginner Guide**: [[../guides/beginner-quick-start|Explain Like I'm 15]] | **Business Guide**: [[../guides/business-owner-guide|No-Code Business Setup]]
 
 ---
 
@@ -376,4 +376,10 @@ Type error: Cannot find name 'int'.
 ---
 
 > [!TIP]
-> **Encountered an unlisted issue?** Enable verbose logging by setting `LOG_LEVEL=DEBUG` in your `.env` and restart the backend service to inspect complete stack traces.
+> **Encountered an unlisted issue?** Enable verbose logging by setting `LOG_LEVEL=DEBUG` in your `.env` and restart the backend service (`python run.py`) to inspect complete stack traces.
+
+---
+
+<div align="center">
+  <sub><b>WhatsApp AI Agent by NS</b> — Engineered by <b>Naboraj Sarkar (NS)</b></sub>
+</div>

@@ -1,7 +1,7 @@
 ---
 title: Multi-Tier Memory Architecture & Customer Facts
 tags: [architecture, memory, customer-memory, rag, state, obsidian]
-updated: 2026-09-02
+updated: 2026-09-29
 aliases: [Memory Architecture, Long-Term Memory, Customer Facts]
 status: complete
 ---
@@ -9,9 +9,9 @@ status: complete
 # 🧠 Multi-Tier Memory Architecture & Customer Facts
 
 > [!NOTE]
-> WB-Agent eliminates the twin hazards of LLM conversational memory: **context-window token exhaustion** and **loss of critical business agreements**. It achieves this via an auditable, multi-tier memory system separating short-term working turns, semantic summaries, and long-term customer facts.
+> **WhatsApp AI Agent by NS** eliminates the twin hazards of LLM conversational memory: **context-window token exhaustion** and **loss of critical business agreements**. It achieves this via an auditable, multi-tier memory system separating short-term working turns, semantic summaries, and long-term customer facts.
 >
-> ⬅️ Back to: [[index|Knowledge Base Index]]
+> ⬅️ Back to: [[../index|Knowledge Base Index]] | **Deep-Dive**: [[../guides/senior-developer-architecture|Senior Developer Architecture]]
 
 ---
 
@@ -53,7 +53,7 @@ flowchart TD
 
 ### Tier 3: Long-Term Customer Facts
 - High-value business attributes extracted and persisted across conversations and sessions.
-- Even if a customer returns 6 months later from a new marketing campaign, their business profile, volume needs, and preferred tea varieties remain instantly available.
+- Even if a customer returns 6 months later from a new marketing campaign, their business profile, volume needs, and preferred products/SKUs remain instantly available.
 - Stored in `customer_memories` table.
 
 ---
@@ -61,14 +61,14 @@ flowchart TD
 ## 🏷️ Fact Categories & Verification Hierarchy
 
 Each long-term memory record contains:
-- `key`: Distinct attribute name (e.g. `monthly_volume_kg`, `preferred_grade`, `gst_number`, `delivery_location`).
-- `value`: Fact content (e.g. `100 kg`, `Assam Kadak CTC`, `Siliguri Warehouse`).
+- `key`: Distinct attribute name (e.g. `monthly_volume`, `preferred_sku`, `gst_number`, `delivery_location`).
+- `value`: Fact content (e.g. `100 units`, `Enterprise Plan / Assam Kadak CTC`, `Siliguri Warehouse`).
 - `category`: Classification tag (`requirement`, `preference`, `business_detail`, `objection_history`).
 - `verification_status`:
 
 | Status | Meaning | Trust Level |
 | :--- | :--- | :--- |
-| `HUMAN_CONFIRMED` | Reviewed or manually added by human operator Rajiv. | **Highest** (Never overwritten by AI) |
+| `HUMAN_CONFIRMED` | Reviewed or manually added by a human operator in the dashboard. | **Highest** (Never overwritten by AI) |
 | `SYSTEM_VERIFIED` | Validated by system tool execution (e.g. GST portal check, tracking API). | High |
 | `CUSTOMER_SAID` | Directly quoted by buyer in message text. | Medium |
 | `AI_INFERRED` | Inferred by agent from conversational context. | Low (Subject to verification) |
@@ -94,3 +94,9 @@ This prevents prompt dilution, keeps inference latency under 1.2 seconds, and gu
 ## 🔀 Next Step
 Explore how background jobs and queues operate:
 👉 Proceed to **[[durable-queue-and-worker|Durable Queue with SKIP LOCKED]]**.
+
+---
+
+<div align="center">
+  <sub><b>WhatsApp AI Agent by NS</b> — Engineered by <b>Naboraj Sarkar (NS)</b></sub>
+</div>

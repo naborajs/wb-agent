@@ -1,17 +1,18 @@
 ---
-title: Deterministic Pricing & Margin Safety Engine
-tags: [architecture, pricing, deterministic, catalog, moq, margin, obsidian]
-updated: 2026-09-02
+title: "Deterministic Pricing, Multi-Industry Units & Margin Safety Engine"
+tags: [architecture, pricing, deterministic, catalog, moq, margin, gst, obsidian, ns]
+updated: 2026-09-29
 aliases: [Pricing Engine, Margin Safety, Catalog Architecture]
 status: complete
 ---
 
-# 🏷️ Deterministic Pricing & Margin Safety Engine
+# 🏷️ Deterministic Pricing, Multi-Industry Units & Margin Safety Engine
 
 > [!NOTE]
-> In WB-Agent, the Large Language Model has **zero authority** to generate or invent commercial pricing. All quotes are calculated by a deterministic formulaic engine that strictly enforces Minimum Order Quantities (MOQs), volume discount matrices, and autonomous discount caps.
+> **WhatsApp AI Agent by NS** · *Engineered by Naboraj Sarkar (NS)*  
+> In this platform, the Large Language Model has **zero authority** to invent product prices or calculate discount math. All commercial quotes and GST Pro-Forma Invoices are calculated deterministically by `PricingService` (`backend/app/pricing/calculator.py`) using verified database rules (`products`, `pricing_rules`, and `KnowledgeItem`).
 >
-> ⬅️ Back to: [[index|Knowledge Base Index]]
+> ⬅️ Back to: [[../index|Master Knowledge Base Index]]
 
 ---
 
@@ -19,52 +20,52 @@ status: complete
 
 ```mermaid
 flowchart TD
-    Inquiry["Buyer Requests Quote: Product + Quantity (kg)"] --> CheckMOQ{"Quantity >= MOQ?"}
+    Inquiry["Buyer Requests Quote:\nProduct + Quantity (unit / kg / seat / sq.ft)"] --> CheckMOQ{"Quantity >= MOQ?"}
     
-    CheckMOQ -->|No| RejectMOQ["Enforce MOQ Rule: Inform Buyer of Minimum Order"]
-    CheckMOQ -->|Yes| FetchBase["Fetch Base Price Per Kg from ProductVariant"]
+    CheckMOQ -->|No| RejectMOQ["Enforce MOQ Rule:\nInform Buyer of Minimum Order & Trial Option"]
+    CheckMOQ -->|Yes| FetchBase["Fetch Base & Floor Price from Catalog"]
 
     FetchBase --> Subtotal["Calculate Base Subtotal = Quantity * Base Price"]
-    Subtotal --> TierCheck{"Check Volume Discount Tiers"}
+    Subtotal --> TierCheck{"Check Volume Discount Tiers\n(pricing_rules)"}
 
-    TierCheck -->|Qty >= 500kg| Tier3["Apply 15.0% Tier (Flag Mandatory Human Approval)"]
-    TierCheck -->|Qty >= 100kg| Tier2["Apply 10.0% Tier (Autonomous Cap: 7.5%)"]
-    TierCheck -->|Qty >= 50kg| Tier1["Apply 5.0% Tier (Autonomous Cap: 5.0%)"]
-    TierCheck -->|Qty < 50kg| Tier0["Apply 0.0% Tier"]
+    TierCheck -->|Tier 3 Bulk| Tier3["Apply 15.0% Tier\n(Flag Human Approval if > Escalation Qty)"]
+    TierCheck -->|Tier 2 Mid| Tier2["Apply 10.0% Tier"]
+    TierCheck -->|Tier 1 Starter| Tier1["Apply 5.0% Tier"]
+    TierCheck -->|Standard| Tier0["Apply 0.0% Tier"]
 
-    Tier3 --> CheckExtra{"Buyer Requested Extra Discount?"}
-    Tier2 --> CheckExtra
-    Tier1 --> CheckExtra
-    Tier0 --> CheckExtra
+    Tier3 & Tier2 & Tier1 & Tier0 --> CheckExtra{"Buyer Requested Extra Discount?"}
 
-    CheckExtra -->|Requested Extra > 5.0%| FlagHuman["Cap Extra at 5.0% & Escalate to Rajiv Sen"]
-    CheckExtra -->|Requested Extra <= 5.0%| AutoGrant["Grant Extra Discount Autonomously"]
+    CheckExtra -->|Requested > max_discount_pct| FlagHuman["Cap at Autonomous Ceiling & Escalate to Owner WhatsApp"]
+    CheckExtra -->|Within Autonomous Ceiling| AutoGrant["Grant Verified Discount Autonomously"]
 
-    FlagHuman --> FinalQuote["Output Formatted Deterministic Quote: Total, Discount, Rate"]
-    AutoGrant --> FinalQuote
+    FlagHuman & AutoGrant --> GST["Compute Statutory GST Breakdown\n(Intrastate CGST+SGST vs Interstate IGST)"]
+    GST --> FinalQuote["Output Auditable Quote & 7-Day Rate-Lock PDF Invoice"]
 ```
 
 ---
 
-## 📦 Wholesale Catalog & Minimum Order Quantities (MOQ)
+## 🏭 Multi-Industry Catalog & Unit Support
 
-| Product | Grade | Origin | Packaging | Base Price | MOQ |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **Darjeeling First Flush** | FTGFOP1 | Kurseong, Mirik | 5kg Foil / 20kg Chest | ₹1,450 - ₹1,600 / kg | **10 kg** |
-| **Assam Kadak CTC** | BP | Upper Assam | 10kg Poly / 30kg Master Sack | ₹340 - ₹380 / kg | **25 kg** |
-| **Dooars Hotel Blend** | BOP / OF | Terai & Dooars | 20kg Poly / 50kg Jute Sack | ₹230 - ₹260 / kg | **20 kg** |
+Through the **AI Business Auto-Fill Architect** (`POST /api/v1/settings/ai-autofill-business`) and **6 Built-In Industry Presets**, the pricing engine supports any industry unit and currency (`₹`, `$`, `€`, `£`, `AED`, `SGD`):
+
+| Industry Preset | Sample Catalog Offerings | Unit | Floor Guardrail |
+| :--- | :--- | :--- | :--- |
+| 🛍️ **E-Commerce & D2C** | Wireless ANC Headphones, AMOLED Smart Watch, GaN Charger | `unit` | Enforced per SKU |
+| 🏭 **B2B Wholesale** | 5kW AC Servo Motor Kit, Modbus PLC Controller, VFD Drive | `unit` | Enforced per SKU |
+| 💻 **SaaS & Cloud Agency** | Enterprise AI Copilot License, DevOps Retainer, SOC2 Audit | `seat` / `package` | Enforced per SKU |
+| 🏥 **Healthcare & Clinics** | 90-Parameter Full Body Checkup, Cardiac Screening, 3D Dental Scan | `package` / `session` | Enforced per SKU |
+| 🏢 **Real Estate** | 3BHK Luxury Residence, Grade-A Office Suite, Retail Showroom | `sq.ft` | Enforced per SKU |
+| 🍵 **Tea & Agro Exports** | Darjeeling First Flush FTGFOP1, Assam Orthodox, Kadak CTC | `kg` | Enforced per SKU |
 
 ---
 
-## 📈 Deterministic Volume Tier Rules
-
-Rules stored in the database (`pricing_rules` table):
+## 📈 Deterministic Volume Tier Rules (`pricing_rules` Table)
 
 | Rule Name | Minimum Quantity | Base Discount | Autonomous Cap | Approval Required |
 | :--- | :--- | :--- | :--- | :--- |
-| **Tier 1 Volume** | 50.0 kg | **5.0%** | 5.0% | False (Autonomous) |
-| **Tier 2 Volume** | 100.0 kg | **10.0%** | 7.5% | False (Autonomous) |
-| **Tier 3 Enterprise**| 500.0 kg | **15.0%** | 10.0% | **True (Escalate to Owner)** |
+| **Tier 1 Volume** | 50 units / kg | **5.0%** | 5.0% | `False` (Autonomous) |
+| **Tier 2 Volume** | 100 units / kg | **10.0%** | 7.5%–12.0% | `False` (Autonomous) |
+| **Tier 3 Enterprise**| 500+ units / kg | **15.0%** | Configurable | `True` (Escalates to Owner) |
 
 ---
 
@@ -76,25 +77,10 @@ $$\text{Subtotal} = \text{Quantity} \times \text{Base Price}$$
 
 $$\text{Effective Discount \%} = \min(\text{Tier Discount} + \text{Extra Discount}, \text{Maximum Cap})$$
 
-$$\text{Total Price} = \text{Subtotal} \times \left(1 - \frac{\text{Effective Discount \%}}{100}\right)$$
-
-```python
-# Exact calculation in PricingService
-subtotal = variant.base_price_per_kg * Decimal(str(quantity_kg))
-discount_amount = (subtotal * effective_discount / Decimal("100.0")).quantize(Decimal("0.01"))
-net_total = subtotal - discount_amount
-```
-
----
-
-## 🛡️ Administrative Protection (ADR-008 & Section 71)
-
-To protect wholesale profit margins:
-- The AI Agent is strictly denied permission to call administrative tools like `update_global_pricing`, `override_margin`, or `approve_unauthorized_discount`.
-- Attempting to call an administrative mutation throws a `PermissionError` that is logged to `audit_logs`.
+$$\text{Net Total} = \text{Subtotal} \times \left(1 - \frac{\text{Effective Discount \%}}{100}\right)$$
 
 ---
 
 ## 🔀 Next Step
-Explore how facts and customer preferences are preserved:
+Explore how facts and customer preferences are preserved across sessions:
 👉 Proceed to **[[multi-tier-memory-system|Multi-Tier Memory Architecture]]**.
