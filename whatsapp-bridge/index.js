@@ -14,11 +14,12 @@ import QRCode from "qrcode";
 import qrcodeTerminal from "qrcode-terminal";
 import fs from "fs";
 
-const PORT = 3001;
+const PORT = Number(process.env.BRIDGE_PORT || 3001);
 let activeBotPhone = (process.env.BOT_PHONE || "").replace(/[^0-9]/g, "");
 let activeOwnerPhone = (process.env.OWNER_WHATSAPP_NUMBER || "").replace(/[^0-9]/g, "");
-const WEBHOOK_URL = "http://localhost:8000/api/v1/webhooks/whatsapp";
-const AUTH_DIR = "./auth_info_baileys";
+const API_BASE = (process.env.API_URL || "http://localhost:8000").replace(/\/+$/, "");
+const WEBHOOK_URL = process.env.WEBHOOK_URL || `${API_BASE}/api/v1/webhooks/whatsapp`;
+const AUTH_DIR = process.env.WA_AUTH_DIR || "./auth_info_baileys";
 
 const logger = pino({ level: "silent" });
 let sock = null;
