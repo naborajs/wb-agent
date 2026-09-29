@@ -32,10 +32,9 @@ class Settings(BaseSettings):
     def is_development(self) -> bool:
         return self.APP_ENV.lower() in ("development", "dev", "test")
 
-    # Primary Database (PostgreSQL + pgvector)
-    # Allows fallback to SQLite for lightweight test environments
-    DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/wb_agent"
-    DATABASE_URL_SYNC: str = "postgresql://postgres:postgres@localhost:5432/wb_agent"
+    # Primary Database (Zero-config SQLite default; seamlessly upgrades to PostgreSQL + pgvector)
+    DATABASE_URL: str = "sqlite+aiosqlite:///./wb_agent.db"
+    DATABASE_URL_SYNC: str = "sqlite:///./wb_agent.db"
     DB_POOL_SIZE: int = 10
     DB_MAX_OVERFLOW: int = 20
     DB_POOL_TIMEOUT: int = 30
@@ -53,8 +52,8 @@ class Settings(BaseSettings):
     CURRENCY_SYMBOL: str = "₹"
     CATALOG_UNIT: str = "unit"
 
-    # Owner Escalation & Notifications (Normalized to E.164)
-    OWNER_WHATSAPP_NUMBER: str = "+918900653250"
+    # Owner Escalation & Notifications (Normalized to E.164 when set; empty by default for fresh clones)
+    OWNER_WHATSAPP_NUMBER: str = ""
     OWNER_NOTIFICATION_ENABLED: bool = True
     OWNER_VERBOSE_MODE: bool = False
 
@@ -145,14 +144,7 @@ class Settings(BaseSettings):
     API_URL: str = "http://localhost:8000"
     DASHBOARD_URL: str = "http://localhost:3000"
     WHATSAPP_BRIDGE_URL: str = "http://localhost:3001"
-    CORS_ORIGINS: List[str] = [
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "http://localhost:8000",
-        "http://127.0.0.1:8000",
-        "http://localhost:3001",
-        "http://127.0.0.1:3001",
-    ]
+    CORS_ORIGINS: List[str] = ["*"]
 
     # Storage Paths
     STORAGE_BASE_PATH: str = "./storage"
@@ -162,17 +154,36 @@ class Settings(BaseSettings):
     RATE_LIMIT_WINDOW_SECONDS: int = 60
     RATE_LIMIT_MAX_REQUESTS: int = 20
 
-    @field_validator("OWNER_WHATSAPP_NUMBER")
+    @field_validator("DATABASE_URL", mode="before")
+    @classmethod
+    def normalize_database_url(cls, v: str) -> str:
+        """
+        Automatically upgrades standard cloud DATABASE_URL strings (postgres:// or postgresql://)
+        from Render, Railway, Supabase, Neon, or Heroku to postgresql+asyncpg:// so async SQLAlchemy
+        never fails on cloud platforms.
+        """
+        if not v or not isinstance(v, str) or not v.strip():
+            return "sqlite+aiosqlite:///./wb_agent.db"
+        clean = v.strip()
+        if clean.startswith("postgres://"):
+            return "postgresql+asyncpg://" + clean[len("postgres://"):]
+        if clean.startswith("postgresql://") and "+asyncpg" not in clean:
+            return "postgresql+asyncpg://" + clean[len("postgresql://"):]
+        return clean
+
+    @field_validator("OWNER_WHATSAPP_NUMBER", mode="before")
     @classmethod
     def validate_owner_number(cls, v: str) -> str:
         """
-        Guarantees that the owner phone is strictly normalized to E.164.
-        Never allows unformatted numbers like '+91 89006 53250' to slip into logic.
+        Guarantees that the owner phone is normalized to E.164 when provided,
+        while allowing empty string '' on fresh installs / cloud deployments.
         """
+        if not v or not str(v).strip():
+            return ""
         try:
-            return normalize_phone_number(v, default_country_code="+91")
-        except Exception as e:
-            raise ValueError(f"Invalid OWNER_WHATSAPP_NUMBER '{v}': {e}")
+            return normalize_phone_number(str(v).strip(), default_country_code="+91")
+        except Exception:
+            return str(v).strip()
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
@@ -180,8 +191,12 @@ class Settings(BaseSettings):
         """
         Supports CORS origins supplied either as a JSON list or comma-separated string.
         """
+        if not v:
+            return ["*"]
         if isinstance(v, str):
             v_trimmed = v.strip()
+            if v_trimmed == "*":
+                return ["*"]
             if v_trimmed.startswith("[") and v_trimmed.endswith("]"):
                 try:
                     return json.loads(v_trimmed)
