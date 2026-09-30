@@ -135,7 +135,7 @@ export default function AnalyticsPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2.5">
           <button
             onClick={fetchAnalytics}
             disabled={loading}
@@ -148,6 +148,13 @@ export default function AnalyticsPage() {
               <RefreshCw className="w-4 h-4" />
             )}
           </button>
+          <a
+            href="/api/v1/settings/executive-report.pdf"
+            download="WB_Agent_Executive_Report.pdf"
+            className="ed-press inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-emerald-500/40 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-xs font-bold shadow-sm hover:bg-emerald-500/25 transition-all"
+          >
+            <Download className="w-4 h-4" /> Export Executive PDF
+          </a>
           <a
             href="/api/v1/analytics/export?format=csv"
             download="edith_sales_intelligence_export.csv"
