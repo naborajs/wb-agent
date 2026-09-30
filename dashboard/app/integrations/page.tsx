@@ -298,8 +298,8 @@ export default function IntegrationsPage() {
       const resApi = await fetch("/api/v1/health").then((r) => (r.ok ? r.json() : null));
       setApiHealth(resApi);
 
-      // 2. WhatsApp Bridge health on port 3001
-      const resWa = await fetch("http://localhost:3001/status")
+      // 2. WhatsApp Bridge health via proxied backend endpoint
+      const resWa = await fetch("/api/v1/whatsapp/status")
         .then((r) => (r.ok ? r.json() : null))
         .catch(() => ({ connected: false }));
       setWaHealth(resWa);
@@ -543,7 +543,14 @@ export default function IntegrationsPage() {
           <h3 className="text-xs font-bold text-[var(--ed-text-primary)]">WhatsApp Bridge</h3>
           <p className="text-[11px] text-[var(--ed-text-muted)] mt-0.5">Baileys Multi-Device (Port 3001)</p>
           <div className="mt-3 pt-2 border-t border-[var(--ed-border)] text-[11px] text-[var(--ed-text-muted)]">
-            Bot: <span className="font-data font-semibold text-[var(--ed-text-primary)]">+91 89187 53100</span>
+            Bot:{" "}
+            <span className="font-data font-semibold text-[var(--ed-text-primary)]">
+              {waHealth?.bot_phone
+                ? `+${waHealth.bot_phone}`
+                : waHealth?.connected
+                ? "Linked Session"
+                : "Ready to Pair"}
+            </span>
           </div>
         </div>
 
