@@ -34,10 +34,13 @@ import {
   Activity,
   Sparkles,
   Sliders,
+  Play,
+  FileDown,
 } from "lucide-react";
 import FloatingPathsBackground from "./ui/FloatingPathsBackground";
 import MessageLoading from "./ui/MessageLoading";
 import OnboardingAndModeModal, { WorkspaceConfigState } from "./OnboardingAndModeModal";
+import { PresentationDemoModal } from "./PresentationDemoModal";
 
 const navigation: Array<{
   name: string;
@@ -113,6 +116,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
   const [agentName, setAgentName] = useState("EDITH");
   const [setupModalOpen, setSetupModalOpen] = useState(false);
   const [setupModalTab, setSetupModalTab] = useState<"whatsapp_owner" | "industry_features" | "verification">("whatsapp_owner");
+  const [demoModalOpen, setDemoModalOpen] = useState(false);
   const [workspaceConfig, setWorkspaceConfig] = useState<WorkspaceConfigState>({
     ui_mode: "advanced",
     onboarding_completed: false,
@@ -197,15 +201,18 @@ export default function DashboardShell({ children }: { children: React.ReactNode
       else if (e?.detail?.step === 1) setSetupModalTab("whatsapp_owner");
       setSetupModalOpen(true);
     };
+    const handleOpenDemoEvent = () => setDemoModalOpen(true);
     const handleExternalWsCfg = (e: any) => {
       if (e?.detail) applyWorkspaceConfigState(e.detail);
     };
     window.addEventListener("open_setup_modal", handleOpenModalEvent);
     window.addEventListener("wb-open-onboarding-modal", handleOpenModalEvent);
+    window.addEventListener("wb-open-demo-modal", handleOpenDemoEvent);
     window.addEventListener("wb-workspace-config-updated", handleExternalWsCfg);
     return () => {
       window.removeEventListener("open_setup_modal", handleOpenModalEvent);
       window.removeEventListener("wb-open-onboarding-modal", handleOpenModalEvent);
+      window.removeEventListener("wb-open-demo-modal", handleOpenDemoEvent);
       window.removeEventListener("wb-workspace-config-updated", handleExternalWsCfg);
     };
   }, []);
@@ -628,13 +635,35 @@ export default function DashboardShell({ children }: { children: React.ReactNode
                 setSetupModalTab("whatsapp_owner");
                 setSetupModalOpen(true);
               }}
-              className="ed-press flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-emerald-500/35 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[11px] font-bold hover:bg-emerald-500/20 transition-all"
+              className="ed-press flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-emerald-500/35 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[11px] font-bold hover:bg-emerald-500/20 transition-all cursor-pointer"
               title="Connect WhatsApp Number, Set Owner Escalation Phone, Choose Industry & Toggle Features"
             >
               <Sliders className="w-3.5 h-3.5" />
               <span className="hidden lg:inline">Setup, WhatsApp &amp; Features</span>
               <span className="lg:hidden">Setup</span>
             </button>
+
+            {/* 1-Click Live Presentation / Teacher Demo Showcase Button */}
+            <button
+              onClick={() => setDemoModalOpen(true)}
+              className="ed-press flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-purple-500/40 bg-purple-500/15 text-purple-600 dark:text-purple-300 text-[11px] font-bold hover:bg-purple-500/25 transition-all cursor-pointer"
+              title="Run 1-Click Live End-to-End Presentation Showcase (Negotiation + Synaptic Bus + GST Order + Voice Narration)"
+            >
+              <Play className="w-3.5 h-3.5 fill-current" />
+              <span className="hidden xl:inline">Live Demo Showcase</span>
+              <span className="xl:hidden">Demo</span>
+            </button>
+
+            {/* 1-Click Executive PDF Report Download */}
+            <a
+              href="/api/v1/settings/executive-report.pdf"
+              download="WB_Agent_Executive_Report.pdf"
+              className="ed-press hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-sky-500/35 bg-sky-500/10 text-sky-600 dark:text-sky-400 text-[11px] font-bold hover:bg-sky-500/20 transition-all"
+              title="Download Branded Executive Architecture & Commercial Telemetry Report (PDF)"
+            >
+              <FileDown className="w-3.5 h-3.5" />
+              <span className="hidden xl:inline">Export PDF</span>
+            </a>
           </div>
 
           <div className="flex items-center gap-1.5 sm:gap-2.5">
@@ -940,6 +969,12 @@ export default function DashboardShell({ children }: { children: React.ReactNode
         config={workspaceConfig}
         onConfigUpdated={applyWorkspaceConfigState}
         initialTab={setupModalTab}
+      />
+
+      {/* 1-Click Live Presentation / Teacher Showcase Modal */}
+      <PresentationDemoModal
+        isOpen={demoModalOpen}
+        onClose={() => setDemoModalOpen(false)}
       />
     </div>
   );
