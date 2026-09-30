@@ -5,9 +5,10 @@
 > **An autonomous, industry-agnostic AI Sales & Operations Operating System engineered by Naboraj Sarkar (NS).**  
 > Powered by two collaborative AI brains—**🟢 EDITH** *(Customer-Facing WhatsApp Sales Closer)* and **🟣 FRIDAY** *(Voice & Mission Control Supervisor)*—with zero-hallucination deterministic pricing, 1-click AI business auto-fill, persistent customer memory, and statutory GST PDF invoicing.
 
+[![CI & Build Verification](https://github.com/naborajs/wb-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/naborajs/wb-agent/actions/workflows/ci.yml)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115%2B-009688.svg)](https://fastapi.tiangolo.com/)
-[![Next.js 14](https://img.shields.io/badge/Next.js-14-black.svg)](https://nextjs.org/)
+[![Next.js 15](https://img.shields.io/badge/Next.js-15-black.svg)](https://nextjs.org/)
 [![Google Gemini Live](https://img.shields.io/badge/FRIDAY-Gemini%203.1%20Flash%20Live-8E75B2.svg)](https://aistudio.google.com/)
 [![NVIDIA NIM](https://img.shields.io/badge/EDITH-NVIDIA%20NIM%20%2F%20Llama%203.3-76B900.svg)](https://build.nvidia.com/)
 [![WhatsApp](https://img.shields.io/badge/WhatsApp-Baileys%20QR%20%2B%20Official%20Meta%20API-25D366.svg)](assets%20docs/guides/whatsapp-bridge-guide.md)
