@@ -1,0 +1,36 @@
+# ==============================================================================
+# Render.com 1-Click Infrastructure Blueprint for WB-Agent (FRIDAY + EDITH)
+# Automatically deploys the Unified All-In-One Dockerfile with persistent disk
+# ==============================================================================
+services:
+  - type: web
+    name: wb-agent-platform
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: starter
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: PORT
+        value: "3000"
+      - key: BACKEND_PORT
+        value: "8000"
+      - key: BRIDGE_PORT
+        value: "3001"
+      - key: DATABASE_URL
+        value: sqlite+aiosqlite:///./storage/wb_agent.db
+      - key: DATABASE_URL_SYNC
+        value: sqlite:///./storage/wb_agent.db
+      - key: WHATSAPP_PROVIDER
+        value: bridge
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: NVIDIA_API_KEY
+        sync: false
+      - key: OWNER_WHATSAPP_NUMBER
+        sync: false
+    disk:
+      name: wb-agent-storage
+      mountPath: /app/storage
+      sizeGB: 2
