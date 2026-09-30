@@ -1224,7 +1224,7 @@ export default function LiveInboxPage() {
                 <div className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping shrink-0" />
                   <span>
-                    <strong>WhatsApp Bot is Offline:</strong> Link bot phone (+91 89187 53100) to chat live from phone, OR use <strong>🧪 Simulate Customer</strong> below to test AI right now!
+                    <strong>WhatsApp Bot is Offline:</strong> Link your WhatsApp Bot phone to chat live, OR use <strong>🧪 Simulate Customer</strong> below to test AI right now!
                   </span>
                 </div>
                 <div className="flex items-center gap-3 shrink-0 text-[11px] font-bold">
