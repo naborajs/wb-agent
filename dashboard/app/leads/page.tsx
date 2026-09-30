@@ -29,7 +29,7 @@ export default function LeadsPage() {
   const [leads, setLeads] = useState<Lead[]>([
     {
       id: "lead_1",
-      phone: "+918900653250",
+      phone: "+919876543210",
       name: "Rahul Sharma",
       company_name: "Heritage Cafe",
       company_type: "Cafe",
