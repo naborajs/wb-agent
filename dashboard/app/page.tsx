@@ -663,12 +663,27 @@ export default function DashboardOverview() {
             <div className="flex flex-wrap items-center gap-2.5 shrink-0">
               <button
                 onClick={() => {
+                  window.dispatchEvent(new CustomEvent("wb-open-demo-modal"));
+                }}
+                className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white text-xs font-bold shadow-sm transition-all cursor-pointer"
+              >
+                🎬 Live Demo Showcase
+              </button>
+              <a
+                href="/api/v1/settings/executive-report.pdf"
+                download="WB_Agent_Executive_Report.pdf"
+                className="px-3.5 py-2.5 rounded-xl border border-sky-500/40 bg-sky-500/10 text-sky-600 dark:text-sky-400 text-xs font-bold hover:bg-sky-500/20 transition-all"
+              >
+                📄 Export PDF
+              </a>
+              <button
+                onClick={() => {
                   const voiceBtn = document.querySelector(
                     "button:has(svg.lucide-phone), button:has(svg.lucide-mic)"
                   ) as HTMLElement;
                   if (voiceBtn) voiceBtn.click();
                 }}
-                className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-sm transition-all"
+                className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-sm transition-all cursor-pointer"
               >
                 🎙️ Talk to Friday
               </button>
@@ -676,7 +691,7 @@ export default function DashboardOverview() {
                 onClick={() => {
                   window.dispatchEvent(new CustomEvent("open_setup_modal", { detail: { tab: "whatsapp_owner" } }));
                 }}
-                className="px-4 py-2.5 rounded-xl border border-[var(--ed-border)] text-[var(--ed-text-primary)] text-xs font-bold hover:border-emerald-500/50 transition-all"
+                className="px-4 py-2.5 rounded-xl border border-[var(--ed-border)] text-[var(--ed-text-primary)] text-xs font-bold hover:border-emerald-500/50 transition-all cursor-pointer"
                 style={{ background: "var(--ed-bg)" }}
               >
                 📱 {waStatus.connected ? `WhatsApp Online (+${waStatus.botPhone})` : "Connect WhatsApp"}
@@ -1079,8 +1094,21 @@ export default function DashboardOverview() {
 
           <div className="flex flex-wrap items-center gap-2 shrink-0">
             <button
+              onClick={() => window.dispatchEvent(new CustomEvent("wb-open-demo-modal"))}
+              className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm cursor-pointer"
+            >
+              🎬 Live Demo Showcase
+            </button>
+            <a
+              href="/api/v1/settings/executive-report.pdf"
+              download="WB_Agent_Executive_Report.pdf"
+              className="px-3.5 py-2 rounded-xl border border-sky-500/40 bg-sky-500/10 text-sky-600 dark:text-sky-400 text-xs font-bold flex items-center gap-1.5 hover:bg-sky-500/20"
+            >
+              📄 Export PDF
+            </a>
+            <button
               onClick={() => window.dispatchEvent(new CustomEvent("open_setup_modal", { detail: { tab: "verification" } }))}
-              className="px-3.5 py-2 rounded-xl border border-[var(--ed-border)] text-xs font-bold text-[var(--ed-text-primary)] hover:border-emerald-500/50 flex items-center gap-1.5"
+              className="px-3.5 py-2 rounded-xl border border-[var(--ed-border)] text-xs font-bold text-[var(--ed-text-primary)] hover:border-emerald-500/50 flex items-center gap-1.5 cursor-pointer"
               style={{ background: "var(--ed-bg)" }}
             >
               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
