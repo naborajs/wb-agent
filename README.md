@@ -27,6 +27,7 @@ Whether you are a **15-year-old student** running your first AI project, a **bus
 | 💻 **Senior Software Developer / Architect** | [Part 5: System Architecture & Engineering](#-part-5-system-architecture--engineering-for-senior-developers) | 👉 **[Senior Developer & Systems Architecture Reference](assets%20docs/guides/senior-developer-architecture.md)** |
 | 📱 **WhatsApp & DevOps Integrator** | [Dual WhatsApp Gateway Controls](#-dual-whatsapp-gateway-unofficial-qr-bridge-vs-official-meta-cloud-api) | 👉 **[WhatsApp Connectivity Guide](assets%20docs/guides/whatsapp-bridge-guide.md)** & **[Production Runbook](assets%20docs/runbooks/production-deployment.md)** |
 | 🔌 **API & Frontend Engineer** | [Part 6: Master Documentation Hub](#-part-6-complete-documentation-directory--redirection-hub) | 👉 **[Complete REST API & WebSocket Reference (137 Endpoints)](assets%20docs/api-reference.md)** |
+| 🖤 **UI / UX & Frontend Developers** | [Minimalist Black & White System](docs/MINIMALIST_DASHBOARD_UPGRADE.md) | 👉 **[Minimalist Dual-Theme & Dashboard-4 Guide](docs/MINIMALIST_DASHBOARD_UPGRADE.md)** |
 
 ---
 
