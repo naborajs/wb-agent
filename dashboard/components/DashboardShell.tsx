@@ -219,14 +219,29 @@ export default function DashboardShell({ children }: { children: React.ReactNode
 
   useEffect(() => {
     setMounted(true);
-    const saved = localStorage.getItem("wb_theme");
-    if (saved === "dark" || (!saved && window.matchMedia("(prefers-color-scheme: dark)").matches)) {
-      setDarkMode(true);
-      document.documentElement.classList.add("dark");
-    } else {
-      setDarkMode(false);
-      document.documentElement.classList.remove("dark");
-    }
+    const syncTheme = () => {
+      const searchParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+      const urlTheme = searchParams ? searchParams.get("theme") : null;
+      const saved = typeof window !== "undefined" ? localStorage.getItem("wb_theme") : null;
+
+      if (urlTheme === "light") {
+        setDarkMode(false);
+        document.documentElement.classList.remove("dark");
+      } else if (urlTheme === "dark") {
+        setDarkMode(true);
+        document.documentElement.classList.add("dark");
+      } else if (saved === "dark" || (!saved && window.matchMedia("(prefers-color-scheme: dark)").matches)) {
+        setDarkMode(true);
+        document.documentElement.classList.add("dark");
+      } else {
+        setDarkMode(false);
+        document.documentElement.classList.remove("dark");
+      }
+    };
+
+    syncTheme();
+    window.addEventListener("theme-change", syncTheme);
+    return () => window.removeEventListener("theme-change", syncTheme);
   }, []);
 
   // Fetch initial active watchdog alerts and setup real-time WebSocket connection
