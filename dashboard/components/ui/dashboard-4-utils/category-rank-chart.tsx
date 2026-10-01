@@ -13,10 +13,9 @@ interface CategoryShare {
 }
 
 const categories: CategoryShare[] = [
-  { name: "Apparel & Fashion", share: 44, revenue: "$125,364", items: 812 },
-  { name: "Electronics & Tech", share: 28, revenue: "$79,777", items: 516 },
-  { name: "Home & Living", share: 18, revenue: "$51,285", items: 331 },
-  { name: "Accessories & Bags", share: 10, revenue: "$28,494", items: 183 },
+  { name: "Darjeeling First Flush (TGFOP)", share: 54, revenue: "₹1,12,700", items: 110 },
+  { name: "Assam Kadak CTC (BP/BP1)", share: 37, revenue: "₹76,350", items: 230 },
+  { name: "Dooars Terai Master Blend", share: 9, revenue: "₹18,750", items: 75 },
 ];
 
 export function CategoryRankChart() {
@@ -27,15 +26,15 @@ export function CategoryRankChart() {
       <div>
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-base font-semibold text-foreground">Revenue Share by Category</h3>
-            <p className="text-xs text-muted-foreground mt-0.5">Last 7 days.</p>
+            <h3 className="text-base font-semibold text-foreground">Tea Grade Share</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">Current harvest cycle</p>
           </div>
           <Button
             variant="ghost"
             size="icon"
             className="h-7 w-7 rounded-full text-muted-foreground hover:text-foreground"
             onClick={() => setModalOpen(true)}
-            aria-label="More info about Revenue Share"
+            aria-label="More info about Tea Grade Share"
           >
             <Info className="h-4 w-4" />
           </Button>
@@ -44,10 +43,9 @@ export function CategoryRankChart() {
         {/* Minimal Stacked Progress Bar */}
         <div className="mt-6">
           <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-muted gap-0.5">
-            <div className="h-full bg-foreground" style={{ width: "44%" }} title="Apparel (44%)" />
-            <div className="h-full bg-foreground/75" style={{ width: "28%" }} title="Electronics (28%)" />
-            <div className="h-full bg-foreground/50" style={{ width: "18%" }} title="Home (18%)" />
-            <div className="h-full bg-foreground/25" style={{ width: "10%" }} title="Accessories (10%)" />
+            <div className="h-full bg-foreground" style={{ width: "54%" }} title="Darjeeling (54%)" />
+            <div className="h-full bg-foreground/75" style={{ width: "37%" }} title="Assam CTC (37%)" />
+            <div className="h-full bg-foreground/45" style={{ width: "9%" }} title="Dooars Blend (9%)" />
           </div>
 
           <div className="mt-4 space-y-2.5">
@@ -113,7 +111,7 @@ export function CategoryRankChart() {
                 <div key={idx} className="p-3 rounded-xl border border-border/50 bg-background/50 flex justify-between items-center">
                   <div>
                     <div className="text-xs font-semibold text-foreground">{c.name}</div>
-                    <div className="text-[11px] text-muted-foreground">{c.items} units sold</div>
+                    <div className="text-[11px] text-muted-foreground">{c.items} kg dispatched</div>
                   </div>
                   <div className="text-right">
                     <div className="text-xs font-mono font-bold text-foreground">{c.revenue}</div>
