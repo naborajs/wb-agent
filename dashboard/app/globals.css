@@ -3,144 +3,138 @@
 @import "tailwindcss/utilities";
 
 /* ============================================================
-   EDITH Design Tokens — Royal Pitch Black (dark) / Estate White (light)
+   Minimalist Dual-Theme: Pure White (Light) & Pitch Dark (Dark)
    ============================================================ */
 
 :root {
-  /* Light theme — "Estate White" */
-  --ed-bg: #F8F8FA;
-  --ed-surface: #FFFFFF;
-  --ed-surface-elevated: rgba(255, 255, 255, 0.85);
-  --ed-border: #D8D8E0;
-  --ed-text-primary: #111118;
+  /* Light theme — Minimalist Pure White */
+  --ed-bg: #FFFFFF;
+  --ed-surface: #FAFAFA;
+  --ed-surface-elevated: #FFFFFF;
+  --ed-border: #E4E4E7;
+  --ed-text-primary: #09090B;
   --ed-text-muted: #71717A;
-  --ed-accent: #DC1B35;
-  --ed-accent-hover: #B91630;
-  --ed-accent-glow: rgba(220, 27, 53, 0.12);
-  --ed-success: #059669;
-  --ed-warning: #D97706;
-  --ed-danger: #DC2626;
-
-  /* EDITH Celestial Brand Tokens (Light Mode) */
-  --ed-brand-cyan: #0284C7;
-  --ed-brand-indigo: #6366F1;
-  --ed-brand-glow: rgba(2, 132, 199, 0.15);
-  --ed-brand-badge-bg: #FFFFFF;
-  --ed-brand-badge-border: rgba(2, 132, 199, 0.25);
-
-  /* Royal subtle canvas gradient (light mode) */
-  --ed-canvas-bg: radial-gradient(circle at 18% 12%, #FFFFFF 0%, #F8F8FA 60%, #F0F0F5 100%);
-  --ed-dot-color: rgba(0, 0, 0, 0.04);
-
-  /* Primary Button Gradient (light mode) */
-  --ed-btn-gradient: linear-gradient(180deg, #DC1B35 0%, #A81224 100%);
-  --ed-btn-gradient-hover: linear-gradient(180deg, #ED2541 0%, #B91630 100%);
-
-  /* Light panel shadow — directional, not generic even spread */
-  --ed-shadow-panel: 0 1px 3px rgba(0, 0, 0, 0.06), 0 4px 12px rgba(0, 0, 0, 0.04);
-  --ed-shadow-elevated: 0 2px 8px rgba(0, 0, 0, 0.08), 0 8px 24px rgba(0, 0, 0, 0.06);
-
-  --foreground-rgb: 17, 17, 24;
-
-  /* shadcn UI Color Tokens (Light Mode — Estate White) */
-  --background: 240 10% 98%;
-  --foreground: 240 10% 8%;
-  --card: 0 0% 100%;
-  --card-foreground: 240 10% 8%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 240 10% 8%;
-  --primary: 352 79% 49%;
-  --primary-foreground: 0 0% 100%;
-  --secondary: 240 5% 94%;
-  --secondary-foreground: 240 10% 8%;
-  --muted: 240 5% 94%;
-  --muted-foreground: 240 4% 46%;
-  --accent: 240 5% 94%;
-  --accent-foreground: 240 10% 8%;
-  --destructive: 0 84% 60%;
-  --destructive-foreground: 0 0% 100%;
-  --border: 240 6% 86%;
-  --input: 240 6% 86%;
-  --ring: 352 79% 49%;
-  --radius: 0.75rem;
-
-  /* Chart tokens (light mode) */
-  --chart-1: #DC1B35;
-  --chart-2: #0284C7;
-  --chart-3: #059669;
-  --chart-4: #8B5CF6;
-  --chart-5: #D97706;
-}
-
-.dark {
-  /* Dark theme — "Royal Pitch Black" */
-  --ed-bg: #07070B;
-  --ed-surface: #0F0F14;
-  --ed-surface-elevated: rgba(18, 18, 26, 0.75);
-  --ed-border: #1A1A24;
-  --ed-text-primary: #F0F0F5;
-  --ed-text-muted: #6B6B80;
-  --ed-accent: #F02341;
-  --ed-accent-hover: #D91E3A;
-  --ed-accent-glow: rgba(240, 35, 65, 0.20);
+  --ed-accent: #09090B;
+  --ed-accent-hover: #27272A;
+  --ed-accent-glow: rgba(0, 0, 0, 0.05);
   --ed-success: #10B981;
   --ed-warning: #F59E0B;
   --ed-danger: #EF4444;
 
-  /* EDITH Celestial Brand Tokens (Dark Mode) */
-  --ed-brand-cyan: #38BDF8;
-  --ed-brand-indigo: #818CF8;
-  --ed-brand-glow: rgba(56, 189, 248, 0.25);
-  --ed-brand-badge-bg: rgba(8, 14, 26, 0.85);
-  --ed-brand-badge-border: rgba(56, 189, 248, 0.35);
+  --ed-brand-cyan: #18181B;
+  --ed-brand-indigo: #27272A;
+  --ed-brand-glow: rgba(0, 0, 0, 0.04);
+  --ed-brand-badge-bg: #F4F4F5;
+  --ed-brand-badge-border: #E4E4E7;
 
-  /* Royal subtle canvas gradient with oxblood/cool-black undertone (dark mode) */
-  --ed-canvas-bg: radial-gradient(circle at 18% 12%, #14090e 0%, #07070B 60%, #040407 100%);
-  --ed-dot-color: rgba(255, 255, 255, 0.04);
+  --ed-canvas-bg: #FFFFFF;
+  --ed-dot-color: rgba(0, 0, 0, 0.03);
 
-  /* Primary Button Gradient with depth (dark mode) */
-  --ed-btn-gradient: linear-gradient(180deg, #F02341 0%, #B8142C 100%);
-  --ed-btn-gradient-hover: linear-gradient(180deg, #FF3D57 0%, #C91630 100%);
+  --ed-btn-gradient: linear-gradient(180deg, #18181B 0%, #09090B 100%);
+  --ed-btn-gradient-hover: linear-gradient(180deg, #27272A 0%, #18181B 100%);
 
-  --ed-shadow-panel: 0 1px 3px rgba(0, 0, 0, 0.3), 0 4px 12px rgba(0, 0, 0, 0.2);
-  --ed-shadow-elevated: 0 2px 8px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.3);
+  --ed-shadow-panel: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --ed-shadow-elevated: 0 4px 12px rgba(0, 0, 0, 0.05);
 
-  --foreground-rgb: 240, 240, 245;
+  --foreground-rgb: 9, 9, 11;
 
-  /* shadcn UI Color Tokens (Dark Mode — Royal Pitch Black) */
-  --background: 240 31% 4%;
-  --foreground: 240 16% 96%;
-  --card: 240 14% 7%;
-  --card-foreground: 240 16% 96%;
-  --popover: 240 14% 7%;
-  --popover-foreground: 240 16% 96%;
-  --primary: 352 87% 54%;
-  --primary-foreground: 0 0% 100%;
-  --secondary: 240 16% 12%;
-  --secondary-foreground: 240 16% 96%;
-  --muted: 240 16% 12%;
-  --muted-foreground: 240 9% 46%;
-  --accent: 240 16% 12%;
-  --accent-foreground: 240 16% 96%;
-  --destructive: 0 63% 31%;
-  --destructive-foreground: 0 0% 100%;
-  --border: 240 16% 12%;
-  --input: 240 16% 12%;
-  --ring: 352 87% 54%;
+  /* shadcn UI Color Tokens (Light Mode) */
+  --background: 0 0% 100%;
+  --foreground: 240 10% 3.9%;
+  --card: 0 0% 100%;
+  --card-foreground: 240 10% 3.9%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 240 10% 3.9%;
+  --primary: 240 5.9% 10%;
+  --primary-foreground: 0 0% 98%;
+  --secondary: 240 4.8% 95.9%;
+  --secondary-foreground: 240 5.9% 10%;
+  --muted: 240 4.8% 95.9%;
+  --muted-foreground: 240 3.8% 46.1%;
+  --accent: 240 4.8% 95.9%;
+  --accent-foreground: 240 5.9% 10%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 240 5.9% 90%;
+  --input: 240 5.9% 90%;
+  --ring: 240 5.9% 10%;
+  --radius: 0.85rem;
 
-  /* Chart tokens (dark mode) */
-  --chart-1: #F02341;
-  --chart-2: #38BDF8;
-  --chart-3: #10B981;
-  --chart-4: #A78BFA;
-  --chart-5: #F59E0B;
+  /* Chart tokens (light mode - monochrome minimal) */
+  --chart-1: oklch(0.32 0 0);
+  --chart-2: oklch(0.88 0 0);
+  --chart-3: oklch(0.55 0 0);
+  --chart-4: oklch(0.15 0 0);
+  --chart-5: oklch(0.72 0 0);
+}
+
+.dark {
+  /* Dark theme — Minimalist Pitch Dark (matches dashboard screenshot) */
+  --ed-bg: #09090B;
+  --ed-surface: #121215;
+  --ed-surface-elevated: #16161A;
+  --ed-border: #222226;
+  --ed-text-primary: #F4F4F5;
+  --ed-text-muted: #888891;
+  --ed-accent: #FFFFFF;
+  --ed-accent-hover: #E4E4E7;
+  --ed-accent-glow: rgba(255, 255, 255, 0.06);
+  --ed-success: #10B981;
+  --ed-warning: #F59E0B;
+  --ed-danger: #EF4444;
+
+  --ed-brand-cyan: #F4F4F5;
+  --ed-brand-indigo: #D4D4D8;
+  --ed-brand-glow: rgba(255, 255, 255, 0.05);
+  --ed-brand-badge-bg: #18181B;
+  --ed-brand-badge-border: #27272A;
+
+  --ed-canvas-bg: #09090B;
+  --ed-dot-color: rgba(255, 255, 255, 0.02);
+
+  --ed-btn-gradient: linear-gradient(180deg, #FFFFFF 0%, #E4E4E7 100%);
+  --ed-btn-gradient-hover: linear-gradient(180deg, #F4F4F5 0%, #D4D4D8 100%);
+
+  --ed-shadow-panel: 0 1px 3px rgba(0, 0, 0, 0.5);
+  --ed-shadow-elevated: 0 4px 16px rgba(0, 0, 0, 0.6);
+
+  --foreground-rgb: 244, 244, 245;
+
+  /* shadcn UI Color Tokens (Dark Mode) */
+  --background: 240 10% 3.9%;
+  --foreground: 0 0% 98%;
+  --card: 240 5% 7%;
+  --card-foreground: 0 0% 98%;
+  --popover: 240 5% 7%;
+  --popover-foreground: 0 0% 98%;
+  --primary: 0 0% 98%;
+  --primary-foreground: 240 5.9% 10%;
+  --secondary: 240 4% 16%;
+  --secondary-foreground: 0 0% 98%;
+  --muted: 240 4% 16%;
+  --muted-foreground: 240 5% 65%;
+  --accent: 240 4% 16%;
+  --accent-foreground: 0 0% 98%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 240 4% 18%;
+  --input: 240 4% 18%;
+  --ring: 240 4.9% 83.9%;
+
+  /* Chart tokens (dark mode - monochrome minimal) */
+  --chart-1: oklch(0.75 0 0);
+  --chart-2: oklch(0.45 0 0);
+  --chart-3: oklch(0.6 0 0);
+  --chart-4: oklch(0.9 0 0);
+  --chart-5: oklch(0.35 0 0);
 }
 
 /* ============================================================
-   Base body styles
+   Base Body Styles
    ============================================================ */
 body {
   color: rgb(var(--foreground-rgb));
+  background-color: var(--ed-bg);
   margin: 0;
   padding: 0;
   -webkit-font-smoothing: antialiased;
@@ -148,352 +142,88 @@ body {
 }
 
 /* ============================================================
-   Custom scrollbar
+   Custom Clean Scrollbar
    ============================================================ */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
   background: var(--ed-text-muted);
-  opacity: 0.4;
+  opacity: 0.3;
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  opacity: 0.7;
+  opacity: 0.6;
 }
 
 /* ============================================================
-   Button interaction & surface utilities
+   Minimal Utilities
    ============================================================ */
 @layer utilities {
-  /* Canvas textured background with royal gradient and static dot-grid */
   .ed-bg-texture {
     background-color: var(--ed-bg);
-    background-image: radial-gradient(var(--ed-dot-color) 1px, transparent 1px), var(--ed-canvas-bg);
-    background-size: 24px 24px, 100% 100%;
   }
 
-  /* Press state — scale down on active */
   .ed-press {
-    transition: transform 150ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 150ms ease-out, background-color 150ms ease-out;
+    transition: transform 120ms ease-out;
   }
   .ed-press:active {
-    transform: scale(0.97);
+    transform: scale(0.98);
   }
 
-  /* Hover lift — slight translateY + shadow increase */
   .ed-lift {
-    transition: transform 150ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 150ms ease-out, background-color 150ms ease-out;
+    transition: transform 150ms ease-out, box-shadow 150ms ease-out;
   }
   .ed-lift:hover {
     transform: translateY(-1px);
     box-shadow: var(--ed-shadow-elevated);
   }
 
-  /* Combined press + lift for interactive elements */
-  .ed-interactive {
-    transition: transform 150ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 150ms ease-out, background 150ms ease-out;
-  }
-  .ed-interactive:hover {
-    transform: translateY(-1px);
-    box-shadow: var(--ed-shadow-elevated);
-  }
-  .ed-interactive:active {
-    transform: scale(0.97);
-    box-shadow: var(--ed-shadow-panel);
-  }
-
-  /* Primary action button with gradient fill and soft accent glow */
   .ed-btn-primary {
     background: var(--ed-btn-gradient);
-    color: #FFFFFF !important;
-    border: 1px solid rgba(255, 255, 255, 0.16);
-    box-shadow: 0 4px 16px var(--ed-accent-glow), 0 1px 2px rgba(0, 0, 0, 0.3);
-    transition: transform 150ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 150ms ease-out, background 150ms ease-out;
+    color: var(--primary-foreground) !important;
+    border: 1px solid var(--ed-border);
+    transition: all 150ms ease-out;
   }
   .ed-btn-primary:hover {
-    background: var(--ed-btn-gradient-hover);
-    box-shadow: 0 6px 22px var(--ed-accent-glow), 0 2px 6px rgba(0, 0, 0, 0.4);
+    opacity: 0.95;
     transform: translateY(-1px);
   }
   .ed-btn-primary:active {
-    transform: scale(0.97);
-    box-shadow: 0 2px 8px var(--ed-accent-glow), 0 1px 2px rgba(0, 0, 0, 0.3);
+    transform: scale(0.98);
   }
 
-  /* Restrained quiet active nav: subtle surface highlight, clean text, quiet red border */
   .ed-nav-active {
     background: var(--ed-surface);
     color: var(--ed-text-primary) !important;
     font-weight: 600;
-    border-left: 2.5px solid var(--ed-accent);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    border-left: 2px solid var(--ed-text-primary);
   }
 
-  /* Hot lead badge glow */
-  .ed-glow-badge {
-    box-shadow: 0 0 12px var(--ed-accent-glow);
-  }
-
-  /* Glass surface — compositor-safe surface without scroll readback flicker */
-  .ed-glass {
-    background: var(--ed-surface-elevated);
-    border: 1px solid var(--ed-border);
-  }
-
-  /* Ambient glow wash for hero stats */
-  .ed-glow {
-    box-shadow: 0 0 24px var(--ed-accent-glow);
-  }
-
-  /* Panel base — solid surface with hairline neutral border and directional shadow */
   .ed-panel {
     background: var(--ed-surface);
     border: 1px solid var(--ed-border);
     box-shadow: var(--ed-shadow-panel);
   }
 
-  /* Focus ring for keyboard accessibility */
   .ed-focus-ring:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 2px var(--ed-bg), 0 0 0 4px var(--ed-accent);
+    box-shadow: 0 0 0 2px var(--ed-bg), 0 0 0 4px var(--ed-text-primary);
   }
 
-  /* Numeric data font */
   .font-data {
     font-variant-numeric: tabular-nums;
   }
 
-  /* EDITH Luxury Brand Styling */
-  .ed-brand-avatar {
-    background: var(--ed-brand-badge-bg);
-    border: 1px solid var(--ed-brand-badge-border);
-    box-shadow: 0 4px 16px var(--ed-brand-glow), 0 1px 3px rgba(0, 0, 0, 0.1);
-    transition: all 250ms cubic-bezier(0.22, 1, 0.36, 1);
-  }
-  .ed-brand-avatar:hover {
-    box-shadow: 0 6px 24px var(--ed-brand-glow), 0 2px 6px rgba(0, 0, 0, 0.15);
-    transform: translateY(-1px) scale(1.02);
-  }
-
-  /* Celestial Ambient Glow Wash */
-  .ed-brand-glow {
-    box-shadow: 0 0 32px var(--ed-brand-glow);
-  }
-
-  /* Hero marquee gradient card */
-  .ed-brand-hero {
-    background: radial-gradient(circle at 10% 20%, rgba(56, 189, 248, 0.08) 0%, transparent 50%),
-                radial-gradient(circle at 90% 80%, rgba(129, 140, 248, 0.08) 0%, transparent 50%),
-                var(--ed-surface);
-    border: 1px solid var(--ed-border);
-    box-shadow: var(--ed-shadow-elevated);
-  }
-
-  /* Arbitrary variable compatibility for Tailwind v3 / v4 */
   .border-\(--color-border\) {
     border-color: var(--color-border, var(--ed-border));
   }
   .bg-\(--color-bg\) {
     background-color: var(--color-bg, var(--ed-accent));
-  }
-}
-
-/* ============================================================
-   Recharts Polar & Radar Chart Dual-Theme Styling
-   ============================================================ */
-.recharts-polar-grid line,
-.recharts-polar-grid polygon,
-.recharts-polar-grid circle {
-  stroke: var(--ed-border) !important;
-  stroke-opacity: 0.6;
-}
-
-.recharts-polar-angle-axis-tick text {
-  fill: var(--ed-text-muted) !important;
-  font-size: 11px;
-}
-
-/* ============================================================
-   Respect prefers-reduced-motion
-   ============================================================ */
-@media (prefers-reduced-motion: reduce) {
-  .ed-press,
-  .ed-lift,
-  .ed-interactive,
-  .ed-btn-primary {
-    transition: opacity 100ms ease-out, background-color 100ms ease-out !important;
-    will-change: auto !important;
-  }
-  .ed-press:active,
-  .ed-interactive:active,
-  .ed-btn-primary:active {
-    transform: none !important;
-  }
-  .ed-lift:hover,
-  .ed-interactive:hover,
-  .ed-btn-primary:hover {
-    transform: none !important;
-    box-shadow: var(--ed-shadow-panel) !important;
-  }
-
-  /* Kill all entrance animations */
-  .ed-entrance {
-    animation: none !important;
-    opacity: 1 !important;
-    transform: none !important;
-  }
-}
-
-/* ============================================================
-   Entrance animation for hero stat cards (stagger via style)
-   ============================================================ */
-@keyframes ed-settle-in {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.ed-entrance {
-  animation: ed-settle-in 300ms cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-/* ============================================================
-   Neural Flow & Constellation Animations for NemoTron Architect
-   ============================================================ */
-@keyframes neuralFlowDash {
-  from {
-    stroke-dashoffset: 40;
-  }
-  to {
-    stroke-dashoffset: 0;
-  }
-}
-
-@keyframes neuralPulseNode {
-  0%, 100% {
-    transform: scale(1);
-    opacity: 0.85;
-  }
-  50% {
-    transform: scale(1.3);
-    opacity: 1;
-  }
-}
-
-@keyframes neuralBeamWave {
-  0% {
-    background-position: -200% 0;
-  }
-  100% {
-    background-position: 200% 0;
-  }
-}
-
-.animate-neural-flow {
-  animation: neuralFlowDash 1.5s linear infinite;
-}
-
-.animate-neural-flow-reverse {
-  animation: neuralFlowDash 1.8s linear infinite reverse;
-}
-
-.animate-neural-pulse {
-  transform-origin: center;
-  animation: neuralPulseNode 2.2s ease-in-out infinite;
-}
-
-.animate-neural-beam {
-  background-size: 200% 100%;
-  animation: neuralBeamWave 2s linear infinite;
-}
-
-/* ============================================================
-   Subtle Luxury Glass & Floating Cinematic System
-   ============================================================ */
-.ed-glass-luxury {
-  background: rgba(255, 255, 255, 0.94);
-  border: 1px solid rgba(226, 232, 240, 0.9);
-  box-shadow: 0 10px 35px -10px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04);
-  backface-visibility: hidden;
-}
-
-.dark .ed-glass-luxury {
-  background: rgba(13, 17, 28, 0.92);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 16px 45px -12px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.06);
-  backface-visibility: hidden;
-}
-
-.ed-glass-card {
-  position: relative;
-  border-radius: 1.5rem;
-  overflow: hidden;
-  transition: transform 300ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 300ms ease-out, border-color 300ms ease-out;
-}
-
-.ed-glass-card:hover {
-  transform: translateY(-4px);
-  border-color: rgba(56, 189, 248, 0.35);
-  box-shadow: 0 20px 48px -12px rgba(56, 189, 248, 0.12), 0 0 24px -4px rgba(168, 85, 247, 0.08);
-}
-
-@keyframes floatSubtle {
-  0%, 100% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-7px);
-  }
-}
-
-@keyframes floatSubtleDelayed {
-  0%, 100% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-9px);
-  }
-}
-
-@keyframes pulseGlowRing {
-  0%, 100% {
-    opacity: 0.4;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.85;
-    transform: scale(1.04);
-  }
-}
-
-.animate-float-subtle {
-  animation: floatSubtle 5.5s ease-in-out infinite;
-}
-
-.animate-float-delayed {
-  animation: floatSubtleDelayed 6.5s ease-in-out 1.2s infinite;
-}
-
-.animate-glow-ring {
-  animation: pulseGlowRing 3s ease-in-out infinite;
-}
-
-@keyframes edStageProgress {
-  from {
-    transform: scaleX(0);
-  }
-  to {
-    transform: scaleX(1);
   }
 }
 
