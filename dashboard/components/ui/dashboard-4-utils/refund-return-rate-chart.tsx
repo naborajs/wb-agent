@@ -9,10 +9,10 @@ export function RefundReturnRateChart() {
   const [modalOpen, setModalOpen] = useState(false);
 
   const returnReasons = [
-    { reason: "Customer changed mind", percentage: "45%", count: 18 },
-    { reason: "Incorrect sizing", percentage: "30%", count: 12 },
-    { reason: "Damaged in transit", percentage: "15%", count: 6 },
-    { reason: "Delayed dispatch", percentage: "10%", count: 4 },
+    { reason: "Moisture Content Standard", percentage: "0%", count: 0 },
+    { reason: "Leaf Grade Specification Mismatch", percentage: "0%", count: 0 },
+    { reason: "Transit Moisture or Sack Tear", percentage: "0%", count: 0 },
+    { reason: "Delayed Dispatch Beyond SLA", percentage: "0%", count: 0 },
   ];
 
   return (
@@ -21,7 +21,7 @@ export function RefundReturnRateChart() {
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-base font-semibold text-foreground">Return rate</h3>
-            <p className="text-xs text-muted-foreground mt-0.5">Last 7 days</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Commercial consignments</p>
           </div>
           <Button
             variant="ghost"
@@ -35,18 +35,18 @@ export function RefundReturnRateChart() {
         </div>
 
         <div className="mt-6 flex items-baseline justify-between">
-          <div className="text-3xl font-semibold tracking-tight text-foreground">2.6%</div>
-          <span className="text-xs text-muted-foreground text-right">of orders refunded</span>
+          <div className="text-3xl font-semibold tracking-tight text-foreground">0.0%</div>
+          <span className="text-xs text-muted-foreground text-right">0 claims filed</span>
         </div>
 
         {/* Minimal Bar Visualization */}
         <div className="mt-4 space-y-1.5">
           <div className="flex h-2 w-full overflow-hidden rounded-full bg-muted">
-            <div className="h-full bg-foreground/80 dark:bg-zinc-200" style={{ width: "2.6%" }} />
+            <div className="h-full bg-emerald-500" style={{ width: "100%" }} />
           </div>
           <div className="flex justify-between text-[11px] text-muted-foreground">
-            <span>Benchmark: 3.5%</span>
-            <span className="text-emerald-500 font-medium">0.9% under industry avg</span>
+            <span>Benchmark: &lt; 2.5%</span>
+            <span className="text-emerald-500 font-medium">100% Quality Acceptance</span>
           </div>
         </div>
       </div>
@@ -72,8 +72,8 @@ export function RefundReturnRateChart() {
           >
             <div className="flex items-start justify-between pb-3 border-b border-border/60">
               <div>
-                <span className="text-xs uppercase tracking-wider text-muted-foreground">Refund Analysis</span>
-                <h3 className="text-xl font-bold text-foreground mt-0.5">Return Rate Breakdown</h3>
+                <span className="text-xs uppercase tracking-wider text-muted-foreground">Quality Assurance</span>
+                <h3 className="text-xl font-bold text-foreground mt-0.5">Consignment QA Audit</h3>
               </div>
               <Button
                 variant="ghost"
@@ -87,23 +87,23 @@ export function RefundReturnRateChart() {
 
             <div className="my-4 p-4 rounded-xl border border-border/50 bg-background/50 flex justify-between items-center">
               <div>
-                <div className="text-2xl font-bold text-foreground">2.6%</div>
-                <div className="text-xs text-muted-foreground">Total 40 refunds out of 1,540 orders</div>
+                <div className="text-2xl font-bold text-foreground">0.0%</div>
+                <div className="text-xs text-muted-foreground">0 disputes out of 6 commercial orders</div>
               </div>
               <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-500 px-2 py-1 rounded-md bg-emerald-500/10">
-                <ArrowDown className="h-3.5 w-3.5" /> Healthy
+                <ArrowDown className="h-3.5 w-3.5" /> 100% Clean
               </span>
             </div>
 
             <div className="space-y-3">
-              <span className="text-xs font-semibold text-foreground">Primary Reasons</span>
+              <span className="text-xs font-semibold text-foreground">Inspection Parameters</span>
               <div className="space-y-2">
                 {returnReasons.map((item, idx) => (
                   <div key={idx} className="flex justify-between items-center text-xs p-2 rounded-lg bg-muted/40">
                     <span className="text-muted-foreground">{item.reason}</span>
                     <div className="flex items-center gap-2">
-                      <span className="font-mono text-muted-foreground">{item.count} cases</span>
-                      <span className="font-semibold text-foreground">{item.percentage}</span>
+                      <span className="font-mono text-muted-foreground">{item.count} disputes</span>
+                      <span className="font-semibold text-emerald-500">Verified</span>
                     </div>
                   </div>
                 ))}
