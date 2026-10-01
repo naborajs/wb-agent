@@ -122,6 +122,7 @@ export function RevenueChart() {
               stroke="currentColor"
               strokeWidth={2}
               dot={false}
+              isAnimationActive={false}
               activeDot={{
                 r: 4,
                 className: "fill-foreground stroke-background stroke-2",
