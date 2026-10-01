@@ -22,29 +22,17 @@ import { ArrowUp, ArrowRight, X, Download, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const rawRevenueData = [
-  { date: "Feb 20", revenue: 3820, orders: 24 },
-  { date: "Feb 22", revenue: 3790, orders: 23 },
-  { date: "Feb 25", revenue: 4510, orders: 28 },
-  { date: "Feb 27", revenue: 4420, orders: 27 },
-  { date: "Mar 2", revenue: 4310, orders: 26 },
-  { date: "Mar 5", revenue: 4680, orders: 29 },
-  { date: "Mar 7", revenue: 5040, orders: 32 },
-  { date: "Mar 10", revenue: 4890, orders: 31 },
-  { date: "Mar 12", revenue: 5210, orders: 34 },
-  { date: "Mar 15", revenue: 5350, orders: 35 },
-  { date: "Mar 17", revenue: 5540, orders: 36 },
-  { date: "Mar 20", revenue: 5410, orders: 34 },
-  { date: "Mar 22", revenue: 5780, orders: 38 },
-  { date: "Mar 25", revenue: 5690, orders: 37 },
-  { date: "Mar 27", revenue: 6120, orders: 40 },
-  { date: "Mar 30", revenue: 5980, orders: 39 },
-  { date: "Apr 1", revenue: 6240, orders: 41 },
-  { date: "Apr 4", revenue: 6110, orders: 39 },
-  { date: "Apr 6", revenue: 6450, orders: 43 },
-  { date: "Apr 9", revenue: 6380, orders: 42 },
-  { date: "Apr 11", revenue: 6820, orders: 46 },
-  { date: "Apr 14", revenue: 6710, orders: 45 },
-  { date: "Apr 16", revenue: 7240, orders: 49 },
+  { date: "Sep 4", revenue: 16150, orders: 1 },
+  { date: "Sep 8", revenue: 22400, orders: 1 },
+  { date: "Sep 12", revenue: 28900, orders: 1 },
+  { date: "Sep 16", revenue: 34200, orders: 2 },
+  { date: "Sep 20", revenue: 41800, orders: 2 },
+  { date: "Sep 24", revenue: 44500, orders: 2 },
+  { date: "Sep 27", revenue: 48500, orders: 1 },
+  { date: "Sep 28", revenue: 32400, orders: 1 },
+  { date: "Sep 29", revenue: 18750, orders: 1 },
+  { date: "Sep 30", revenue: 64200, orders: 1 },
+  { date: "Oct 1", revenue: 27800, orders: 1 },
 ];
 
 export function RevenueChart() {
@@ -105,10 +93,10 @@ export function RevenueChart() {
                     <div className="rounded-lg border border-border bg-popover px-3 py-2 text-xs shadow-xl text-popover-foreground">
                       <div className="font-semibold">{data.date}</div>
                       <div className="text-muted-foreground mt-0.5">
-                        Revenue: <span className="font-mono font-bold text-foreground">${data.revenue.toLocaleString()}</span>
+                        Revenue: <span className="font-mono font-bold text-foreground">₹{data.revenue.toLocaleString("en-IN")}</span>
                       </div>
                       <div className="text-muted-foreground text-[10px]">
-                        Orders: <span className="font-mono text-foreground">{data.orders}</span>
+                        Dispatched Orders: <span className="font-mono text-foreground">{data.orders}</span>
                       </div>
                     </div>
                   );
@@ -138,9 +126,9 @@ export function RevenueChart() {
         <div className="flex items-center gap-1.5 text-muted-foreground">
           <span className="flex items-center gap-1 font-medium text-emerald-500">
             <ArrowUp className="h-3.5 w-3.5 stroke-[2.5]" />
-            42.9%
+            18.4%
           </span>
-          <span>vs first day in last 60 days.</span>
+          <span>growth vs previous North Bengal tea auction cycle.</span>
         </div>
 
         <button
@@ -164,8 +152,8 @@ export function RevenueChart() {
           >
             <div className="flex items-start justify-between pb-3 border-b border-border/60">
               <div>
-                <span className="text-xs uppercase tracking-wider text-muted-foreground">Comprehensive Audit</span>
-                <h3 className="text-xl font-bold text-foreground mt-0.5">Revenue & Growth Report</h3>
+                <span className="text-xs uppercase tracking-wider text-muted-foreground">Commercial B2B Audit</span>
+                <h3 className="text-xl font-bold text-foreground mt-0.5">Wholesale Revenue & Growth</h3>
               </div>
               <Button
                 variant="ghost"
@@ -179,30 +167,30 @@ export function RevenueChart() {
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 my-5">
               <div className="p-3.5 rounded-xl border border-border/50 bg-background/50">
-                <span className="text-xs text-muted-foreground">Gross Revenue</span>
-                <div className="text-2xl font-bold text-foreground mt-1">$292,340</div>
-                <span className="text-[11px] text-emerald-500 font-medium">+12.4% MoM</span>
+                <span className="text-xs text-muted-foreground">Invoiced Revenue</span>
+                <div className="text-2xl font-bold text-foreground mt-1">₹2,07,800</div>
+                <span className="text-[11px] text-emerald-500 font-medium">+18.4% MoM</span>
               </div>
               <div className="p-3.5 rounded-xl border border-border/50 bg-background/50">
-                <span className="text-xs text-muted-foreground">Net Profit</span>
-                <div className="text-2xl font-bold text-foreground mt-1">$94,180</div>
-                <span className="text-[11px] text-emerald-500 font-medium">32.2% Margin</span>
+                <span className="text-xs text-muted-foreground">Net Trade Margin</span>
+                <div className="text-2xl font-bold text-foreground mt-1">₹59,223</div>
+                <span className="text-[11px] text-emerald-500 font-medium">28.5% Margin</span>
               </div>
               <div className="p-3.5 rounded-xl border border-border/50 bg-background/50">
-                <span className="text-xs text-muted-foreground">Returns Deducted</span>
-                <div className="text-2xl font-bold text-foreground mt-1">-$7,420</div>
-                <span className="text-[11px] text-muted-foreground">2.6% refund rate</span>
+                <span className="text-xs text-muted-foreground">Quality Claims</span>
+                <div className="text-2xl font-bold text-foreground mt-1">₹0</div>
+                <span className="text-[11px] text-emerald-500 font-medium">0.0% refund rate</span>
               </div>
             </div>
 
             <div className="space-y-3">
-              <span className="text-xs font-semibold text-foreground">Recent Revenue Ledger</span>
+              <span className="text-xs font-semibold text-foreground">Verified Purchase Orders</span>
               <div className="max-h-48 overflow-y-auto space-y-1.5 pr-1">
                 {rawRevenueData.slice(-6).reverse().map((item, idx) => (
                   <div key={idx} className="flex justify-between items-center text-xs py-2 px-3 rounded-lg bg-muted/40">
                     <span className="font-medium text-foreground">{item.date}</span>
-                    <span className="text-muted-foreground">{item.orders} orders</span>
-                    <span className="font-mono font-semibold text-foreground">${item.revenue.toLocaleString()}</span>
+                    <span className="text-muted-foreground">{item.orders} consignment</span>
+                    <span className="font-mono font-semibold text-foreground">₹{item.revenue.toLocaleString("en-IN")}</span>
                   </div>
                 ))}
               </div>
