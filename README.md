@@ -31,6 +31,22 @@ Whether you are a **15-year-old student** running your first AI project, a **bus
 
 ---
 
+## 🖤 Minimalist Dual-Theme Dashboard Showcase (Pure White & Pitch Dark)
+
+The entire web operating system features a distraction-free, high-contrast monochrome design system powered by shadcn/ui and Tailwind CSS:
+
+| **Pitch Dark Theme (Default Architecture)** | **Pure White Light Theme** |
+| :---: | :---: |
+| [![Overview Dark](docs/screenshots/overview_dark.png)](docs/MINIMALIST_DASHBOARD_UPGRADE.md) | [![Overview Light](docs/screenshots/overview_light.png)](docs/MINIMALIST_DASHBOARD_UPGRADE.md) |
+
+| **Wholesale Commercial Orders (₹2,07,800 Volume)** | **Live WhatsApp CRM Inbox** |
+| :---: | :---: |
+| [![Orders Dark](docs/screenshots/orders_dark.png)](docs/MINIMALIST_DASHBOARD_UPGRADE.md) | [![Conversations Dark](docs/screenshots/conversations_dark.png)](docs/MINIMALIST_DASHBOARD_UPGRADE.md) |
+
+> 📖 **Full Architectural & Component Guide**: Read the [Minimalist Black & White Upgrade Guide](docs/MINIMALIST_DASHBOARD_UPGRADE.md) for complete shadcn setup instructions, component source paths, and design token specifications.
+
+---
+
 ## 🌟 Part 1: What Is This Project? (Explain Like I'm 15)
 
 Imagine you run a business—like a **custom sneaker brand**, a **gaming PC shop**, a **bakery**, a **real estate agency**, or a **wholesale tea company**.
