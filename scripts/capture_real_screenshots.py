@@ -13,7 +13,7 @@ os.makedirs(ARTIFACT_DIR, exist_ok=True)
 targets = [
     {
         "name": "overview_dark.png",
-        "url": "http://localhost:3000/",
+        "url": "http://localhost:3000/?theme=dark",
         "color_scheme": "dark",
         "width": 1600,
         "height": 1050,
@@ -21,7 +21,7 @@ targets = [
     },
     {
         "name": "overview_light.png",
-        "url": "http://localhost:3000/",
+        "url": "http://localhost:3000/?theme=light",
         "color_scheme": "light",
         "width": 1600,
         "height": 1050,
