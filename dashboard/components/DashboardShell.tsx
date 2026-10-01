@@ -466,39 +466,34 @@ export default function DashboardShell({ children }: { children: React.ReactNode
     <div className="flex flex-col h-full justify-between overflow-hidden">
       <div className="flex flex-col min-h-0 flex-1 overflow-hidden">
         {/* Brand Header */}
-        <div className="p-4 border-b border-[var(--ed-border)] flex items-center gap-3 shrink-0">
-          <div className="relative w-12 h-12 rounded-2xl ed-brand-avatar flex items-center justify-center shrink-0 group">
+        <div className="p-4 border-b border-border flex items-center gap-3 shrink-0">
+          <div className="relative w-10 h-10 rounded-xl border border-border bg-card flex items-center justify-center shrink-0">
             <img
               src="/logo-icon.png"
-              alt="EDITH Logo"
-              className="w-10 h-10 object-contain drop-shadow-[0_2px_8px_rgba(56,189,248,0.35)] group-hover:scale-105 transition-transform duration-300"
+              alt="Logo"
+              className="w-7 h-7 object-contain grayscale dark:invert"
             />
-            {/* Live autonomous status orb */}
-            <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-[var(--ed-surface)] border-2 border-[var(--ed-border)] flex items-center justify-center">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-card border-2 border-border flex items-center justify-center">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
             </span>
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
-              <h1 className="font-bold text-base leading-tight tracking-tight text-[var(--ed-text-primary)] truncate">
+              <h1 className="font-semibold text-sm leading-tight tracking-tight text-foreground truncate">
                 {agentName}
               </h1>
-              <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/30">
-                {workspaceConfig.ui_mode === "simplified" ? "SIMPLE" : "PRO OS"}
+              <span className="text-[9px] font-mono font-medium px-1.5 py-0.5 rounded border border-border text-muted-foreground">
+                {workspaceConfig.ui_mode === "simplified" ? "MINIMAL" : "EXTENDED"}
               </span>
             </div>
-            <div className="text-[11px] text-[var(--ed-text-muted)] truncate font-medium mt-0.5" title={businessName}>
+            <div className="text-[11px] text-muted-foreground truncate font-normal mt-0.5" title={businessName}>
               {businessName}
             </div>
-            <span className="text-[10px] font-medium text-[var(--ed-success)] flex items-center gap-1 mt-0.5 truncate">
-              <span className="w-1.5 h-1.5 rounded-full bg-[var(--ed-success)] shrink-0"></span>
-              <span className="truncate">{workspaceConfig.business_industry || "Autonomous Active"}</span>
-            </span>
           </div>
         </div>
 
-        {/* Navigation Links with Smooth Scroll for mobile & smaller screens */}
-        <nav className="p-3 space-y-0.5 overflow-y-auto flex-1">
+        {/* Navigation Links */}
+        <nav className="p-3 space-y-1 overflow-y-auto flex-1">
           {visibleNavigation.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href;
@@ -506,13 +501,13 @@ export default function DashboardShell({ children }: { children: React.ReactNode
               <Link
                 key={item.name}
                 href={item.href}
-                className={`ed-press ed-focus-ring flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm transition-all duration-150 ${
+                className={`flex items-center gap-3 px-3 py-2 rounded-xl text-xs transition-colors duration-150 ${
                   isActive
-                    ? "ed-nav-active"
-                    : "text-[var(--ed-text-muted)] hover:bg-[var(--ed-bg)] hover:text-[var(--ed-text-primary)] border-l-2 border-transparent font-medium"
+                    ? "bg-foreground text-background font-medium"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground font-normal"
                 }`}
               >
-                <Icon className={`w-4 h-4 ${isActive ? "text-[var(--ed-accent)]" : "text-[var(--ed-text-muted)]"}`} />
+                <Icon className={`w-4 h-4 ${isActive ? "text-background" : "text-muted-foreground"}`} />
                 {item.name}
               </Link>
             );
@@ -520,25 +515,24 @@ export default function DashboardShell({ children }: { children: React.ReactNode
         </nav>
       </div>
 
-      {/* Owner Notification Channel Footer */}
+      {/* Owner Channel Footer */}
       <button
         onClick={() => {
           setSetupModalTab("whatsapp_owner");
           setSetupModalOpen(true);
         }}
-        className="p-4 border-t border-[var(--ed-border)] shrink-0 text-left w-full hover:opacity-90 transition-opacity cursor-pointer"
-        style={{ background: "var(--ed-bg)" }}
-        title="Click to configure WhatsApp Bot & Owner Escalation numbers"
+        className="p-3.5 border-t border-border shrink-0 text-left w-full hover:bg-muted/40 transition-colors cursor-pointer bg-card"
+        title="Configure WhatsApp & Escalation"
       >
-        <div className="flex items-center justify-between text-[10px] text-[var(--ed-text-muted)] font-semibold mb-1">
-          <span>Owner Escalation Channel</span>
-          <span className="text-sky-500 underline">Configure</span>
+        <div className="flex items-center justify-between text-[10px] text-muted-foreground font-medium mb-1">
+          <span>Escalation Channel</span>
+          <span className="underline">Configure</span>
         </div>
-        <div className="text-xs font-semibold text-[var(--ed-text-primary)] flex items-center gap-1.5 font-data">
-          <Radio className={`w-3.5 h-3.5 ${workspaceConfig.owner_whatsapp_number ? "text-[var(--ed-success)]" : "text-amber-500"}`} />
+        <div className="text-xs font-medium text-foreground flex items-center gap-1.5 font-mono">
+          <Radio className={`w-3.5 h-3.5 ${workspaceConfig.owner_whatsapp_number ? "text-emerald-500" : "text-muted-foreground"}`} />
           {formattedOwnerPhone}
         </div>
-        <div className="text-[11px] text-[var(--ed-text-muted)] mt-0.5 truncate">
+        <div className="text-[11px] text-muted-foreground mt-0.5 truncate">
           Bot: {formattedBotPhone}
         </div>
       </button>
@@ -601,31 +595,30 @@ export default function DashboardShell({ children }: { children: React.ReactNode
               <span className="font-bold text-sm tracking-tight text-[var(--ed-text-primary)]">EDITH</span>
             </div>
 
-            {/* Prominent Main Simplified vs Advanced Mode Toggle */}
+            {/* Minimal vs Extended View Toggle */}
             <div
-              className="flex items-center p-0.5 rounded-xl border border-[var(--ed-border)]"
-              style={{ background: "var(--ed-bg)" }}
-              title="Switch between Simplified Business Mode and Advanced Developer Mode"
+              className="flex items-center p-0.5 rounded-xl border border-border bg-card"
+              title="Switch between Minimal and Extended Overview"
             >
               <button
                 onClick={() => handleQuickModeToggle("simplified")}
-                className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1 ${
+                className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
                   workspaceConfig.ui_mode === "simplified"
-                    ? "bg-emerald-500 text-white shadow-sm"
-                    : "text-[var(--ed-text-muted)] hover:text-[var(--ed-text-primary)]"
+                    ? "bg-foreground text-background shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                ✨ Simplified
+                Minimal
               </button>
               <button
                 onClick={() => handleQuickModeToggle("advanced")}
-                className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1 ${
+                className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
                   workspaceConfig.ui_mode === "advanced"
-                    ? "bg-sky-600 text-white shadow-sm"
-                    : "text-[var(--ed-text-muted)] hover:text-[var(--ed-text-primary)]"
+                    ? "bg-foreground text-background shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                🛠️ Advanced
+                Extended
               </button>
             </div>
 
@@ -635,49 +628,36 @@ export default function DashboardShell({ children }: { children: React.ReactNode
                 setSetupModalTab("whatsapp_owner");
                 setSetupModalOpen(true);
               }}
-              className="ed-press flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-emerald-500/35 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[11px] font-bold hover:bg-emerald-500/20 transition-all cursor-pointer"
-              title="Connect WhatsApp Number, Set Owner Escalation Phone, Choose Industry & Toggle Features"
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border bg-card text-foreground text-xs font-medium hover:bg-muted transition-colors cursor-pointer"
+              title="Setup WhatsApp & Channels"
             >
               <Sliders className="w-3.5 h-3.5" />
-              <span className="hidden lg:inline">Setup, WhatsApp &amp; Features</span>
+              <span className="hidden lg:inline">Setup &amp; Channels</span>
               <span className="lg:hidden">Setup</span>
             </button>
 
-            {/* 1-Click Live Presentation / Teacher Demo Showcase Button */}
+            {/* Live Demo Showcase Button */}
             <button
               onClick={() => setDemoModalOpen(true)}
-              className="ed-press flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-purple-500/40 bg-purple-500/15 text-purple-600 dark:text-purple-300 text-[11px] font-bold hover:bg-purple-500/25 transition-all cursor-pointer"
-              title="Run 1-Click Live End-to-End Presentation Showcase (Negotiation + Synaptic Bus + GST Order + Voice Narration)"
+              className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border bg-card text-foreground text-xs font-medium hover:bg-muted transition-colors cursor-pointer"
+              title="Interactive Live Showcase"
             >
               <Play className="w-3.5 h-3.5 fill-current" />
-              <span className="hidden xl:inline">Live Demo Showcase</span>
-              <span className="xl:hidden">Demo</span>
+              <span>Showcase</span>
             </button>
-
-            {/* 1-Click Executive PDF Report Download */}
-            <a
-              href="/api/v1/settings/executive-report.pdf"
-              download="WB_Agent_Executive_Report.pdf"
-              className="ed-press hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-sky-500/35 bg-sky-500/10 text-sky-600 dark:text-sky-400 text-[11px] font-bold hover:bg-sky-500/20 transition-all"
-              title="Download Branded Executive Architecture & Commercial Telemetry Report (PDF)"
-            >
-              <FileDown className="w-3.5 h-3.5" />
-              <span className="hidden xl:inline">Export PDF</span>
-            </a>
           </div>
 
-          <div className="flex items-center gap-1.5 sm:gap-2.5">
-            {/* Dark Mode Toggle */}
+          <div className="flex items-center gap-2">
+            {/* Dark / Light Mode Toggle */}
             <button
               onClick={toggleTheme}
-              aria-label="Toggle Dark Mode"
-              className="ed-press ed-focus-ring p-2 sm:p-2.5 rounded-lg border border-[var(--ed-border)] text-[var(--ed-text-muted)] hover:text-[var(--ed-text-primary)] transition-colors"
-              style={{ background: "var(--ed-surface)" }}
+              aria-label="Toggle Theme (White / Dark)"
+              className="p-2 rounded-xl border border-border bg-card text-foreground hover:bg-muted transition-colors cursor-pointer"
             >
               {mounted && darkMode ? (
-                <Sun className="w-4 h-4 text-[var(--ed-warning)]" />
+                <Sun className="w-4 h-4 text-foreground" />
               ) : (
-                <Moon className="w-4 h-4" />
+                <Moon className="w-4 h-4 text-foreground" />
               )}
             </button>
 
