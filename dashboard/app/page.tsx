@@ -42,9 +42,9 @@ interface AnalyticsData {
 
 export default function HomePage() {
   const [showMoreInfo, setShowMoreInfo] = useState(false);
-  const [businessName, setBusinessName] = useState("Enterprise AI Operations");
-  const [businessIndustry, setBusinessIndustry] = useState("Multi-Industry Commerce");
-  const [currencySymbol, setCurrencySymbol] = useState("$");
+  const [businessName, setBusinessName] = useState("Himalayan Tea & Agro Exports");
+  const [businessIndustry, setBusinessIndustry] = useState("Tea Estates & Wholesale Commodities");
+  const [currencySymbol, setCurrencySymbol] = useState("₹");
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(false);
   const [quickNote, setQuickNote] = useState("");
@@ -56,7 +56,7 @@ export default function HomePage() {
     try {
       const [settingsRes, analyticsRes] = await Promise.all([
         fetch("/api/v1/settings").then((r) => (r.ok ? r.json() : null)),
-        fetch("/api/v1/analytics/dashboard").then((r) => (r.ok ? r.json() : null)),
+        fetch("/api/v1/analytics/overview").then((r) => (r.ok ? r.json() : null)),
       ]);
 
       if (settingsRes?.business_name) {
@@ -174,19 +174,19 @@ export default function HomePage() {
                 <div className="flex justify-between py-1.5 px-2 rounded-lg bg-muted/40">
                   <span className="text-muted-foreground">Active Leads</span>
                   <span className="font-mono font-semibold text-foreground">
-                    {analytics?.leads_total || 248}
+                    {analytics?.leads_total ?? 8}
                   </span>
                 </div>
                 <div className="flex justify-between py-1.5 px-2 rounded-lg bg-muted/40">
                   <span className="text-muted-foreground">High Intent Leads</span>
                   <span className="font-mono font-semibold text-emerald-500">
-                    {analytics?.hot_leads || 38}
+                    {analytics?.hot_leads ?? 2}
                   </span>
                 </div>
                 <div className="flex justify-between py-1.5 px-2 rounded-lg bg-muted/40">
                   <span className="text-muted-foreground">Assisted Handoffs</span>
                   <span className="font-mono font-semibold text-foreground">
-                    {analytics?.pending_handoffs || 4}
+                    {analytics?.pending_handoffs ?? 0}
                   </span>
                 </div>
               </div>
@@ -207,7 +207,7 @@ export default function HomePage() {
                 <div className="flex justify-between py-1.5 px-2 rounded-lg bg-muted/40">
                   <span className="text-muted-foreground">Total Tokens Processed</span>
                   <span className="font-mono font-semibold text-foreground">
-                    {(analytics?.tokens_summary?.total_tokens || 148200).toLocaleString()}
+                    {(analytics?.tokens_summary?.total_tokens ?? 25470).toLocaleString()}
                   </span>
                 </div>
               </div>
