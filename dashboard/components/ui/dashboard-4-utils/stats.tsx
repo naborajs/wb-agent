@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowUp, ArrowDown, Info, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -18,79 +18,127 @@ interface StatItem {
   };
 }
 
-const statsData: StatItem[] = [
+const defaultStatsData: StatItem[] = [
   {
     id: "revenue",
     title: "Total revenue",
-    value: "$284,920",
-    change: "8.2%",
+    value: "₹2,07,800",
+    change: "18.4%",
     trend: "up",
     period: "vs prior 30 days",
     details: {
-      description: "Net revenue aggregated across all connected channels and WhatsApp AI automated checkouts.",
+      description: "Consolidated wholesale B2B trade volume from North Bengal tea auctions, direct garden lots, and automated WhatsApp orders.",
       metrics: [
-        { label: "WhatsApp Direct Sales", value: "$198,450" },
-        { label: "Campaign Inbound", value: "$62,380" },
-        { label: "Recurring Re-orders", value: "$24,090" },
+        { label: "Darjeeling First Flush (TGFOP)", value: "₹1,12,700" },
+        { label: "Assam Kadak CTC (BP/BP1)", value: "₹76,350" },
+        { label: "Dooars Terai Master Blend", value: "₹18,750" },
       ],
     },
   },
   {
     id: "orders",
     title: "Orders",
-    value: "1,842",
-    change: "4.1%",
+    value: "6",
+    change: "50.0%",
     trend: "up",
-    period: "vs prior 30 days",
+    period: "this month",
     details: {
-      description: "Successfully processed and verified customer orders through conversational sales flow.",
+      description: "Commercial purchase orders closed across Siliguri, Darjeeling, and Assam regional buyers.",
       metrics: [
-        { label: "Autonomous Closed", value: "1,520 (82.5%)" },
-        { label: "Assisted Handoffs", value: "322 (17.5%)" },
-        { label: "Average Dispatch Time", value: "2.4 hours" },
+        { label: "Autonomous Closed", value: "4 (66.7%)" },
+        { label: "Assisted Handoffs", value: "2 (33.3%)" },
+        { label: "Fulfillment Rate", value: "100% Invoiced/Dispatched" },
       ],
     },
   },
   {
     id: "aov",
     title: "Average order value",
-    value: "$154.60",
-    change: "1.3%",
-    trend: "down",
+    value: "₹34,633",
+    change: "12.8%",
+    trend: "up",
     period: "vs prior 30 days",
     details: {
-      description: "Average customer spend per order after applying automated volume and promo discounts.",
+      description: "Average wholesale consignment value (typically 50kg - 100kg master commercial sacks).",
       metrics: [
-        { label: "Median Order Size", value: "$142.00" },
-        { label: "Multi-item Orders", value: "64%" },
-        { label: "Dynamic Upsell Lift", value: "+$18.40" },
+        { label: "Largest Order", value: "₹64,200 (BIJU)" },
+        { label: "Median Order Size", value: "₹30,100" },
+        { label: "Volume Discount Avg", value: "₹1,558 / order" },
       ],
     },
   },
   {
     id: "conversion",
-    title: "Store conversion",
-    value: "3.06%",
-    change: "0.6%",
+    title: "Buyer conversion",
+    value: "75.0%",
+    change: "8.5%",
     trend: "up",
     period: "vs prior 30 days",
     details: {
-      description: "Inbound visitor to completed WhatsApp checkout conversion rate across all campaigns.",
+      description: "Conversion rate from registered commercial buyers and tea cafe chains into confirmed wholesale purchase orders.",
       metrics: [
-        { label: "Inbound Leads", value: "60,196" },
-        { label: "High Intent Chats", value: "18,420" },
-        { label: "Completed Checkouts", value: "1,842" },
+        { label: "Verified Buyer Leads", value: "8 Accounts" },
+        { label: "Active Conversations", value: "3 WhatsApp Threads" },
+        { label: "Confirmed Orders", value: "6 Orders" },
       ],
     },
   },
 ];
 
 export function DashboardStats() {
+  const [stats, setStats] = useState<StatItem[]>(defaultStatsData);
   const [selectedStat, setSelectedStat] = useState<StatItem | null>(null);
+
+  useEffect(() => {
+    async function loadLiveData() {
+      try {
+        const res = await fetch("/api/v1/orders");
+        if (res.ok) {
+          const data = await res.json();
+          const orderList = data.orders || [];
+          if (orderList.length > 0) {
+            const totalRev = orderList.reduce(
+              (sum: number, o: { total_amount?: number }) => sum + (o.total_amount || 0),
+              0
+            );
+            const orderCount = orderList.length;
+            const aov = Math.round(totalRev / orderCount);
+
+            setStats((prev) =>
+              prev.map((item) => {
+                if (item.id === "revenue") {
+                  return {
+                    ...item,
+                    value: `₹${totalRev.toLocaleString("en-IN")}`,
+                  };
+                }
+                if (item.id === "orders") {
+                  return {
+                    ...item,
+                    value: `${orderCount}`,
+                  };
+                }
+                if (item.id === "aov") {
+                  return {
+                    ...item,
+                    value: `₹${aov.toLocaleString("en-IN")}`,
+                  };
+                }
+                return item;
+              })
+            );
+          }
+        }
+      } catch (err) {
+        // Fallback gracefully to default wholesale metrics
+      }
+    }
+    loadLiveData();
+  }, []);
 
   return (
     <>
-      {statsData.map((stat) => (
+      {stats.map((stat) => (
         <Card
           key={stat.id}
           onClick={() => setSelectedStat(stat)}
