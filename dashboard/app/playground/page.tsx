@@ -42,6 +42,7 @@ import {
   Plus,
 } from "lucide-react";
 import { MessageLoading } from "@/components/ui/MessageLoading";
+import { Component as AiLoader } from "@/components/ui/ai-loader";
 
 interface PlaygroundModel {
   id: string;
@@ -1395,9 +1396,11 @@ function PlaygroundInner() {
             ))}
 
             {isGenerating && (
-              <div className="flex gap-2.5 items-center text-xs text-orange-500 pl-1 font-mono">
-                <MessageLoading size={20} className="text-orange-500" />
-                <span>Generating response from {currentModel.name}...</span>
+              <div className="my-4 p-5 rounded-2xl bg-black/85 border border-sky-500/30 backdrop-blur-md flex flex-col items-center justify-center relative overflow-hidden shadow-2xl">
+                <AiLoader fullScreen={false} size={120} text="Generating" />
+                <span className="mt-3 text-xs text-sky-400 font-mono tracking-wider">
+                  Generating response from {currentModel.name}...
+                </span>
               </div>
             )}
             <div ref={messagesEndRef} />
