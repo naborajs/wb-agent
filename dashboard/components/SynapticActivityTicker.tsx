@@ -209,11 +209,11 @@ export default function SynapticActivityTicker() {
               onClick={() => setFilter("FRIDAY")}
               className={`px-2 py-0.5 rounded flex items-center gap-1 ${
                 filter === "FRIDAY"
-                  ? "bg-purple-100 dark:bg-[#8B5CF6]/20 text-purple-700 dark:text-[#A855F7] shadow-xs"
-                  : "text-slate-600 dark:text-slate-400 hover:text-purple-600 dark:hover:text-[#A855F7]"
+                  ? "bg-cyan-100 dark:bg-cyan-500/20 text-cyan-700 dark:text-cyan-300 shadow-xs"
+                  : "text-slate-600 dark:text-slate-400 hover:text-cyan-600 dark:hover:text-cyan-400"
               }`}
             >
-              <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
+              <span className="w-1.5 h-1.5 rounded-full bg-cyan-500" />
               FRIDAY
             </button>
           </div>
@@ -252,7 +252,7 @@ export default function SynapticActivityTicker() {
                     className={`px-1.5 py-0.5 rounded text-[10px] font-bold shrink-0 flex items-center gap-1 ${
                       isEdith
                         ? "bg-sky-100 dark:bg-[#00D2FE]/15 text-sky-700 dark:text-[#00D2FE] border border-sky-300/60 dark:border-[#00D2FE]/30"
-                        : "bg-purple-100 dark:bg-[#8B5CF6]/15 text-purple-700 dark:text-[#A855F7] border border-purple-300/60 dark:border-[#8B5CF6]/30"
+                        : "bg-cyan-100 dark:bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border border-cyan-300/60 dark:border-cyan-500/30"
                     }`}
                   >
                     {isEdith ? <Cpu className="w-2.5 h-2.5" /> : <Bot className="w-2.5 h-2.5" />}
