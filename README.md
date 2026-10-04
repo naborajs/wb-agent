@@ -2,9 +2,16 @@
 
 ![EDITH & FRIDAY Brand Banner](assets%20docs/assets/EDITH_BRAND_MASTER.png)
 
-> **An autonomous, industry-agnostic AI Sales & Operations Operating System engineered by Naboraj Sarkar (NS).**  
+> **An autonomous, industry-agnostic AI Sales & Operations Operating System engineered by [Naboraj Sarkar (NS)](https://naborajs.me).**  
 > Powered by two collaborative AI brains—**🟢 EDITH** *(Customer-Facing WhatsApp Sales Closer)* and **🟣 FRIDAY** *(Voice & Mission Control Supervisor)*—with zero-hallucination deterministic pricing, 1-click AI business auto-fill, persistent customer memory, and statutory GST PDF invoicing.
+>
+> 🌐 **Official Website**: [naborajs.me](https://naborajs.me)  
+> 📖 **Live Documentation Hub**: [naborajs.me/projects/whatsapp-ai-agent-dual-brain/docs](https://naborajs.me/projects/whatsapp-ai-agent-dual-brain/docs)  
+> 📰 **Origin Story & Architecture Blog**: [The Idea Behind EDITH WhatsApp AI Agent](https://naborajs.me/blog/the-idea-behind-edith-whatsapp-ai-agent-by-ns)  
+> 💼 **Portfolio Showcase**: [Featured Systems — WhatsApp AI Agent](https://naborajs.me/portfolio#whatsapp-ai-agent)
 
+[![Documentation Hub](https://img.shields.io/badge/Documentation-Official%20Hub%20%28naborajs.me%29-10B981.svg?style=flat&logo=bookstack)](https://naborajs.me/projects/whatsapp-ai-agent-dual-brain/docs)
+[![Creator Website](https://img.shields.io/badge/Creator-naborajs.me-6366F1.svg?style=flat&logo=safari)](https://naborajs.me)
 [![CI & Build Verification](https://github.com/naborajs/wb-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/naborajs/wb-agent/actions/workflows/ci.yml)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115%2B-009688.svg)](https://fastapi.tiangolo.com/)
@@ -326,9 +333,31 @@ WB-Agent is engineered to run out-of-the-box on **any server or cloud provider**
 
 ---
 
-## 📚 Part 6: Complete Documentation Directory & Redirection Hub
+## 📚 Part 6: Complete Documentation Directory & Online Knowledge Hub
 
-All documentation is organized inside **[`assets docs/`](assets%20docs/)** and **[`docs/`](docs/)** and hyperlinked below:
+> 📖 **Live Documentation Hub**: **[naborajs.me/projects/whatsapp-ai-agent-dual-brain/docs](https://naborajs.me/projects/whatsapp-ai-agent-dual-brain/docs)**  
+> 🌐 **Creator Hub**: **[naborajs.me](https://naborajs.me)** · 💼 **Portfolio**: **[naborajs.me/portfolio#whatsapp-ai-agent](https://naborajs.me/portfolio#whatsapp-ai-agent)** · 📰 **Engineering Story**: **[The Idea Behind EDITH](https://naborajs.me/blog/the-idea-behind-edith-whatsapp-ai-agent-by-ns)**
+
+### 🌐 Official Online Documentation Chapters (`whatsapp-ai-agent`)
+
+The official documentation suite is deployed on [naborajs.me](https://naborajs.me) under **`whatsapp-ai-agent`** and organized into 12 engineering chapters:
+
+| Chapter / Slug | Title | Key Component in `wb-agent` | Direct Online Route |
+| :--- | :--- | :--- | :--- |
+| **`ch-1-dual-brain`** | Dual-Brain Cognitive Architecture | [`backend/app/agent/orchestrator.py`](backend/app/agent/orchestrator.py), [`backend/app/brain/inter_brain_bus.py`](backend/app/brain/inter_brain_bus.py) | [Chapter 1 on naborajs.me](https://naborajs.me/docs/whatsapp-ai-agent/ch-1-dual-brain) |
+| **`ch-2-friteos-gateway`** | FriteOS Transport & WhatsApp Web Gateway | [`whatsapp-bridge/index.js`](whatsapp-bridge/index.js), [`backend/app/whatsapp/service.py`](backend/app/whatsapp/service.py) | [Chapter 2 on naborajs.me](https://naborajs.me/docs/whatsapp-ai-agent/ch-2-friteos-gateway) |
+| **`ch-3-intent-routing`** | NLU, Intent Classification & State Machine | [`backend/app/conversations/state_machine.py`](backend/app/conversations/state_machine.py), [`backend/app/agent/orchestrator.py`](backend/app/agent/orchestrator.py) | [Chapter 3 on naborajs.me](https://naborajs.me/docs/whatsapp-ai-agent/ch-3-intent-routing) |
+| **`ch-4-catalog-pricing`** | Real-Time Catalog, Pricing & Quotation Engine | [`backend/app/pricing/calculator.py`](backend/app/pricing/calculator.py), [`backend/app/products/catalog.py`](backend/app/products/catalog.py) | [Chapter 4 on naborajs.me](https://naborajs.me/docs/whatsapp-ai-agent/ch-4-catalog-pricing) |
+| **`ch-5-session-memory`** | Dual-Tier Memory Stream & Context Retention | [`backend/app/memory/service.py`](backend/app/memory/service.py), [`backend/app/knowledge/rag_service.py`](backend/app/knowledge/rag_service.py) | [Chapter 5 on naborajs.me](https://naborajs.me/docs/whatsapp-ai-agent/ch-5-session-memory) |
+| **`ch-6-lead-scoring`** | B2B/B2C Lead Qualification & CRM Sync | [`backend/app/leads/pipeline.py`](backend/app/leads/pipeline.py), [`backend/app/api/routes/leads.py`](backend/app/api/routes/leads.py) | [Chapter 6 on naborajs.me](https://naborajs.me/docs/whatsapp-ai-agent/ch-6-lead-scoring) |
+| **`ch-7-anti-ban-safety`** | Anti-Ban Shield, Humanized Typing & Stealth Matrix | [`backend/app/utils/rate_limiter.py`](backend/app/utils/rate_limiter.py), [`backend/app/jobs/campaign_worker.py`](backend/app/jobs/campaign_worker.py) | [Chapter 7 on naborajs.me](https://naborajs.me/docs/whatsapp-ai-agent/ch-7-anti-ban-safety) |
+| **`ch-8-human-takeover`** | Live Agent Escalation & Hand-off Protocol | [`backend/app/handoffs/service.py`](backend/app/handoffs/service.py), [`backend/app/conversations/locking.py`](backend/app/conversations/locking.py) | [Chapter 8 on naborajs.me](https://naborajs.me/docs/whatsapp-ai-agent/ch-8-human-takeover) |
+| **`ch-9-multimodal-audio`** | Multimodal Engine: Voice Notes, Invoices & OCR | [`backend/app/audio/transcription.py`](backend/app/audio/transcription.py), [`backend/app/services/invoice_generator.py`](backend/app/services/invoice_generator.py) | [Chapter 9 on naborajs.me](https://naborajs.me/docs/whatsapp-ai-agent/ch-9-multimodal-audio) |
+| **`ch-10-deployment-ops`** | Production Operations, PM2 & Webhook Scaling | [`run.py`](run.py), [`docker-compose.yml`](docker-compose.yml), [`docs/HOSTING_AND_DEPLOYMENT.md`](docs/HOSTING_AND_DEPLOYMENT.md) | [Chapter 10 on naborajs.me](https://naborajs.me/docs/whatsapp-ai-agent/ch-10-deployment-ops) |
+| **`ch-11-interactive-lab`**| Live WhatsApp Webhook & Conversation Simulator | [`dashboard/app/conversations/page.tsx`](dashboard/app/conversations/page.tsx), [`backend/app/whatsapp/providers/simulator.py`](backend/app/whatsapp/providers/simulator.py) | [Chapter 11 on naborajs.me](https://naborajs.me/docs/whatsapp-ai-agent/ch-11-interactive-lab) |
+| **`ch-12-code-breakdown`** | Full Codebase Deconstruction & Reference | Master codebase at `D:\Projects\Python\wb-agent` | [Chapter 12 on naborajs.me](https://naborajs.me/docs/whatsapp-ai-agent/ch-12-code-breakdown) |
+
+---
 
 ### 🧭 Role-Based & Hosting Guides
 - 🌐 **[Multi-Environment Hosting & Cloud Deployment Guide (VPS, Docker, Render, Railway, Vercel)](docs/HOSTING_AND_DEPLOYMENT.md)**
@@ -405,7 +434,8 @@ All documentation is organized inside **[`assets docs/`](assets%20docs/)** and *
 ## 🔐 Platform Identity & Configuration
 
 - **Platform Identity**: **WhatsApp AI Agent by NS** (*EDITH + FRIDAY Autonomous Sales & Operations OS*)
-- **Creator & Lead Architect**: **Naboraj Sarkar (NS)**
+- **Creator & Lead Architect**: **[Naboraj Sarkar (NS)](https://naborajs.me)** · [Portfolio](https://naborajs.me/portfolio#whatsapp-ai-agent)
+- **Official Documentation**: **[naborajs.me/projects/whatsapp-ai-agent-dual-brain/docs](https://naborajs.me/projects/whatsapp-ai-agent-dual-brain/docs)**
 - **Bot WhatsApp Channel**: Dynamically linked via QR Code / 8-Digit Pairing Code (`:3001`) or Official Meta Cloud API (`v20.0`)
 - **Owner Escalation Channel**: Configurable in Dashboard Setup Modal (`/settings`) or via `OWNER_WHATSAPP_NUMBER` in `.env`
 - **License**: [Apache License 2.0](LICENSE)
