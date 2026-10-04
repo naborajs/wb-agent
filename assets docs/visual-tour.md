@@ -9,7 +9,7 @@ status: complete
 # 🖥️ Operations Dashboard — Visual Reference & 17-Route UI Tour
 
 > **Platform:** WhatsApp AI Agent by NS (EDITH + FRIDAY Autonomous Sales & Operations OS)  
-> **Lead Architect:** Naboraj Sarkar (NS)  
+> **Lead Architect:** [Naboraj Sarkar (NS)](https://naborajs.me) · 📖 **Live Documentation Hub**: [naborajs.me/projects/whatsapp-ai-agent-dual-brain/docs](https://naborajs.me/projects/whatsapp-ai-agent-dual-brain/docs)  
 > **Visual System:** Dual-Theme Architecture — **Royal Pitch Black** (`#030712` / `#0b0f19`) and **Estate White** (`#ffffff` / `#f8fafc`) with sky-blue/cyan and emerald accents (`#0284c7`, `#10b981`), frosted-glass surfaces (`.ed-glass`), and procedural 3D WebGL brain cores (`friday_orb.obj` & `edith_core.obj`).
 
 ---

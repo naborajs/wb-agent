@@ -8,13 +8,14 @@ status: complete
 
 # 🔌 Complete REST API & WebSocket Reference
 
-> **WhatsApp AI Agent by NS (EDITH + FRIDAY)** · *Engineered by Naboraj Sarkar (NS)*  
+> **WhatsApp AI Agent by NS (EDITH + FRIDAY)** · *Engineered by [Naboraj Sarkar (NS)](https://naborajs.me)*  
+> 📖 **Official Live Documentation**: [naborajs.me/projects/whatsapp-ai-agent-dual-brain/docs](https://naborajs.me/projects/whatsapp-ai-agent-dual-brain/docs)  
 > All endpoints are mounted under `/api/v1` (plus 2 root-level convenience routes). Interactive Swagger UI is live at `http://localhost:8000/api/v1/docs` and ReDoc at `http://localhost:8000/api/v1/redoc`.
 
 ---
 
 ## 1. Root, Health, Readiness & System Diagnostics (`main.py`, `health.py`, `system.py`)
-- `GET /`: Root platform status, version (`2.4.0`), active environment, and OpenAPI docs link.
+- `GET /`: Root platform status, environment, version, creator (`naborajs.me`), official docs hub, project page, story blog, portfolio, and full 12-chapter online routing index.
 - `GET /api/v1/health`: Lightweight liveness probe (`{"status": "ok"}`).
 - `GET /api/v1/readiness`: Readiness probe verifying SQLite/PostgreSQL connectivity and active WhatsApp provider status.
 - `GET /api/v1/system/info`: Returns OS platform, Python runtime, uptime, active AI models, and gateway configuration.

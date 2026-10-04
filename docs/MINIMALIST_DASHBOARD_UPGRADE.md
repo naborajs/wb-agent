@@ -1,5 +1,8 @@
 # 🖤 Minimalist Black & White Website & Dashboard-4 Upgrade Guide
 
+> **Architected & Engineered by [Naboraj Sarkar (NS)](https://naborajs.me)**  
+> 📖 **Official Live Documentation Hub**: [naborajs.me/projects/whatsapp-ai-agent-dual-brain/docs](https://naborajs.me/projects/whatsapp-ai-agent-dual-brain/docs) · ⬅️ Back to: [Root README](../README.md)
+
 ## 📌 Executive Overview
 This document outlines the architectural and visual upgrade of the WhatsApp AI Agent Operating System web dashboard. The design system has been transitioned to a high-contrast, distraction-free **Minimalist Black & White** dual-theme system (pure crisp white for Light Mode and pitch charcoal/black for Dark Mode, exactly matching the reference design).
 
