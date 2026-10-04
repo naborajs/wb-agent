@@ -1,10 +1,11 @@
 # WhatsApp AI Agent by NS (EDITH + FRIDAY) — System Architecture Overview
 
-> ⬅️ Back to: [[../index|Knowledge Base Index]] | **Engineering Reference**: [[../guides/senior-developer-architecture|Senior Developer Architecture]]
+> 📖 **Official Documentation Hub**: **[naborajs.me/projects/whatsapp-ai-agent-dual-brain/docs](https://naborajs.me/projects/whatsapp-ai-agent-dual-brain/docs)** · **[Chapter 1: Dual-Brain Cognitive Architecture](https://naborajs.me/docs/whatsapp-ai-agent/ch-1-dual-brain)**  
+> 🌐 **Website**: **[naborajs.me](https://naborajs.me)** · ⬅️ Back to: [[../index|Knowledge Base Index]] | **Engineering Reference**: [[../guides/senior-developer-architecture|Senior Developer Architecture]]
 
 ## 1. System Vision & Purpose
 
-**WhatsApp AI Agent by NS** is an industry-agnostic autonomous B2B & D2C sales operating system engineered by **Naboraj Sarkar (NS)**. It operates a **Dual-Brain AI Architecture**:
+**WhatsApp AI Agent by NS** is an industry-agnostic autonomous B2B & D2C sales operating system engineered by **[Naboraj Sarkar (NS)](https://naborajs.me)**. It operates a **Dual-Brain AI Architecture**:
 - **EDITH (Commercial WhatsApp Closer)**: Handles inbound and outbound customer conversations over WhatsApp with context-first reasoning, multi-tier memory, deterministic pricing enforcement, and non-violent de-escalation.
 - **FRIDAY (Omnipotent Web & Voice Copilot)**: Operates the Next.js 14 dashboard via text and real-time 16kHz Gemini Live voice, executing 26 client-side DOM tools and coordinating with EDITH over the **Inter-Brain Synaptic Bus (`InterBrainBus`)**.
 

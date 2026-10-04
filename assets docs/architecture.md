@@ -9,7 +9,11 @@ status: complete
 # 🏛️ WhatsApp AI Agent by NS — Enterprise System Architecture Deep Dive
 
 > [!NOTE]
-> **Architected & Engineered by Naboraj Sarkar (NS)**  
+> **Architected & Engineered by [Naboraj Sarkar (NS)](https://naborajs.me)**  
+> 📖 **Official Live Documentation**: [naborajs.me/projects/whatsapp-ai-agent-dual-brain/docs](https://naborajs.me/projects/whatsapp-ai-agent-dual-brain/docs)  
+> 🌐 **Chapter Reference**: [Chapter 1: Dual-Brain Cognitive Architecture](https://naborajs.me/docs/whatsapp-ai-agent/ch-1-dual-brain)  
+> 📰 **Origin Story**: [The Idea Behind EDITH WhatsApp AI Agent](https://naborajs.me/blog/the-idea-behind-edith-whatsapp-ai-agent-by-ns)  
+>
 > This document details the end-to-end technical architecture of **WhatsApp AI Agent by NS (EDITH & FRIDAY)**, the industry-agnostic autonomous AI sales and operations operating system powering WhatsApp negotiations, deterministic pricing, live voice DOM control, and multi-channel orchestration.
 > - Looking for a beginner overview? Read **[[guides/beginner-quick-start|Beginner Quick-Start (ELI15)]]**.
 > - Looking for code-level engineering specs? Read **[[guides/senior-developer-architecture|Senior Developer & Systems Architect Reference]]**.
