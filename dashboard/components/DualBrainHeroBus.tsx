@@ -126,7 +126,7 @@ export default function DualBrainHeroBus({
 
   // Dynamic Theme Colors
   const cyanColor = isDark ? "#00D2FE" : "#0284C7";
-  const purpleColor = isDark ? "#A855F7" : "#7C3AED";
+  const fridayColor = isDark ? "#38BDF8" : "#0284C7";
   const emeraldColor = isDark ? "#10B981" : "#059669";
   const amberColor = isDark ? "#F59E0B" : "#D97706";
   const skyColor = isDark ? "#38BDF8" : "#0284C7";
@@ -157,8 +157,8 @@ export default function DualBrainHeroBus({
         icon: <Bot className="w-5 h-5 sm:w-6 sm:h-6" />,
         status: "active",
         size: "lg",
-        color: purpleColor,
-        pulseColor: purpleColor,
+        color: fridayColor,
+        pulseColor: fridayColor,
       },
       {
         id: "db",
@@ -226,7 +226,7 @@ export default function DualBrainHeroBus({
         pulseColor: emeraldColor,
       },
     ],
-    [skyColor, purpleColor, emeraldColor, cyanColor, amberColor, isSimulatingTurn]
+    [skyColor, fridayColor, emeraldColor, cyanColor, amberColor, isSimulatingTurn]
   );
 
   // 4. Circuit Connections with Orthogonal Traces and Glowing Electric Pulses
@@ -237,7 +237,7 @@ export default function DualBrainHeroBus({
         to: "friday",
         animated: true,
         color: isDark ? "rgba(168, 85, 247, 0.35)" : "rgba(124, 58, 237, 0.45)",
-        pulseColor: purpleColor,
+        pulseColor: fridayColor,
       },
       {
         from: "inbound",
@@ -252,7 +252,7 @@ export default function DualBrainHeroBus({
         animated: true,
         bidirectional: true,
         color: isDark ? "rgba(168, 85, 247, 0.4)" : "rgba(124, 58, 237, 0.5)",
-        pulseColor: purpleColor,
+        pulseColor: fridayColor,
       },
       {
         from: "db",
@@ -298,7 +298,7 @@ export default function DualBrainHeroBus({
         pulseColor: emeraldColor,
       },
     ],
-    [isDark, purpleColor, emeraldColor, cyanColor, amberColor]
+    [isDark, fridayColor, emeraldColor, cyanColor, amberColor]
   );
 
   // 5. Architecture Inspector Data Map (Deep operational breakdown for each component)
@@ -370,9 +370,9 @@ export default function DualBrainHeroBus({
       tag: "VOICE & INTAKE CONVERSATIONAL COPILOT",
       model: "Google Gemini 3.1 Flash Live",
       role: "Real-time streaming audio intake, low-latency conversational turns, context extraction, executive debrief synthesis.",
-      color: purpleColor,
-      accentBg: isDark ? "bg-[#8B5CF6]/10 border-[#8B5CF6]/30" : "bg-purple-50 border-purple-200",
-      icon: <Bot className="w-5 h-5 text-purple-600 dark:text-[#A855F7]" />,
+      color: fridayColor,
+      accentBg: isDark ? "bg-[#38BDF8]/10 border-[#38BDF8]/30" : "bg-sky-50 border-sky-200",
+      icon: <Bot className="w-5 h-5 text-sky-600 dark:text-[#38BDF8]" />,
       howItWorks: [
         {
           step: "1. Multi-Modal Stream Intake",
@@ -784,7 +784,7 @@ export default function DualBrainHeroBus({
           {onPlayBriefing && (
             <button
               onClick={onPlayBriefing}
-              className="flex items-center gap-1.5 px-3.5 py-1 rounded-lg bg-gradient-to-r from-purple-600 via-indigo-600 to-sky-500 hover:from-purple-500 hover:to-sky-400 text-white text-[11px] font-mono font-bold shadow-md shadow-purple-500/25 transition-all hover:scale-105 active:scale-95 animate-pulse shrink-0 border border-purple-400/40"
+              className="flex items-center gap-1.5 px-3.5 py-1 rounded-lg bg-gradient-to-r from-blue-600 via-indigo-600 to-sky-500 hover:from-blue-500 hover:to-sky-400 text-white text-[11px] font-mono font-bold shadow-md shadow-sky-500/25 transition-all hover:scale-105 active:scale-95 animate-pulse shrink-0 border border-sky-400/40"
               title="Click to hear Friday speak an audio executive debrief of leads, pipeline, and margin defenses"
             >
               <Volume2 className="w-3.5 h-3.5 fill-white shrink-0" />
@@ -813,7 +813,7 @@ export default function DualBrainHeroBus({
               <div className="flex items-center flex-wrap gap-1.5">
                 {[
                   { id: "inbound", label: "Inbound", color: skyColor },
-                  { id: "friday", label: "FRIDAY (Voice)", color: purpleColor },
+                  { id: "friday", label: "FRIDAY (Voice)", color: fridayColor },
                   { id: "bus", label: "Synaptic Bus", color: cyanColor },
                   { id: "edith", label: "EDITH (Closer)", color: cyanColor },
                   { id: "policy", label: "Policy Shield", color: amberColor },
@@ -1067,23 +1067,23 @@ export default function DualBrainHeroBus({
 
               <div className="w-full flex justify-between text-[10px] font-mono text-slate-500 dark:text-slate-400 px-2 mt-1">
                 <span className="flex items-center gap-1">
-                  <ArrowLeft className="w-3 h-3 text-purple-600 dark:text-[#a855f7]" />{" "}
-                  Inquiries & Context
+                  <ArrowLeft className="w-3 h-3 text-sky-600 dark:text-[#38BDF8]" />{" "}
+                  Inquiries &amp; Context
                 </span>
                 <span className="flex items-center gap-1">
-                  Quotes & Approvals{" "}
+                  Quotes &amp; Approvals{" "}
                   <ArrowRight className="w-3 h-3 text-sky-600 dark:text-[#00d2fe]" />
                 </span>
               </div>
             </div>
 
             {/* Right Node: FRIDAY Core */}
-            <div className="lg:col-span-4 bg-slate-50/90 dark:bg-[#111726] rounded-2xl p-5 border border-purple-300/80 dark:border-[#8B5CF6]/30 relative group hover:border-purple-500 dark:hover:border-[#8B5CF6]/60 transition-all duration-300 shadow-sm dark:shadow-[0_0_24px_rgba(139,92,246,0.06)]">
+            <div className="lg:col-span-4 bg-slate-50/90 dark:bg-[#111726] rounded-2xl p-5 border border-sky-300/80 dark:border-sky-500/30 relative group hover:border-sky-500 dark:hover:border-sky-500/60 transition-all duration-300 shadow-sm dark:shadow-[0_0_24px_rgba(56,189,248,0.06)]">
               <div className="flex items-start justify-between">
                 <div>
-                  <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-purple-100 dark:bg-[#8B5CF6]/10 text-purple-700 dark:text-[#A855F7] border border-purple-300/80 dark:border-[#8B5CF6]/25">
-                    <span className="w-1.5 h-1.5 rounded-full bg-purple-600 dark:bg-[#A855F7] animate-pulse" />
-                    NODE B • VOICE & WEB COPILOT
+                  <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-sky-100 dark:bg-sky-500/10 text-sky-700 dark:text-[#38BDF8] border border-sky-300/80 dark:border-sky-500/25">
+                    <span className="w-1.5 h-1.5 rounded-full bg-sky-600 dark:bg-[#38BDF8] animate-pulse" />
+                    NODE B • VOICE &amp; WEB COPILOT
                   </div>
                   <h3 className="text-xl font-bold font-mono tracking-tight text-slate-900 dark:text-white mt-1.5">
                     FRIDAY Core
@@ -1094,16 +1094,16 @@ export default function DualBrainHeroBus({
                 </div>
 
                 {/* Pulsing Radar Ring Emblem */}
-                <div className="relative w-11 h-11 rounded-xl bg-purple-100 dark:bg-[#8B5CF6]/10 border border-purple-300 dark:border-[#8B5CF6]/30 flex items-center justify-center shrink-0 text-purple-600 dark:text-[#A855F7]">
+                <div className="relative w-11 h-11 rounded-xl bg-sky-100 dark:bg-sky-500/10 border border-sky-300 dark:border-sky-500/30 flex items-center justify-center shrink-0 text-sky-600 dark:text-[#38BDF8]">
                   <Bot className="w-5 h-5" />
-                  <span className="absolute inset-0 rounded-xl border border-purple-400/50 dark:border-[#8B5CF6]/40 animate-ping opacity-25" />
+                  <span className="absolute inset-0 rounded-xl border border-sky-400/50 dark:border-sky-500/40 animate-ping opacity-25" />
                 </div>
               </div>
 
               <div className="mt-4 pt-3.5 border-t border-slate-200 dark:border-[#1E293B] space-y-1.5 text-xs font-mono">
                 <div className="flex items-center justify-between text-slate-600 dark:text-slate-400">
                   <span>Real-Time Voice:</span>
-                  <span className="text-purple-700 dark:text-[#A855F7] font-bold">
+                  <span className="text-sky-700 dark:text-[#38BDF8] font-bold">
                     WebSocket Audio
                   </span>
                 </div>
@@ -1115,13 +1115,13 @@ export default function DualBrainHeroBus({
                 </div>
                 <div className="flex items-center justify-between text-slate-600 dark:text-slate-400">
                   <span>Executive Role:</span>
-                  <span className="text-purple-700 dark:text-[#8B5CF6] font-semibold">
-                    Copilot & Synthesis
+                  <span className="text-sky-700 dark:text-sky-400 font-semibold">
+                    Copilot &amp; Synthesis
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-slate-600 dark:text-slate-400 pt-1 border-t border-slate-100 dark:border-slate-800/60">
                   <span>Tokens Active:</span>
-                  <span className="text-purple-700 dark:text-[#A855F7] font-bold">
+                  <span className="text-sky-700 dark:text-[#38BDF8] font-bold">
                     {tokensSummary?.friday_tokens
                       ? `${tokensSummary.friday_tokens.toLocaleString()} tok`
                       : "7,130 tok"}
