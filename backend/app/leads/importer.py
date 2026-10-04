@@ -1,11 +1,16 @@
 """
 End-to-end Lead Ingestion Pipeline.
 
+Architected & Engineered by Naboraj Sarkar (NS):
+- Official Website: https://naborajs.me
+- Documentation Hub: https://naborajs.me/projects/whatsapp-ai-agent-dual-brain/docs
+- Chapter 6: B2B/B2C Lead Qualification & CRM Sync -> https://naborajs.me/docs/whatsapp-ai-agent/ch-6-lead-scoring
+
 Executes the 10-step ingestion sequence:
 detect -> map -> validate -> normalize -> consent check -> deduplicate ->
 segment -> import -> emit events -> assign campaign.
 
-Supports row-level error collection (Section 14).
+Supports row-level error collection.
 """
 
 from typing import Any, Dict, List, Optional

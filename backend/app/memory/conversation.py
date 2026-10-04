@@ -1,5 +1,11 @@
 """
 Conversation memory and rolling semantic summarization.
+
+Architected & Engineered by Naboraj Sarkar (NS):
+- Official Website: https://naborajs.me
+- Documentation Hub: https://naborajs.me/projects/whatsapp-ai-agent-dual-brain/docs
+- Chapter 5: Dual-Tier Memory Stream & Context Retention -> https://naborajs.me/docs/whatsapp-ai-agent/ch-5-session-memory
+- ADR-0006: Multi-Tier Memory & Fact Provenance
 """
 
 from typing import List, Optional

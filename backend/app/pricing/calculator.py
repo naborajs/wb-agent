@@ -1,9 +1,16 @@
 """
 Deterministic B2B Pricing Calculator and Negotiation Engine.
 
-Enforces business rules (Section 31 & 32):
-- Guarantees LLM never invents prices or discounts.
-- Strict MOQ enforcement.
+Architected & Engineered by Naboraj Sarkar (NS):
+- Official Website: https://naborajs.me
+- Documentation Hub: https://naborajs.me/projects/whatsapp-ai-agent-dual-brain/docs
+- Chapter 4: Real-Time Catalog, Pricing & Quotation Engine -> https://naborajs.me/docs/whatsapp-ai-agent/ch-4-catalog-pricing
+- ADR-0014: Auditable Commercial Quotes & Expiry
+- ADR-0019: Automated Vector PDF Invoicing & Statutory GST Compliance
+
+Enforces business rules:
+- Guarantees LLM never invents prices or discounts (zero hallucination).
+- Strict MOQ enforcement across multiple measurement units.
 - Automated tier calculation based on volume and customer segment.
 - Autonomous negotiation limits: flags human approval when exceeded.
 """

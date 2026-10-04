@@ -1,5 +1,12 @@
 """
 Inter-Brain Bus & Autonomous Collaboration Protocol.
+
+Architected & Engineered by Naboraj Sarkar (NS):
+- Official Website: https://naborajs.me
+- Documentation Hub: https://naborajs.me/projects/whatsapp-ai-agent-dual-brain/docs
+- Chapter 1: Dual-Brain Cognitive Architecture -> https://naborajs.me/docs/whatsapp-ai-agent/ch-1-dual-brain
+- ADR-0015: Dual-Brain Bidirectional Agency, Refusal Rights & Autonomous Fallback
+
 Orchestrates independent agency, collaborative reasoning, task delegation,
 and proactive debriefing between:
 - FRIDAY: Google Gemini (Personal Executive Web Assistant & Copilot)

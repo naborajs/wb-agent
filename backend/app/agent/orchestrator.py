@@ -1,5 +1,11 @@
 """
-AgentOrchestrator: core intelligence and execution engine for EDITH (Sections 4, 5, 10, 11, 12, 13, 23, 24, 25, 27).
+AgentOrchestrator: Core intelligence and execution engine for EDITH.
+
+Architected & Engineered by Naboraj Sarkar (NS):
+- Official Website: https://naborajs.me
+- Documentation Hub: https://naborajs.me/projects/whatsapp-ai-agent-dual-brain/docs
+- Chapter 1: Dual-Brain Cognitive Architecture -> https://naborajs.me/docs/whatsapp-ai-agent/ch-1-dual-brain
+- Chapter 3: NLU, Intent Classification & State Machine -> https://naborajs.me/docs/whatsapp-ai-agent/ch-3-intent-routing
 
 Coordinates:
 1. Inbound registration & turn aggregation
@@ -8,7 +14,7 @@ Coordinates:
 4. Consultative Sales Engine decision (SPIN discovery, objection handling, single-question selection)
 5. Unknown business question detection & Owner WhatsApp notification
 6. Purchase intent recognition & human handoff escalation
-7. Context-rich response generation via NVIDIA Nemotron-3.5-Lightning
+7. Context-rich response generation via NVIDIA Nemotron / Gemini
 8. Response validation (pricing & factual integrity)
 9. Atomic pre-send state check (Human takeover race condition guard)
 10. WhatsApp dispatch via active bridge provider

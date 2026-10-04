@@ -1,5 +1,11 @@
 """
-Human Handoff and Operator Takeover Service (Section 43 & 44).
+Human Handoff and Operator Takeover Service.
+
+Architected & Engineered by Naboraj Sarkar (NS):
+- Official Website: https://naborajs.me
+- Documentation Hub: https://naborajs.me/projects/whatsapp-ai-agent-dual-brain/docs
+- Chapter 8: Live Agent Escalation & Hand-off Protocol -> https://naborajs.me/docs/whatsapp-ai-agent/ch-8-human-takeover
+- ADR-0008: Atomic Pre-Send Human Takeover Race Condition Guard
 """
 
 from typing import List, Optional

@@ -1,6 +1,12 @@
 """
 In-memory sliding window rate limiter utility for WhatsApp channels and webhooks.
 Provides flood protection against message bursts while preventing memory bloat.
+
+Architected & Engineered by Naboraj Sarkar (NS):
+- Official Website: https://naborajs.me
+- Documentation Hub: https://naborajs.me/projects/whatsapp-ai-agent-dual-brain/docs
+- Chapter 7: Anti-Ban Shield, Humanized Typing & Stealth Matrix -> https://naborajs.me/docs/whatsapp-ai-agent/ch-7-anti-ban-safety
+- ADR-0018: WhatsApp Sliding-Window Rate Limiting & Ban Prevention
 """
 
 import time

@@ -1,6 +1,11 @@
 /**
  * WhatsApp Multi-Device Baileys Bridge for WB-Agent.
- * Provides both QR Code (Terminal & Web UI) and Pairing Code.
+ * Provides QR Code, 8-Digit Pairing Code, and Multi-Device Session Persistence.
+ * 
+ * Architected & Engineered by Naboraj Sarkar (NS):
+ * - Official Website: https://naborajs.me
+ * - Documentation Hub: https://naborajs.me/projects/whatsapp-ai-agent-dual-brain/docs
+ * - Chapter 2: FriteOS Transport & WhatsApp Web Gateway -> https://naborajs.me/docs/whatsapp-ai-agent/ch-2-friteos-gateway
  */
 
 import makeWASocket, {

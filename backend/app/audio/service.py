@@ -1,7 +1,13 @@
 """
 WhatsApp Audio & Voice Note Ingestion and Multimodal Transcription Service.
-Implements R2 requirements: supports .ogg, .opus, .mp3, .wav, multimodal Gemini 
-transcription with fallback, and colloquial Hinglish/Hindi understanding.
+
+Architected & Engineered by Naboraj Sarkar (NS):
+- Official Website: https://naborajs.me
+- Documentation Hub: https://naborajs.me/projects/whatsapp-ai-agent-dual-brain/docs
+- Chapter 9: Multimodal Engine: Voice Notes, Invoices & OCR -> https://naborajs.me/docs/whatsapp-ai-agent/ch-9-multimodal-audio
+
+Supports .ogg, .opus, .mp3, .wav, multimodal Gemini audio transcription with fallback,
+and colloquial Hinglish, Hindi, and Bengali understanding.
 """
 
 import base64
