@@ -24,6 +24,7 @@ import {
   Clock,
 } from "lucide-react";
 import { MessageLoading } from "./ui/MessageLoading";
+import { Component as AiLoader } from "./ui/ai-loader";
 import { AudioStreamer } from "./voice/audioStreamer";
 import {
   SITE_MAP,
@@ -2599,10 +2600,12 @@ export default function VoiceAgent() {
                   ))
                 )}
                 {agentState === "thinking" && (
-                  <div className="flex flex-col items-start transition-all duration-200 animate-in fade-in slide-in-from-bottom-2">
-                    <div className="bg-[#f4f4f5] dark:bg-zinc-800 text-gray-900 dark:text-white rounded-[24px] px-4 py-2.5 shadow-sm flex items-center gap-2.5 text-[13px]">
-                      <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Friday is thinking</span>
-                      <MessageLoading size={18} className="text-sky-500" />
+                  <div className="flex flex-col items-center py-2 transition-all duration-200 animate-in fade-in slide-in-from-bottom-2 w-full">
+                    <div className="bg-black/85 border border-sky-500/30 rounded-2xl p-4 shadow-xl flex flex-col items-center gap-2 w-full max-w-[280px]">
+                      <AiLoader fullScreen={false} size={80} text="Thinking" />
+                      <span className="text-[11px] text-sky-400 font-mono tracking-wider">
+                        Friday is deliberating &amp; formulating...
+                      </span>
                     </div>
                   </div>
                 )}
