@@ -99,7 +99,14 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version="0.1.0",
-    description="Autonomous AI Sales Agent Operating System for WhatsApp B2B conversion.",
+    description=(
+        "Autonomous AI Sales Agent Operating System for WhatsApp B2B conversion.\n\n"
+        f"- **Official Website**: [{settings.CREATOR_WEBSITE_URL}]({settings.CREATOR_WEBSITE_URL})\n"
+        f"- **Live Documentation Hub**: [{settings.OFFICIAL_DOCS_URL}]({settings.OFFICIAL_DOCS_URL})\n"
+        f"- **Origin Story & Philosophy**: [{settings.OFFICIAL_BLOG_URL}]({settings.OFFICIAL_BLOG_URL})\n"
+        f"- **Portfolio Showcase**: [{settings.OFFICIAL_PORTFOLIO_URL}]({settings.OFFICIAL_PORTFOLIO_URL})\n\n"
+        "Explore all 12 chapters at [naborajs.me/docs/whatsapp-ai-agent](https://naborajs.me/projects/whatsapp-ai-agent-dual-brain/docs)."
+    ),
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
     docs_url=f"{settings.API_V1_STR}/docs",
     redoc_url=f"{settings.API_V1_STR}/redoc",
@@ -164,5 +171,26 @@ async def root():
         "status": "online",
         "version": app.version,
         "environment": settings.APP_ENV,
-        "documentation": f"{settings.API_V1_STR}/docs",
+        "creator": settings.CREATOR_NAME,
+        "website": settings.CREATOR_WEBSITE_URL,
+        "documentation_hub": settings.OFFICIAL_DOCS_URL,
+        "project_page": settings.OFFICIAL_PROJECT_URL,
+        "story_blog": settings.OFFICIAL_BLOG_URL,
+        "portfolio": settings.OFFICIAL_PORTFOLIO_URL,
+        "swagger_docs": f"{settings.API_V1_STR}/docs",
+        "redoc": f"{settings.API_V1_STR}/redoc",
+        "documentation_chapters": {
+            "ch-1-dual-brain": "https://naborajs.me/docs/whatsapp-ai-agent/ch-1-dual-brain",
+            "ch-2-friteos-gateway": "https://naborajs.me/docs/whatsapp-ai-agent/ch-2-friteos-gateway",
+            "ch-3-intent-routing": "https://naborajs.me/docs/whatsapp-ai-agent/ch-3-intent-routing",
+            "ch-4-catalog-pricing": "https://naborajs.me/docs/whatsapp-ai-agent/ch-4-catalog-pricing",
+            "ch-5-session-memory": "https://naborajs.me/docs/whatsapp-ai-agent/ch-5-session-memory",
+            "ch-6-lead-scoring": "https://naborajs.me/docs/whatsapp-ai-agent/ch-6-lead-scoring",
+            "ch-7-anti-ban-safety": "https://naborajs.me/docs/whatsapp-ai-agent/ch-7-anti-ban-safety",
+            "ch-8-human-takeover": "https://naborajs.me/docs/whatsapp-ai-agent/ch-8-human-takeover",
+            "ch-9-multimodal-audio": "https://naborajs.me/docs/whatsapp-ai-agent/ch-9-multimodal-audio",
+            "ch-10-deployment-ops": "https://naborajs.me/docs/whatsapp-ai-agent/ch-10-deployment-ops",
+            "ch-11-interactive-lab": "https://naborajs.me/docs/whatsapp-ai-agent/ch-11-interactive-lab",
+            "ch-12-code-breakdown": "https://naborajs.me/docs/whatsapp-ai-agent/ch-12-code-breakdown",
+        },
     }

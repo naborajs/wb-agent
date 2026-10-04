@@ -23,6 +23,12 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "default-dev-insecure-secret-key-replace-in-production"
     API_V1_STR: str = "/api/v1"
     PROJECT_NAME: str = "WB-Agent Platform"
+    CREATOR_NAME: str = "Naboraj Sarkar (NS)"
+    CREATOR_WEBSITE_URL: str = "https://naborajs.me"
+    OFFICIAL_DOCS_URL: str = "https://naborajs.me/projects/whatsapp-ai-agent-dual-brain/docs"
+    OFFICIAL_PROJECT_URL: str = "https://naborajs.me/projects/whatsapp-ai-agent-dual-brain"
+    OFFICIAL_BLOG_URL: str = "https://naborajs.me/blog/the-idea-behind-edith-whatsapp-ai-agent-by-ns"
+    OFFICIAL_PORTFOLIO_URL: str = "https://naborajs.me/portfolio#whatsapp-ai-agent"
 
     @property
     def is_production(self) -> bool:
