@@ -39,6 +39,7 @@ import {
 } from "lucide-react";
 import { getWebSocketUrl } from "@/lib/utils";
 import { MessageLoading } from "@/components/ui/MessageLoading";
+import { Component as AiLoader } from "@/components/ui/ai-loader";
 
 interface ConversationItem {
   id: string;
@@ -898,7 +899,7 @@ export default function LiveInboxPage() {
               onClick={() => setFilterMode("simulation")}
               className={`px-2 py-1 rounded-md transition-colors flex items-center gap-1 ${
                 filterMode === "simulation"
-                  ? "bg-purple-500/15 text-purple-600 dark:text-purple-400 font-bold border border-purple-500/30"
+                  ? "bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 font-bold border border-cyan-500/30"
                   : "hover:bg-[var(--ed-bg)]"
               }`}
             >
@@ -929,8 +930,8 @@ export default function LiveInboxPage() {
 
         {/* Thread List */}
         {filterMode === "simulation" && conversations.some((c) => c.channel === "simulation" || c.metadata_json?.is_simulation) && (
-          <div className="px-3 py-2 bg-purple-500/10 border-b border-purple-500/20 flex items-center justify-between text-[11px] shrink-0">
-            <span className="text-purple-300 font-semibold flex items-center gap-1">
+          <div className="px-3 py-2 bg-cyan-500/10 border-b border-cyan-500/20 flex items-center justify-between text-[11px] shrink-0">
+            <span className="text-cyan-300 font-semibold flex items-center gap-1">
               🧪 Sandbox Storage
             </span>
             <button
@@ -969,7 +970,7 @@ export default function LiveInboxPage() {
                     <span className="font-bold text-xs text-[var(--ed-text-primary)] truncate flex items-center gap-1">
                       {c.customer_name || c.company_name || c.channel_id}
                       {isConvSim && (
-                        <span className="px-1 py-0.2 rounded text-[8px] font-mono font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                        <span className="px-1 py-0.2 rounded text-[8px] font-mono font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
                           SIM
                         </span>
                       )}
@@ -1085,9 +1086,9 @@ export default function LiveInboxPage() {
                 {(activeConv?.channel === "simulation" || activeConvDetail?.conversation?.is_simulation) ? (
                   <span
                     title="This is an isolated sandbox simulation thread. Outbound WhatsApp messages are disabled."
-                    className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 rounded-lg border border-purple-500/30 bg-purple-500/10 text-purple-400 text-[10px] font-semibold"
+                    className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 rounded-lg border border-cyan-500/30 bg-cyan-500/10 text-cyan-400 text-[10px] font-semibold"
                   >
-                    <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
                     <span>🧪 Sandbox Simulation</span>
                   </span>
                 ) : waStatus?.connected ? (
@@ -1244,7 +1245,7 @@ export default function LiveInboxPage() {
 
             {/* Simulation Warning Banner */}
             {(activeConv?.channel === "simulation" || activeConvDetail?.conversation?.is_simulation) && (
-              <div className="bg-purple-500/10 border-b border-purple-500/20 px-4 py-2 text-xs flex items-center justify-between text-purple-400 shrink-0">
+              <div className="bg-cyan-500/10 border-b border-cyan-500/20 px-4 py-2 text-xs flex items-center justify-between text-cyan-400 shrink-0">
                 <div className="flex items-center gap-2">
                   <span className="text-sm">🧪</span>
                   <span>
@@ -1295,7 +1296,7 @@ export default function LiveInboxPage() {
                         <div className="flex items-center gap-1.5">
                           {isInbound ? (
                             isMsgSim ? (
-                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-500/15 text-purple-300 border border-purple-500/30">
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
                                 🧪 Simulated Customer
                               </span>
                             ) : (
@@ -1358,12 +1359,12 @@ export default function LiveInboxPage() {
 
                       {/* Mission Control AI Reasoning Trace Display (Directive §3.A) */}
                       {isAI && msg.reasoning_content && (
-                        <details className="mt-2 text-[10px] bg-purple-500/10 border border-purple-500/20 rounded-md p-2 text-purple-800 dark:text-purple-300">
-                          <summary className="font-semibold cursor-pointer select-none text-purple-700 dark:text-purple-400 hover:text-purple-600 dark:hover:text-purple-300 flex items-center gap-1">
+                        <details className="mt-2 text-[10px] bg-cyan-500/10 border border-cyan-500/20 rounded-md p-2 text-cyan-800 dark:text-cyan-300">
+                          <summary className="font-semibold cursor-pointer select-none text-cyan-700 dark:text-cyan-400 hover:text-cyan-600 dark:hover:text-cyan-300 flex items-center gap-1">
                             <Sparkles className="w-2.5 h-2.5" />
                             <span>AI Deliberation / Reasoning Trace</span>
                           </summary>
-                          <div className="mt-1.5 whitespace-pre-wrap font-mono text-[9px] text-purple-900 dark:text-purple-200/90 leading-normal pl-2 border-l border-purple-500/30">
+                          <div className="mt-1.5 whitespace-pre-wrap font-mono text-[9px] text-cyan-900 dark:text-cyan-200/90 leading-normal pl-2 border-l border-cyan-500/30">
                             {msg.reasoning_content}
                           </div>
                         </details>
@@ -1387,20 +1388,11 @@ export default function LiveInboxPage() {
                 );
               })}
               {isThinking && (
-                <div className="flex items-start gap-2.5 max-w-[85%] animate-in fade-in duration-200">
-                  <div className="w-7 h-7 rounded-full bg-purple-500/20 border border-purple-500/30 flex items-center justify-center shrink-0 text-[10px] font-bold text-purple-400">
-                    AI
-                  </div>
-                  <div className="px-3.5 py-2.5 rounded-2xl rounded-tl-sm bg-purple-500/10 border border-purple-500/20 text-xs text-purple-300 flex items-center gap-2.5 shadow-sm">
-                    <span className="flex gap-1 items-center">
-                      <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-bounce" style={{ animationDelay: "0ms" }} />
-                      <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-bounce" style={{ animationDelay: "150ms" }} />
-                      <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-bounce" style={{ animationDelay: "300ms" }} />
-                    </span>
-                    <span className="font-medium text-[11px]">
-                      EDITH is deliberating via {thinkingModel}...
-                    </span>
-                  </div>
+                <div className="my-3 p-4 rounded-2xl bg-black/85 border border-sky-500/30 backdrop-blur-md flex flex-col items-center justify-center relative overflow-hidden shadow-2xl max-w-sm animate-in fade-in duration-200">
+                  <AiLoader fullScreen={false} size={90} text="Reasoning" />
+                  <span className="mt-2 text-[11px] text-sky-400 font-mono tracking-wider font-semibold">
+                    EDITH is deliberating via {thinkingModel}...
+                  </span>
                 </div>
               )}
               <div ref={messagesEndRef} />
@@ -1427,7 +1419,7 @@ export default function LiveInboxPage() {
                     onClick={() => setIsSimulatingCustomer(true)}
                     className={`px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md text-[10px] sm:text-xs font-semibold transition-colors inline-flex items-center gap-1 ${
                       isSimulatingCustomer
-                        ? "bg-purple-500/12 text-purple-500 border border-purple-500/30 shadow-sm"
+                        ? "bg-cyan-500/12 text-cyan-500 border border-cyan-500/30 shadow-sm"
                         : "text-slate-500 hover:text-[var(--ed-text-primary)]"
                     }`}
                   >
@@ -1455,14 +1447,14 @@ export default function LiveInboxPage() {
                   </button>
                 </div>
                 {isSimulatingCustomer ? (
-                  <span className="text-[9px] sm:text-[10px] text-purple-400 font-semibold flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" />
+                  <span className="text-[9px] sm:text-[10px] text-sky-400 font-semibold flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse" />
                     <span className="hidden sm:inline">Safe Simulation (No WhatsApp sent to {activeConv.channel_id})</span>
                     <span className="sm:hidden">Safe Simulation (Internal)</span>
                   </span>
                 ) : (activeConv.channel === "simulation" || activeConvDetail?.conversation?.is_simulation) ? (
-                  <span className="text-[9px] sm:text-[10px] text-purple-400 font-semibold flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-purple-400" />
+                  <span className="text-[9px] sm:text-[10px] text-sky-400 font-semibold flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-sky-400" />
                     <span className="hidden sm:inline">Sandbox Mode (Local Simulation only — No WhatsApp sent to {activeConv.channel_id})</span>
                     <span className="sm:hidden">Sandbox (No WhatsApp sent)</span>
                   </span>
@@ -1585,7 +1577,7 @@ export default function LiveInboxPage() {
                   }
                   className={`flex-1 min-w-0 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg border text-xs text-[var(--ed-text-primary)] focus:outline-none focus:ring-2 ${
                     isSimulatingCustomer
-                      ? "border-purple-500/30 bg-purple-500/8 ed-focus-ring"
+                      ? "border-sky-500/30 bg-sky-500/8 ed-focus-ring"
                       : "border-[var(--ed-border)] bg-slate-50 dark:bg-slate-800 ed-focus-ring"
                   }`}
                 />
@@ -1601,8 +1593,8 @@ export default function LiveInboxPage() {
                   onClick={() => audioInputRef.current?.click()}
                   disabled={isTranscribingAudio || isSending}
                   title="Upload WhatsApp Voice Note (.ogg, .opus, .mp3)"
-                  className={`p-2 sm:p-2.5 rounded-xl border border-[var(--ed-border)] hover:border-purple-500/50 hover:bg-purple-500/10 text-[var(--ed-text-muted)] hover:text-purple-400 transition-all shrink-0 ${
-                    isTranscribingAudio ? "animate-pulse border-purple-500 text-purple-400" : ""
+                  className={`p-2 sm:p-2.5 rounded-xl border border-[var(--ed-border)] hover:border-sky-500/50 hover:bg-sky-500/10 text-[var(--ed-text-muted)] hover:text-sky-400 transition-all shrink-0 ${
+                    isTranscribingAudio ? "animate-pulse border-sky-500 text-sky-400" : ""
                   }`}
                 >
                   <Mic className="w-4 h-4" />
@@ -1614,7 +1606,7 @@ export default function LiveInboxPage() {
                   disabled={isSending || !inputText.trim()}
                   className={`px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-xl text-white font-semibold text-xs disabled:opacity-40 transition-all inline-flex items-center gap-1.5 shrink-0 ed-press ed-focus-ring ${
                     isSimulatingCustomer
-                      ? "bg-purple-600 hover:bg-purple-700 shadow-md"
+                      ? "bg-sky-600 hover:bg-sky-700 shadow-md"
                       : "ed-btn-primary"
                   }`}
                 >
@@ -1717,7 +1709,7 @@ export default function LiveInboxPage() {
                       </span>
                     )}
                     {activeConvDetail.structured_memory.facts.packaging && (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
+                      <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20">
                         <Layers className="w-2.5 h-2.5" />
                         Pack: {activeConvDetail.structured_memory.facts.packaging}
                       </span>
@@ -1865,7 +1857,7 @@ export default function LiveInboxPage() {
                         </span>
                       )}
                       {activeConvDetail.structured_memory.facts.packaging && (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
+                        <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20">
                           <Layers className="w-2.5 h-2.5" />
                           Pack: {activeConvDetail.structured_memory.facts.packaging}
                         </span>
@@ -2172,7 +2164,7 @@ export default function LiveInboxPage() {
                     EDITH is actively connected on <strong>{waStatus?.botPhone ? `+${waStatus.botPhone}` : "your linked WhatsApp number"}</strong>. Any buyer messaging this line receives automated consultative sales assistance with 0 latency.
                   </p>
                 </div>
-                <div className="p-3 bg-purple-500/8 border border-purple-500/20 rounded-xl text-purple-600 dark:text-purple-400 space-y-1">
+                <div className="p-3 bg-cyan-500/8 border border-cyan-500/20 rounded-xl text-cyan-600 dark:text-cyan-400 space-y-1">
                   <div className="font-bold flex items-center gap-1">
                     <Sparkles className="w-3.5 h-3.5" /> Testing Directly from Phone:
                   </div>
