@@ -190,7 +190,7 @@ export default function HourlyVelocityHeatmap() {
         {/* Average Turn Latency */}
         <div className="p-3 rounded-2xl bg-slate-50/90 dark:bg-[#0E1322] border border-slate-200 dark:border-slate-800 space-y-1">
           <span className="text-slate-500 text-[10px] block uppercase">Turn Latency Curve</span>
-          <div className="text-base font-black text-purple-600 dark:text-[#A855F7] flex items-center gap-1.5">
+          <div className="text-base font-black text-sky-600 dark:text-[#38BDF8] flex items-center gap-1.5">
             <Zap className="w-4 h-4" />
             {data.average_latency_s}s flatline
           </div>
@@ -241,7 +241,7 @@ export default function HourlyVelocityHeatmap() {
                   />
 
                   {/* Latency line marker */}
-                  <div className="w-full h-0.5 bg-purple-400 absolute top-1.5 left-0" />
+                  <div className="w-full h-0.5 bg-sky-400 absolute top-1.5 left-0" />
                 </div>
 
                 {/* Hour Label */}
@@ -265,7 +265,7 @@ export default function HourlyVelocityHeatmap() {
               Human Handoffs (5.8%)
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="w-2.5 h-0.5 bg-purple-400 inline-block" />
+              <span className="w-2.5 h-0.5 bg-sky-400 inline-block" />
               1.1s Latency Flatline
             </span>
           </div>
