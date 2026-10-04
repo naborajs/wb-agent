@@ -9,7 +9,10 @@ status: complete
 # 🔄 Conversational 16-Stage Sales State Machine
 
 > [!NOTE]
-> **WhatsApp AI Agent by NS** · *Engineered by Naboraj Sarkar (NS)*  
+> **WhatsApp AI Agent by NS** · *Engineered by [Naboraj Sarkar (NS)](https://naborajs.me)*  
+> 📖 **Official Documentation Hub**: [naborajs.me/projects/whatsapp-ai-agent-dual-brain/docs](https://naborajs.me/projects/whatsapp-ai-agent-dual-brain/docs)  
+> 🌐 **Chapter Reference**: [Chapter 3: NLU, Intent Classification & State Machine](https://naborajs.me/docs/whatsapp-ai-agent/ch-3-intent-routing)  
+>
 > Every customer conversation is governed by an explicit, auditable **16-Stage Finite State Machine** (`SalesStageManager` in `backend/app/agent/sales_stage.py`) that tracks commercial progression, validates allowed transitions, and prevents invalid backward jumps.
 >
 > ⬅️ Back to: [[../index|Master Knowledge Base Index]]

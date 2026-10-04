@@ -9,6 +9,10 @@ status: complete
 # 🧠 Multi-Tier Memory Architecture & Customer Facts
 
 > [!NOTE]
+> **WhatsApp AI Agent by NS** · *Engineered by [Naboraj Sarkar (NS)](https://naborajs.me)*  
+> 📖 **Official Documentation Hub**: [naborajs.me/projects/whatsapp-ai-agent-dual-brain/docs](https://naborajs.me/projects/whatsapp-ai-agent-dual-brain/docs)  
+> 🌐 **Chapter Reference**: [Chapter 5: Dual-Tier Memory Stream & Context Retention](https://naborajs.me/docs/whatsapp-ai-agent/ch-5-session-memory)  
+>
 > **WhatsApp AI Agent by NS** eliminates the twin hazards of LLM conversational memory: **context-window token exhaustion** and **loss of critical business agreements**. It achieves this via an auditable, multi-tier memory system separating short-term working turns, semantic summaries, and long-term customer facts.
 >
 > ⬅️ Back to: [[../index|Knowledge Base Index]] | **Deep-Dive**: [[../guides/senior-developer-architecture|Senior Developer Architecture]]

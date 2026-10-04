@@ -9,7 +9,10 @@ status: complete
 # 🏷️ Deterministic Pricing, Multi-Industry Units & Margin Safety Engine
 
 > [!NOTE]
-> **WhatsApp AI Agent by NS** · *Engineered by Naboraj Sarkar (NS)*  
+> **WhatsApp AI Agent by NS** · *Engineered by [Naboraj Sarkar (NS)](https://naborajs.me)*  
+> 📖 **Official Documentation Hub**: [naborajs.me/projects/whatsapp-ai-agent-dual-brain/docs](https://naborajs.me/projects/whatsapp-ai-agent-dual-brain/docs)  
+> 🌐 **Chapter Reference**: [Chapter 4: Real-Time Catalog, Pricing & Quotation Engine](https://naborajs.me/docs/whatsapp-ai-agent/ch-4-catalog-pricing)  
+>
 > In this platform, the Large Language Model has **zero authority** to invent product prices or calculate discount math. All commercial quotes and GST Pro-Forma Invoices are calculated deterministically by `PricingService` (`backend/app/pricing/calculator.py`) using verified database rules (`products`, `pricing_rules`, and `KnowledgeItem`).
 >
 > ⬅️ Back to: [[../index|Master Knowledge Base Index]]

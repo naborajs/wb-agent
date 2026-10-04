@@ -9,7 +9,10 @@ status: complete
 # ⚡ Durable Database Job Queue & Worker Architecture
 
 > [!NOTE]
-> **WhatsApp AI Agent by NS** · *Engineered by Naboraj Sarkar (NS)*  
+> **WhatsApp AI Agent by NS** · *Engineered by [Naboraj Sarkar (NS)](https://naborajs.me)*  
+> 📖 **Official Documentation Hub**: [naborajs.me/projects/whatsapp-ai-agent-dual-brain/docs](https://naborajs.me/projects/whatsapp-ai-agent-dual-brain/docs)  
+> 🌐 **Chapter References**: [Chapter 7: Anti-Ban Shield](https://naborajs.me/docs/whatsapp-ai-agent/ch-7-anti-ban-safety) · [Chapter 10: Production Operations & Scaling](https://naborajs.me/docs/whatsapp-ai-agent/ch-10-deployment-ops)  
+>
 > Rather than requiring external Redis, RabbitMQ, or Celery clusters, the platform implements a transactional, durable job queue directly inside the database (`jobs` and `followup_jobs` tables) working seamlessly across both **Zero-Config SQLite WAL (`wb_agent.db`)** and **PostgreSQL 16 (`SELECT ... FOR UPDATE SKIP LOCKED`)** (`ADR-0003`, `ADR-0017`).
 >
 > ⬅️ Back to: [[../index|Master Knowledge Base Index]]
