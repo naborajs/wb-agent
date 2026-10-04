@@ -2204,7 +2204,7 @@ function KnowledgeHubMain() {
                           : editCategory === "catalog_product"
                           ? "bg-gradient-to-r from-cyan-500 to-blue-500"
                           : editCategory === "agent_guidance"
-                          ? "bg-gradient-to-r from-indigo-500 to-purple-500"
+                          ? "bg-gradient-to-r from-sky-500 to-blue-600"
                           : editCategory === "custom"
                           ? "bg-gradient-to-r from-amber-500 to-orange-500"
                           : "bg-gradient-to-r from-red-500 to-rose-500"
