@@ -118,7 +118,7 @@ export default function ExecutiveQuickDock({
       <div className="p-3 sm:p-3.5 rounded-2xl bg-white/95 dark:bg-[#0B0F19] border border-slate-200/90 dark:border-[#1E293B] shadow-sm flex flex-col md:flex-row items-center justify-between gap-3 text-xs font-mono transition-colors">
         {/* Left Dock Brand / Label */}
         <div className="flex items-center gap-2.5 text-slate-700 dark:text-slate-300 shrink-0">
-          <div className="w-7 h-7 rounded-xl bg-gradient-to-tr from-sky-500 to-purple-600 flex items-center justify-center text-white shadow-xs">
+          <div className="w-7 h-7 rounded-xl bg-gradient-to-tr from-sky-500 to-blue-600 flex items-center justify-center text-white shadow-xs">
             <Zap className="w-3.5 h-3.5" />
           </div>
           <div>
