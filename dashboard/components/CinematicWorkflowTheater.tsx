@@ -54,9 +54,9 @@ const WORKFLOW_STAGES: WorkflowStage[] = [
     title: "2. FRIDAY Multimodal Triage",
     subtitle: "110ms intent parsing, customer entity extraction, and memory lookup",
     badge: "GEMINI 3.1 LIVE",
-    badgeColor: "text-purple-500 border-purple-500/30 bg-purple-500/10",
+    badgeColor: "text-sky-500 border-sky-500/30 bg-sky-500/10",
     actor: "FRIDAY (Front Brain)",
-    icon: <Bot className="w-5 h-5 text-purple-500" />,
+    icon: <Bot className="w-5 h-5 text-sky-500" />,
     dialogueSpeaker: "FRIDAY Core",
     dialogueText:
       "Welcome back, Rajesh! Verified buyer account with 2 previous fulfilled shipments. Analyzing 500-unit tier from commercial catalog and requesting policy approval...",
@@ -192,7 +192,7 @@ export default function CinematicWorkflowTheater({ onTestSandbox }: CinematicWor
               {isCurrent && isPlaying && (
                 <div
                   key={`progress-${currentStageIdx}`}
-                  className="absolute bottom-0 left-0 h-1 w-full bg-gradient-to-r from-sky-400 to-purple-500 origin-left animate-[ scaleX_5s_linear_forwards ]"
+                  className="absolute bottom-0 left-0 h-1 w-full bg-gradient-to-r from-sky-400 to-blue-500 origin-left animate-[ scaleX_5s_linear_forwards ]"
                   style={{
                     animation: `edStageProgress ${stageDurationMs}ms linear forwards`,
                   }}
