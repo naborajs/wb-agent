@@ -46,9 +46,9 @@ export default function NativeFridayOrb3D({
     cyanLight.position.set(4, 3, 5);
     scene.add(cyanLight);
 
-    const purpleLight = new THREE.PointLight(0xa855f7, 7.5, 25);
-    purpleLight.position.set(-4, -3, 5);
-    scene.add(purpleLight);
+    const blueLight = new THREE.PointLight(0x005dff, 7.5, 25);
+    blueLight.position.set(-4, -3, 5);
+    scene.add(blueLight);
 
     const emeraldLight = new THREE.PointLight(0x10b981, 4.5, 20);
     emeraldLight.position.set(0, 4, -4);
@@ -72,7 +72,7 @@ export default function NativeFridayOrb3D({
     const innerGeom = new THREE.SphereGeometry(1.18, 32, 32);
     const innerMat = new THREE.MeshPhongMaterial({
       color: 0x38bdf8,
-      emissive: 0x7c3aed,
+      emissive: 0x005dff,
       emissiveIntensity: 0.65,
       specular: 0xffffff,
       shininess: 110,
@@ -93,10 +93,10 @@ export default function NativeFridayOrb3D({
     const wireMesh = new THREE.Mesh(wireGeom, wireMat);
     coreGroup.add(wireMesh);
 
-    // Secondary Counter-Rotating Violet Lattice
+    // Secondary Counter-Rotating Azure Lattice
     const wireGeom2 = new THREE.IcosahedronGeometry(1.72, 1);
     const wireMat2 = new THREE.MeshBasicMaterial({
-      color: 0xa855f7,
+      color: 0x005dff,
       wireframe: true,
       transparent: true,
       opacity: 0.38,
@@ -118,8 +118,8 @@ export default function NativeFridayOrb3D({
     scene.add(ring1);
 
     const ringMat2 = new THREE.MeshPhongMaterial({
-      color: 0xa855f7,
-      emissive: 0x7c3aed,
+      color: 0x0284c7,
+      emissive: 0x005dff,
       emissiveIntensity: 0.65,
       shininess: 100,
     });
@@ -147,7 +147,7 @@ export default function NativeFridayOrb3D({
     const particleColors = new Float32Array(particleCount * 3);
 
     const cCyan = new THREE.Color(0x38bdf8);
-    const cPurple = new THREE.Color(0xa855f7);
+    const cBlue = new THREE.Color(0x005dff);
     const cMint = new THREE.Color(0x34d399);
 
     for (let i = 0; i < particleCount; i++) {
@@ -159,7 +159,7 @@ export default function NativeFridayOrb3D({
       particlePositions[i * 3 + 1] = rad * Math.cos(phi);
       particlePositions[i * 3 + 2] = rad * Math.sin(phi) * Math.sin(theta);
 
-      const c = i % 3 === 0 ? cCyan : i % 3 === 1 ? cPurple : cMint;
+      const c = i % 3 === 0 ? cCyan : i % 3 === 1 ? cBlue : cMint;
       particleColors[i * 3] = c.r;
       particleColors[i * 3 + 1] = c.g;
       particleColors[i * 3 + 2] = c.b;
