@@ -29,6 +29,7 @@ import {
   HelpCircle,
 } from "lucide-react";
 import MessageLoading from "@/components/ui/MessageLoading";
+import { Component as AiLoader } from "@/components/ui/ai-loader";
 
 interface CampaignLeadStats {
   total_leads: number;
@@ -402,9 +403,9 @@ export default function CampaignsPage() {
               setIsChatOpen(!isChatOpen);
               setDraftResult(null);
             }}
-            className="ed-press ed-focus-ring inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold bg-gradient-to-r from-purple-600/20 to-blue-600/20 hover:from-purple-600/30 hover:to-blue-600/30 text-purple-300 border border-purple-500/30 shadow-sm transition-all"
+            className="ed-press ed-focus-ring inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold bg-gradient-to-r from-sky-600/20 to-blue-600/20 hover:from-sky-600/30 hover:to-blue-600/30 text-sky-300 border border-sky-500/30 shadow-sm transition-all"
           >
-            <Bot className="w-4 h-4 text-purple-400" />
+            <Bot className="w-4 h-4 text-sky-400" />
             Create with Friday
           </button>
 
@@ -442,17 +443,17 @@ export default function CampaignsPage() {
 
       {/* Section 6: Interactive Chat-Driven Campaign Creation Panel */}
       {isChatOpen && (
-        <div className="p-5 rounded-2xl bg-gradient-to-b from-purple-950/20 to-[var(--ed-surface)] border border-purple-500/30 shadow-xl space-y-4 animate-in slide-in-from-top-3 duration-200">
-          <div className="flex items-center justify-between border-b border-purple-500/20 pb-3">
+        <div className="p-5 rounded-2xl bg-gradient-to-b from-sky-950/20 to-[var(--ed-surface)] border border-sky-500/30 shadow-xl space-y-4 animate-in slide-in-from-top-3 duration-200">
+          <div className="flex items-center justify-between border-b border-sky-500/20 pb-3">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-purple-500/20 text-purple-400 border border-purple-500/30 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-xl bg-sky-500/20 text-sky-400 border border-sky-500/30 flex items-center justify-center">
                 <Bot className="w-4 h-4" />
               </div>
               <div>
                 <h3 className="text-sm font-bold text-[var(--ed-text-primary)] flex items-center gap-2">
                   Chat-Driven Campaign Creation
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-500/20 text-purple-300 border border-purple-500/30">
-                    Friday & EDITH Inter-Brain
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-sky-500/20 text-sky-300 border border-sky-500/30">
+                    Friday &amp; EDITH Inter-Brain
                   </span>
                 </h3>
                 <p className="text-[11px] text-[var(--ed-text-muted)]">
@@ -475,12 +476,12 @@ export default function CampaignsPage() {
               onChange={(e) => setChatPrompt(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && !chatLoading && handleChatDraft()}
               placeholder="e.g. Launch a campaign for Cafe and Restaurant owners offering our 10% wholesale discount with 40 messages per day, personalized."
-              className="flex-1 px-3.5 py-2.5 rounded-xl border border-purple-500/30 bg-[var(--ed-bg)] text-xs text-[var(--ed-text-primary)] focus:outline-none focus:ring-1 focus:ring-purple-500 placeholder-[var(--ed-text-muted)]"
+              className="flex-1 px-3.5 py-2.5 rounded-xl border border-sky-500/30 bg-[var(--ed-bg)] text-xs text-[var(--ed-text-primary)] focus:outline-none focus:ring-1 focus:ring-sky-500 placeholder-[var(--ed-text-muted)]"
             />
             <button
               onClick={handleChatDraft}
               disabled={chatLoading || !chatPrompt.trim()}
-              className="px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white text-xs font-semibold flex items-center gap-2 shadow-md transition-all shrink-0"
+              className="px-4 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 disabled:opacity-50 text-white text-xs font-semibold flex items-center gap-2 shadow-md transition-all shrink-0"
             >
               {chatLoading ? (
                 <>
@@ -493,6 +494,15 @@ export default function CampaignsPage() {
               )}
             </button>
           </div>
+
+          {chatLoading && (
+            <div className="my-3 p-5 rounded-2xl bg-black/85 border border-sky-500/30 backdrop-blur-md flex flex-col items-center justify-center relative overflow-hidden shadow-2xl">
+              <AiLoader fullScreen={false} size={110} text="Drafting" />
+              <span className="mt-3 text-xs text-sky-400 font-mono tracking-wider font-semibold">
+                Friday &amp; EDITH Synthesizing Outreach Strategy...
+              </span>
+            </div>
+          )}
 
           {/* Render Draft and EDITH Validation Result */}
           {draftResult && (
@@ -543,7 +553,7 @@ export default function CampaignsPage() {
 
               {/* EDITH Validation Evaluation */}
               <div className="flex items-start gap-2.5">
-                <div className="w-6 h-6 rounded-lg bg-purple-500/20 text-purple-400 flex items-center justify-center shrink-0 mt-0.5">
+                <div className="w-6 h-6 rounded-lg bg-cyan-500/20 text-cyan-400 flex items-center justify-center shrink-0 mt-0.5">
                   <ShieldCheck className="w-3.5 h-3.5" />
                 </div>
                 <div className="space-y-1.5 flex-1">
@@ -643,12 +653,12 @@ export default function CampaignsPage() {
         </div>
 
         <div className="p-4 rounded-xl bg-[var(--ed-surface)] border border-[var(--ed-border)] flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-400 border border-purple-500/20 flex items-center justify-center shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 flex items-center justify-center shrink-0">
             <MessageSquare className="w-5 h-5" />
           </div>
           <div>
             <div className="font-bold text-[var(--ed-text-primary)] text-xs">Buyer Replies</div>
-            <div className="text-sm font-bold text-purple-400 font-data mt-0.5">
+            <div className="text-sm font-bold text-cyan-400 font-data mt-0.5">
               {edithSummary ? edithSummary.total_replies : 0}{" "}
               <span className="text-[10px] text-[var(--ed-text-muted)] font-normal">
                 ({edithSummary ? edithSummary.overall_response_rate : 0}% rate)
@@ -687,7 +697,7 @@ export default function CampaignsPage() {
             <div className="flex justify-center gap-3 pt-2">
               <button
                 onClick={() => setIsChatOpen(true)}
-                className="px-4 py-2 rounded-xl text-xs font-semibold bg-purple-600/20 text-purple-300 border border-purple-500/30 hover:bg-purple-600/30"
+                className="px-4 py-2 rounded-xl text-xs font-semibold bg-sky-600/20 text-sky-300 border border-sky-500/30 hover:bg-sky-600/30"
               >
                 Create with Friday
               </button>
@@ -733,7 +743,7 @@ export default function CampaignsPage() {
                         Target: <strong className="text-[var(--ed-text-primary)]">{c.target_segment}</strong>
                       </span>
                       {c.personalization_enabled && (
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-500/10 text-purple-400 border border-purple-500/20 flex items-center gap-1">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 flex items-center gap-1">
                           <Sparkles className="w-2.5 h-2.5" /> EDITH Personalized
                         </span>
                       )}
@@ -835,7 +845,7 @@ export default function CampaignsPage() {
                       "{c.initial_message_template}"
                     </p>
                   </div>
-                  <div className="flex items-center gap-1 text-[11px] font-semibold text-purple-400 shrink-0">
+                  <div className="flex items-center gap-1 text-[11px] font-semibold text-cyan-400 shrink-0">
                     <Sparkles className="w-3.5 h-3.5" />
                     <span>Auto-Transitions to EDITH on Buyer Reply</span>
                   </div>
@@ -1099,13 +1109,13 @@ export default function CampaignsPage() {
                     id="personalizationToggle"
                     checked={personalizationEnabled}
                     onChange={(e) => setPersonalizationEnabled(e.target.checked)}
-                    className="w-4 h-4 rounded text-purple-600 bg-[var(--ed-bg)] border-[var(--ed-border)]"
+                    className="w-4 h-4 rounded text-cyan-600 bg-[var(--ed-bg)] border-[var(--ed-border)]"
                   />
                   <label
                     htmlFor="personalizationToggle"
                     className="text-xs text-[var(--ed-text-primary)] font-semibold cursor-pointer flex items-center gap-1.5"
                   >
-                    <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+                    <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
                     EDITH Per-Lead Personalization
                   </label>
                 </div>
