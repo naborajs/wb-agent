@@ -171,10 +171,10 @@ export default function ExecutiveQuickDock({
           {/* Action 3: Add Temporary Knowledge Rule */}
           <button
             onClick={() => setShowRuleModal(true)}
-            className="px-3 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/30 dark:hover:bg-purple-950/50 text-purple-800 dark:text-purple-300 border border-purple-300/80 dark:border-purple-800/40 flex items-center gap-1.5 transition-all shadow-xs"
+            className="px-3 py-1.5 rounded-xl bg-sky-50 hover:bg-sky-100 dark:bg-sky-950/30 dark:hover:bg-sky-950/50 text-sky-800 dark:text-sky-300 border border-sky-300/80 dark:border-sky-800/40 flex items-center gap-1.5 transition-all shadow-xs"
             title="Opens modal to add an emergency policy or pricing rule audited by EDITH"
           >
-            <BookOpen className="w-3.5 h-3.5 text-purple-500" />
+            <BookOpen className="w-3.5 h-3.5 text-sky-500" />
             <span>Add Temp Rule</span>
           </button>
 
@@ -216,7 +216,7 @@ export default function ExecutiveQuickDock({
       {/* Temporary Knowledge Rule Modal */}
       {showRuleModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white dark:bg-[#0B0F19] border border-purple-300 dark:border-[#8B5CF6]/40 rounded-2xl max-w-md w-full p-6 shadow-2xl relative text-slate-900 dark:text-white space-y-4">
+          <div className="bg-white dark:bg-[#0B0F19] border border-sky-300 dark:border-sky-500/40 rounded-2xl max-w-md w-full p-6 shadow-2xl relative text-slate-900 dark:text-white space-y-4">
             <button
               onClick={() => setShowRuleModal(false)}
               className="absolute top-4 right-4 text-slate-400 hover:text-slate-700 dark:hover:text-white"
@@ -224,7 +224,7 @@ export default function ExecutiveQuickDock({
               <X className="w-4 h-4" />
             </button>
 
-            <div className="flex items-center gap-2 font-mono text-xs text-purple-600 dark:text-[#A855F7] font-bold">
+            <div className="flex items-center gap-2 font-mono text-xs text-sky-600 dark:text-sky-400 font-bold">
               <BookOpen className="w-4 h-4" />
               <span>Add Temporary Commercial Policy</span>
             </div>
@@ -243,7 +243,7 @@ export default function ExecutiveQuickDock({
                   type="text"
                   value={ruleTitle}
                   onChange={(e) => setRuleTitle(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-[#0E1322] border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:border-purple-500"
+                  className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-[#0E1322] border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:border-sky-500"
                   required
                 />
               </div>
@@ -257,7 +257,7 @@ export default function ExecutiveQuickDock({
                     max="25"
                     value={ruleDiscount}
                     onChange={(e) => setRuleDiscount(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-[#0E1322] border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:border-purple-500"
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-[#0E1322] border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:border-sky-500"
                     required
                   />
                   <span className="text-[10px] text-slate-400">Max authorized: 15%</span>
@@ -269,7 +269,7 @@ export default function ExecutiveQuickDock({
                     type="number"
                     value={ruleMoq}
                     onChange={(e) => setRuleMoq(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-[#0E1322] border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:border-purple-500"
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-[#0E1322] border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:border-sky-500"
                     required
                   />
                   <span className="text-[10px] text-slate-400">Minimum threshold</span>
@@ -287,7 +287,7 @@ export default function ExecutiveQuickDock({
                 <button
                   type="submit"
                   disabled={isAddingRule}
-                  className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold flex items-center gap-1.5 shadow-md disabled:opacity-50"
+                  className="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold flex items-center gap-1.5 shadow-md disabled:opacity-50"
                 >
                   {isAddingRule ? <MessageLoading className="w-3.5 h-3.5 text-white" /> : <Plus className="w-3.5 h-3.5" />}
                   Submit to EDITH
