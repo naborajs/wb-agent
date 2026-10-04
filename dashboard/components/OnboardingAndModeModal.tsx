@@ -807,7 +807,7 @@ export default function OnboardingAndModeModal({
                   style={{ background: "var(--ed-bg)" }}
                 >
                   <div className="flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-purple-500" />
+                    <Sparkles className="w-4 h-4 text-sky-500" />
                     <h3 className="text-sm font-bold text-[var(--ed-text-primary)]">
                       Experience Mode: Simplified vs. Advanced
                     </h3>
