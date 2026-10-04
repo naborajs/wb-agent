@@ -57,6 +57,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { getWebSocketUrl } from "@/lib/utils";
 import { MessageLoading } from "@/components/ui/MessageLoading";
+import { Component as AiLoader } from "@/components/ui/ai-loader";
 
 const brainRadarConfig = {
   friday: {
@@ -797,7 +798,7 @@ export default function DualBrainPage() {
   return (
     <div className="space-y-6 pb-12">
       {/* Hero Header */}
-      <div className="relative overflow-hidden rounded-3xl border border-sky-500/20 bg-gradient-to-r from-sky-500/10 via-teal-500/5 to-purple-500/10 p-6 sm:p-8 backdrop-blur-xl shadow-sm">
+      <div className="relative overflow-hidden rounded-3xl border border-sky-500/20 bg-gradient-to-r from-sky-500/10 via-blue-500/5 to-cyan-500/10 p-6 sm:p-8 backdrop-blur-xl shadow-sm">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
           <div className="space-y-2">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-500/10 text-sky-600 dark:text-sky-400 text-xs font-semibold uppercase tracking-wider">
@@ -898,7 +899,7 @@ export default function DualBrainPage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
             {/* Friday Engine Card */}
-            <div className="relative overflow-hidden rounded-3xl border border-sky-500/30 bg-gradient-to-br from-sky-500/10 via-purple-500/5 to-white/80 dark:to-zinc-900/90 p-5 backdrop-blur-md shadow-sm space-y-4">
+            <div className="relative overflow-hidden rounded-3xl border border-sky-500/30 bg-gradient-to-br from-sky-500/10 via-cyan-500/5 to-white/80 dark:to-zinc-900/90 p-5 backdrop-blur-md shadow-sm space-y-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-sky-500 to-indigo-600 text-white flex items-center justify-center font-bold text-lg shadow-md shadow-sky-500/20">
@@ -972,7 +973,7 @@ export default function DualBrainPage() {
                   <div className="text-xs sm:text-sm font-extrabold font-mono text-gray-900 dark:text-white mt-0.5">
                     {(telemetry?.friday.output_tokens ?? 2450).toLocaleString()}
                   </div>
-                  <div className="text-[9px] text-purple-600 dark:text-purple-400">tokens</div>
+                  <div className="text-[9px] text-sky-600 dark:text-sky-400">tokens</div>
                 </div>
 
                 <div className="p-2.5 rounded-xl bg-white/60 dark:bg-zinc-800/40 border border-gray-100 dark:border-zinc-800">
@@ -1030,7 +1031,7 @@ export default function DualBrainPage() {
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
                         Commercial Closer
                       </span>
-                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 flex items-center gap-1">
+                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-cyan-100 dark:bg-cyan-950 text-cyan-700 dark:text-cyan-300 flex items-center gap-1">
                         <Flame className="w-2.5 h-2.5" />
                         Deep Reasoning
                       </span>
@@ -1100,7 +1101,7 @@ export default function DualBrainPage() {
                   <div className="text-xs sm:text-sm font-extrabold font-mono text-gray-900 dark:text-white mt-0.5">
                     {(telemetry?.edith.output_tokens ?? 3890).toLocaleString()}
                   </div>
-                  <div className="text-[9px] text-purple-600 dark:text-purple-400">tokens</div>
+                  <div className="text-[9px] text-emerald-600 dark:text-emerald-400">tokens</div>
                 </div>
               </div>
 
@@ -1175,7 +1176,7 @@ export default function DualBrainPage() {
 
                 <div className="p-3 rounded-2xl bg-white/80 dark:bg-zinc-800/80 border border-gray-200/60 dark:border-zinc-700/60 text-center">
                   <div className="text-[10px] text-gray-400 uppercase font-semibold">Bus Agreement</div>
-                  <div className="text-sm font-extrabold font-mono text-purple-600 dark:text-purple-400 mt-0.5">
+                  <div className="text-sm font-extrabold font-mono text-cyan-600 dark:text-cyan-400 mt-0.5">
                     {telemetry?.inter_brain_bus.consensus_rate_pct ?? 97.4}%
                   </div>
                 </div>
@@ -1364,7 +1365,7 @@ export default function DualBrainPage() {
                 <button
                   onClick={() => runTestDebrief("RUDE_CUSTOMER")}
                   disabled={executing}
-                  className="text-[11px] px-2.5 py-1 rounded-xl border border-purple-500/20 bg-purple-500/5 hover:bg-purple-500/10 text-purple-700 dark:text-purple-400 font-medium transition-colors flex items-center gap-1"
+                  className="text-[11px] px-2.5 py-1 rounded-xl border border-cyan-500/20 bg-cyan-500/5 hover:bg-cyan-500/10 text-cyan-700 dark:text-cyan-400 font-medium transition-colors flex items-center gap-1"
                 >
                   <ShieldAlert className="w-3 h-3 shrink-0" />
                   Rude Tone Debrief
@@ -1484,11 +1485,11 @@ export default function DualBrainPage() {
                     {/* EDITH Debrief Card */}
                     {turn.edithDebrief && (
                       <div className="flex items-start gap-2.5 pl-3">
-                        <div className="w-7 h-7 rounded-xl bg-purple-500/20 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
+                        <div className="w-7 h-7 rounded-xl bg-cyan-500/20 text-cyan-600 dark:text-cyan-400 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
                           🟢
                         </div>
-                        <div className="max-w-[92%] rounded-2xl border border-purple-500/30 bg-purple-500/5 dark:bg-purple-950/20 p-3 space-y-1.5 shadow-sm">
-                          <div className="text-[10px] font-bold text-purple-700 dark:text-purple-400 flex items-center gap-1.5">
+                        <div className="max-w-[92%] rounded-2xl border border-cyan-500/30 bg-cyan-500/5 dark:bg-cyan-950/20 p-3 space-y-1.5 shadow-sm">
+                          <div className="text-[10px] font-bold text-cyan-700 dark:text-cyan-400 flex items-center gap-1.5">
                             <AlertTriangle className="w-3.5 h-3.5" />
                             EDITH Autonomous Debrief ({turn.edithDebrief.category})
                           </div>
@@ -1529,11 +1530,13 @@ export default function DualBrainPage() {
                       </div>
                     )}
 
-                    {/* Processing State */}
+                    {/* Processing State with AI Loader */}
                     {turn.status === "processing" && (
-                      <div className="flex items-center gap-2 pl-9 text-xs text-sky-600 dark:text-sky-400 font-mono">
-                        <MessageLoading size={18} className="text-sky-500" />
-                        <span>Friday is evaluating instruction across Inter-Brain Bus...</span>
+                      <div className="my-3 p-5 rounded-2xl bg-black/85 border border-sky-500/30 backdrop-blur-md flex flex-col items-center justify-center relative overflow-hidden shadow-2xl">
+                        <AiLoader fullScreen={false} size={110} text="Deliberating" />
+                        <span className="mt-3 text-xs text-sky-400 font-mono tracking-wider font-semibold">
+                          FRIDAY &amp; EDITH Inter-Brain Consultation &amp; Reasoning...
+                        </span>
                       </div>
                     )}
                   </div>
@@ -1947,8 +1950,8 @@ export default function DualBrainPage() {
                 onClick={() => setHistoryCategoryFilter("debriefs")}
                 className={`text-[11px] px-2.5 py-1 rounded-xl transition-all font-medium flex items-center gap-1 ${
                   historyCategoryFilter === "debriefs"
-                    ? "bg-purple-600 text-white shadow-sm"
-                    : "bg-purple-500/10 text-purple-700 dark:text-purple-400 hover:bg-purple-500/20"
+                    ? "bg-cyan-600 text-white shadow-sm"
+                    : "bg-cyan-500/10 text-cyan-700 dark:text-cyan-400 hover:bg-cyan-500/20"
                 }`}
               >
                 <AlertTriangle className="w-3 h-3" />
@@ -2014,7 +2017,7 @@ export default function DualBrainPage() {
                       isDenied
                         ? "border-rose-500/30 bg-rose-500/5 dark:bg-rose-950/20"
                         : isDebrief
-                        ? "border-purple-500/30 bg-purple-500/5 dark:bg-purple-950/20"
+                        ? "border-cyan-500/30 bg-cyan-500/5 dark:bg-cyan-950/20"
                         : isFeatureGap
                         ? "border-amber-500/30 bg-amber-500/5 dark:bg-amber-950/20"
                         : isAccepted
