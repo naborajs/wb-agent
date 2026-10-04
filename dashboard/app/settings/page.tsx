@@ -24,6 +24,7 @@ import {
   Percent,
   Package,
 } from "lucide-react";
+import { AiLoader } from "@/components/ui/ai-loader";
 
 interface BusinessPreset {
   id: string;
@@ -562,6 +563,16 @@ export default function SystemSettingsPage() {
             </button>
           ))}
         </div>
+
+        {/* AI Generating Indicator */}
+        {isAiGenerating && (
+          <div className="py-8 flex flex-col items-center justify-center space-y-3 border border-sky-500/20 rounded-2xl bg-slate-900/40">
+            <AiLoader fullScreen={false} size={140} text="Synthesizing" />
+            <p className="text-xs font-mono text-[var(--ed-text-muted)] animate-pulse">
+              Synthesizing enterprise catalog, business persona, and margin defense policies...
+            </p>
+          </div>
+        )}
 
         {/* Show newly seeded AI products if generated */}
         {aiSeededProducts.length > 0 && (
