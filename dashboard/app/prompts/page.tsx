@@ -45,6 +45,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import MessageLoading from "@/components/ui/MessageLoading";
+import { AiLoader } from "@/components/ui/ai-loader";
 
 interface DynamicSection {
   id: string;
@@ -149,7 +150,7 @@ const PALETTE = [
   "#0284C7", // Sky
   "#F59E0B", // Amber
   "#10B981", // Emerald
-  "#8B5CF6", // Purple
+  "#005DFF", // Azure Blue
   "#EC4899", // Pink
   "#14B8A6", // Teal
   "#F97316", // Orange
@@ -1041,7 +1042,7 @@ export default function PromptsPage() {
                               <span className="text-[10px] text-[var(--ed-text-muted)]">by {v.author}</span>
 
                               {v.quality_score && (
-                                <span className="text-[10px] font-semibold bg-purple-500/10 text-purple-600 px-1.5 py-0.2 rounded font-data">
+                                <span className="text-[10px] font-semibold bg-sky-500/10 text-sky-600 px-1.5 py-0.2 rounded font-data">
                                   {v.quality_score}/100 ({v.quality_grade || "A"})
                                 </span>
                               )}
@@ -1146,10 +1147,13 @@ export default function PromptsPage() {
 
             {/* Deliberation Stepper Streaming Animation */}
             {isOptimizing && (
-              <div className="p-4 rounded-xl bg-[var(--ed-bg)] border border-sky-500/20 space-y-3">
+              <div className="p-4 rounded-xl bg-[var(--ed-bg)] border border-sky-500/20 space-y-4">
                 <div className="flex items-center justify-between text-xs font-bold text-sky-600">
                   <span>FRONTIER META-PROMPT DELIBERATION</span>
                   <span className="font-data text-[10px]">{elapsedSeconds}s</span>
+                </div>
+                <div className="py-2 flex justify-center">
+                  <AiLoader fullScreen={false} size={130} text="Optimizing" />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {DELIBERATION_STAGES.map((stg, sIdx) => {
