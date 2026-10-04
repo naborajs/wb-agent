@@ -8,7 +8,8 @@ status: complete
 
 # 📱 WhatsApp Connectivity Guide: Unofficial Web Bridge vs. Official Meta Cloud API
 
-> **WhatsApp AI Agent by NS (EDITH + FRIDAY)** · *Engineered by Naboraj Sarkar (NS)*  
+> **WhatsApp AI Agent by NS (EDITH + FRIDAY)** · *Engineered by [Naboraj Sarkar (NS)](https://naborajs.me)*  
+> 📖 **Official Documentation Hub**: [naborajs.me/projects/whatsapp-ai-agent-dual-brain/docs](https://naborajs.me/projects/whatsapp-ai-agent-dual-brain/docs) · 🌐 **Online Chapter**: [Chapter 2: FriteOS Transport & WhatsApp Web Gateway](https://naborajs.me/docs/whatsapp-ai-agent/ch-2-friteos-gateway)  
 > The platform features a dual-adapter WhatsApp gateway (`ADR-0005`, `ADR-0011`) that lets you switch seamlessly between the **Zero-Cost Self-Hosted Baileys Bridge (`:3001`)** and the **Official Meta WhatsApp Business Cloud API (`Graph v20.0`)** directly from the Dashboard UI (`/settings` or the Top-Bar Setup Modal).
 
 ---

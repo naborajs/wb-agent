@@ -8,7 +8,8 @@ status: complete
 
 # 🧒 Welcome! The Super-Simple Guide to WhatsApp AI Agent by NS
 
-> **Built & Engineered by Naboraj Sarkar (NS)** · *Designed so anyone—from a 15-year-old student building their first AI project to a global business owner—can understand, run, and customize the entire system in minutes.*
+> **Built & Engineered by [Naboraj Sarkar (NS)](https://naborajs.me)** · 📖 **Live Documentation**: [naborajs.me/projects/whatsapp-ai-agent-dual-brain/docs](https://naborajs.me/projects/whatsapp-ai-agent-dual-brain/docs) · 📰 **Origin Story**: [The Idea Behind EDITH](https://naborajs.me/blog/the-idea-behind-edith-whatsapp-ai-agent-by-ns)  
+> *Designed so anyone—from a 15-year-old student building their first AI project to a global business owner—can understand, run, and customize the entire system in minutes.*
 
 ---
 

@@ -8,7 +8,8 @@ status: complete
 
 # 🏛️ Senior Software Engineer & Systems Architect Reference — WhatsApp AI Agent by NS
 
-> **Architected & Engineered by Naboraj Sarkar (NS)** · *Production engineering specification covering the Dual-Brain Synaptic Bus, 15-Step Conversational Turn Engine, Deterministic Pricing & GST Math, Ephemeral Gemini Live Audio Pipeline, Unified Knowledge RAG Hub, Dynamic 5-Role Model Router, and Procedural Rust 3D Mesh Pipeline.*
+> **Architected & Engineered by [Naboraj Sarkar (NS)](https://naborajs.me)** · 📖 **Live Documentation Hub**: [naborajs.me/projects/whatsapp-ai-agent-dual-brain/docs](https://naborajs.me/projects/whatsapp-ai-agent-dual-brain/docs) · 🌐 **Online Chapters**: [Dual-Brain Architecture (Ch 1)](https://naborajs.me/docs/whatsapp-ai-agent/ch-1-dual-brain) · [Full Code Breakdown (Ch 12)](https://naborajs.me/docs/whatsapp-ai-agent/ch-12-code-breakdown)  
+> *Production engineering specification covering the Dual-Brain Synaptic Bus, 15-Step Conversational Turn Engine, Deterministic Pricing & GST Math, Ephemeral Gemini Live Audio Pipeline, Unified Knowledge RAG Hub, Dynamic 5-Role Model Router, and Procedural Rust 3D Mesh Pipeline.*
 
 ---
 

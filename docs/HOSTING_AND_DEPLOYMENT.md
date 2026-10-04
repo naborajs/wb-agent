@@ -1,5 +1,6 @@
 # 🌐 WhatsApp AI Agent by NS — Hosting & Multi-Environment Deployment Guide
 
+> 📖 **Live Documentation Hub**: **[naborajs.me/projects/whatsapp-ai-agent-dual-brain/docs](https://naborajs.me/projects/whatsapp-ai-agent-dual-brain/docs)** · 🌐 **Online Chapter**: **[Chapter 10: Production Operations & Deployment](https://naborajs.me/docs/whatsapp-ai-agent/ch-10-deployment-ops)**  
 > ⬅️ Back to: [Root README](../README.md) | [Knowledge Base Index](../assets%20docs/index.md) | [Production Runbook](../assets%20docs/runbooks/production-deployment.md)
 
 This guide explains how to host **WhatsApp AI Agent by NS (FRIDAY + EDITH Dual-Brain Operating System)** across **any hosting environment**—from a single Linux VPS or Docker server to cloud PaaS platforms (Render, Railway, Fly.io, Coolify) or a split Vercel + Cloud Backend setup.
@@ -8,7 +9,7 @@ This guide explains how to host **WhatsApp AI Agent by NS (FRIDAY + EDITH Dual-B
 
 ## ✨ Why WhatsApp AI Agent by NS Hosts Cleanly Out-of-the-Box
 
-**WhatsApp AI Agent by NS** is engineered by **Naboraj Sarkar (NS)** with **Auto-Hosting Resilience** so you can deploy it on any fresh server without manual code changes:
+**WhatsApp AI Agent by NS** is engineered by **[Naboraj Sarkar (NS)](https://naborajs.me)** with **Auto-Hosting Resilience** so you can deploy it on any fresh server without manual code changes:
 
 1. **Zero-Config Database (`SQLite` $\rightarrow$ `PostgreSQL` Auto-Upgrade)**:
    - Defaults to a local async SQLite database (`sqlite+aiosqlite:///./wb_agent.db`) so it boots immediately without requiring an external PostgreSQL server.

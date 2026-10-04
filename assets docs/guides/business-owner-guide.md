@@ -8,7 +8,8 @@ status: complete
 
 # 💼 Business Owner & Operator Playbook — WhatsApp AI Agent by NS
 
-> **Engineered by Naboraj Sarkar (NS)** · *Complete no-code guide for store owners, founders, sales directors, and commercial operators to configure any business, connect WhatsApp, manage leads, and close orders 24/7.*
+> **Engineered by [Naboraj Sarkar (NS)](https://naborajs.me)** · 📖 **Live Documentation**: [naborajs.me/projects/whatsapp-ai-agent-dual-brain/docs](https://naborajs.me/projects/whatsapp-ai-agent-dual-brain/docs) · 🌐 **Online Chapters**: [Pricing & Catalog (Ch 4)](https://naborajs.me/docs/whatsapp-ai-agent/ch-4-catalog-pricing) · [Human Takeover (Ch 8)](https://naborajs.me/docs/whatsapp-ai-agent/ch-8-human-takeover)  
+> *Complete no-code guide for store owners, founders, sales directors, and commercial operators to configure any business, connect WhatsApp, manage leads, and close orders 24/7.*
 
 ---
 
