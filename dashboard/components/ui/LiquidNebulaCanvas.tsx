@@ -44,7 +44,7 @@ export default function LiquidNebulaCanvas({
 
     const colors = [
       "rgba(56, 189, 248, ",   // sky / cyan
-      "rgba(168, 85, 247, ",   // violet / purple
+      "rgba(0, 93, 255, ",     // royal blue
       "rgba(16, 185, 129, ",   // emerald
       "rgba(245, 158, 11, ",   // warm amber
     ];
@@ -85,7 +85,7 @@ export default function LiquidNebulaCanvas({
       // 1. Draw Liquid Wave Bands (Frosted Ethereal Streams)
       const waves = [
         { yOffset: height * 0.32, amplitude: 35, frequency: 0.0022, speed: 0.015, color: "rgba(56, 189, 248, 0.06)" },
-        { yOffset: height * 0.52, amplitude: 45, frequency: 0.0018, speed: -0.012, color: "rgba(168, 85, 247, 0.05)" },
+        { yOffset: height * 0.52, amplitude: 45, frequency: 0.0018, speed: -0.012, color: "rgba(0, 93, 255, 0.05)" },
         { yOffset: height * 0.72, amplitude: 30, frequency: 0.0026, speed: 0.018, color: "rgba(16, 185, 129, 0.04)" },
       ];
 
@@ -127,7 +127,7 @@ export default function LiquidNebulaCanvas({
           260
         );
         mouseGlow.addColorStop(0, "rgba(56, 189, 248, 0.09)");
-        mouseGlow.addColorStop(0.5, "rgba(168, 85, 247, 0.04)");
+        mouseGlow.addColorStop(0.5, "rgba(0, 93, 255, 0.04)");
         mouseGlow.addColorStop(1, "transparent");
         ctx.fillStyle = mouseGlow;
         ctx.fillRect(0, 0, width, height);
