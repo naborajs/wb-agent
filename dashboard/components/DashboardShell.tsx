@@ -660,6 +660,18 @@ export default function DashboardShell({ children }: { children: React.ReactNode
               <Play className="w-3.5 h-3.5 fill-current" />
               <span>Showcase</span>
             </button>
+
+            {/* Official Online Documentation Hub */}
+            <a
+              href="https://naborajs.me/projects/whatsapp-ai-agent-dual-brain/docs"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border bg-card text-foreground text-xs font-medium hover:bg-muted transition-colors cursor-pointer"
+              title="Official Documentation Hub on naborajs.me"
+            >
+              <BookOpen className="w-3.5 h-3.5 text-emerald-500" />
+              <span>Docs Hub</span>
+            </a>
           </div>
 
           <div className="flex items-center gap-2">
@@ -938,6 +950,25 @@ export default function DashboardShell({ children }: { children: React.ReactNode
                       <Sliders className="w-3.5 h-3.5" />
                       Pair WhatsApp / Verify Setup
                     </button>
+                    <a
+                      href="https://naborajs.me/projects/whatsapp-ai-agent-dual-brain/docs"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="ed-press ed-focus-ring w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-medium text-[var(--ed-text-primary)] border border-[var(--ed-border)] hover:bg-[var(--ed-bg)] transition-colors"
+                    >
+                      <BookOpen className="w-3.5 h-3.5 text-emerald-500" />
+                      Documentation Hub
+                    </a>
+                    <div className="text-center pt-1">
+                      <a
+                        href="https://naborajs.me"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[10px] text-[var(--ed-text-muted)] hover:text-emerald-500 transition-colors"
+                      >
+                        Architected by Naboraj Sarkar (naborajs.me)
+                      </a>
+                    </div>
                   </div>
                 </div>
               )}

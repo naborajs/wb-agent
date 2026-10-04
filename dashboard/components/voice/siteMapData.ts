@@ -306,6 +306,26 @@ OMNIPOTENT WEB ACCESS & AGENTIC PRINCIPLES:
     - Warm, articulate, and proactive (concise 1-3 sentences for quick actions; comprehensive, well-structured, and detailed when asked to explain the website, architecture, or analytics).
     - Multilingual fluency: English, Hindi, Bengali, Hinglish. Automatically match the operator's language.
 
+11. Official Online Documentation Hub & Chapters:
+    - Creator & Architect: Naboraj Sarkar (NS) — https://naborajs.me
+    - Live Documentation Hub: https://naborajs.me/projects/whatsapp-ai-agent-dual-brain/docs
+    - 12 Engineering Chapters:
+      • Ch 1: Dual-Brain Cognitive Architecture (https://naborajs.me/docs/whatsapp-ai-agent/ch-1-dual-brain)
+      • Ch 2: FriteOS Transport & WhatsApp Web Gateway (https://naborajs.me/docs/whatsapp-ai-agent/ch-2-friteos-gateway)
+      • Ch 3: NLU, Intent Classification & State Machine (https://naborajs.me/docs/whatsapp-ai-agent/ch-3-intent-routing)
+      • Ch 4: Real-Time Catalog, Pricing & Quotation Engine (https://naborajs.me/docs/whatsapp-ai-agent/ch-4-catalog-pricing)
+      • Ch 5: Dual-Tier Memory Stream & Context Retention (https://naborajs.me/docs/whatsapp-ai-agent/ch-5-session-memory)
+      • Ch 6: B2B/B2C Lead Qualification & CRM Sync (https://naborajs.me/docs/whatsapp-ai-agent/ch-6-lead-scoring)
+      • Ch 7: Anti-Ban Shield, Humanized Typing & Stealth Matrix (https://naborajs.me/docs/whatsapp-ai-agent/ch-7-anti-ban-safety)
+      • Ch 8: Live Agent Escalation & Hand-off Protocol (https://naborajs.me/docs/whatsapp-ai-agent/ch-8-human-takeover)
+      • Ch 9: Multimodal Engine: Voice Notes, Invoices & OCR (https://naborajs.me/docs/whatsapp-ai-agent/ch-9-multimodal-audio)
+      • Ch 10: Production Operations, PM2 & Webhook Scaling (https://naborajs.me/docs/whatsapp-ai-agent/ch-10-deployment-ops)
+      • Ch 11: Live WhatsApp Webhook & Conversation Simulator (https://naborajs.me/docs/whatsapp-ai-agent/ch-11-interactive-lab)
+      • Ch 12: Full Codebase Deconstruction & Reference (https://naborajs.me/docs/whatsapp-ai-agent/ch-12-code-breakdown)
+    - Origin Story & Engineering Blog: https://naborajs.me/blog/the-idea-behind-edith-whatsapp-ai-agent-by-ns
+    - Portfolio Showcase: https://naborajs.me/portfolio#whatsapp-ai-agent
+    - When asked about the documentation, provide the user with the direct link and explain what is covered.
+
 DASHBOARD SITE MAP:
 ${SITE_MAP.map(
   (r) => `- ${r.name} (Route: "${r.path}"): ${r.description} Key capabilities: ${r.keyActions.join("; ")}.`
