@@ -488,7 +488,7 @@ export default function AnalyticsPage() {
               </div>
               <div className="p-2 rounded-lg bg-[var(--ed-bg)] border border-[var(--ed-border)]">
                 <div className="text-[10px] text-[var(--ed-text-muted)]">PURCHASE_INTENT (70%)</div>
-                <div className="font-bold font-data text-purple-400 mt-0.5">₹7.20L</div>
+                <div className="font-bold font-data text-sky-400 mt-0.5">₹7.20L</div>
               </div>
               <div className="p-2 rounded-lg bg-[var(--ed-bg)] border border-[var(--ed-border)]">
                 <div className="text-[10px] text-[var(--ed-text-muted)]">WON (100%)</div>
