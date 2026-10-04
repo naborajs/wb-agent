@@ -19,6 +19,7 @@ import {
   Compass,
 } from "lucide-react";
 import MessageLoading from "@/components/ui/MessageLoading";
+import { Component as AiLoader } from "@/components/ui/ai-loader";
 
 interface BriefingData {
   timeframe: string;
@@ -152,7 +153,7 @@ export default function ExecutiveBriefingModal({
               ? Number(briefing.metrics.compute_cost_usd).toFixed(4)
               : "0.0076"
           }`,
-          icon: <Zap className="w-4 h-4 text-purple-500" />,
+          icon: <Zap className="w-4 h-4 text-cyan-500" />,
         },
       ],
     },
@@ -174,7 +175,7 @@ export default function ExecutiveBriefingModal({
         {
           label: "Active Nodes",
           value: "7 Connected",
-          icon: <Cpu className="w-4 h-4 text-purple-500" />,
+          icon: <Cpu className="w-4 h-4 text-cyan-500" />,
         },
         {
           label: "Autonomous Rate",
@@ -206,7 +207,7 @@ export default function ExecutiveBriefingModal({
         {
           label: "Objection Resolution",
           value: "70% Auto-Rate",
-          icon: <CheckCircle2 className="w-4 h-4 text-purple-500" />,
+          icon: <CheckCircle2 className="w-4 h-4 text-cyan-500" />,
         },
       ],
     },
@@ -297,9 +298,9 @@ export default function ExecutiveBriefingModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-in fade-in">
-      <div className="relative w-full max-w-2xl bg-white dark:bg-[#0B0F19] border border-purple-300 dark:border-[#8B5CF6]/40 rounded-3xl p-6 sm:p-8 shadow-2xl overflow-hidden text-slate-900 dark:text-white transition-colors">
+      <div className="relative w-full max-w-2xl bg-white dark:bg-[#0B0F19] border border-sky-300 dark:border-sky-500/40 rounded-3xl p-6 sm:p-8 shadow-2xl overflow-hidden text-slate-900 dark:white transition-colors">
         {/* Glow Effects */}
-        <div className="absolute -top-20 -left-20 w-64 h-64 bg-purple-500/15 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -top-20 -left-20 w-64 h-64 bg-sky-500/15 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-20 -right-20 w-64 h-64 bg-sky-500/15 rounded-full blur-3xl pointer-events-none" />
 
         {/* Close Button */}
@@ -316,11 +317,11 @@ export default function ExecutiveBriefingModal({
         {/* Header Strip */}
         <div className="flex items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-purple-600 to-sky-500 flex items-center justify-center text-white shadow-lg shadow-purple-500/20">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 to-sky-400 flex items-center justify-center text-white shadow-lg shadow-sky-500/20">
               <Volume2 className="w-6 h-6 animate-pulse" />
             </div>
             <div>
-              <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-purple-100 dark:bg-[#8B5CF6]/15 text-purple-700 dark:text-[#A855F7] border border-purple-300/60 dark:border-[#8B5CF6]/30">
+              <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-sky-100 dark:bg-sky-950/50 text-sky-700 dark:text-sky-300 border border-sky-300/60 dark:border-sky-500/30">
                 <Sparkles className="w-3 h-3" />
                 FRIDAY VOICE SYNTHESIS • GEMINI 3.1 FLASH LIVE
               </div>
@@ -336,7 +337,7 @@ export default function ExecutiveBriefingModal({
               onClick={() => setTimeframe("today")}
               className={`px-3 py-1.5 rounded-lg font-semibold transition-all ${
                 timeframe === "today"
-                  ? "bg-purple-600 text-white shadow-sm"
+                  ? "bg-sky-600 text-white shadow-sm"
                   : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
               }`}
             >
@@ -346,7 +347,7 @@ export default function ExecutiveBriefingModal({
               onClick={() => setTimeframe("yesterday")}
               className={`px-3 py-1.5 rounded-lg font-semibold transition-all ${
                 timeframe === "yesterday"
-                  ? "bg-purple-600 text-white shadow-sm"
+                  ? "bg-sky-600 text-white shadow-sm"
                   : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
               }`}
             >
@@ -361,7 +362,7 @@ export default function ExecutiveBriefingModal({
             onClick={() => handleSelectTopic("operations")}
             className={`p-2.5 rounded-xl border font-mono text-xs font-bold transition-all flex flex-col items-center gap-1 ${
               topic === "operations"
-                ? "bg-purple-600 text-white border-purple-500 shadow-md scale-[1.02]"
+                ? "bg-sky-600 text-white border-sky-500 shadow-md scale-[1.02]"
                 : "bg-slate-50 dark:bg-[#0E1322] text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800/80"
             }`}
           >
@@ -393,14 +394,13 @@ export default function ExecutiveBriefingModal({
         </div>
 
         {/* Dynamic Speech Waveform Visualizer */}
-        <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-50 via-purple-50/20 to-sky-50/20 dark:from-[#0E1322] dark:to-[#111726] border border-purple-200/80 dark:border-[#8B5CF6]/25">
+        <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-50 via-sky-50/20 to-blue-50/20 dark:from-[#090d16] dark:to-[#0c162d] border border-sky-200/80 dark:border-sky-500/25">
           <div className="flex items-center justify-between mb-2 text-xs font-mono">
-            <span className="text-purple-600 dark:text-[#A855F7] font-bold flex items-center gap-1.5">
+            <span className="text-sky-600 dark:text-sky-400 font-bold flex items-center gap-1.5">
               <Radio className={`w-3.5 h-3.5 ${isPlaying || isLoading ? "animate-pulse" : ""}`} />
               {isLoading ? (
                 <span className="inline-flex items-center gap-1.5">
                   Friday synthesizing briefing
-                  <MessageLoading className="text-purple-500 w-4 h-4" />
                 </span>
               ) : isPlaying ? (
                 `Friday explaining: ${currentTopicData.title}`
@@ -411,11 +411,13 @@ export default function ExecutiveBriefingModal({
             <span className="text-slate-500">{isLoading ? "Syncing..." : `${playbackProgress}%`}</span>
           </div>
 
-          {/* Animated Waveform Bars or Friday Thinking Wave */}
+          {/* Animated Waveform Bars or Friday Thinking Wave with AiLoader */}
           {isLoading ? (
-            <div className="flex items-center justify-center gap-3 h-10 py-1 text-xs font-mono text-purple-600 dark:text-purple-400">
-              <MessageLoading className="text-purple-500 scale-125" />
-              <span className="font-semibold tracking-wide">Querying live brain telemetry & compiling debrief...</span>
+            <div className="flex flex-col items-center justify-center py-3 rounded-xl bg-black/70 border border-sky-500/30 text-xs font-mono text-sky-400">
+              <AiLoader fullScreen={false} size={90} text="Synthesizing" />
+              <span className="mt-2 text-[10px] font-semibold tracking-wider text-sky-300">
+                Querying live brain telemetry &amp; compiling debrief...
+              </span>
             </div>
           ) : (
             <div className="flex items-center justify-center gap-1.5 h-10 py-1">
@@ -425,7 +427,7 @@ export default function ExecutiveBriefingModal({
                     key={i}
                     className={`w-1.5 rounded-full transition-all duration-150 ${
                       isPlaying
-                        ? "bg-gradient-to-t from-purple-600 to-sky-400"
+                        ? "bg-gradient-to-t from-blue-600 to-sky-400"
                         : "bg-slate-300 dark:bg-slate-700"
                     }`}
                     style={{
@@ -443,7 +445,7 @@ export default function ExecutiveBriefingModal({
               <button
                 onClick={togglePlayPause}
                 disabled={isLoading}
-                className="px-4 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white text-xs font-mono font-bold flex items-center gap-2 transition-all shadow-md"
+                className="px-4 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-500 disabled:opacity-50 text-white text-xs font-mono font-bold flex items-center gap-2 transition-all shadow-md"
               >
                 {isLoading ? (
                   <>
