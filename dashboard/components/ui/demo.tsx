@@ -1,4 +1,11 @@
+"use client";
+
+import { Component } from "@/components/ui/ai-loader";
 import Dashboard from "@/components/ui/dashboard-4";
+
+export function DemoOne() {
+  return <Component />;
+}
 
 export function DashboardDemo() {
   return (
@@ -8,4 +15,4 @@ export function DashboardDemo() {
   );
 }
 
-export default DashboardDemo;
+export default DemoOne;
