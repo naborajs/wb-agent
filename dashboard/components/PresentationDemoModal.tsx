@@ -18,6 +18,7 @@ import {
   Bell,
   Loader2,
 } from "lucide-react";
+import { AiLoader } from "@/components/ui/ai-loader";
 
 interface DemoStep {
   step: number;
@@ -130,7 +131,7 @@ export function PresentationDemoModal({ isOpen, onClose }: PresentationDemoModal
           style={{ background: "var(--ed-bg)" }}
         >
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-600 to-purple-600 text-white flex items-center justify-center shadow-md">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-sky-500 to-blue-600 text-white flex items-center justify-center shadow-md">
               <Sparkles className="w-5 h-5" />
             </div>
             <div>
@@ -198,7 +199,7 @@ export function PresentationDemoModal({ isOpen, onClose }: PresentationDemoModal
                 }}
                 className={`px-3 py-2.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer ${
                   voiceEnabled
-                    ? "border-purple-500/40 bg-purple-500/15 text-purple-600 dark:text-purple-300"
+                    ? "border-sky-500/40 bg-sky-500/15 text-sky-600 dark:text-sky-300"
                     : "border-[var(--ed-border)] text-[var(--ed-text-muted)]"
                 }`}
               >
@@ -245,7 +246,7 @@ export function PresentationDemoModal({ isOpen, onClose }: PresentationDemoModal
                 <div className="text-xs font-extrabold text-[var(--ed-text-primary)] mt-1 truncate">
                   {result.featured_product}
                 </div>
-                <div className="text-[11px] font-mono text-purple-600 dark:text-purple-400 font-semibold">
+                <div className="text-[11px] font-mono text-sky-600 dark:text-sky-400 font-semibold">
                   SKU: {result.featured_sku} • Margin Protected
                 </div>
               </div>
@@ -268,7 +269,14 @@ export function PresentationDemoModal({ isOpen, onClose }: PresentationDemoModal
           )}
 
           {/* 5-Stage Pipeline Steps */}
-          {result ? (
+          {isRunning && !result ? (
+            <div className="py-12 flex flex-col items-center justify-center space-y-4">
+              <AiLoader fullScreen={false} size={150} text="Orchestrating" />
+              <p className="text-xs font-mono text-[var(--ed-text-muted)] animate-pulse">
+                Dual-Brain Synaptic Bus: Friday &amp; Edith are negotiating and generating order...
+              </p>
+            </div>
+          ) : result ? (
             <div className="space-y-3">
               {result.steps.map((s, idx) => {
                 const isRevealed = idx < visibleStepCount;
@@ -364,7 +372,7 @@ export function PresentationDemoModal({ isOpen, onClose }: PresentationDemoModal
               className="px-3 py-1.5 rounded-xl border border-[var(--ed-border)] font-bold text-[var(--ed-text-primary)] flex items-center gap-1.5 cursor-pointer"
               style={{ background: "var(--ed-surface)" }}
             >
-              <Brain className="w-3.5 h-3.5 text-purple-500" /> Open Dual-Brain Console
+              <Brain className="w-3.5 h-3.5 text-sky-500" /> Open Dual-Brain Console
             </button>
             <button
               onClick={() => {
