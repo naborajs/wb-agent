@@ -617,8 +617,8 @@ export default function DualBrainHeroBus({
               ? "#00D2FE"
               : "#0284C7"
             : isDark
-            ? "#A855F7"
-            : "#7C3AED",
+            ? "#38BDF8"
+            : "#005DFF",
         alpha: Math.random() * 0.6 + 0.4,
         direction: i % 2 === 0 ? 1 : -1,
         curveOffset: (Math.random() - 0.5) * 14,
@@ -713,7 +713,7 @@ export default function DualBrainHeroBus({
     <div className="rounded-3xl bg-white/95 dark:bg-[#0B0F19] text-slate-900 dark:text-white border border-slate-200/90 dark:border-[#1E293B] shadow-lg dark:shadow-2xl relative overflow-hidden transition-colors">
       {/* Dynamic Ambient Space Glow */}
       <div className="absolute -top-24 left-1/4 w-96 h-96 rounded-full bg-sky-400/10 dark:bg-[#00D2FE]/10 blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-24 right-1/4 w-96 h-96 rounded-full bg-violet-400/10 dark:bg-[#8B5CF6]/10 blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-24 right-1/4 w-96 h-96 rounded-full bg-cyan-400/10 dark:bg-[#00D2FE]/10 blur-3xl pointer-events-none" />
 
       {/* Top Telemetry Header Bar */}
       <div className="px-5 sm:px-6 py-3.5 border-b border-slate-200 dark:border-[#1E293B] flex flex-wrap items-center justify-between gap-3 bg-slate-50/80 dark:bg-[#0E1322]/80 backdrop-blur-md">
