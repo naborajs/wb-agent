@@ -4,6 +4,12 @@
   WHATSAPP AI AGENT BY NS — DUAL-BRAIN OPERATING SYSTEM
   Unified All-In-One Orchestrator: Check, Auto-Install, Configure, Start & Stream
   FRIDAY (Google Gemini 3.1 Flash Live) & EDITH (NVIDIA NIM)
+
+  Architected & Engineered by Naboraj Sarkar (NS)
+  Official Website: https://naborajs.me
+  Documentation Hub: https://naborajs.me/projects/whatsapp-ai-agent-dual-brain/docs
+  Operations & Scaling (Ch 10): https://naborajs.me/docs/whatsapp-ai-agent/ch-10-deployment-ops
+  Codebase Reference (Ch 12): https://naborajs.me/docs/whatsapp-ai-agent/ch-12-code-breakdown
 ===============================================================================
 Usage:
     python run.py             # Full check, auto-install missing packages, and launch all services
@@ -596,7 +602,8 @@ def main():
   |    • FRIDAY : Executive Web Copilot & Voice Agent (Gemini 3.1 Flash Live)     |
   |    • EDITH  : Autonomous Commercial Closer & WhatsApp Negotiator (NVIDIA NIM) |
   |                                                                               |
-  |    Industry-Agnostic • Full Autonomy • Real-Time Voice & Live Inter-Brain Bus |
+  |    Website  : https://naborajs.me                                             |
+  |    Docs Hub : https://naborajs.me/projects/whatsapp-ai-agent-dual-brain/docs  |
   +-------------------------------------------------------------------------------+{C.RESET}""")
 
     # 1. Environment & Pre-Flight Checks
@@ -738,6 +745,8 @@ def main():
     {C.CYAN}• Notification Center:{C.RESET}       http://localhost:{dash_port}/notifications
     {C.WHITE}• Backend API & Docs:{C.RESET}        http://localhost:{backend_port}/api/v1/docs
     {C.MAGENTA}• WhatsApp Bridge:{C.RESET}           http://localhost:{bridge_port}
+    {C.GREEN}• Online Documentation:{C.RESET}      https://naborajs.me/projects/whatsapp-ai-agent-dual-brain/docs
+    {C.GREEN}• Creator Website:{C.RESET}           https://naborajs.me
 
   {C.BOLD}{C.YELLOW}┌─────────────────────────────────────────────────────────────────────────────┐{C.RESET}
   {C.BOLD}{C.YELLOW}│            WHATSAPP AGENT CONNECTION GUIDE — 3 SIMPLE WAYS TO CONNECT       │{C.RESET}
