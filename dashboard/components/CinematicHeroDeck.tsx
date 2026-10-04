@@ -80,8 +80,8 @@ const SYNAPTIC_PACKETS: SynapticPacketStep[] = [
     source: "FRIDAY",
     target: "BUS",
     latency: "9.2ms",
-    color: "#A855F7",
-    badgeClass: "bg-purple-500/15 text-purple-600 dark:text-purple-400 border-purple-500/30",
+    color: "#38BDF8",
+    badgeClass: "bg-sky-500/15 text-sky-600 dark:text-sky-400 border-sky-500/30",
     summary: "Gemini 3.1 Live extracts entities & delegates to EDITH",
     payload: '{ "delegate_to": "EDITH_CORE", "tier": "WHOLESALE_T3", "history": "2_WON_ORDERS" }',
   },
@@ -171,7 +171,7 @@ export default function CinematicHeroDeck({
 
       {/* 2. Top Specular Ambient Gradients */}
       <div className="absolute -top-32 -left-32 w-96 h-96 bg-sky-500/15 dark:bg-[#00D2FE]/15 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute -top-32 -right-32 w-96 h-96 bg-purple-500/15 dark:bg-[#A855F7]/15 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -top-32 -right-32 w-96 h-96 bg-cyan-500/15 dark:bg-[#00D2FE]/15 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] bg-amber-500/10 dark:bg-[#F59E0B]/10 rounded-full blur-3xl pointer-events-none" />
 
       {/* 3. Main Content Container */}
@@ -184,7 +184,7 @@ export default function CinematicHeroDeck({
                 <span className="w-2 h-2 rounded-full bg-sky-500 dark:bg-[#00D2FE] animate-ping" />
                 <span>DUAL-BRAIN AI OPERATING SYSTEM</span>
                 <span className="text-slate-400 dark:text-slate-600">•</span>
-                <span className="text-purple-600 dark:text-[#A855F7]">GEMINI 3.1 LIVE</span>
+                <span className="text-sky-600 dark:text-[#38BDF8]">GEMINI 3.1 LIVE</span>
                 <span className="text-slate-400 dark:text-slate-600">+</span>
                 <span className="text-amber-600 dark:text-[#F59E0B]">NEMOTRON 3.5 ULTRA</span>
               </div>
@@ -200,7 +200,7 @@ export default function CinematicHeroDeck({
             </h1>
             <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 max-w-3xl leading-relaxed">
               Two specialized neural architectures synchronized over a <strong>&lt;12ms synaptic bus</strong>:{" "}
-              <strong className="text-purple-600 dark:text-purple-400">FRIDAY</strong> handles 16kHz live voice, screen DOM vision &amp; executive briefings;{" "}
+              <strong className="text-sky-600 dark:text-sky-400">FRIDAY</strong> handles 16kHz live voice, screen DOM vision &amp; executive briefings;{" "}
               <strong className="text-amber-600 dark:text-amber-400">EDITH</strong> executes B2B price negotiation, RAG catalog lookup &amp; deterministic <strong>5.0% margin defense</strong>.
             </p>
           </div>
@@ -219,10 +219,10 @@ export default function CinematicHeroDeck({
             {onPlayBriefing && (
               <button
                 onClick={onPlayBriefing}
-                className="px-3.5 py-2 rounded-xl text-xs font-mono font-bold bg-purple-500/15 hover:bg-purple-500/25 text-purple-700 dark:text-purple-300 border border-purple-500/30 transition-all flex items-center gap-1.5 shadow-sm active:scale-95 cursor-pointer"
+                className="px-3.5 py-2 rounded-xl text-xs font-mono font-bold bg-sky-500/15 hover:bg-sky-500/25 text-sky-700 dark:text-sky-300 border border-sky-500/30 transition-all flex items-center gap-1.5 shadow-sm active:scale-95 cursor-pointer"
                 title="Listen to Friday's spoken executive briefing"
               >
-                <Volume2 className="w-3.5 h-3.5 text-purple-500" />
+                <Volume2 className="w-3.5 h-3.5 text-sky-500" />
                 <span>Audio Briefing</span>
               </button>
             )}
@@ -241,7 +241,7 @@ export default function CinematicHeroDeck({
             {onPlayCinematicTour && (
               <button
                 onClick={onPlayCinematicTour}
-                className="px-4 py-2 rounded-xl text-xs font-mono font-bold bg-gradient-to-r from-sky-500 to-purple-600 hover:from-sky-400 hover:to-purple-500 text-white shadow-lg shadow-sky-500/20 active:scale-95 transition-transform flex items-center gap-2 cursor-pointer"
+                className="px-4 py-2 rounded-xl text-xs font-mono font-bold bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white shadow-lg shadow-sky-500/20 active:scale-95 transition-transform flex items-center gap-2 cursor-pointer"
               >
                 <Play className="w-3.5 h-3.5 fill-white" />
                 <span>Workflow Theater</span>
@@ -256,16 +256,16 @@ export default function CinematicHeroDeck({
           <div
             className={`lg:col-span-4 ed-glass-luxury ed-glass-card p-6 flex flex-col justify-between group transition-all ${
               activePacket.source === "FRIDAY" || activePacket.target === "FRIDAY"
-                ? "ring-2 ring-purple-500/60 shadow-lg shadow-purple-500/10"
+                ? "ring-2 ring-sky-500/60 shadow-lg shadow-sky-500/10"
                 : ""
             }`}
           >
-            <div className="absolute top-0 right-0 w-44 h-44 bg-purple-500/10 dark:bg-[#A855F7]/10 rounded-full blur-2xl pointer-events-none" />
+            <div className="absolute top-0 right-0 w-44 h-44 bg-sky-500/10 dark:bg-[#38BDF8]/10 rounded-full blur-2xl pointer-events-none" />
 
             <div>
               {/* Card Header Badge */}
               <div className="flex items-center justify-between">
-                <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold bg-purple-100 dark:bg-[#8B5CF6]/15 text-purple-700 dark:text-[#A855F7] border border-purple-200 dark:border-[#8B5CF6]/30">
+                <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold bg-sky-100 dark:bg-sky-500/15 text-sky-700 dark:text-sky-400 border border-sky-200 dark:border-sky-500/30">
                   <Bot className="w-3.5 h-3.5" />
                   <span>FRONT BRAIN // VOICE &amp; VISION</span>
                 </div>
@@ -293,7 +293,7 @@ export default function CinematicHeroDeck({
                 {["DOM Screen Vision", "Voice UI Control", "Audio Debriefs", "Multilingual"].map((cap) => (
                   <span
                     key={cap}
-                    className="px-2 py-0.5 rounded-md text-[10px] font-mono font-semibold bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20"
+                    className="px-2 py-0.5 rounded-md text-[10px] font-mono font-semibold bg-sky-500/10 text-sky-700 dark:text-sky-300 border border-sky-500/20"
                   >
                     {cap}
                   </span>
@@ -317,13 +317,13 @@ export default function CinematicHeroDeck({
                 {/* Pulsing Audio Waveform Indicator */}
                 <div className="absolute bottom-1 inset-x-3 p-2 rounded-xl bg-white/95 dark:bg-zinc-950/90 border border-slate-200/80 dark:border-white/10 flex items-center justify-between text-[11px] font-mono text-slate-600 dark:text-slate-300">
                   <div className="flex items-center gap-1.5">
-                    <Volume2 className="w-3.5 h-3.5 text-purple-500 animate-pulse" />
+                    <Volume2 className="w-3.5 h-3.5 text-sky-500 animate-pulse" />
                     <span>16kHz PCM + DOM Grounded</span>
                   </div>
                   <div className="flex items-center gap-0.5 h-3">
-                    <span className="w-1 h-2 bg-purple-500 rounded-full animate-pulse" />
+                    <span className="w-1 h-2 bg-sky-500 rounded-full animate-pulse" />
                     <span className="w-1 h-3 bg-sky-400 rounded-full animate-pulse" />
-                    <span className="w-1 h-2.5 bg-purple-400 rounded-full animate-pulse" />
+                    <span className="w-1 h-2.5 bg-cyan-400 rounded-full animate-pulse" />
                     <span className="w-1 h-3 bg-emerald-400 rounded-full animate-pulse" />
                   </div>
                 </div>
@@ -337,7 +337,7 @@ export default function CinematicHeroDeck({
                 </div>
                 <div className="p-2.5 rounded-xl bg-slate-100/80 dark:bg-white/5 border border-slate-200 dark:border-white/10">
                   <span className="text-[10px] text-slate-400 block">Context Window</span>
-                  <span className="font-bold text-purple-600 dark:text-[#A855F7]">1,048,576 tok</span>
+                  <span className="font-bold text-sky-600 dark:text-sky-400">1,048,576 tok</span>
                 </div>
               </div>
             </div>
@@ -355,7 +355,7 @@ export default function CinematicHeroDeck({
                     if (voiceBtn) voiceBtn.click();
                   }
                 }}
-                className="w-full py-2.5 rounded-xl font-mono text-xs font-bold bg-purple-600 hover:bg-purple-500 text-white flex items-center justify-center gap-2 shadow-md shadow-purple-600/25 active:scale-95 transition-all cursor-pointer"
+                className="w-full py-2.5 rounded-xl font-mono text-xs font-bold bg-sky-600 hover:bg-sky-500 text-white flex items-center justify-center gap-2 shadow-md shadow-sky-600/25 active:scale-95 transition-all cursor-pointer"
               >
                 <Mic className="w-3.5 h-3.5" />
                 <span>Talk with Friday (Live Voice)</span>
@@ -402,12 +402,12 @@ export default function CinematicHeroDeck({
                   <div
                     className={`flex flex-col items-center p-2 rounded-xl border transition-all ${
                       activePacket.source === "FRIDAY" || activePacket.target === "FRIDAY"
-                        ? "bg-purple-500/20 border-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.4)] scale-105"
+                        ? "bg-sky-500/20 border-sky-400 shadow-[0_0_15px_rgba(56,189,248,0.4)] scale-105"
                         : "bg-slate-900/90 border-slate-800"
                     }`}
                   >
-                    <Bot className="w-5 h-5 text-purple-400" />
-                    <span className="text-[10px] font-mono font-bold mt-1 text-purple-300">FRIDAY</span>
+                    <Bot className="w-5 h-5 text-sky-400" />
+                    <span className="text-[10px] font-mono font-bold mt-1 text-sky-300">FRIDAY</span>
                     <span className="text-[8px] font-mono text-slate-400">Voice/DOM</span>
                   </div>
 
@@ -677,25 +677,25 @@ export default function CinematicHeroDeck({
               onClick={() => {
                 if (onTalkWithFriday) onTalkWithFriday();
               }}
-              className="p-4 rounded-2xl bg-slate-50/90 dark:bg-white/[0.03] hover:bg-purple-500/5 dark:hover:bg-purple-500/10 border border-slate-200/90 dark:border-white/10 hover:border-purple-400/50 transition-all cursor-pointer group flex flex-col justify-between space-y-3"
+              className="p-4 rounded-2xl bg-slate-50/90 dark:bg-white/[0.03] hover:bg-sky-500/5 dark:hover:bg-sky-500/10 border border-slate-200/90 dark:border-white/10 hover:border-sky-400/50 transition-all cursor-pointer group flex flex-col justify-between space-y-3"
             >
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <div className="w-8 h-8 rounded-xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-600 dark:text-purple-400">
+                  <div className="w-8 h-8 rounded-xl bg-sky-500/15 border border-sky-500/30 flex items-center justify-center text-sky-600 dark:text-sky-400">
                     <Mic className="w-4 h-4" />
                   </div>
-                  <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-purple-500/10 text-purple-600 dark:text-purple-400">
+                  <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-sky-500/10 text-sky-600 dark:text-sky-400">
                     FRIDAY • VOICE
                   </span>
                 </div>
-                <h4 className="font-mono font-bold text-xs sm:text-sm text-slate-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
+                <h4 className="font-mono font-bold text-xs sm:text-sm text-slate-900 dark:text-white group-hover:text-sky-600 dark:group-hover:text-sky-400 transition-colors">
                   1. Live Voice &amp; DOM Vision
                 </h4>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
                   Speak in English, Hindi, or Bengali to click buttons, fill forms, switch themes, and inspect live screen data.
                 </p>
               </div>
-              <div className="flex items-center justify-between text-[11px] font-mono font-bold text-purple-600 dark:text-purple-400 pt-1">
+              <div className="flex items-center justify-between text-[11px] font-mono font-bold text-sky-600 dark:text-sky-400 pt-1">
                 <span>Start Voice Session</span>
                 <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
               </div>
@@ -840,7 +840,7 @@ export default function CinematicHeroDeck({
             )}
             <Link
               href="/brain"
-              className="flex-1 md:flex-initial px-4 py-2 rounded-xl text-xs font-mono font-semibold bg-purple-500/10 hover:bg-purple-500/20 text-purple-700 dark:text-purple-300 border border-purple-500/25 flex items-center justify-center gap-1 transition-all"
+              className="flex-1 md:flex-initial px-4 py-2 rounded-xl text-xs font-mono font-semibold bg-sky-500/10 hover:bg-sky-500/20 text-sky-700 dark:text-sky-300 border border-sky-500/25 flex items-center justify-center gap-1 transition-all"
             >
               <Cpu className="w-3.5 h-3.5" />
               <span>Dual-Brain Console</span>
