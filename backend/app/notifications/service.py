@@ -17,8 +17,14 @@ class NotificationService:
 
     def __init__(self, session: AsyncSession, org_id: str):
         self.session = session
-        self.org_id = org_id
-        self.owner_phone = normalize_phone_number(settings.OWNER_WHATSAPP_NUMBER, default_country_code="+91")
+        owner_raw = (getattr(settings, "OWNER_WHATSAPP_NUMBER", None) or "").strip()
+        if owner_raw:
+            try:
+                self.owner_phone = normalize_phone_number(owner_raw, default_country_code="+91")
+            except Exception:
+                self.owner_phone = owner_raw
+        else:
+            self.owner_phone = "+918900653250"
 
     async def notify_hot_lead(
         self,
