@@ -17,6 +17,7 @@ class NotificationService:
 
     def __init__(self, session: AsyncSession, org_id: str):
         self.session = session
+        self.org_id = org_id
         owner_raw = (getattr(settings, "OWNER_WHATSAPP_NUMBER", None) or "").strip()
         if owner_raw:
             try:
