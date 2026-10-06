@@ -110,15 +110,22 @@ async def receive_whatsapp_webhook(
                 effective_content = f"[{media_type_label} Attachment]"
 
             if event.event_type == "message" and effective_content:
-                from app.utils.phone import normalize_phone_number
-                try:
-                    clean_sender = normalize_phone_number(event.sender_phone)
-                except Exception:
-                    clean_sender = event.sender_phone
-                clean_sender = ConversationService.canonicalize_channel_id(clean_sender, "whatsapp")
-                raw_digits = "".join(ch for ch in clean_sender if ch.isdigit())
-                if len(raw_digits) > 13:
-                    clean_sender = "+919832439994"
+                from app.utils.phone import normalize_phone_number, is_whatsapp_group_jid
+                is_group_msg = bool(
+                    getattr(event, "is_group", False)
+                    or is_whatsapp_group_jid(event.sender_phone)
+                )
+                if is_group_msg:
+                    clean_sender = event.sender_phone.strip()
+                else:
+                    try:
+                        clean_sender = normalize_phone_number(event.sender_phone)
+                    except Exception:
+                        clean_sender = event.sender_phone
+                    clean_sender = ConversationService.canonicalize_channel_id(clean_sender, "whatsapp")
+                    raw_digits = "".join(ch for ch in clean_sender if ch.isdigit())
+                    if len(raw_digits) > 13:
+                        clean_sender = "+919832439994"
 
                 bot_phone = "918918753100"
                 digits_sender = clean_sender.replace("+", "").strip()
