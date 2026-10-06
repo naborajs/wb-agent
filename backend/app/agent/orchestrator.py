@@ -27,6 +27,7 @@ import re
 import time
 from typing import Any, Dict, List, Optional
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agent.extractor import PassiveInformationExtractor
@@ -369,7 +370,7 @@ class AgentOrchestrator:
 
         # 4. Fetch Products for Matchmaking & Grounded Pricing
         prod_res = await self.session.execute(
-            select(Product).where(Product.in_stock == True).limit(10)
+            select(Product).options(selectinload(Product.variants)).where(Product.in_stock == True).limit(10)
         )
         available_products = [
             {
@@ -380,7 +381,7 @@ class AgentOrchestrator:
                 "category": getattr(p, "category", "Tea"),
                 "base_price": getattr(p, "base_price", None),
                 "moq_kg": getattr(p, "min_order_quantity_kg", 20) or 20,
-                "variants": getattr(p, "variants", []) or [],
+                "variants": [getattr(v, "name", str(v)) for v in p.variants] if "variants" in p.__dict__ else [],
                 "description": getattr(p, "description", "") or "",
             }
             for p in prod_res.scalars().all()
@@ -565,7 +566,7 @@ class AgentOrchestrator:
                         p_price_fmt = "₹230/kg"
                     else:
                         p_price_fmt = "₹340/kg"
-                    var_str = f" | Packaging: {', '.join(str(v) for v in p_variants)}" if p_variants else ""
+                    var_str = f" | Packaging: {', '.join(str(getattr(v, 'name', v)) for v in p_variants)}" if p_variants else ""
                     catalog_lines.append(
                         f"- {p_name} ({p_cat} | Grade: {p_grade}): {p_price_fmt} | MOQ: {p_moq}kg{var_str}"
                     )
