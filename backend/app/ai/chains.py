@@ -106,3 +106,30 @@ def get_capability_chain(capability: Capability) -> List[str]:
         # Insert at-risk model at the tail only if explicitly enabled
         chain.extend(AT_RISK_MODELS)
     return chain
+
+
+def get_auto_tuned_nvidia_pool() -> List[str]:
+    """
+    Reads the dynamic, calibrated 6-tier NVIDIA model pool from shared/nvidia-models-cache.json
+    produced by the background benchmarker (scripts/tune-nvidia-models.mjs).
+    """
+    import json
+    import os
+
+    repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+    cache_path = os.path.join(repo_root, "shared", "nvidia-models-cache.json")
+    if os.path.exists(cache_path):
+        try:
+            with open(cache_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                primary = data.get("primary")
+                fallbacks = data.get("fallbacks") or []
+                if primary:
+                    res = [primary]
+                    for m in fallbacks:
+                        if m and m not in res:
+                            res.append(m)
+                    return res
+        except Exception:
+            pass
+    return []
