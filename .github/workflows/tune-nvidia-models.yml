@@ -1,0 +1,71 @@
+name: Tune NVIDIA Free Preview Models Pool
+
+on:
+  schedule:
+    # Runs twice daily at 00:00 and 12:00 UTC (Constraint: Cron twice daily)
+    - cron: "0 0,12 * * *"
+  workflow_dispatch:
+    inputs:
+      quick:
+        description: "Run in quick mode (2 warm latency samples instead of 4)"
+        required: false
+        type: boolean
+        default: false
+      max_models:
+        description: "Maximum models to benchmark (empty for all discovered models)"
+        required: false
+        type: string
+        default: ""
+
+permissions:
+  contents: write
+
+jobs:
+  benchmark-and-sync:
+    name: Benchmark NVIDIA Preview Models & Sync Fallback Pool
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 1
+
+      - name: Set up Node.js 20 LTS
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Run NVIDIA Model Benchmarker & Sync
+        env:
+          NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
+          NVIDIA_FALLBACK_API_KEY: ${{ secrets.NVIDIA_FALLBACK_API_KEY }}
+          NVIDIA_BASE_URL: ${{ secrets.NVIDIA_BASE_URL || 'https://integrate.api.nvidia.com/v1' }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          ARGS=""
+          if [ "${{ inputs.quick }}" = "true" ]; then
+            ARGS="$ARGS --quick"
+          fi
+          if [ -n "${{ inputs.max_models }}" ]; then
+            ARGS="$ARGS --max-models ${{ inputs.max_models }}"
+          fi
+          echo "Executing: node scripts/tune-nvidia-models.mjs $ARGS"
+          node scripts/tune-nvidia-models.mjs $ARGS
+
+      - name: Commit & Push Updated Offline Cache
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if ! git diff --quiet shared/nvidia-models-cache.json; then
+            echo "Changes detected in shared/nvidia-models-cache.json. Committing..."
+            git add shared/nvidia-models-cache.json
+            git commit -m "chore(ai): auto-tune NVIDIA model pool & refresh warm latencies [skip ci]"
+            git push origin HEAD:${{ github.ref }}
+          else
+            echo "No latency changes or updates detected in shared/nvidia-models-cache.json. Skipping commit."
+          fi
