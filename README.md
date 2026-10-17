@@ -35,6 +35,7 @@ Whether you are a **15-year-old student** running your first AI project, a **bus
 | 📱 **WhatsApp & DevOps Integrator** | [Dual WhatsApp Gateway Controls](#-dual-whatsapp-gateway-unofficial-qr-bridge-vs-official-meta-cloud-api) | 👉 **[WhatsApp Connectivity Guide](assets%20docs/guides/whatsapp-bridge-guide.md)** & **[Production Runbook](assets%20docs/runbooks/production-deployment.md)** |
 | 🔌 **API & Frontend Engineer** | [Part 6: Master Documentation Hub](#-part-6-complete-documentation-directory--redirection-hub) | 👉 **[Complete REST API & WebSocket Reference (137 Endpoints)](assets%20docs/api-reference.md)** |
 | 🖤 **UI / UX & Frontend Developers** | [Minimalist Black & White System](docs/MINIMALIST_DASHBOARD_UPGRADE.md) | 👉 **[Minimalist Dual-Theme & Dashboard-4 Guide](docs/MINIMALIST_DASHBOARD_UPGRADE.md)** |
+| ⚡ **AI Systems & LLM Engineers** | [NVIDIA 6-Tier Fallback Engine](docs/nvidia-free-model-autotuning-and-fallbacks.md) | 👉 **[NVIDIA Free Preview Discovery, Speed Tuning & 6-Tier Fallbacks](docs/nvidia-free-model-autotuning-and-fallbacks.md)** |
 
 ---
 
@@ -388,6 +389,7 @@ The official documentation suite is deployed on [naborajs.me](https://naborajs.m
 - **[04. Next.js 14 Dashboard Setup](assets%20docs/setup/04-dashboard-frontend-setup.md)**
 - **[05. WhatsApp Integration Guide](assets%20docs/setup/05-whatsapp-integration-guide.md)**
 - **[06. NVIDIA NIM & Gemini LLM Setup](assets%20docs/setup/06-nvidia-nemotron-and-llm-setup.md)**
+- **[⚡ NVIDIA Free Preview Discovery, Speed Tuning & 6-Tier Fallbacks](docs/nvidia-free-model-autotuning-and-fallbacks.md)**
 - **[07. Owner Escalation Channel Setup](assets%20docs/setup/07-owner-escalation-channel.md)**
 - **[08. End-to-End Verification Runbook](assets%20docs/setup/08-end-to-end-verification.md)**
 - **[09. Production Deployment Checklist](assets%20docs/setup/09-production-deployment-checklist.md)**
