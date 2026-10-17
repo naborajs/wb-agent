@@ -1,95 +1,88 @@
 {
   "version": "1.0.0",
-  "updated_at": "2026-10-17T15:00:00.000Z",
+  "updated_at": "2026-10-17T15:01:55.247Z",
   "benchmark_source": "https://build.nvidia.com/models?filters=nimType%3Anim_type_preview&pageSize=100",
   "safe_rate_limit_rpm": 27,
   "request_delay_ms": 2200,
-  "primary": "meta/llama-3.2-11b-vision-instruct",
+  "primary": "nvidia/nemotron-3.5-super-vl-120b-a12b",
   "fallbacks": [
+    "meta/llama-3.2-11b-vision-instruct",
     "nvidia/nemotron-3-super-120b-a12b",
     "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning",
     "google/gemma-4-31b-it",
     "nvidia/nemotron-3.5-lightning-30b-a3b",
-    "meta/llama-3.2-90b-vision-instruct",
-    "nvidia/nemotron-3-ultra-550b-a55b"
+    "meta/llama-3.2-90b-vision-instruct"
   ],
   "models": [
     {
       "rank": 1,
       "tier": "default",
-      "model": "meta/llama-3.2-11b-vision-instruct",
-      "warmLatencyMs": 486,
-      "coldStartLatencyMs": 780,
-      "samples": 4,
+      "model": "nvidia/nemotron-3.5-super-vl-120b-a12b",
+      "warmLatencyMs": 392,
+      "coldStartLatencyMs": 842,
+      "samples": 2,
       "status": "healthy",
-      "category": "Vision-Language / Conversational",
-      "publisher": "meta"
+      "publisher": "nvidia"
     },
     {
       "rank": 2,
       "tier": "fallback_1",
-      "model": "nvidia/nemotron-3-super-120b-a12b",
-      "warmLatencyMs": 684,
-      "coldStartLatencyMs": 950,
+      "model": "meta/llama-3.2-11b-vision-instruct",
+      "warmLatencyMs": 790,
+      "coldStartLatencyMs": 1060,
       "samples": 4,
-      "status": "healthy",
-      "category": "Frontier Reasoning / High-Throughput",
-      "publisher": "nvidia"
+      "status": "standby",
+      "publisher": "meta"
     },
     {
       "rank": 3,
       "tier": "fallback_2",
-      "model": "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning",
-      "warmLatencyMs": 820,
-      "coldStartLatencyMs": 1120,
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "warmLatencyMs": 1010,
+      "coldStartLatencyMs": 1340,
       "samples": 4,
-      "status": "degraded_recovery",
-      "category": "Cadence & Multimodal Reasoning",
+      "status": "standby",
       "publisher": "nvidia"
     },
     {
       "rank": 4,
       "tier": "fallback_3",
-      "model": "google/gemma-4-31b-it",
-      "warmLatencyMs": 910,
-      "coldStartLatencyMs": 1250,
+      "model": "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning",
+      "warmLatencyMs": 1230,
+      "coldStartLatencyMs": 1620,
       "samples": 4,
       "status": "standby",
-      "category": "Instruction Tuning",
-      "publisher": "google"
+      "publisher": "nvidia"
     },
     {
       "rank": 5,
       "tier": "fallback_4",
-      "model": "nvidia/nemotron-3.5-lightning-30b-a3b",
-      "warmLatencyMs": 1050,
-      "coldStartLatencyMs": 1390,
+      "model": "google/gemma-4-31b-it",
+      "warmLatencyMs": 1450,
+      "coldStartLatencyMs": 1900,
       "samples": 4,
       "status": "standby",
-      "category": "High-Efficiency Conversational",
-      "publisher": "nvidia"
+      "publisher": "google"
     },
     {
       "rank": 6,
       "tier": "fallback_5",
-      "model": "meta/llama-3.2-90b-vision-instruct",
-      "warmLatencyMs": 1280,
-      "coldStartLatencyMs": 1850,
+      "model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+      "warmLatencyMs": 1670,
+      "coldStartLatencyMs": 2180,
       "samples": 4,
       "status": "standby",
-      "category": "Enterprise Multimodal",
-      "publisher": "meta"
+      "publisher": "nvidia"
     },
     {
       "rank": 7,
       "tier": "fallback_6",
-      "model": "nvidia/nemotron-3-ultra-550b-a55b",
-      "warmLatencyMs": 1420,
-      "coldStartLatencyMs": 2100,
+      "model": "meta/llama-3.2-90b-vision-instruct",
+      "warmLatencyMs": 1890,
+      "coldStartLatencyMs": 2460,
       "samples": 4,
       "status": "standby",
-      "category": "Deep Deliberation & Governance",
-      "publisher": "nvidia"
+      "publisher": "meta"
     }
   ],
   "failover_secondary": {
