@@ -90,7 +90,7 @@ export const SystemHealthBadge: React.FC = () => {
         <div className="absolute right-0 mt-2 w-64 rounded-xl bg-white dark:bg-slate-900 shadow-xl border border-slate-200 dark:border-slate-800 p-3 z-50 text-xs animate-in fade-in slide-in-from-top-1">
           <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800 mb-2">
             <span className="font-semibold text-slate-900 dark:text-white flex items-center gap-1.5">
-              <Activity className="w-3.5 h-3.5 text-indigo-500" />
+              <Activity className="w-3.5 h-3.5 text-cyan-500" />
               Diagnostics
             </span>
             <button
@@ -100,7 +100,7 @@ export const SystemHealthBadge: React.FC = () => {
               title="Refresh diagnostics"
             >
               {isRefreshing ? (
-                <MessageLoading className="w-3.5 h-3.5 text-indigo-500" />
+                <MessageLoading className="w-3.5 h-3.5 text-cyan-500" />
               ) : (
                 <RefreshCw className="w-3 h-3" />
               )}
@@ -119,6 +119,18 @@ export const SystemHealthBadge: React.FC = () => {
                 <span className="text-slate-400">Model:</span>
                 <span className="font-mono text-[11px] text-slate-800 dark:text-slate-200 truncate max-w-[120px]">
                   {info.configuration.ai_model}
+                </span>
+              </div>
+              <div className="flex justify-between items-center pt-0.5">
+                <span className="text-slate-400">NVIDIA Pool:</span>
+                <span className="font-mono text-[10px] px-1.5 py-0.5 rounded border border-cyan-500/40 bg-cyan-950/60 text-cyan-400 font-semibold">
+                  7 Tiers &bull; 27 RPM
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-400">Fail-Safe:</span>
+                <span className="font-mono text-[10px] text-cyan-300">
+                  Google Gemini 2.5
                 </span>
               </div>
               <div className="flex justify-between">
@@ -142,7 +154,7 @@ export const SystemHealthBadge: React.FC = () => {
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center py-3 text-slate-400 gap-1.5">
-              <MessageLoading className="text-indigo-500 w-5 h-5" />
+              <MessageLoading className="text-cyan-500 w-5 h-5" />
               <span className="text-[11px] font-mono">Pinging system telemetry...</span>
             </div>
           )}
