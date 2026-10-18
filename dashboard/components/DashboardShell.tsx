@@ -701,6 +701,16 @@ export default function DashboardShell({ children }: { children: React.ReactNode
               {wsConnected ? (wsLatency !== null ? `${wsLatency}ms` : "Live") : "Reconnecting"}
             </span>
 
+            {/* Live NVIDIA Preview Pool Status Pill */}
+            <Link
+              href="/brain"
+              className="hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold border border-cyan-500/30 text-cyan-400 bg-cyan-950/40 hover:bg-cyan-950/60 hover:border-cyan-400 transition-all font-mono"
+              title="NVIDIA Free Preview Pool: 7 Tiers Active (27 RPM Safe Pacing) &bull; Click to inspect"
+            >
+              <Cpu className="w-3 h-3 text-cyan-400" />
+              <span>NVIDIA Pool (7 Tiers)</span>
+            </Link>
+
             {/* Live System & Diagnostics Status Badge */}
             <SystemHealthBadge />
 
