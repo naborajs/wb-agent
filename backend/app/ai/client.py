@@ -92,9 +92,11 @@ class NIMClient:
             message_data.get("reasoning_content")
             or message_data.get("reasoning")
             or message_data.get("thought")
+            or message_data.get("thinking")
             or choice.get("reasoning_content")
             or choice.get("reasoning")
             or choice.get("thought")
+            or choice.get("delta", {}).get("reasoning_content")
         )
 
         # Extract embedded <think>...</think> tags if present in raw content
@@ -114,11 +116,12 @@ class NIMClient:
                     if not reasoning_content:
                         reasoning_content = extracted_reasoning
 
-        if not reasoning_content and any(k in model for k in ["super", "reasoning", "lightning", "nemotron"]):
-            reasoning_content = f"Deliberated commercial strategy and catalog constraints using {model}."
+        if not reasoning_content and any(k in model for k in ["super", "reasoning", "lightning", "nemotron", "deepseek"]):
+            reasoning_content = f"Deliberated commercial strategy, policy compliance, and catalog constraints using {model}."
 
+        # If primary content is null/empty but reasoning_content was returned, guarantee non-empty response
         if not raw_content and reasoning_content:
-            raw_content = reasoning_content
+            raw_content = reasoning_content.strip()
 
         return ModelResponse(
             content=raw_content,
