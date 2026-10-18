@@ -1,7 +1,7 @@
 ---
-title: "Complete REST API & WebSocket Reference (27 Routers / 138 Endpoints)"
-tags: [api, rest, websocket, openapi, endpoints, edith, friday, whatsapp, rag, pricing, ns]
-updated: 2026-09-29
+title: "Complete REST API & WebSocket Reference (28 Routers / 140 Endpoints)"
+tags: [api, rest, websocket, openapi, endpoints, edith, friday, whatsapp, rag, pricing, ns, nvidia, gemini]
+updated: 2026-10-18
 aliases: [API Reference, REST API, WebSocket Protocol]
 status: complete
 ---
@@ -24,7 +24,7 @@ status: complete
 
 ---
 
-## 2. Workspace Settings, AI Business Architect & WhatsApp Gateway Controls (`settings.py`)
+## 2. Workspace Settings, AI Model Discovery & Gateway Controls (`settings.py`, `models.py`)
 - `GET /api/v1/settings`: Returns operational toggles, 16 business profile/negotiation/policy rules, follow-up cadence, and active WhatsApp gateway mode (`unofficial` vs `official`).
 - `PATCH /api/v1/settings`: Updates operational toggles, business guardrails, owner WhatsApp phone, and official Meta Cloud API vs. unofficial Baileys parameters (persisted to `.workspace_config.json` and `.env`).
 - `GET /api/v1/settings/workspace-config`: Returns complete workspace state including `ui_mode` (`simplified` | `advanced`), 13 `feature_toggles`, `industry_presets` (6 built-in + custom), and live WhatsApp bridge status.
@@ -40,6 +40,8 @@ status: complete
 - `POST /api/v1/settings/models`: Updates primary model, fallback sequence, API keys, and hyperparameters (persisted to `.env` and runtime memory).
 - `POST /api/v1/settings/models/test`: Benchmarks live inference connectivity and latency (ms) for a specified model ID.
 - `GET /api/v1/settings/ai/metrics`: Returns real-time token, latency, and circuit-breaker telemetry for the AI router layer.
+- `GET /api/v1/models/nvidia-pool`: **NVIDIA 7-Tier Fallback Pool** — returns active auto-tuned models, warm response latencies, cold start isolation times, safe rate limit RPM (27 RPM), and fail-safe Google Gemini configuration.
+- `POST /api/v1/models/nvidia-pool/refresh`: Forces a reload of the prioritized model pool from `shared/nvidia-models-cache.json` or remote Supabase storage into runtime memory.
 
 ---
 
