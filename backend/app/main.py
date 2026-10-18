@@ -31,6 +31,7 @@ from app.api.routes import (
     webhooks,
     whatsapp,
     ws,
+    models,
 )
 from app.config import settings
 from app.jobs.worker import Worker
@@ -155,6 +156,7 @@ app.include_router(notifications.router, prefix=api_v1)
 app.include_router(watchdog.router, prefix=api_v1)
 app.include_router(system.router, prefix=api_v1)
 app.include_router(ws.router, prefix=api_v1)
+app.include_router(models.router, prefix=api_v1)
 
 
 @app.post("/api/voice-session-token")
