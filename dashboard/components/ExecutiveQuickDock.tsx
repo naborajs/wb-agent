@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import {
   Zap,
   Radio,
@@ -14,6 +15,7 @@ import {
   Plus,
   X,
   Play,
+  Cpu,
 } from "lucide-react";
 import MessageLoading from "@/components/ui/MessageLoading";
 
@@ -201,6 +203,16 @@ export default function ExecutiveQuickDock({
               </>
             )}
           </button>
+
+          {/* Action 5: Dual-Brain Telemetry & Model Pool */}
+          <Link
+            href="/brain"
+            className="px-3 py-1.5 rounded-xl bg-cyan-50 hover:bg-cyan-100 dark:bg-cyan-950/30 dark:hover:bg-cyan-950/50 text-cyan-800 dark:text-cyan-300 border border-cyan-300/80 dark:border-cyan-800/40 flex items-center gap-1.5 transition-all shadow-xs"
+            title="Inspect 7-tier auto-tuned NVIDIA preview model pool, latency benchmarks, and synaptic bus telemetry"
+          >
+            <Cpu className="w-3.5 h-3.5 text-cyan-500" />
+            <span>Dual-Brain Model Pool</span>
+          </Link>
         </div>
       </div>
 
