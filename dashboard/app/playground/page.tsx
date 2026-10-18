@@ -116,6 +116,28 @@ const PLAYGROUND_MODELS: PlaygroundModel[] = [
 
   // NVIDIA NIM Models (Included / Free under key)
   {
+    id: "nvidia/nemotron-3.5-super-vl-120b-a12b",
+    name: "Nemotron-3.5 Super VL 120B",
+    provider: "NVIDIA",
+    contextLimit: "131,072 tok",
+    isFree: true,
+    pricingLabel: "Auto-Tuned Rank 1 · 392ms",
+    description: "Calibrated Primary Model: Fast multimodal reasoning, commercial synthesis, and zero cold-start delay.",
+    latencyEst: "392ms",
+    features: ["⚡ Rank 1 Primary", "🤝 Sales Closer", "🛡️ Calibrated 392ms"],
+  },
+  {
+    id: "meta/llama-3.2-11b-vision-instruct",
+    name: "Llama 3.2 11B Vision Instruct",
+    provider: "NVIDIA",
+    contextLimit: "131,072 tok",
+    isFree: true,
+    pricingLabel: "Auto-Tuned Fallback 1 · 790ms",
+    description: "High-speed Tier 1 fallback with lightweight vision instruction and fast turnaround.",
+    latencyEst: "790ms",
+    features: ["⚡ Tier 1 Fallback", "🌐 Vision Grounding", "⚡ 790ms"],
+  },
+  {
     id: "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning",
     name: "Nemotron-3 Nano Omni 30B",
     provider: "NVIDIA",
@@ -1108,7 +1130,13 @@ function PlaygroundInner() {
                 isModelDropdownOpen ? (isDark ? "rotate-180 text-white" : "rotate-180 text-zinc-900") : ""
               }`}
             />
-            {currentModel.isFree ? (
+            {currentModel.pricingLabel.includes("Auto-Tuned") ? (
+              <span className={`hidden sm:inline-block px-1.5 py-0.5 text-[9px] font-bold rounded-md border ${
+                isDark ? "bg-cyan-950/80 text-cyan-400 border-cyan-500/40" : "bg-cyan-50 text-cyan-700 border-cyan-300"
+              }`}>
+                Auto-Tuned
+              </span>
+            ) : currentModel.isFree ? (
               <span className={`hidden sm:inline-block px-1.5 py-0.5 text-[9px] font-bold rounded-md border ${
                 isDark ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" : "bg-emerald-50 text-emerald-700 border-emerald-200"
               }`}>
@@ -1156,9 +1184,9 @@ function PlaygroundInner() {
                 </button>
               ))}
 
-              <div className="px-2 pt-3 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-emerald-500 flex items-center justify-between">
-                <span>NVIDIA NIM Suite</span>
-                <span className={`text-[9px] ${isDark ? "text-emerald-300" : "text-emerald-700"}`}>100% Free / Included</span>
+              <div className="px-2 pt-3 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-cyan-400 flex items-center justify-between">
+                <span>NVIDIA NIM Preview Suite</span>
+                <span className={`text-[9px] ${isDark ? "text-cyan-300" : "text-cyan-700"}`}>100% Free / Auto-Calibrated</span>
               </div>
               {PLAYGROUND_MODELS.filter((m) => m.provider === "NVIDIA").map((m) => (
                 <button
@@ -1169,17 +1197,24 @@ function PlaygroundInner() {
                   }}
                   className={`w-full text-left px-3 py-2 rounded-xl text-xs flex items-center justify-between transition-colors ${
                     selectedModelId === m.id
-                      ? "bg-emerald-500/20 text-emerald-400 font-semibold border border-emerald-500/30"
+                      ? "bg-cyan-500/20 text-cyan-400 font-semibold border border-cyan-500/30"
                       : isDark
                       ? "text-zinc-300 hover:bg-white/5"
                       : "text-zinc-700 hover:bg-black/5"
                   }`}
                 >
                   <div className="truncate">
-                    <div className="truncate font-medium">{m.name}</div>
-                    <div className={`text-[10px] ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>{m.latencyEst} · Free (NVIDIA Key)</div>
+                    <div className="truncate font-medium flex items-center gap-1.5">
+                      <span>{m.name}</span>
+                      {m.pricingLabel.includes("Auto-Tuned") && (
+                        <span className="text-[9px] font-mono px-1.5 py-0.2 rounded border border-cyan-500/40 bg-cyan-950 text-cyan-300">
+                          {m.pricingLabel.includes("Rank 1") ? "Primary" : "Tier 1"}
+                        </span>
+                      )}
+                    </div>
+                    <div className={`text-[10px] ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>{m.latencyEst} · {m.pricingLabel}</div>
                   </div>
-                  {selectedModelId === m.id && <Check className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />}
+                  {selectedModelId === m.id && <Check className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0" />}
                 </button>
               ))}
             </div>
