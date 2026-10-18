@@ -4,6 +4,29 @@ All notable changes to the **WhatsApp AI Agent by NS (EDITH + FRIDAY)** platform
 
 ---
 
+## [2.5.0] - 2026-10-18
+
+### Added
+- **NVIDIA Free Preview Discovery, Speed Benchmarking & 6-Tier Fallback Engine**:
+  - Automated out-of-band scraping script (`scripts/tune-nvidia-models.mjs`) querying `build.nvidia.com` for active preview endpoints.
+  - Text/chat model isolation filtering out non-conversational AI models (tabular, audio, pose, vision-only, TTS, calibration).
+  - 5-request sequential latency benchmark isolating cold start and computing true warm latency with strict 2,200ms rate pacing (~27 RPM safe speed).
+  - Multi-tier model ranking: Rank 1 as Default Primary, Ranks 2 through 7 as Fallback Tiers 1–6, persisted to `shared/nvidia-models-cache.json` and Supabase/Redis.
+  - Twice-daily automated GitHub Actions workflow (`.github/workflows/tune-nvidia-models.yml`) running at `00:00` and `12:00` UTC with automatic `[skip ci]` cache sync.
+- **Ultra-Resilient Dual-Brain Inference Client (`shared/nvidia-client.ts`)**:
+  - In-memory TTL cache delivering pre-calibrated model resolution in `< 0.01ms` (strictly `< 1ms` architecture requirement).
+  - Clear separation of model-specific errors (404, 410, 429, 500+, timeouts) from key-specific errors (401, 403).
+  - Cascading 6-tier fallback loop with 100% fail-safe handoff to Google Gemini (`gemini-2.5-flash` / `gemini-3.1-flash-lite`).
+  - Integration resilience test suite (`tests/test-nvidia-resilience.mjs`) validating priority resolution, live inference, cascade fallback, and Gemini handoff.
+- **Enterprise Intellectual Property, Architecture & Governance Charter**:
+  - `docs/INTELLECTUAL_PROPERTY_AND_GOVERNANCE.md`: Definitive IP rights, modular subsystem inventions, dual-brain architecture patents, Apache 2.0 licensing, and ethical guardrails.
+- **Deep Technical Specifications**:
+  - `docs/NVIDIA_AND_GEMINI_DUAL_BRAIN_SPEC.md`: Synaptic RPC message exchange format, token economics, latency SLAs, and Gemini Live 16kHz PCM duplex audio streaming.
+  - `docs/AUTONOMOUS_SALES_ENGINE_AND_GUARDRAILS.md`: SPIN selling framework, catalog grounding, MOQ enforcement, statutory 18% GST rules, and autonomous discount ceiling.
+  - `docs/nvidia-free-model-autotuning-and-fallbacks.md`: Production runbook and operational architecture for NVIDIA NIM zero-cost free preview scaling.
+
+---
+
 ## [2.4.0] - 2026-09-29
 
 ### Added
