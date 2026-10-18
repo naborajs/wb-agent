@@ -58,6 +58,7 @@ import { Badge } from "@/components/ui/badge";
 import { getWebSocketUrl } from "@/lib/utils";
 import { MessageLoading } from "@/components/ui/MessageLoading";
 import { Component as AiLoader } from "@/components/ui/ai-loader";
+import { NvidiaModelPoolStatus } from "@/components/ui/NvidiaModelPoolStatus";
 
 const brainRadarConfig = {
   friday: {
@@ -1280,6 +1281,9 @@ export default function DualBrainPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* NVIDIA Free Preview Model Discovery & 6-Tier Fallback Pool Telemetry */}
+      <NvidiaModelPoolStatus className="my-6" />
 
       {/* Main Two-Column Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
