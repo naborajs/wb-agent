@@ -362,6 +362,9 @@ The official documentation suite is deployed on [naborajs.me](https://naborajs.m
 
 ### 🧭 Role-Based & Hosting Guides
 - 🌐 **[Multi-Environment Hosting & Cloud Deployment Guide (VPS, Docker, Render, Railway, Vercel)](docs/HOSTING_AND_DEPLOYMENT.md)**
+- 🛡️ **[Intellectual Property, Inventions & AI Governance Charter](docs/INTELLECTUAL_PROPERTY_AND_GOVERNANCE.md)**
+- ⚡ **[NVIDIA & Gemini Dual-Brain Technical Protocol Specification](docs/NVIDIA_AND_GEMINI_DUAL_BRAIN_SPEC.md)**
+- 💼 **[Autonomous Sales Engine, Margin Defense & Commercial Guardrails](docs/AUTONOMOUS_SALES_ENGINE_AND_GUARDRAILS.md)**
 - 🧒 **[Beginner & Student Quick-Start Guide (Explain Like I'm 15)](assets%20docs/guides/beginner-quick-start.md)**
 - 💼 **[Business Owner & Operator Playbook (No-Code Setup & Daily Operations)](assets%20docs/guides/business-owner-guide.md)**
 - 🏛️ **[Senior Software Engineer & Systems Architect Reference](assets%20docs/guides/senior-developer-architecture.md)**
@@ -371,7 +374,7 @@ The official documentation suite is deployed on [naborajs.me](https://naborajs.m
 ### 🏛️ Core Architecture & Reference (`assets docs/`)
 - 🗺️ **[Master Knowledge Base Index (Obsidian MOC)](assets%20docs/index.md)**
 - 📐 **[System Architecture Deep Dive](assets%20docs/architecture.md)**
-- 🔌 **[Complete REST API & WebSocket Reference (All 137 Endpoints)](assets%20docs/api-reference.md)**
+- 🔌 **[Complete REST API & WebSocket Reference (All 140 Endpoints)](assets%20docs/api-reference.md)**
 - 🖥️ **[Dashboard Visual Operations Tour (All 17 Routes)](assets%20docs/visual-tour.md)**
 - 🎙️ **[Voice Agent Architecture & Security Specification](VOICE-AGENT.md)**
 - 🔄 **[16-Stage Conversational Sales State Machine](assets%20docs/architecture/conversational-state-machine.md)**
@@ -380,7 +383,7 @@ The official documentation suite is deployed on [naborajs.me](https://naborajs.m
 - ⚙️ **[Durable Job Queue & Worker Architecture](assets%20docs/architecture/durable-queue-and-worker.md)**
 - 🤝 **[Consultative SPIN Sales Framework](assets%20docs/sales/consultative-framework.md)**
 - 🛡️ **[Security & Threat Model](assets%20docs/security/threat-model.md)**
-- 📋 **[Platform Changelog (`v2.4.0`)](assets%20docs/CHANGELOG.md)**
+- 📋 **[Platform Changelog (`v2.5.0`)](assets%20docs/CHANGELOG.md)**
 
 ### 🚀 Setup, Operations & Troubleshooting Runbooks
 - **[01. Prerequisites & System Requirements](assets%20docs/setup/01-prerequisites-and-system-requirements.md)**
