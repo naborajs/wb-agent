@@ -40,7 +40,7 @@ jobs:
           PYTHONPATH: backend
           DATABASE_URL: sqlite+aiosqlite:///./wb_agent_ci.db
         run: |
-          python -c "import asyncio; from app.database.session import get_engine; from app.database.base import Base; import app.database.models; asyncio.run((lambda: None)())"
+          python -c "import asyncio; from app.database.session import get_engine; from app.database.base import Base; import app.database.models; exec('async def init():\n    engine = get_engine()\n    async with engine.begin() as conn:\n        await conn.run_sync(Base.metadata.create_all)\n    await engine.dispose()\nasyncio.run(init())')"
 
       - name: Verify WhatsApp Bridge Syntax
         run: |
