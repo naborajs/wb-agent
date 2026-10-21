@@ -166,8 +166,8 @@ async def send_whatsapp_ping(req: SendPingRequest) -> Dict[str, Any]:
         "🤖 *WB-Agent (EDITH) Diagnostic Ping*\n\n"
         "✅ WhatsApp integration is connected and healthy!\n"
         f"• Target line: {normalized_target}\n"
-        f"• Company: {settings.COMPANY_NAME}\n"
-        f"• AI Engine: {settings.LLM_MODEL}\n"
+        f"• Company: {settings.BUSINESS_NAME}\n"
+        f"• AI Engine: {settings.NVIDIA_MODEL}\n"
         "• Status: Ready to assist customers."
     )
 
