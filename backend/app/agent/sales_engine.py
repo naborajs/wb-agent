@@ -120,7 +120,7 @@ class ConsultativeSalesEngine:
             "machinery", "real estate", "land", "fertilizer", "investments", "stock equity",
             "crypto", "bitcoin", "loan", "mortgage"
         ]
-        matched_topic = next((topic for topic in unsupported_topics if topic in lower), None)
+        matched_topic = next((topic for topic in unsupported_topics if re.search(rf"\b{re.escape(topic)}\b", lower)), None)
         if matched_topic and not knowledge_available:
             return SalesDecision(
                 action="ANSWER",
