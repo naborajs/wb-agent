@@ -44,19 +44,26 @@ class PassiveInformationExtractor:
         lower = text.lower()
 
         # 1. Extract Quantity (e.g. 50kg, 100 kg, 20 chests, 500 kilograms, 50 units, 10 boxes, 200 pcs)
-        qty_match = re.search(r"(\d+(?:\.\d+)?)\s*(?:kg|kgs|kilo|kilos|kilogram|kilograms|units|unit|pcs|pc|pieces|boxes|box|cartons|carton|packs|pack|pallets|pallet|chests|chest|ton|tons)", lower)
+        qty_match = re.search(r"(\d+(?:\.\d+)?)\s*(kg|kgs|kilo|kilos|kilogram|kilograms|units|unit|pcs|pc|pieces|boxes|box|cartons|carton|packs|pack|pallets|pallet|chests|chest|tons|ton)\b", lower)
         if qty_match:
             val = float(qty_match.group(1))
+            matched_unit = qty_match.group(2)
             unit = "unit"
-            if "ton" in lower:
+            if matched_unit in ("ton", "tons"):
                 val *= 1000
                 unit = "kg"
-            elif any(u in lower for u in ["kg", "kgs", "kilo", "kilogram"]):
+            elif matched_unit in ("kg", "kgs", "kilo", "kilos", "kilogram", "kilograms"):
                 unit = "kg"
-            elif any(u in lower for u in ["box", "carton"]):
+            elif matched_unit in ("boxes", "box", "cartons", "carton"):
                 unit = "boxes"
-            elif any(u in lower for u in ["pallet"]):
+            elif matched_unit in ("pallets", "pallet"):
                 unit = "pallets"
+            elif matched_unit in ("chests", "chest"):
+                unit = "chests"
+            elif matched_unit in ("packs", "pack"):
+                unit = "packs"
+            elif matched_unit in ("pcs", "pc", "pieces"):
+                unit = "pcs"
             facts.quantity_numeric = val
             facts.quantity_numeric_kg = val  # backward compatibility alias
             if unit == "kg":
