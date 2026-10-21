@@ -33,15 +33,29 @@ class CodebaseService:
     search functions, trace exceptions, and verify architecture.
     """
 
-    @staticmethod
-    def _resolve_safe_path(rel_path: str) -> Path:
-        """Resolves path relative to project root and prevents directory traversal attacks."""
+    BLOCKED_FILE_PREFIXES = (".env", ".git")
+    BLOCKED_EXTENSIONS = (".db", ".sqlite", ".sqlite3", ".bak", ".key", ".pem")
+    BLOCKED_DIR_NAMES = {".git", "auth_info_baileys"}
+
+    @classmethod
+    def _resolve_safe_path(cls, rel_path: str) -> Path:
+        """Resolves path relative to project root and prevents directory traversal attacks and secrets leakage."""
         clean = rel_path.strip().lstrip("/\\")
         target = (PROJECT_ROOT / clean).resolve()
         try:
             target.relative_to(PROJECT_ROOT)
         except ValueError:
             raise ValueError(f"Access denied: path '{rel_path}' is outside the repository root.")
+
+        # Guard against sensitive files, environment secrets, and database dumps
+        target_name_lower = target.name.lower()
+        if any(target_name_lower.startswith(prefix) for prefix in cls.BLOCKED_FILE_PREFIXES):
+            raise ValueError(f"Access denied: access to '{rel_path}' is restricted for security.")
+        if target.suffix.lower() in cls.BLOCKED_EXTENSIONS:
+            raise ValueError(f"Access denied: access to '{rel_path}' is restricted for security.")
+        if any(part in cls.BLOCKED_DIR_NAMES for part in target.parts):
+            raise ValueError(f"Access denied: directory containing '{rel_path}' is restricted for security.")
+
         return target
 
     @classmethod
