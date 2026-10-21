@@ -24,20 +24,27 @@ def backup_database(db_path: Path, backup_dir: Path, max_retentions: int = 10) -
     backup_file = backup_dir / f"{db_path.stem}_backup_{timestamp}.db"
 
     print(f"\n[*] Creating snapshot for {db_path.name}...")
-    source_conn = sqlite3.connect(str(db_path))
-    dest_conn = sqlite3.connect(str(backup_file))
-
     try:
-        # SQLite online backup API ensures transaction safety while server runs
-        source_conn.backup(dest_conn)
-        dest_conn.close()
-        source_conn.close()
+        source_conn = sqlite3.connect(str(db_path))
+        try:
+            dest_conn = sqlite3.connect(str(backup_file))
+            try:
+                # SQLite online backup API ensures transaction safety while server runs
+                source_conn.backup(dest_conn)
+            finally:
+                dest_conn.close()
+        finally:
+            source_conn.close()
+
         print(f"[OK] Backup snapshot created: {backup_file.name} ({backup_file.stat().st_size / 1024:.1f} KB)")
 
         # Verify backup integrity
         verify_conn = sqlite3.connect(str(backup_file))
-        res = verify_conn.execute("PRAGMA quick_check").fetchone()[0]
-        verify_conn.close()
+        try:
+            res = verify_conn.execute("PRAGMA quick_check").fetchone()[0]
+        finally:
+            verify_conn.close()
+
         if res != "ok":
             print(f"[ERROR] Backup integrity check failed: {res}")
             return None
