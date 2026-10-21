@@ -86,7 +86,7 @@ class ConversationService:
             if c.channel == "playground" or (c.channel_id and "@g.us" in c.channel_id):
                 key = f"{c.channel}:{c.id}"
             else:
-                raw_phone = c.channel_id or (c.customer.phone_number if c.customer else "") or c.customer_id
+                raw_phone = c.channel_id or (c.customer.primary_phone if c.customer else "") or c.customer_id
                 canon = self.canonicalize_channel_id(raw_phone, c.channel)
                 digits = "".join(ch for ch in canon if ch.isdigit())
                 # If it's an unmapped >13 digit LID, fold it into +919832439994 if present
